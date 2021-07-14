@@ -5,6 +5,10 @@ import seaborn as sns
 
 # Distribution graphs (histogram/bar graph) of column data
 def plotPerColumnDistribution(df, nGraphShown, nGraphPerRow):
+    """
+    from Kaggle's google dataset page
+    https://www.kaggle.com/kerneler/starter-android-smartphones-high-63984241-5
+    """
     nunique = df.nunique()
     df = df[[col for col in df if nunique[col] > 1 and nunique[col] < 50]] # For displaying purposes, pick columns that have between 1 and 50 unique values
     nRow, nCol = df.shape
@@ -28,6 +32,10 @@ def plotPerColumnDistribution(df, nGraphShown, nGraphPerRow):
 
 # Correlation matrix
 def plotCorrelationMatrix(df, graphWidth):
+    """
+    from Kaggle's google dataset page
+    https://www.kaggle.com/kerneler/starter-android-smartphones-high-63984241-5
+    """
     filename = df.dataframeName
     df = df.dropna('columns') # drop columns with NaN
     df = df[[col for col in df if df[col].nunique() > 1]] # keep columns where there are more than 1 unique values
@@ -47,6 +55,10 @@ def plotCorrelationMatrix(df, graphWidth):
 
 # Scatter and density plots
 def plotScatterMatrix(df, plotSize, textSize):
+    """
+    from Kaggle's google dataset page
+    https://www.kaggle.com/kerneler/starter-android-smartphones-high-63984241-5
+    """
     df = df.select_dtypes(include =[np.number]) # keep only numerical columns
     # Remove rows and columns that would lead to df being singular
     df = df.dropna('columns')

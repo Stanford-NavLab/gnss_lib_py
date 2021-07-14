@@ -8,6 +8,8 @@ pd.options.mode.chained_assignment = None
 
 # Extract data different timesteps
 def extract_timedata(input_path):
+  """Shubh wrote these (may have google MATLAB counterpart)
+  """
   raw_data = []
   fix_data = []
   header_fix = ''
@@ -34,6 +36,8 @@ def extract_timedata(input_path):
 #Extract data continuous and make a csv
 # field - 'Raw', 'Accel', 'Gyro'
 def make_csv(input_path, field):
+  """Shubh wrote these (may have google MATLAB counterpart)
+  """
   out_path = field + ".csv"
   with open(out_path, 'w') as f:
     writer = csv.writer(f)
@@ -51,10 +55,12 @@ def make_csv(input_path, field):
           line_data = line.rstrip('\n').replace(" ","").split(",")
           if line_data[0] == field:
             writer.writerow(line_data[1:])
-  return out_path  
+  return out_path
 
 # Read Android raw file and produce gnss dataframe objects
 def make_gnss_dataframe(input_path, verbose=False):
+  """Shubh wrote this
+  """
   with open(input_path) as csvfile:
     reader = csv.reader(csvfile)
     for row in reader:
@@ -76,6 +82,8 @@ def make_gnss_dataframe(input_path, verbose=False):
 
 # Read Android raw file and produce imu dataframe objects
 def make_imu_dataframe(input_path, verbose=False):
+  """Adam Dai wrote this
+  """
   with open(input_path) as csvfile:
     reader = csv.reader(csvfile)
     for row in reader:
@@ -97,9 +105,11 @@ def make_imu_dataframe(input_path, verbose=False):
 
 # Compute required quantities from the log and check for errors
 def fix_log(measurements, verbose=False):
+  """Shubh wrote this
+  """
   # Add leading 0
   measurements.loc[measurements['Svid'].str.len() == 1, 'Svid'] = '0' + measurements['Svid']
-  
+
   # Compatibility with RINEX files
   measurements.loc[measurements['ConstellationType'] == '1', 'Constellation'] = 'G'
   measurements.loc[measurements['ConstellationType'] == '3', 'Constellation'] = 'R'
@@ -133,6 +143,8 @@ def fix_log(measurements, verbose=False):
 
 #Check and fix clock field errors
 def check_gnss_clock(gnssRaw, gnssAnalysis):
+  """Shubh wrote this
+  """
   # list of clock fields
   gnssClockFields = [
     'TimeNanos',
@@ -166,9 +178,11 @@ def check_gnss_clock(gnssRaw, gnssAnalysis):
     gnssAnalysis.append('FAIL Clock check')
   gnssRaw['allRxMillis'] = ((gnssRaw.TimeNanos - gnssRaw.FullBiasNanos)/1e6)
   return gnssRaw, gnssAnalysis
-  
+
 #Check GNSS Measurements
 def check_gnss_measurements(gnssRaw, gnssAnalysis):
+  """Shubh wrote this (has GOOGLE MATLAB counterpart)
+  """
   # list of measurement fields
   gnssMeasurementFields = [
       'Cn0DbHz',
@@ -190,6 +204,8 @@ def check_gnss_measurements(gnssRaw, gnssAnalysis):
 
 # Compute times and epochs
 def compute_times(gnssRaw, gnssAnalysis):
+  """Shubh wrote this (has GOOGLE MATLAB counterpart)
+  """
   gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
   gnssRaw['GpsWeekNumber'] = np.floor(-1*gnssRaw['FullBiasNanos']*1e-9/WEEKSEC)
   gnssRaw['GpsTimeNanos'] = gnssRaw['TimeNanos'] - (gnssRaw['FullBiasNanos'] - gnssRaw['BiasNanos'])
@@ -204,6 +220,8 @@ def compute_times(gnssRaw, gnssAnalysis):
   return gnssRaw, gnssAnalysis
 
 def compute_pseudorange(gnssRaw, gnssAnalysis):
+  """Shubh wrote this (has GOOGLE MATLAB counterpart)
+  """
   gnssRaw['Pseudorange_seconds'] = gnssRaw['tRxSeconds'] - gnssRaw['tTxSeconds']
   gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*LIGHTSPEED
   gnssRaw['Pseudorange_sigma_meters'] = LIGHTSPEED * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']

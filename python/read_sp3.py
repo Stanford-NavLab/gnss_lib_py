@@ -7,6 +7,9 @@ from scipy import interpolate
 import constants
 
 def datetime_to_tow(t):
+    """
+    Shubh got this from somewhere (need to determine where)
+    """
     # DateTime to GPS week and TOW
     wk_ref = datetime(2014, 2, 16, 0, 0, 0, 0, None)
     refwk = 1780
@@ -15,6 +18,9 @@ def datetime_to_tow(t):
     return tow
 
 class PreciseNav(object):
+    """
+    Shubh wrote this
+    """
     def __init__(self, date, sat_position):
         self.date = date
         self.tow = datetime_to_tow(date)
@@ -28,6 +34,9 @@ class PreciseNav(object):
 
 #Read SP3
 def parse_sp3(path):
+    """
+    Shubh wrote this
+    """
     print("\nParsing %s:" % path)
     with open(path) as fd:
         data = fd.readlines()
@@ -47,6 +56,9 @@ def parse_sp3(path):
 
 # Rotate to correct ECEF satellite positions
 def flight_time_correct(X, Y, Z, flight_time):
+    """
+    Shubh wrote this
+    """
     theta = constants.WE * flight_time/1e6
     R = np.array([[np.cos(theta), np.sin(theta), 0.], [-np.sin(theta), np.cos(theta), 0.], [0., 0., 1.]])
 
@@ -56,6 +68,9 @@ def flight_time_correct(X, Y, Z, flight_time):
 
 # Interpolate satellite position and correction for time t and prn
 def interpol_sp3(sp3, prn, t):
+  """
+  Shubh wrote this
+  """
   inter_rad = 3
   subar = sp3['G'+"%02d" % prn]
   low_i, high_i = 0, 0
@@ -64,10 +79,10 @@ def interpol_sp3(sp3, prn, t):
       low_i = max(0, i-inter_rad)
       high_i = min(i+inter_rad, len(subar))
       break
-  
+
   if high_i-low_i<1:
     return 0., 0., 0., 0.
-  
+
   _t = np.zeros(high_i-low_i)
   _X = np.zeros(high_i-low_i)
   _Y = np.zeros(high_i-low_i)
@@ -80,7 +95,7 @@ def interpol_sp3(sp3, prn, t):
     _Y[i-low_i] = xyz[1]
     _Z[i-low_i] = xyz[2]
     _B[i-low_i] = subar[i].time_offset()
-  
+
   X = interpolate.interp1d(_t, _X)
   Y = interpolate.interp1d(_t, _Y)
   Z = interpolate.interp1d(_t, _Z)

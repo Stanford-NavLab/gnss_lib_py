@@ -9,6 +9,8 @@ def _obstime(fol):
     """
     Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
+
+    Shubh got it from somewhere (need to determine)
     """
     year = int(fol[0])
     if 80 <= year <= 99:
@@ -23,6 +25,8 @@ def _obstime(fol):
                     )
 
 def read_rinex2(input_path):
+  """ Shubh wrote this
+  """
   STARTCOL2 = 3
   Nl = 7  # number of additional lines per record, for RINEX 2 NAV
   Lf = 19  # string length per field
@@ -47,12 +51,12 @@ def read_rinex2(input_path):
     #             'Z', 'dZ', 'dZ2', 'AgeOpInfo']
     else:
       raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {line}')
-    
+
     # %% skip header, which has non-constant number of rows
     while True:
       if 'END OF HEADER' in f.readline():
         break
-    
+
     # %% read data
     for ln in f:
       # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
@@ -68,7 +72,7 @@ def read_rinex2(input_path):
           raw += f.readline()[STARTCOL2:79]
       # one line per SV
       raws.append(raw.replace('D', 'E'))
-    
+
     # %% parse
     t = np.array([np.datetime64(t, 'ns') for t in dt])
     svu = sorted(set(svs))
@@ -78,12 +82,12 @@ def read_rinex2(input_path):
       # Duplicates
       if tu.size != t[svi].size:
         continue
-      
+
       darr = np.empty((1, len(fields)))
 
       ephem_ent = 3
       darr[0, :] = np.genfromtxt(BytesIO(raws[svi[ephem_ent]].encode('ascii')), delimiter=[Lf]*len(fields))
-      
+
       dsf = pd.DataFrame(data=darr, index=[sv], columns=fields)
       dsf['time'] = t[svi[ephem_ent]]
       dsf['Svid'] = sv
@@ -92,8 +96,10 @@ def read_rinex2(input_path):
       dsf_main = pd.concat([dsf_main, dsf])
   return dsf_main
 
-#Ephemeris to ECEF coordinates 
+#Ephemeris to ECEF coordinates
 def _kepler(mk, e):
+  """ Shubh wrote this (have GOOGLE matlab counterpart)
+  """
   ek = mk
   count = 0
   max_count = 20
@@ -104,9 +110,11 @@ def _kepler(mk, e):
     count += 1
   return ek
 
-  #TODO: Delete versions of the code 
+  #TODO: Delete versions of the code
 
 def _ephem2xyz(ephem, data):
+  """ Shubh wrote this (have GOOGLE matlab counterpart)
+  """
   tk = (data.Week-ephem.GPSWeek)*604800 + (data.ReceivedSvTimeNanos/1e9 - ephem.Toe)      # Time since time of applicability accounting for weeks
   A = ephem.sqrtA**2      # semi-major axis of orbit
   n0 = np.sqrt(3.986005e14/A**3)   # Computed mean motion (rad/sec)
@@ -126,7 +134,7 @@ def _ephem2xyz(ephem, data):
   duk = ephem.Cus*sin_2Phik + ephem.Cuc*cos_2Phik   # Argument of latitude correction
   drk = ephem.Crc*cos_2Phik + ephem.Crs*sin_2Phik   # Radius Correction
   dik = ephem.Cic*cos_2Phik + ephem.Cis*sin_2Phik   # Correction to Inclination
-  
+
   uk = Phik + duk
   rk = A*((1-ephem.Eccentricity**2)/(1+ephem.Eccentricity*np.cos(vk))) + drk
   ik = ephem.Io + ephem.IDOT*tk + dik
@@ -151,6 +159,8 @@ def _ephem2xyz(ephem, data):
 
 # satellite position from transmit time
 def calc_satpos(ephemeris, transmit_time):
+  """ Shubh wrote this (have GOOGLE matlab counterpart)
+  """
   mu = 3.986005e14
   OmegaDot_e = 7.2921151467e-5
   F = -4.442807633e-10
@@ -170,7 +180,7 @@ def calc_satpos(ephemeris, transmit_time):
       err = new_vals - E_k
       E_k = new_vals
       i += 1
-      
+
   sinE_k = np.sin(E_k)
   cosE_k = np.cos(E_k)
   delT_r = F * ephemeris['e'].pow(ephemeris['sqrtA']) * sinE_k
@@ -206,6 +216,8 @@ def calc_satpos(ephemeris, transmit_time):
 
 # Rotate to correct ECEF satellite positions
 def flight_time_correct(X, Y, Z, flight_time):
+    """ Shubh wrote this (have GOOGLE matlab counterpart)
+    """
     theta = WE * flight_time/1e6
     R = np.array([[np.cos(theta), np.sin(theta), 0.], [-np.sin(theta), np.cos(theta), 0.], [0., 0., 1.]])
 

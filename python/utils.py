@@ -5,10 +5,14 @@ import datetime
 pi = math.pi
 # Generate points in a circle
 def PointsInCircum(r, n=100):
+    """Shubh wrote this
+    """
     return np.array([[math.cos(2*pi/n*x)*r, math.sin(2*pi/n*x)*r] for x in range(0, n+1)])
 
 
 def sats_from_el_az(elaz_deg):
+    """Ashwin wrote this
+    """
     assert np.shape(elaz_deg)[1] == 2, "elaz_deg should be a Nx2 array"
     el = np.deg2rad(elaz_deg[:, 0])
     az = np.deg2rad(elaz_deg[:,1])
@@ -21,6 +25,8 @@ def sats_from_el_az(elaz_deg):
 
 
 def datetime_to_tow(t, convert_gps=True):
+    """Shubh got from somwhere (need to determine)
+    """
     """
     Convert a Python datetime object to GPS Week and Time Of Week.
     Does *not* convert from UTC to GPST.

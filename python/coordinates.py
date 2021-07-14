@@ -7,6 +7,7 @@ esq = 6.69437999014 * 0.001
 e1sq = 6.73949674228 * 0.001
 
 def geodetic2ecef(geodetic, radians=False):
+  #Coordinate conversions (From https://github.com/commaai/laika)
   geodetic = np.array(geodetic)
   input_shape = geodetic.shape
   geodetic = np.atleast_2d(geodetic)
@@ -27,6 +28,7 @@ def geodetic2ecef(geodetic, radians=False):
 def ecef2geodetic(ecef, radians=False):
   """
   Convert ECEF coordinates to geodetic using ferrari's method
+  #Coordinate conversions (From https://github.com/commaai/laika)
   """
   # Save shape and export column
   ecef = np.atleast_1d(ecef)
@@ -64,6 +66,7 @@ class LocalCoord(object):
    Allows conversions to local frames. In this case NED.
    That is: North East Down from the start position in
    meters.
+   #Coordinate conversions (From https://github.com/commaai/laika)
   """
   def __init__(self, init_geodetic, init_ecef):
     self.init_ecef = init_ecef
@@ -74,16 +77,19 @@ class LocalCoord(object):
     self.ecef2ned_matrix = self.ned2ecef_matrix.T
 
   @classmethod
+  #Coordinate conversions (From https://github.com/commaai/laika)
   def from_geodetic(cls, init_geodetic):
     init_ecef = geodetic2ecef(init_geodetic)
     return LocalCoord(init_geodetic, init_ecef)
 
   @classmethod
+  #Coordinate conversions (From https://github.com/commaai/laika)
   def from_ecef(cls, init_ecef):
     init_geodetic = ecef2geodetic(init_ecef)
     return LocalCoord(init_geodetic, init_ecef)
 
   def ecef2ned(self, ecef):
+    #Coordinate conversions (From https://github.com/commaai/laika)
     ecef = np.array(ecef)
     # Convert to column vectors for calculation before returning in the same shape as the input
     input_shape = ecef.shape
@@ -94,6 +100,7 @@ class LocalCoord(object):
     return np.reshape(return_vect, input_shape)
 
   def ecef2nedv(self, ecef):
+    """Shubh added this"""
     ecef = np.array(ecef)
     # Convert to column vectors for calculation before returning in the same shape as the input
     input_shape = ecef.shape
@@ -104,6 +111,7 @@ class LocalCoord(object):
     return np.reshape(return_vect, input_shape)
 
   def ned2ecef(self, ned):
+    #Coordinate conversions (From https://github.com/commaai/laika)
     ned = np.array(ned)
     # Convert to column vectors for calculation before returning in the same shape as the input
     input_shape = ned.shape
@@ -116,6 +124,7 @@ class LocalCoord(object):
     # return np.reshape(return_vect, input_shape)
 
   def ned2ecefv(self, ned):
+    #Coordinate conversions (From https://github.com/commaai/laika)
     ned = np.array(ned)
     # Convert to column vectors for calculation before returning in the same shape as the input
     input_shape = ned.shape
@@ -126,11 +135,13 @@ class LocalCoord(object):
       return_vect = np.matmul(self.ned2ecef_matrix, ned.T)
       return return_vect.T
     # return np.reshape(return_vect, input_shape)
-    
+
   def geodetic2ned(self, geodetic):
+    #Coordinate conversions (From https://github.com/commaai/laika)
     ecef = geodetic2ecef(geodetic)
     return self.ecef2ned(ecef)
 
   def ned2geodetic(self, ned):
+    #Coordinate conversions (From https://github.com/commaai/laika)
     ecef = self.ned2ecef(ned)
     return ecef2geodetic(ecef)

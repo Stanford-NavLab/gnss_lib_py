@@ -1,6 +1,7 @@
 ############################################################################################################################
 # Ephemeris manager class (https://github.com/johnsonmitchelld/gnss-analysis/blob/main/gnssutils/ephemeris_manager.py)
-# modified by Shubh Gupta
+# ENTIRE FILE...
+# modified by Shubh Gupta (small changes to modify to google dataset)
 ############################################################################################################################
 
 from ftplib import FTP_TLS, FTP
