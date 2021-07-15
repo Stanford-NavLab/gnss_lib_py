@@ -25,76 +25,76 @@ def _obstime(fol):
                     )
 
 def read_rinex2(input_path):
-  """ Shubh wrote this
-  """
-  STARTCOL2 = 3
-  Nl = 7  # number of additional lines per record, for RINEX 2 NAV
-  Lf = 19  # string length per field
-  svs, raws = [], []
-  dt = []
-  dsf_main = pd.DataFrame()
-  with open(input_path, 'r') as f:
-    line = f.readline()
-    ver = float(line[:9])
-    assert int(ver) == 2
-    if line[20] == 'N':
-      svtype = 'G'  # GPS
-      fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate', 'IODE', 'Crs', 'DeltaN',
-                'M0', 'Cuc', 'Eccentricity', 'Cus', 'sqrtA', 'Toe', 'Cic', 'Omega0', 'Cis', 'Io',
-                'Crc', 'omega', 'OmegaDot', 'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag', 'SVacc',
-                'health', 'TGD', 'IODC', 'TransTime', 'FitIntvl']
-    # elif line[20] == 'G':
-    #   svtype = 'R'  # GLONASS
-    #   fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
-    #             'X', 'dX', 'dX2', 'health',
-    #             'Y', 'dY', 'dY2', 'FreqNum',
-    #             'Z', 'dZ', 'dZ2', 'AgeOpInfo']
-    else:
-      raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {line}')
+    """ Shubh wrote this
+    """
+    STARTCOL2 = 3
+    Nl = 7  # number of additional lines per record, for RINEX 2 NAV
+    Lf = 19  # string length per field
+    svs, raws = [], []
+    dt = []
+    dsf_main = pd.DataFrame()
+    with open(input_path, 'r') as f:
+        line = f.readline()
+        ver = float(line[:9])
+        assert int(ver) == 2
+        if line[20] == 'N':
+            svtype = 'G'  # GPS
+            fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate', 'IODE', 'Crs', 'DeltaN',
+                      'M0', 'Cuc', 'Eccentricity', 'Cus', 'sqrtA', 'Toe', 'Cic', 'Omega0', 'Cis', 'Io',
+                      'Crc', 'omega', 'OmegaDot', 'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag', 'SVacc',
+                      'health', 'TGD', 'IODC', 'TransTime', 'FitIntvl']
+        # elif line[20] == 'G':
+        #   svtype = 'R'  # GLONASS
+        #   fields = ['SVclockBias', 'SVrelFreqBias', 'MessageFrameTime',
+        #             'X', 'dX', 'dX2', 'health',
+        #             'Y', 'dY', 'dY2', 'FreqNum',
+        #             'Z', 'dZ', 'dZ2', 'AgeOpInfo']
+        else:
+            raise NotImplementedError(f'I do not yet handle Rinex 2 NAV {line}')
 
-    # %% skip header, which has non-constant number of rows
-    while True:
-      if 'END OF HEADER' in f.readline():
-        break
+        # %% skip header, which has non-constant number of rows
+        while True:
+            if 'END OF HEADER' in f.readline():
+                break
 
-    # %% read data
-    for ln in f:
-      # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
-      svs.append(int(ln[:2]))
-      # format I2
-      dt.append(_obstime([ln[3:5], ln[6:8], ln[9:11],
-                          ln[12:14], ln[15:17], ln[17:20], ln[17:22]]))
-      """
-      now get the data as one big long string per SV
-      """
-      raw = ln[22:79]  # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
-      for _ in range(Nl):
-          raw += f.readline()[STARTCOL2:79]
-      # one line per SV
-      raws.append(raw.replace('D', 'E'))
+        # %% read data
+        for ln in f:
+            # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
+            svs.append(int(ln[:2]))
+            # format I2
+            dt.append(_obstime([ln[3:5], ln[6:8], ln[9:11],
+                                ln[12:14], ln[15:17], ln[17:20], ln[17:22]]))
+            """
+            now get the data as one big long string per SV
+            """
+            raw = ln[22:79]  # NOTE: MUST be 79, not 80 due to some files that put \n a character early!
+            for _ in range(Nl):
+                raw += f.readline()[STARTCOL2:79]
+            # one line per SV
+            raws.append(raw.replace('D', 'E'))
 
-    # %% parse
-    t = np.array([np.datetime64(t, 'ns') for t in dt])
-    svu = sorted(set(svs))
-    for sv in svu:
-      svi = [i for i, s in enumerate(svs) if s == sv]
-      tu = np.unique(t[svi])
-      # Duplicates
-      if tu.size != t[svi].size:
-        continue
+        # %% parse
+        t = np.array([np.datetime64(t, 'ns') for t in dt])
+        svu = sorted(set(svs))
+        for sv in svu:
+            svi = [i for i, s in enumerate(svs) if s == sv]
+            tu = np.unique(t[svi])
+            # Duplicates
+            if tu.size != t[svi].size:
+                continue
 
-      darr = np.empty((1, len(fields)))
+            darr = np.empty((1, len(fields)))
 
-      ephem_ent = 3
-      darr[0, :] = np.genfromtxt(BytesIO(raws[svi[ephem_ent]].encode('ascii')), delimiter=[Lf]*len(fields))
+            ephem_ent = 3
+            darr[0, :] = np.genfromtxt(BytesIO(raws[svi[ephem_ent]].encode('ascii')), delimiter=[Lf]*len(fields))
 
-      dsf = pd.DataFrame(data=darr, index=[sv], columns=fields)
-      dsf['time'] = t[svi[ephem_ent]]
-      dsf['Svid'] = sv
+            dsf = pd.DataFrame(data=darr, index=[sv], columns=fields)
+            dsf['time'] = t[svi[ephem_ent]]
+            dsf['Svid'] = sv
 
-      # print(dsf['time'], dsf.GPSWeek)
-      dsf_main = pd.concat([dsf_main, dsf])
-  return dsf_main
+            # print(dsf['time'], dsf.GPSWeek)
+            dsf_main = pd.concat([dsf_main, dsf])
+    return dsf_main
 
 """
 Code that follows is a copy and is going to be removed

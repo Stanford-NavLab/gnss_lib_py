@@ -132,6 +132,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "reindent"
+version = "3.5.1"
+description = "reindent script by Tim Peters"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "scipy"
 version = "1.7.0"
 description = "SciPy: Scientific Library for Python"
@@ -212,7 +220,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "3.8.9"
-content-hash = "60472b9f4a9eb9f8099b99a14f76135062bed8e67fc8651aaa41e7ddd5f19d1e"
+content-hash = "ddf689dfc0df775ad2a84c5dd82c59369a06e7628b6fcf49d0abe0854336bd83"
 
 [metadata.files]
 cycler = [
@@ -387,6 +395,10 @@ python-dateutil = [
 pytz = [
     {file = "pytz-2021.1-py2.py3-none-any.whl", hash = "sha256:eb10ce3e7736052ed3623d49975ce333bcd712c7bb19a58b9e2089d4057d0798"},
     {file = "pytz-2021.1.tar.gz", hash = "sha256:83a4a90894bf38e243cf052c8b58f381bfe9a7a483f6a9cab140bc7f702ac4da"},
+]
+reindent = [
+    {file = "reindent-3.5.1-py3-none-any.whl", hash = "sha256:1248ddf8bb209499ddaff6e841d60c822edff7dcff5e0e5beedbafa06dbc33aa"},
+    {file = "reindent-3.5.1.tar.gz", hash = "sha256:59aeb8fbc16e45686f65df23b91896a17eb14ace7a7546860f50d2bb5ec4c9c0"},
 ]
 scipy = [
     {file = "scipy-1.7.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:821e75f5c16cd7b0ab0ffe7eb9917e5af7b48c25306b4777287de8d792a5f7f3"},

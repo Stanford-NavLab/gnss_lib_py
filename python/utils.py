@@ -46,7 +46,7 @@ def datetime_to_tow(t, convert_gps=True):
     """
     # DateTime to GPS week and TOW
     if t.tzinfo:
-      t = t.replace(tzinfo=None)
+        t = t.replace(tzinfo=None)
     if convert_gps:
         utc_2_gps = datetime.timedelta(seconds=18)
         t = t + utc_2_gps

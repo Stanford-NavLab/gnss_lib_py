@@ -68,38 +68,38 @@ def flight_time_correct(X, Y, Z, flight_time):
 
 # Interpolate satellite position and correction for time t and prn
 def interpol_sp3(sp3, prn, t):
-  """
-  Shubh wrote this
-  """
-  inter_rad = 3
-  subar = sp3['G'+"%02d" % prn]
-  low_i, high_i = 0, 0
-  for i, ephem in enumerate(subar):
-    if ephem.tow > t:
-      low_i = max(0, i-inter_rad)
-      high_i = min(i+inter_rad, len(subar))
-      break
+    """
+    Shubh wrote this
+    """
+    inter_rad = 3
+    subar = sp3['G'+"%02d" % prn]
+    low_i, high_i = 0, 0
+    for i, ephem in enumerate(subar):
+        if ephem.tow > t:
+            low_i = max(0, i-inter_rad)
+            high_i = min(i+inter_rad, len(subar))
+            break
 
-  if high_i-low_i<1:
-    return 0., 0., 0., 0.
+    if high_i-low_i<1:
+        return 0., 0., 0., 0.
 
-  _t = np.zeros(high_i-low_i)
-  _X = np.zeros(high_i-low_i)
-  _Y = np.zeros(high_i-low_i)
-  _Z = np.zeros(high_i-low_i)
-  _B = np.zeros(high_i-low_i)
-  for i in range(low_i, high_i):
-    _t[i-low_i] = subar[i].tow
-    xyz = subar[i].eph2pos()
-    _X[i-low_i] = xyz[0]
-    _Y[i-low_i] = xyz[1]
-    _Z[i-low_i] = xyz[2]
-    _B[i-low_i] = subar[i].time_offset()
+    _t = np.zeros(high_i-low_i)
+    _X = np.zeros(high_i-low_i)
+    _Y = np.zeros(high_i-low_i)
+    _Z = np.zeros(high_i-low_i)
+    _B = np.zeros(high_i-low_i)
+    for i in range(low_i, high_i):
+        _t[i-low_i] = subar[i].tow
+        xyz = subar[i].eph2pos()
+        _X[i-low_i] = xyz[0]
+        _Y[i-low_i] = xyz[1]
+        _Z[i-low_i] = xyz[2]
+        _B[i-low_i] = subar[i].time_offset()
 
-  X = interpolate.interp1d(_t, _X)
-  Y = interpolate.interp1d(_t, _Y)
-  Z = interpolate.interp1d(_t, _Z)
-  B = interpolate.interp1d(_t, _B)
+    X = interpolate.interp1d(_t, _X)
+    Y = interpolate.interp1d(_t, _Y)
+    Z = interpolate.interp1d(_t, _Z)
+    B = interpolate.interp1d(_t, _B)
 
-  # print( np.linalg.norm(np.array([X,Y,Z]) - gt_ecef) - c*B)
-  return X(t),Y(t),Z(t),constants.c*B(t)
+    # print( np.linalg.norm(np.array([X,Y,Z]) - gt_ecef) - c*B)
+    return X(t),Y(t),Z(t),constants.c*B(t)
