@@ -1,3 +1,11 @@
+########################################################################
+# Author(s):    Ashwin Kanhere
+# Date:         16 July 2021
+# Desc:         Functions for expected measurements and to generate 
+#               simulated pseudoranges and doppler for GPS satellites
+########################################################################
+
+
 import numpy as np
 import pandas as pd
 from numpy.random import default_rng
@@ -19,7 +27,6 @@ def _extract_pos_vel_arr(satXYZV):
     #TODO: Remove prns from function output if not needed
 
 
-#TODO: Add a function to simulate noisy measurements (the entire workflow)
 def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, prange_sigma = 6, doppler_sigma=0.1, satXYZV=None):
     """
     Ashwin wrote this
@@ -53,6 +60,7 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     prange:
     prange_rate:
     """
+    # TODO: Modify this function to use PRNS from measurement in addition to gpstime from measurement 
     pos = np.reshape(pos, [1, 3])
     vel = np.reshape(vel, [1, 3])
     GPSconstants = gpsconsts()

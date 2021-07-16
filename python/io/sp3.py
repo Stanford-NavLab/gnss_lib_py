@@ -1,21 +1,11 @@
-from datetime import datetime, timedelta
-from io import BytesIO
-import pandas as pd
 import numpy as np
+import pandas as pd
 from collections import defaultdict
 from scipy import interpolate
-import constants
+from datetime import datetime
 
-def datetime_to_tow(t):
-    """
-    Shubh got this from somewhere (need to determine where)
-    """
-    # DateTime to GPS week and TOW
-    wk_ref = datetime(2014, 2, 16, 0, 0, 0, 0, None)
-    refwk = 1780
-    wk = (t - wk_ref).days // 7 + refwk
-    tow = ((t - wk_ref) - timedelta((wk - refwk) * 7.0)).total_seconds()
-    return tow
+from utils.timing import datetime_to_tow
+from utils.constants import gpsconsts
 
 class PreciseNav(object):
     """
@@ -101,5 +91,7 @@ def interpol_sp3(sp3, prn, t):
     Z = interpolate.interp1d(_t, _Z)
     B = interpolate.interp1d(_t, _B)
 
+    GPSConsts = gpsconsts()
+
     # print( np.linalg.norm(np.array([X,Y,Z]) - gt_ecef) - c*B)
-    return X(t),Y(t),Z(t),constants.c*B(t)
+    return X(t),Y(t),Z(t),GPSConsts.c*B(t)

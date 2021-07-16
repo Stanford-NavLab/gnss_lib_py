@@ -1,3 +1,9 @@
+########################################################################
+# Author(s):    Adam Dai, Shubh Gupta
+# Date:         16 July 2021
+# Desc:         Functions to read data from NMEA files 
+########################################################################
+
 import pynmea2
 import gnss_lib.coordinates as coord
 import numpy as np

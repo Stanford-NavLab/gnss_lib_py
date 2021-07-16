@@ -1,6 +1,7 @@
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt # plotting
 import seaborn as sns
+import pandas as pd
 
 
 # Distribution graphs (histogram/bar graph) of column data
