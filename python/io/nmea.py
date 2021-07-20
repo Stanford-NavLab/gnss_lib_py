@@ -1,18 +1,29 @@
 ########################################################################
 # Author(s):    Adam Dai, Shubh Gupta
 # Date:         16 July 2021
-# Desc:         Functions to read data from NMEA files 
+# Desc:         Functions to read data from NMEA files
 ########################################################################
 
+import os
+import sys
 import pynmea2
-import gnss_lib.coordinates as coord
+import datetime
+import calendar
 import numpy as np
-import os, sys
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+sys.path.append("..")
+from funcs import coordinates as coord
 
 class NMEA:
     def __init__(self, filename):
-        """Adam and Shubh wrote this
+        """Read in NMEA file.
+
+        Author(s): S. Gupta and A. Dai
+
+        Parameters
+        ----------
+        filename : str
+            filepath to .NMEA file to read
+
         """
         self.gga_msgs = []
         self.rmc_msgs = []
@@ -29,7 +40,16 @@ class NMEA:
 
 
     def lla_gt(self):
-        """Adam and Shubh wrote this
+        """Get latitude, longitude, and altitude ground truthself.
+
+        Author(s): S. Gupta and A. Dai
+
+        Returns
+        -------
+        geo_ls : list
+            A list of lists of latitude, longitude, and alitutde for
+            each line of the NMEA file.
+
         """
         geo_ls = []
         for msg in self.gga_msgs:
@@ -37,6 +57,14 @@ class NMEA:
         return geo_ls
 
     def ecef_gt(self):
-        """Adam and Shubh wrote this
+        """Get ECEF ground truth.
+
+        Author(s): S. Gupta and A. Dai.
+
+        Returns
+        -------
+        ecef??? : list????
+            Returns ECEF coordinates of ground truth????
+
         """
         return coord.geodetic2ecef(self.lla_gt())
