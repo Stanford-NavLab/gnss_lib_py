@@ -6,7 +6,7 @@ authors = ["Ashwin Kanhere"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "3.8.9"
+python = "^3.8.0"
 numpy = "^1.21.0"
 pandas = "^1.3.0"
 DateTime = "^4.3"
@@ -18,6 +18,9 @@ unlzw3 = "^0.2.1"
 reindent = "^3.5.1"
 
 [tool.poetry.dev-dependencies]
+Sphinx = "4.1.1"
+sphinx-rtd-theme = "0.5.2"
+sphinxcontrib-napoleon = "0.7"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
