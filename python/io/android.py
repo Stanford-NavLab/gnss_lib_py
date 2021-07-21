@@ -8,7 +8,7 @@ import numpy as np
 import csv
 import pandas as pd
 from datetime import datetime, timedelta
-from utils.constants import gpsconsts
+from utils.constants import GPSConsts
 
 
 # Extract data different timesteps
@@ -227,8 +227,8 @@ def compute_times(gnssRaw, gnssAnalysis):
 def compute_pseudorange(gnssRaw, gnssAnalysis):
     """Shubh wrote this (has GOOGLE MATLAB counterpart)
     """
-    GPSConst = gpsconsts()
+    gpsconsts = GPSConsts()
     gnssRaw['Pseudorange_seconds'] = gnssRaw['tRxSeconds'] - gnssRaw['tTxSeconds']
-    gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*LIGHTSPEED
-    gnssRaw['Pseudorange_sigma_meters'] = GPSConst.c * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']
+    gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*gpsconsts.C
+    gnssRaw['Pseudorange_sigma_meters'] = gpsconsts.C * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']
     return gnssRaw, gnssAnalysis

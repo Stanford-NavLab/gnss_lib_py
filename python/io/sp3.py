@@ -5,7 +5,7 @@ from scipy import interpolate
 from datetime import datetime
 
 from utils.timing import datetime_to_tow
-from utils.constants import gpsconsts
+from utils.constants import GPSConsts
 
 class PreciseNav(object):
     """
@@ -91,7 +91,7 @@ def interpol_sp3(sp3, prn, t):
     Z = interpolate.interp1d(_t, _Z)
     B = interpolate.interp1d(_t, _B)
 
-    GPSConsts = gpsconsts()
+    gpsconsts = GPSConsts()
 
     # print( np.linalg.norm(np.array([X,Y,Z]) - gt_ecef) - c*B)
-    return X(t),Y(t),Z(t),GPSConsts.c*B(t)
+    return X(t),Y(t),Z(t),gpsconsts.c*B(t)

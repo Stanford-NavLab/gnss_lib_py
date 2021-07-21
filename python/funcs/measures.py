@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 
-from gnss_lib.constants import gpsconsts
-from gnss_lib.coordinates import ecef2geodetic
+from utils.constants import GPSConsts
+from utils.coordinates import ecef2geodetic
 
 
 def _extract_pos_vel_arr(satXYZV):
@@ -63,7 +63,7 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     # TODO: Modify this function to use PRNS from measurement in addition to gpstime from measurement 
     pos = np.reshape(pos, [1, 3])
     vel = np.reshape(vel, [1, 3])
-    GPSconstants = gpsconsts()
+    gpsconsts = GPSConsts()
     ephem = _find_visible_sats(gpsweek, gpstime, pos, ephem)
     satXYZV, delXYZ, true_range = find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV)
     _, satXYZ, satV = _extract_pos_vel_arr(satXYZV)
@@ -73,7 +73,7 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     # Obtain difference of velocity between satellite and receiver
     delV = satV - np.tile(np.reshape(vel, 3), [len(ephem), 1])
     prange_rate = np.sum(delV*delXYZ, axis=1)/true_range + b_dot
-    doppler = -(GPSconstants.f1/GPSconstants.c) * (prange_rate)
+    doppler = -(gpsconsts.f1/gpsconsts.c) * (prange_rate)
     # doppler = pd.DataFrame(doppler, index=prange.index.copy())
     measurements = pd.DataFrame(np.column_stack((prange, doppler)), index=satXYZV.index, columns=['prange', 'doppler'])
     return measurements, satXYZV
@@ -96,9 +96,9 @@ def _find_visible_sats(gpsweek, gpstime, Rx_ECEF, ephem, el_mask=5):
     Returns:
     eph: Pandas DataFrame containing only visible satellites
     """
-    GPSconstants = gpsconsts()
+    gpsconsts = GPSConsts()
     # Find positions of all satellites
-    approx_XYZV = FindSat(ephem, gpstime - GPSconstants.t_trans, gpsweek) # Also contains satellite velocities
+    approx_XYZV = FindSat(ephem, gpstime - gpsconsts.t_trans, gpsweek) # Also contains satellite velocities
     # Find elevation and azimuth angles for all satellites
     _, approx_XYZ, _ = _extract_pos_vel_arr(approx_XYZV)
     approx_elaz = find_elaz(np.reshape(Rx_ECEF, [1, 3]), approx_XYZ)
@@ -116,13 +116,13 @@ def find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
     """
     Find satellite locations and velocities with time correction based on transmit time
     """
-    GPSconstants = gpsconsts()
+    gpsconsts = GPSConsts()
     pos = np.reshape(pos, [1, 3])
     if satXYZV is None:
         satellites = len(ephem.index)
-        satXYZV = FindSat(ephem, gpstime - GPSconstants.t_trans, gpsweek)
+        satXYZV = FindSat(ephem, gpstime - gpsconsts.t_trans, gpsweek)
         delXYZ, true_range = _find_delxyz_range(satXYZV, pos, satellites)
-        tcorr = true_range/GPSconstants.c
+        tcorr = true_range/gpsconsts.c
         # Find satellite locations at (a more accurate) time of transmission
         satXYZV = FindSat(ephem, gpstime-tcorr, gpsweek)
     else:
@@ -130,8 +130,8 @@ def find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
     delXYZ, true_range = _find_delxyz_range(satXYZV, pos, satellites)
     # Corrections for the rotation of the Earth during transmission
     _, satXYZ, satV = _extract_pos_vel_arr(satXYZV)
-    delX = GPSconstants.OmegaEDot*satXYZV['x'] * tcorr
-    delY = GPSconstants.OmegaEDot*satXYZV['y'] * tcorr
+    delX = gpsconsts.OmegaEDot*satXYZV['x'] * tcorr
+    delY = gpsconsts.OmegaEDot*satXYZV['y'] * tcorr
     satXYZV['x'] = satXYZV['x'] + delX
     satXYZV['y'] = satXYZV['y'] + delY
     return satXYZV, delXYZ, true_range
@@ -181,7 +181,7 @@ def FindSat(ephem, times, gpsweek):
     #                  Based on MATLAB code by Sriramya Bhamidipati
     """
     # Load in GPS constants
-    gpsconst = gpsconsts()
+    gpsconst = GPSConsts()
 
     # if np.size(times_all)==1:
     #     times_all = times_all*np.ones(len(ephem))
@@ -282,8 +282,8 @@ def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
     Skeleton code from UIUC ECE456 with heavy modifications from
     Ashwin
     """
-    # Load gpsconstants
-    gpsconst = gpsconsts()
+    # Load GPS Constants
+    gpsconsts = GPSConsts()
 
     # Make sure things are arrays
     if type(gpstime) != np.ndarray:
@@ -299,7 +299,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
 
     # Calculate the mean anomaly with corrections
     Mcorr = ephem['deltaN'] * dt
-    M = ephem['M_0'] + (np.sqrt(gpsconst.muearth) * ephem['sqrtA']**-3) * dt + Mcorr
+    M = ephem['M_0'] + (np.sqrt(gpsconsts.muearth) * ephem['sqrtA']**-3) * dt + Mcorr
 
     # Compute the eccentric anomaly from mean anomaly using the Newton-Raphson method
     # to solve for E in:
@@ -322,7 +322,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
     corrPolynomial = ephem['SVclockBias'] + ephem['SVclockDrift']*timeOffset + ephem['SVclockDriftRate']*timeOffset**2
 
     # Calcualte the relativistic clock correction
-    corrRelativistic = gpsconst.F*ephem['e']*ephem['sqrtA']*np.sin(E)
+    corrRelativistic = gpsconsts.F*ephem['e']*ephem['sqrtA']*np.sin(E)
 
     # Calculate the total clock correction including the Tgd term
     clockCorr = (corrPolynomial - ephem['TGD'] + corrRelativistic)
@@ -332,7 +332,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
     # Calculate the tropospheric delays
     tropoDelay = calculate_tropo_delay(gpstime,gpsweek,ephem,rx)
     # Calculate total pseudorange correction
-    prCorr = prMes + clockCorr*gpsconst.c - tropoDelay*gpsconst.c
+    prCorr = prMes + clockCorr*gpsconsts.c - tropoDelay*gpsconsts.c
 
     if isinstance(prCorr, pd.Series):
         prCorr = prCorr.to_numpy(dtype=float)
@@ -346,7 +346,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
     Ashwin
     """
     # Load gpsconstants
-    gpsconst = gpsconsts()
+    gpsconst = gpsconstss()
 
     # Make sure things are arrays
     if type(gpstime) != np.ndarray:
@@ -370,7 +370,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
         height[ind] = 0
 
     # Calculate the delay
-    tropoDelay = 2.47/(np.sin(el_r)+0.0121) * np.exp(-height*1.33e-4)/gpsconst.c
+    tropoDelay = 2.47/(np.sin(el_r)+0.0121) * np.exp(-height*1.33e-4)/gpsconsts.c
 
     return tropoDelay
 
