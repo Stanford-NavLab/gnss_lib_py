@@ -219,9 +219,9 @@ optional = false
 python-versions = ">=3.5"
 
 [[package]]
-name = "pynmea"
-version = "0.6.0"
-description = "Python NMEA Library - a small library to help read and parse\nNMEA data"
+name = "pynmea2"
+version = "1.18.0"
+description = "Python library for the NMEA 0183 protcol"
 category = "main"
 optional = false
 python-versions = "*"
@@ -510,7 +510,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8.0"
-content-hash = "e344eddb109841f1b70d342094db87715ac0b7c2b95a45700eee54cb19c6d03f"
+content-hash = "ea477a8522786ed4261c08302c2096d511cc8d557d20784528b8018f8d1560a0"
 
 [metadata.files]
 alabaster = [
@@ -755,8 +755,9 @@ pygments = [
     {file = "Pygments-2.9.0-py3-none-any.whl", hash = "sha256:d66e804411278594d764fc69ec36ec13d9ae9147193a1740cd34d272ca383b8e"},
     {file = "Pygments-2.9.0.tar.gz", hash = "sha256:a18f47b506a429f6f4b9df81bb02beab9ca21d0a5fee38ed15aef65f0545519f"},
 ]
-pynmea = [
-    {file = "pynmea-0.6.0.tar.gz", hash = "sha256:a1a3f561ae2be04d16651a1e80cac45cc2de4344fe4f9690b4e0e0a0106c41c8"},
+pynmea2 = [
+    {file = "pynmea2-1.18.0-py3-none-any.whl", hash = "sha256:098f9ffd89c4a6c5e137b8b59e5b38194888d4a557c50b003ebcf2c3c15ec22e"},
+    {file = "pynmea2-1.18.0.tar.gz", hash = "sha256:e340d3327ebf09683d09466a52541dfcccb98bde9cb661cab2d3eeb72ea424ad"},
 ]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},

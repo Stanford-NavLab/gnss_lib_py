@@ -21,7 +21,7 @@ class GPSConsts:
     LAT_ACC_THRESH : float
         10 meter latitude accuracy
     MUEARTH : float
-        G*Me, the "gravitational constant" for orbital
+        :math:`G*M_E`, the "gravitational constant" for orbital
         motion about the Earth [m^3/s^2]
     OMEGA_DOT : float
         The sidereal rotation rate of the Earth

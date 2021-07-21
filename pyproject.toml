@@ -10,12 +10,12 @@ python = "^3.8.0"
 numpy = "^1.21.0"
 pandas = "^1.3.0"
 DateTime = "^4.3"
-pynmea = "^0.6.0"
 georinex = "^1.15.0"
 matplotlib = "^3.4.2"
 seaborn = "^0.11.1"
 unlzw3 = "^0.2.1"
 reindent = "^3.5.1"
+pynmea2 = "^1.18.0"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "4.1.1"
