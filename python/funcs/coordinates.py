@@ -145,6 +145,7 @@ class LocalCoord(object):
     """
 
     def __init__(self, init_geodetic, init_ecef):
+        #TODO: Add documentation for the __init__
         self.init_ecef = init_ecef
         lat, lon, _ = (np.pi/180)*np.array(init_geodetic)
         self.ned2ecef_matrix = np.array([[-np.sin(lat)*np.cos(lon), -np.sin(lon), -np.cos(lat)*np.cos(lon)],
@@ -211,7 +212,7 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         ecef = np.array(ecef)
         # Convert to column vectors for calculation before returning in the same shape as the input

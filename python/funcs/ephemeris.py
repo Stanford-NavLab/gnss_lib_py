@@ -1,14 +1,12 @@
 ########################################################################
-# Author(s):    Ashwin Kanhere
+# Author(s):    Shubh Gupta
 # Date:         13 July 2021
 # Desc:         Functions to download, save and process satellite 
-#               ephemerides
-# ^ Modify header when contents actually added to file
+#               ephemeris files
 ########################################################################
 
 ############################################################################################################################
-# Ephemeris manager class (https://github.com/johnsonmitchelld/gnss-analysis/blob/main/gnssutils/ephemeris_manager.py)
-# modified by Shubh Gupta
+# Ephemeris manager class ()
 ############################################################################################################################
 
 from ftplib import FTP_TLS, FTP
@@ -25,6 +23,60 @@ import numpy as np
 
 
 class EphemerisManager():
+    """Download, store and process ephemeris files 
+
+    Attributes
+    ----------
+    data_directory : string
+        Directory to store/read ephemeris files
+    data : pd.Dataframe
+        Ephemeris parameters
+    leapseconds : int
+        Leap seconds to add/subtract 
+
+    Methods
+    -------
+    get_ephemeris(timestamp, satellites)
+        Return ephemeris DataFrame for input satellites
+
+    get_leapseconds(timestamp)
+        Return currently saved timestamp
+
+    load_data(timestamp, constellations=None)
+        Load appropriate ephemeris based on satellites for files
+
+    get_ephemeris_dataframe(fileinfo, constellations=None)
+        Load/download ephemeris files and process into DataFrame
+
+    get_filetype(timestamp)
+        Get file extension of IGS file based on timestamp
+
+    load_leapseconds(filename)
+        Read leapseconds from ephemeris file
+
+    get_constellations(satellites)
+        Convert list of satellites to set
+
+    calculate_toc(timestamp)
+        NOT IMPLEMENTED
+        #TODO: See if this function is needed or can be deleted
+
+    retrieve_file(url, directory, filename, dest_filepath, secure=False)
+        Download ephemeris file from given filepath
+
+    decompress_file(filepath)
+        Decompress downloaded file
+
+    connect(url, secure)
+        Connect to given FTP server
+
+    listdir(url, directory, secure)
+        Display files on server that match input filename
+
+    get_filepaths(timestamp)
+        Get filepaths for all ephemeris files
+
+    """
     def __init__(self, data_directory=os.path.join(os.getcwd(), 'data', 'ephemeris')):
         self.data_directory = data_directory
         nasa_dir = os.path.join(data_directory, 'nasa')
@@ -35,6 +87,25 @@ class EphemerisManager():
         self.leapseconds = None
 
     def get_ephemeris(self, timestamp, satellites):
+        """Return ephemeris DataFrame for satellites input
+
+        Parameters
+        ----------
+        timestamp : datetime.datetime
+            Measurement times
+        satellites : list
+            List of satellites ['Const_IDSVID']
+
+        Returns
+        -------
+        data : pd.DataFrame
+            DataFrame containing ephemeris entries corresponding to timestamp
+
+        Notes
+        -----
+        Code adapted from https://github.com/johnsonmitchelld/gnss-analysis/blob/main/gnssutils/ephemeris_manager.py
+
+        """
         systems = EphemerisManager.get_constellations(satellites)
         if not isinstance(self.data, pd.DataFrame):
             self.load_data(timestamp, systems)
@@ -48,9 +119,32 @@ class EphemerisManager():
         return data
 
     def get_leapseconds(self, timestamp):
-        return self.leapseconds
+        """Output saved leapseconds
+
+        Returns
+        -------
+        lp_seconds : float
+            Leap seconds between GPS and UTC time
+        """
+        lp_seconds = self.leapseconds
+        return lp_seconds
 
     def load_data(self, timestamp, constellations=None):
+        """Load appropriate ephemeris based on satellites
+
+        Parameters
+        ----------
+
+        timestamp : datetime.datetime
+            Time for required ephemeris
+
+        constellations : set
+            Set of satellites {"ConstIDSVID"}
+
+        Returns
+        -------
+        
+        """
         filepaths = EphemerisManager.get_filepaths(timestamp)
         data_list = []
         timestamp_age = datetime.now(timezone.utc) - timestamp
