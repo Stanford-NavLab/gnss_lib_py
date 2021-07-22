@@ -32,49 +32,11 @@ class EphemerisManager():
     data : pd.Dataframe
         Ephemeris parameters
     leapseconds : int
-        Leap seconds to add/subtract 
+        Leap seconds to add to UTC time to get GPS time
 
-    Methods
-    -------
-    get_ephemeris(timestamp, satellites)
-        Return ephemeris DataFrame for input satellites
-
-    get_leapseconds(timestamp)
-        Return currently saved timestamp
-
-    load_data(timestamp, constellations=None)
-        Load appropriate ephemeris based on satellites for files
-
-    get_ephemeris_dataframe(fileinfo, constellations=None)
-        Load/download ephemeris files and process into DataFrame
-
-    get_filetype(timestamp)
-        Get file extension of IGS file based on timestamp
-
-    load_leapseconds(filename)
-        Read leapseconds from ephemeris file
-
-    get_constellations(satellites)
-        Convert list of satellites to set
-
-    calculate_toc(timestamp)
-        NOT IMPLEMENTED
-        #TODO: See if this function is needed or can be deleted
-
-    retrieve_file(url, directory, filename, dest_filepath, secure=False)
-        Download ephemeris file from given filepath
-
-    decompress_file(filepath)
-        Decompress downloaded file
-
-    connect(url, secure)
-        Connect to given FTP server
-
-    listdir(url, directory, secure)
-        Display files on server that match input filename
-
-    get_filepaths(timestamp)
-        Get filepaths for all ephemeris files
+    Notes
+    -----
+    Class code taken from https://github.com/johnsonmitchelld/gnss-analysis/blob/main/gnssutils/ephemeris_manager.py
 
     """
     def __init__(self, data_directory=os.path.join(os.getcwd(), 'data', 'ephemeris')):
@@ -92,18 +54,14 @@ class EphemerisManager():
         Parameters
         ----------
         timestamp : datetime.datetime
-            Measurement times
-        satellites : list
+            Time of clock
+        satellites : List
             List of satellites ['Const_IDSVID']
 
         Returns
         -------
         data : pd.DataFrame
             DataFrame containing ephemeris entries corresponding to timestamp
-
-        Notes
-        -----
-        Code adapted from https://github.com/johnsonmitchelld/gnss-analysis/blob/main/gnssutils/ephemeris_manager.py
 
         """
         systems = EphemerisManager.get_constellations(satellites)
@@ -130,19 +88,16 @@ class EphemerisManager():
         return lp_seconds
 
     def load_data(self, timestamp, constellations=None):
-        """Load appropriate ephemeris based on satellites
+        """Load ephemeris into class instance
 
         Parameters
         ----------
 
         timestamp : datetime.datetime
-            Time for required ephemeris
+            Time of clock
 
-        constellations : set
+        constellations : Set
             Set of satellites {"ConstIDSVID"}
-
-        Returns
-        -------
         
         """
         filepaths = EphemerisManager.get_filepaths(timestamp)
@@ -179,6 +134,21 @@ class EphemerisManager():
         self.data = data
 
     def get_ephemeris_dataframe(self, fileinfo, constellations=None):
+        """Load/download ephemeris files and process into DataFrame
+
+        Parameters
+        ----------
+        fileinfo : dict
+            Filenames for ephemeris with ftp server and constellation details
+
+        constellations : Set
+            Set of satellites {"ConstIDSVID"}
+
+        Returns
+        -------
+        data : pd.DataFrame
+            Parsed ephemeris DataFrame
+        """
         filepath = fileinfo['filepath']
         url = fileinfo['url']
         directory = os.path.split(filepath)[0]
@@ -221,6 +191,18 @@ class EphemerisManager():
 
     @staticmethod
     def get_filetype(timestamp):
+        """Get file extension of IGS file based on timestamp
+
+        Parameters
+        ----------
+        timestamp : datetime.datetime
+            Time of clock
+
+        Returns
+        -------
+        extension : string
+            Extension of compressed ephemeris file 
+        """
         # IGS switched from .Z to .gz compression format on December 1st, 2020
         if timestamp >= datetime(2020, 12, 1, 0, 0, 0, tzinfo=timezone.utc):
             extension = '.gz'
@@ -230,15 +212,41 @@ class EphemerisManager():
 
     @staticmethod
     def load_leapseconds(filename):
+        """Read leapseconds from ephemeris file
+
+        Parameters
+        ----------
+        filename : string
+            Ephemeris filename
+
+        Returns
+        -------
+        read_lp_sec : int or None
+            Leap seconds read from file
+
+        """
         with open(filename) as f:
             for line in f:
                 if 'LEAP SECONDS' in line:
-                    return int(line.split()[0])
+                    read_lp_sec = int(line.split()[0])
+                    return read_lp_sec
                 if 'END OF HEADER' in line:
                     return None
 
     @staticmethod
     def get_constellations(satellites):
+        """Convert list of satellites to set
+
+        Parameters
+        ----------
+        satellites : List
+            List of satellites of form [ConstIDSVID]
+
+        Returns
+        -------
+        systems : Set or None
+            Set representation of satellites for which ephemeris is needed
+        """
         if type(satellites) is list:
             systems = set()
             for sat in satellites:
@@ -249,9 +257,32 @@ class EphemerisManager():
 
     @staticmethod
     def calculate_toc(timestamp):
+        """I think this is equivalent of datetime_to_tow()
+        #TODO: See if this function is needed or can be deleted
+        """
         pass
 
     def retrieve_file(self, url, directory, filename, dest_filepath, secure=False):
+        """Copy ephemeris file from FTP filepath to local directory
+
+        Parameters
+        ----------
+        url : String
+            FTP server location
+
+        directory : String
+            Directory where ephemeris files are stored on the FTP server
+
+        filename : String
+            Filename in which ephemeris files are stored (both locally and globally)
+
+        dest_filepath : String
+            Directory where downloaded ephemeris files are stored locally
+
+        secure : Bool
+            Whether to make secure FTP connection
+
+        """
         print('Retrieving ' + directory + '/' + filename + ' from ' + url)
         ftp = self.connect(url, secure)
         src_filepath = directory + '/' + filename
@@ -266,6 +297,14 @@ class EphemerisManager():
             raise ftplib.error_perm
 
     def decompress_file(self, filepath):
+        """Decompress downloaded file ephemeris file in same destination location
+
+        Parameters
+        ----------
+        filepath : String
+            Local filepath where the compressed ephemeris file is stored
+
+        """
         extension = os.path.splitext(filepath)[1]
         decompressed_path = os.path.splitext(filepath)[0]
         if extension == '.gz':
@@ -279,6 +318,21 @@ class EphemerisManager():
         os.remove(filepath)
 
     def connect(self, url, secure):
+        """Connect to given FTP server
+
+        Parameters
+        ----------
+        url : String
+            URL of FTP server where ephemeris files are stored
+
+        secure : Bool
+            Flag for secure FTP connection
+
+        Returns
+        -------
+        ftp : FTP_TLS
+            FTP connection object
+        """
         if secure:
             ftp = FTP_TLS(url)
             ftp.login()
@@ -289,6 +343,17 @@ class EphemerisManager():
         return ftp
 
     def listdir(self, url, directory, secure):
+        """Display files on server that match input filename
+
+        Parameters
+        ----------
+        url : String
+            URL of FTP server
+
+        directory : String
+            Directory in FTP server where relevant ephemeris files are stored
+        """
+        # TODO: Function not called anywhere, consider folding into existing function calls or deleting
         ftp = self.connect(url, secure)
         dirlist = ftp.nlst(directory)
         dirlist = [x for x in dirlist]
@@ -296,6 +361,18 @@ class EphemerisManager():
 
     @staticmethod
     def get_filepaths(timestamp):
+        """Generate filepaths for all ephemeris files
+
+        Parameters
+        ----------
+        timestamp : datetime.datetime
+            Time of clock
+
+        Returns
+        -------
+        filepaths : Dict
+            Dictionary of dictionaries containing filepath and directory for ephemeris files 
+        """
         timetuple = timestamp.timetuple()
         extension = EphemerisManager.get_filetype(timestamp)
         filepaths = {}

@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 def datetime_to_tow(t, convert_gps=True):
-    """Shubh got from somwhere (need to determine)
+    """Shubh got from somwhere (need to determine) and was modified by Ashwin
     """
     """
     Convert a Python datetime object to GPS Week and Time Of Week.
@@ -33,6 +33,7 @@ def datetime_to_tow(t, convert_gps=True):
         t = t.replace(tzinfo=None)
     if convert_gps:
         utc_2_gps = datetime.timedelta(seconds=18)
+        #TODO: Move to ephemeris and use leapseconds attribute from ephemeris files
         t = t + utc_2_gps
     wk_ref = datetime.datetime(2014, 2, 16, 0, 0, 0, 0, None)
     refwk = 1780
