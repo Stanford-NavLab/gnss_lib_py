@@ -1,6 +1,6 @@
 ########################################################################
 # Author(s):    Adam Dai, Shubh Gupta
-# Date:         16 July 2021
+# Date:         16 Jul 2021
 # Desc:         Functions to read data from NMEA files
 ########################################################################
 
@@ -13,9 +13,12 @@ import numpy as np
 sys.path.append("..")
 from funcs import coordinates as coord
 
-class NMEA:
+class NMEA():
+    """Class used to parse through NMEA files
+
+    """
     def __init__(self, filename):
-        """Read in NMEA file.
+        """Initialize NMEA class.
 
         Parameters
         ----------
