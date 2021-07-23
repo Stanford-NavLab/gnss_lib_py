@@ -14,11 +14,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../python/'))
-sys.path.insert(0, os.path.abspath('../../python/algorithms/'))
-sys.path.insert(0, os.path.abspath('../../python/funcs/'))
-sys.path.insert(0, os.path.abspath('../../python/io/'))
-sys.path.insert(0, os.path.abspath('../../python/utils/'))
+sys.path.insert(0, os.path.abspath('../../gnss-lib-py/'))
+sys.path.insert(0, os.path.abspath('../../gnss-lib-py/algorithms/'))
+sys.path.insert(0, os.path.abspath('../../gnss-lib-py/funcs/'))
+sys.path.insert(0, os.path.abspath('../../gnss-lib-py/io/'))
+sys.path.insert(0, os.path.abspath('../../gnss-lib-py/utils/'))
 
 
 # -- Project information -----------------------------------------------------

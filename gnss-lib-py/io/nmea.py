@@ -17,8 +17,6 @@ class NMEA:
     def __init__(self, filename):
         """Read in NMEA file.
 
-        Author(s): S. Gupta and A. Dai
-
         Parameters
         ----------
         filename : str
@@ -42,8 +40,6 @@ class NMEA:
     def lla_gt(self):
         """Get latitude, longitude, and altitude ground truthself.
 
-        Author(s): S. Gupta and A. Dai
-
         Returns
         -------
         geo_ls : list
@@ -58,8 +54,6 @@ class NMEA:
 
     def ecef_gt(self):
         """Get ECEF ground truth.
-
-        Author(s): S. Gupta and A. Dai.
 
         Returns
         -------
