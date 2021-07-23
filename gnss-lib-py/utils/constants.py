@@ -43,7 +43,7 @@ class GPSConsts:
     WEEKSEC : float
         Number of seconds in a week [s]
 
-    Notes
+    References
     -----
     .. [1] Makela, Jonathan, ECE 456, Global Nav Satellite Systems, Fall 2017. 
     University of Illinois Urbana-Champaign. Coding Assignments.

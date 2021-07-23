@@ -11,7 +11,7 @@ import pandas as pd
 from numpy.random import default_rng
 
 from utils.constants import GPSConsts
-from utils.coordinates import ecef2geodetic
+from funcs.coordinates import ecef2geodetic
 
 
 def _extract_pos_vel_arr(satXYZV):

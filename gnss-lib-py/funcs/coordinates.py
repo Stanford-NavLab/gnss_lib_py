@@ -113,32 +113,6 @@ class LocalCoord(object):
     ecef2ned_matrix : ndarray
         Rotation matrix to convert from ECEF to NED
 
-    Methods
-    -------
-    from_geodetic(cls, init_geodetic)
-        Instantiate a class from LLA of NED origin
-
-    from_ecef(cls, init_ecef)
-        Instantiate a class from ECEF of NED origin
-
-    ecef2ned(ecef)
-        Convert ECEF position vectors to NED position vectors
-
-    ecef2nedv(ecef)
-        Convert ECEF free vectors to NED free vectors
-    
-    ned2ecef(ned)
-        Convert NED position vectors to ECEF position vectors
-
-    ned2ecefv(ned)
-        Convert NED free vectors to ECEF free vectors
-
-    geodetic2ned(geodetic)
-        Convert WGS-84 LLA position vectors to NED position vectors
-
-    ned2geodetic(ned)
-        Convert NED position vectors to WGS-84 LLA position vectors
-
     Notes
     -----
     Based on code from https://github.com/commaai/laika
