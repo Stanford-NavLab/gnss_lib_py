@@ -6,7 +6,6 @@
 
 import numpy as np
 
-
 class GPSConsts:
     """Class containing constants required for GPS navigation
 
@@ -79,6 +78,7 @@ class CoordConsts:
     ESQ1: float
         Don't know what this is either
     """
+    # TODO: Update docstring for ESQ and ESQ1
 
     def __init__(self):
         self.A = 6378137.
