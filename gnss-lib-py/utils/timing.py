@@ -1,7 +1,7 @@
 ########################################################################
 # Author(s):    Shubh Gupta, Ashwin Kanhere
 # Date:         16 July 2021
-# Desc:         Utility functions to convert datetime objects to GNSS 
+# Desc:         Utility functions to convert datetime objects to GNSS
 #               relevant terms
 ########################################################################
 
@@ -9,24 +9,24 @@ from datetime import datetime
 
 
 def datetime_to_tow(t, convert_gps=True):
-    """Shubh got from somwhere (need to determine) and was modified by Ashwin
-    """
-    """
-    Convert a Python datetime object to GPS Week and Time Of Week.
-    Does *not* convert from UTC to GPST.
-    Fractional seconds are supported.
+    """Convert Python datetime object to GPS Week and time of week
+
     Parameters
     ----------
-    t : datetime
-      A time to be converted, on the GPST timescale.
-    mod1024 : bool, optional
-      If True (default), the week number will be output in 10-bit form.
+    t : datetime.datetime
+      Datetime object for Time of Clock
+
+    convert_gps : Bool
+      Flag for whether output is in UTC seconds or GPS seconds
+
     Returns
-    convert_gps: bool, optional
-        If True (default), UTC time in seconds is converted to GPS time in seconds
     -------
-    week, tow : tuple (int, float)
-      The GPS week number and time-of-week.
+    wk : float
+      GPS week
+
+    tow : float
+      GPS time of week in seconds
+
     """
     # DateTime to GPS week and TOW
     if hasattr(t, 'tzinfo'):
