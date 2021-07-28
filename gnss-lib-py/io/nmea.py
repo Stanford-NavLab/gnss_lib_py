@@ -11,7 +11,7 @@ import datetime
 import calendar
 import numpy as np
 sys.path.append("..")
-from funcs import coordinates as coord
+from core import coordinates as coord
 
 class NMEA():
     """Class used to parse through NMEA files

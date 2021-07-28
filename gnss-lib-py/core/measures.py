@@ -1,7 +1,7 @@
 ########################################################################
 # Author(s):    Ashwin Kanhere
 # Date:         16 July 2021
-# Desc:         Functions to generate expected measurements and to 
+# Desc:         Functions to generate expected measurements and to
 #               simulate pseudoranges and doppler for GPS satellites
 ########################################################################
 
@@ -11,7 +11,7 @@ import pandas as pd
 from numpy.random import default_rng
 
 from utils.constants import GPSConsts
-from funcs.coordinates import ecef2geodetic
+from core.coordinates import ecef2geodetic
 
 
 def _extract_pos_vel_arr(satXYZV):
@@ -56,7 +56,7 @@ def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, prange_sig
         GPS time of the week for simulate measurements [s]
 
     ephem : pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime
 
     pos : ndarray
         1x3 Receiver 3D ECEF position [m]
@@ -78,7 +78,7 @@ def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, prange_sig
 
     satXYZV : pd.DataFrame
         Precomputed positions of satellites (if available)
-    
+
     Returns
     -------
     measurements : pd.DataFrame
@@ -111,7 +111,7 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
         GPS time of the week for simulate measurements [s]
 
     ephem : pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime
 
     pos : ndarray
         1x3 Receiver 3D ECEF position [m]
@@ -131,13 +131,13 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     Returns
     -------
     measurements : pd.DataFrame
-        Expected pseudorange and doppler measurements indexed by satellite SV 
+        Expected pseudorange and doppler measurements indexed by satellite SV
 
     satXYZV : pd.DataFrame
         Satellite positions and velocities (same as input if provided)
     """
     #NOTE: When using saved data, pass saved DataFrame with ephemeris in ephem and satellite positions in satXYZV
-    #TODO: Modify this function to use PRNS from measurement in addition to gpstime from measurement 
+    #TODO: Modify this function to use PRNS from measurement in addition to gpstime from measurement
     pos = np.reshape(pos, [1, 3])
     vel = np.reshape(vel, [1, 3])
     gpsconsts = GPSConsts()
@@ -170,7 +170,7 @@ def _find_visible_sats(gpsweek, gpstime, Rx_ECEF, ephem, el_mask=5.):
         1x3 row Rx ECEF position vector [m]
 
     ephem : pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime
 
     el_mask : float
         Minimum elevation of returned satellites
@@ -207,7 +207,7 @@ def _find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
         GPS time of the week for simulate measurements [s]
 
     ephem : pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime
 
     pos : ndarray
         1x3 Receiver 3D ECEF position [m]
@@ -225,7 +225,7 @@ def _find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
 
     true_range : ndarray
         Distance between satellite and receiver positions
-    
+
     """
     gpsconsts = GPSConsts()
     pos = np.reshape(pos, [1, 3])
@@ -284,8 +284,8 @@ def _find_delxyz_range(satXYZV, pos, satellites):
 def FindSat(ephem, times, gpsweek):
     """Compute position and velocities for all satellites in ephemeris file given time of clock
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     ephem : pd.DataFrame
         DataFrame containing ephemeris parameters of satellies for which states are required
 
@@ -302,21 +302,21 @@ def FindSat(ephem, times, gpsweek):
 
     Notes
     -----
-    Based on code written by J. Makela. 
+    Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
 
     Satellite velocity calculations based on algorithms introduced in [1]_.
 
     References
     ----------
-    ..  [1] B. F. Thompson, S. W. Lewis, S. A. Brown, and T. M. Scott, 
-        “Computing GPS satellite velocity and acceleration from the broadcast navigation message,” 
+    ..  [1] B. F. Thompson, S. W. Lewis, S. A. Brown, and T. M. Scott,
+        “Computing GPS satellite velocity and acceleration from the broadcast navigation message,”
         NAVIGATION, vol. 66, no. 4, pp. 769–779, Dec. 2019, doi: 10.1002/navi.342.
 
     """
     # Satloc contains both positions and velocities.
     #TODO: Look into combining this method with the ones in read_rinex.py
-    #TODO: Clean up this code 
+    #TODO: Clean up this code
     # Load in GPS constants
     gpsconst = GPSConsts()
 
@@ -443,7 +443,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
 
     Notes
     -----
-    Based on code written by J. Makela. 
+    Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
 
     """
@@ -507,7 +507,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
 
 
 def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
-    """Calculate tropospheric delay 
+    """Calculate tropospheric delay
 
     Parameters
     ----------
@@ -530,7 +530,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
 
     Notes
     -----
-    Based on code written by J. Makela. 
+    Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
 
     """
@@ -586,9 +586,9 @@ def find_elaz(Rx, Sats):
         receiver to the requested satellites. Elevation and azimuth are
         given in decimal degrees.
 
-    Notes:
-    ------
-    Code written by J. Makela. 
+    Notes
+    -----
+    Code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
 
     """

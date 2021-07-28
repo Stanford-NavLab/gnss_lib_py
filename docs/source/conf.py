@@ -17,14 +17,14 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../gnss-lib-py/'))
 sys.path.insert(0, os.path.abspath('../../gnss-lib-py/algorithms/'))
-sys.path.insert(0, os.path.abspath('../../gnss-lib-py/funcs/'))
+sys.path.insert(0, os.path.abspath('../../gnss-lib-py/core/'))
 sys.path.insert(0, os.path.abspath('../../gnss-lib-py/io/'))
 sys.path.insert(0, os.path.abspath('../../gnss-lib-py/utils/'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'gnss-lib'
+project = 'gnss-lib-py'
 copyright = '2021, Ashwin Kanhere, Derek Knowles'
 author = 'Ashwin Kanhere, Derek Knowles'
 
@@ -49,6 +49,16 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+# autodocs settings to include private members
+autodoc_default_options = {
+                            "members": True,
+                            "undoc-members": True,
+                            "private-members": True,
+                            # "special-members": True,
+                            # "inherited-members": True,
+                            "show-inheritance": True,
+                           }
 
 
 # -- Options for HTML output -------------------------------------------------

@@ -6,7 +6,7 @@
 import math
 import numpy as np
 
-#TODO: Consider moving to funcs.ephemeris
+#TODO: Consider moving to core.ephemeris
 
 pi = math.pi
 # Generate points in a circle
@@ -17,7 +17,7 @@ def PointsInCircum(r, n=100):
     ----------
     r : float
         Radius of circle
-    
+
     n : int
         Number of points to be generated
 
