@@ -1,8 +1,8 @@
 ########################################################################
 # Author(s):    Ashwin Kanhere
 # Date:         16 July 2021
-# Desc:         Functions for expected measurements and to generate 
-#               simulated pseudoranges and doppler for GPS satellites
+# Desc:         Functions to generate expected measurements and to 
+#               simulate pseudoranges and doppler for GPS satellites
 ########################################################################
 
 
@@ -15,8 +15,23 @@ from funcs.coordinates import ecef2geodetic
 
 
 def _extract_pos_vel_arr(satXYZV):
-    """
-    Ashwin wrote this
+    """Extract satellite positions and velocities into numpy arrays
+
+    Parameters
+    ----------
+    satXYZV : pd.DataFrame
+        Dataframe with satellite states
+
+    Returns
+    -------
+    prns : List
+        Satellite PRNs in input DataFrame
+
+    satXYZ : ndarray
+        ECEF satellite positions
+
+    satV : ndarray
+        ECEF satellite x, y and z velocities
     """
     prns = [int(prn[1:]) for prn in satXYZV.index]
     satXYZ = satXYZV.filter(['x', 'y', 'z'])
@@ -27,11 +42,55 @@ def _extract_pos_vel_arr(satXYZV):
     #TODO: Remove prns from function output if not needed
 
 
-def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, prange_sigma = 6, doppler_sigma=0.1, satXYZV=None):
-    """
-    Ashwin wrote this
+def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, prange_sigma = 6., doppler_sigma=0.1, satXYZV=None):
+    """Simulate GNSS pseudoranges and doppler measurements given receiver states
+
+    Measurements are simulated by adding Gaussian noise to measurements expected based on the receiver states
+
+    Parameters
+    ----------
+    gpsweek : int
+        Week in GPS calendar
+
+    gpstime : float
+        GPS time of the week for simulate measurements [s]
+
+    ephem : pd.DataFrame
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+
+    pos : ndarray
+        1x3 Receiver 3D ECEF position [m]
+
+    bias : float
+        Receiver clock bais [m]
+
+    b_dot : float
+        Receiver clock drift [m/s]
+
+    vel : ndarray
+        1x3 Receiver 3D ECEF velocity
+
+    prange_sigma : float
+        Standard deviation of Gaussian error in simulated pseduranges
+
+    doppler_sigma : float
+        Standard deviation of Gaussian error in simulated doppler measurements
+
+    satXYZV : pd.DataFrame
+        Precomputed positions of satellites (if available)
+    
+    Returns
+    -------
+    measurements : pd.DataFrame
+        Pseudorange and doppler measurements indexed by satellite SV with Gaussian noise
+
+    satXYZV : pd.DataFrame
+        Satellite positions and velocities (same as input if provided)
+
     """
     #TODO: Modify to work with input satellite positions
+    # TODO: Add assertions/error handling for sizes of position, bias, b_dot and velocity arrays
+    ephem = _find_visible_sats(gpsweek, gpstime, pos, ephem)
     measurements, satXYZV = expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV)
     M = len(measurements.index)
     rng = default_rng()
@@ -41,31 +100,48 @@ def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, prange_sig
 
 
 def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=None):
-    """
-    Ashwin wrote this (maybe based off of somewhere need to determine)
+    """Compute expected pseudoranges and doppler measurements given receiver states
+
+    Parameters
+    ----------
+    gpsweek : int
+        Week in GPS calendar
+
+    gpstime : float
+        GPS time of the week for simulate measurements [s]
+
+    ephem : pd.DataFrame
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+
+    pos : ndarray
+        1x3 Receiver 3D ECEF position [m]
+
+    bias : float
+        Receiver clock bais [m]
+
+    b_dot : float
+        Receiver clock drift [m/s]
+
+    vel : ndarray
+        1x3 Receiver 3D ECEF velocity
+
+    satXYZV : pd.DataFrame
+        Precomputed positions of satellites (if available)
+
+    Returns
+    -------
+    measurements : pd.DataFrame
+        Expected pseudorange and doppler measurements indexed by satellite SV 
+
+    satXYZV : pd.DataFrame
+        Satellite positions and velocities (same as input if provided)
     """
     #NOTE: When using saved data, pass saved DataFrame with ephemeris in ephem and satellite positions in satXYZV
-    """
-    Return elevation/azimuth, closest ephemeris and prns of visible satellites.
-
-    Parameters:
-    gpsweek:
-    gpstime:
-    ephem:
-    pos: 1x3 position vector in ECEF (m)
-    bias:
-    b_dot:
-    vel: 1x3 vector for receiver velocity (m)
-    Returns:
-    prange:
-    prange_rate:
-    """
-    # TODO: Modify this function to use PRNS from measurement in addition to gpstime from measurement 
+    #TODO: Modify this function to use PRNS from measurement in addition to gpstime from measurement 
     pos = np.reshape(pos, [1, 3])
     vel = np.reshape(vel, [1, 3])
     gpsconsts = GPSConsts()
-    ephem = _find_visible_sats(gpsweek, gpstime, pos, ephem)
-    satXYZV, delXYZ, true_range = find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV)
+    satXYZV, delXYZ, true_range = _find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV)
     _, satXYZ, satV = _extract_pos_vel_arr(satXYZV)
     # satXYZ, satV, delXYZ are both Nx3
     # Obtain corrected pseudoranges and add receiver clock bias to them
@@ -79,22 +155,31 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     return measurements, satXYZV
 
 
-def _find_visible_sats(gpsweek, gpstime, Rx_ECEF, ephem, el_mask=5):
-    """
-    Ashwin wrote this (maybe based off of somewhere need to determine)
-    """
-    """
-    Return elevation/azimuth, closest ephemeris and prns of visible satellites.
+def _find_visible_sats(gpsweek, gpstime, Rx_ECEF, ephem, el_mask=5.):
+    """Trim input ephemeris to keep only visible SVs
 
-    Parameters:
-    gpsweek:
-    gpstime:
-    Rx_ECEF: 1x3 position vector in ECEF (m)
-    ephem: Pandas DataFrame containing all ephemerides for all possible satellites in 33 x N
-    el_mask: Elevation mask for visible satellites. Set to 5 by default
+    Parameters
+    ----------
+    gpsweek : int
+        Week in GPS calendar
 
-    Returns:
-    eph: Pandas DataFrame containing only visible satellites
+    gpstime : float
+        GPS time of the week for simulate measurements [s]
+
+    Rx_ECEF : ndarray
+        1x3 row Rx ECEF position vector [m]
+
+    ephem : pd.DataFrame
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+
+    el_mask : float
+        Minimum elevation of returned satellites
+
+    Returns
+    -------
+    eph : pd.DataFrame
+        Ephemeris parameters of visible satellites
+
     """
     gpsconsts = GPSConsts()
     # Find positions of all satellites
@@ -104,23 +189,49 @@ def _find_visible_sats(gpsweek, gpstime, Rx_ECEF, ephem, el_mask=5):
     approx_elaz = find_elaz(np.reshape(Rx_ECEF, [1, 3]), approx_XYZ)
     # Keep attributes of only those satellites which are visible
     keep_ind = approx_elaz[:,0] > el_mask
-    prns = approx_XYZV.index.to_numpy()[keep_ind]
+    # prns = approx_XYZV.index.to_numpy()[keep_ind]
+    #TODO: Remove above statement if superfluous
     eph = ephem.loc[keep_ind, :] #TODO: Check that a copy of the ephemeris is being generated, also if it is needed
     return eph
 
 
-def find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
-    """
-    Ramya wrote this (modified by Ashwin)
-    """
-    """
-    Find satellite locations and velocities with time correction based on transmit time
+def _find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
+    """Return satellite positions, difference from Rx position and ranges
+
+    Parameters
+    ----------
+    gpsweek : int
+        Week in GPS calendar
+
+    gpstime : float
+        GPS time of the week for simulate measurements [s]
+
+    ephem : pd.DataFrame
+        DataFrame containing all satellite ephemeris parameters for gpsweek and gpstime 
+
+    pos : ndarray
+        1x3 Receiver 3D ECEF position [m]
+
+    satXYZV : pd.DataFrame
+        Precomputed positions of satellites (if available)
+
+    Returns
+    -------
+    satXYVZ : pd.DataFrame
+        Satellite position and velocities (same if input)
+
+    delXYZ : ndarray
+        Difference between satellite positions and receiver position
+
+    true_range : ndarray
+        Distance between satellite and receiver positions
+    
     """
     gpsconsts = GPSConsts()
     pos = np.reshape(pos, [1, 3])
     if satXYZV is None:
         satellites = len(ephem.index)
-        satXYZV = FindSat(ephem, gpstime - gpsconsts.t_trans, gpsweek)
+        satXYZV = FindSat(ephem, gpstime - gpsconsts.T_TRANS, gpsweek)
         delXYZ, true_range = _find_delxyz_range(satXYZV, pos, satellites)
         tcorr = true_range/gpsconsts.c
         # Find satellite locations at (a more accurate) time of transmission
@@ -138,8 +249,26 @@ def find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
 
 
 def _find_delxyz_range(satXYZV, pos, satellites):
-    """
-    Ashwin wrote this (maybe based off of code Ramya wrote in Matlab)
+    """Return difference of satellite and Rx positions and range between them
+
+    Parameters
+    ----------
+    satXYVZ : pd.DataFrame
+        Satellite position and velocities
+
+    pos : ndarray
+        1x3 Receiver 3D ECEF position [m]
+
+    satellites : int
+        Number of satellites in satXYZV
+
+    Returns
+    -------
+    delXYZ : ndarray
+        Difference between satellite positions and receiver position
+
+    true_range : ndarray
+        Distance between satellite and receiver positions
     """
     # Repeating computation in find_sat_location
     #NOTE: Input is from satellite finding in AE 456 code
@@ -153,33 +282,41 @@ def _find_delxyz_range(satXYZV, pos, satellites):
 
 
 def FindSat(ephem, times, gpsweek):
+    """Compute position and velocities for all satellites in ephemeris file given time of clock
+
+    Paramters
+    ---------
+    ephem : pd.DataFrame
+        DataFrame containing ephemeris parameters of satellies for which states are required
+
+    times : ndarray
+        GPS time of the week at which positions are required [s]
+
+    gpsweek : int
+        Week of GPS calendar corresponding to time of clock
+
+    Returns
+    -------
+    satXYZV : pd.DataFrame
+        DataFrame indexed by satellite SV containing positions and velocities
+
+    Notes
+    -----
+    Based on code written by J. Makela. 
+    AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
+
+    Satellite velocity calculations based on algorithms introduced in [1]_.
+
+    References
+    ----------
+    ..  [1] B. F. Thompson, S. W. Lewis, S. A. Brown, and T. M. Scott, 
+        “Computing GPS satellite velocity and acceleration from the broadcast navigation message,” 
+        NAVIGATION, vol. 66, no. 4, pp. 769–779, Dec. 2019, doi: 10.1002/navi.342.
+
+    """
     # Satloc contains both positions and velocities.
-    # TODO: Look into combining this method with the ones in read_rinex.py
-    """
-    Skeleton code from UIUC ECE456 with heavy modifications from
-    Ashwin
-    """
-    """
-    # Original in ECE456_orbitutils.py. #NOTE: Ask Ashwin for original source
-    # Function to coarse calculate satellite positions given the GPS almanac.
-    # The calculation can be performed for multiple satellites with a corresponding time for each satellite
-    #
-    # Inputs:
-    #       ephem - Pandas DataFrame with ephemeris information
-    #               See ECE456_fileutils.py for a description of the structure format.
-    #       times_all - the GPS time for each satellite to compute the satellite position(s) for
-    #
-    # Outputs:
-    #       satLoc - a (N x 8)
-    #               satLoc = [GPStime PRN ECEFx ECEFy ECEFz Vx, Vy, Vz;
-    #                          . . . . .
-    #                         GPStime PRN ECEFx ECEFy ECEFz, Vx, Vy, Vz];
-    #
-    # Revision history:
-    #       7-15-2015: Written by J. Makela based on MATLAB code
-    #       9-14-2020: Modified by Ashwin Kanhere to output velocities as well
-    #                  Based on MATLAB code by Sriramya Bhamidipati
-    """
+    #TODO: Look into combining this method with the ones in read_rinex.py
+    #TODO: Clean up this code 
     # Load in GPS constants
     gpsconst = GPSConsts()
 
@@ -277,11 +414,40 @@ def FindSat(ephem, times, gpsweek):
     return satXYZV
 
 
-def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
+def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
+    """Incorporate corrections in measurements
+
+    Incorporate clock corrections (relativistic, drift), tropospheric and ionospheric clock corrections
+
+    Parameters
+    ----------
+    gpstime : float
+        Time of clock in seconds of the week
+
+    gpsweek : int
+        GPS week for time of clock
+
+    ephem : pd.DataFrame
+        Satellite ephemeris parameters for measurement SVs
+
+    pr_meas : ndarray
+        Ranging measurements from satellites [m]
+
+    rx : ndarray
+        1x3 array of ECEF Rx position [m]
+
+    Returns
+    -------
+    prCorr : ndarray
+        Array of corrected pseudorange measurements [m]
+
+    Notes
+    -----
+    Based on code written by J. Makela. 
+    AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
+
     """
-    Skeleton code from UIUC ECE456 with heavy modifications from
-    Ashwin
-    """
+    # TODO: Incorporate satellite clock rate changes into the doppler measurements
     # Load GPS Constants
     gpsconsts = GPSConsts()
 
@@ -292,7 +458,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
         gpsweek = np.array(gpsweek)
 
     # Initialize the correction array
-    prCorr = np.zeros_like(prMes)
+    prCorr = np.zeros_like(pr_meas)
     dt = gpstime - ephem['t_oe']
     if np.abs(dt).any() > 302400:
         dt = dt-np.sign(dt)*604800
@@ -332,7 +498,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
     # Calculate the tropospheric delays
     tropoDelay = calculate_tropo_delay(gpstime,gpsweek,ephem,rx)
     # Calculate total pseudorange correction
-    prCorr = prMes + clockCorr*gpsconsts.c - tropoDelay*gpsconsts.c
+    prCorr = pr_meas + clockCorr*gpsconsts.c - tropoDelay*gpsconsts.c
 
     if isinstance(prCorr, pd.Series):
         prCorr = prCorr.to_numpy(dtype=float)
@@ -341,12 +507,35 @@ def correct_pseudorange(gpstime, gpsweek, ephem, prMes, rx):
 
 
 def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
-    """
-    Skeleton code from UIUC ECE456 with heavy modifications from
-    Ashwin
+    """Calculate tropospheric delay 
+
+    Parameters
+    ----------
+    gpstime : float
+        Time of clock in seconds of the week
+
+    gpsweek : int
+        GPS week for time of clock
+
+    ephem : pd.DataFrame
+        Satellite ephemeris parameters for measurement SVs
+
+    rx_loc : ndarray
+        1x3 array of ECEF Rx position [m]
+
+    Returns
+    -------
+    tropo_delay : ndarray
+        Tropospheric corrections to pseudorange measurements
+
+    Notes
+    -----
+    Based on code written by J. Makela. 
+    AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
+
     """
     # Load gpsconstants
-    gpsconst = gpsconstss()
+    gpsconsts = GPSConsts()
 
     # Make sure things are arrays
     if type(gpstime) != np.ndarray:
@@ -361,8 +550,8 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
     el_r = np.deg2rad(el_az[:,0])
 
     # Calculate the WGS-84 latitude/longitude of the receiver
-    WGS = ecef2geodetic(rx_loc)
-    height = WGS[:,2]
+    wgs = ecef2geodetic(rx_loc)
+    height = wgs[:,2]
 
     # Force height to be positive
     ind = np.argwhere(height < 0).flatten()
@@ -370,9 +559,9 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
         height[ind] = 0
 
     # Calculate the delay
-    tropoDelay = 2.47/(np.sin(el_r)+0.0121) * np.exp(-height*1.33e-4)/gpsconsts.c
+    tropo_delay = 2.47/(np.sin(el_r)+0.0121) * np.exp(-height*1.33e-4)/gpsconsts.c
 
-    return tropoDelay
+    return tropo_delay
 
 
 ##########################################################
@@ -381,33 +570,26 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_loc):
 
 
 def find_elaz(Rx, Sats):
-    """
-    Copy paste UIUC ECE456
-    """
-    """
-    Function: elaz(Rx, Sats)
-    ---------------------
-    Calculate the elevation and azimuth from a single receiver to multiple satellites.
+    """Calculate the elevation and azimuth from a single receiver to multiple satellites.
 
-    Inputs:
+    Parameters
+    ----------
+    Rx : ndarray
+        1x3 vector containing [X, Y, Z] coordinate of receiver
+    Sats : ndarray
+        Nx3 array  containing [X, Y, Z] coordinates of satellites
+
+    Returns
     -------
-        Rx   : 1x3 vector containing [X, Y, Z] coordinate of receiver
-        Sats : Nx3 array  containing [X, Y, Z] coordinates of satellites
-
-
-    Outputs:
-    --------
-        elaz : Nx2 array containing the elevation and azimuth from the
-               receiver to the requested satellites. Elevation and azimuth are
-               given in decimal degrees.
+    elaz : ndarray
+        Nx2 array containing the elevation and azimuth from the
+        receiver to the requested satellites. Elevation and azimuth are
+        given in decimal degrees.
 
     Notes:
     ------
-        Based from Jonathan Makela's GPS_elaz.m script
-
-    History:
-    --------
-        7/15/15 Created, Jonathan Makela (jmakela@illinois.edu)
+    Code written by J. Makela. 
+    AE 456, Global Navigation Sat Systems, University of Illinois Urbana-Champaign. Fall 2017
 
     """
 
