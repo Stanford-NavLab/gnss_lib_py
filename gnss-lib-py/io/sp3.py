@@ -1,31 +1,74 @@
+########################################################################
+# Author(s):    Shubh Gupta
+# Date:         10 Apr 2021
+# Desc:         Functions to read data from NMEA files
+########################################################################
+
 import numpy as np
 import pandas as pd
-from collections import defaultdict
-from scipy import interpolate
 from datetime import datetime
+from scipy import interpolate
+from collections import defaultdict
 
 from utils.timing import datetime_to_tow
 from utils.constants import GPSConsts
 
 class PreciseNav(object):
-    """
-    Shubh wrote this
+    """Class that contain satellite data.
+
     """
     def __init__(self, date, sat_position):
+        """Initialize PreciseNav class.
+
+        Parameters
+        ----------
+        date : datetime object
+            ???.
+        sat_position : tuple
+            ??? contains (x, y, z, t).
+
+        """
         self.date = date
         self.tow = datetime_to_tow(date)
         self.xyzt = np.array(list(map(float, sat_position)))  # [km, km, km, mcs]
 
     def eph2pos(self):
-        return self.xyzt[:3] * 1e3
+        """Conversion from km to m ???
+
+        Returns
+        -------
+        result : np.array
+            x,y,z ECEF position of satellite in meters
+
+        """
+        result = self.xyzt[:3] * 1e3
+        return result
 
     def time_offset(self):
-        return self.xyzt[3] / 1e6
+        """Converts clock correction from microseconds to seconds
 
-#Read SP3
+        Returns
+        -------
+        result : float
+            clock correction in seconds
+
+        """
+        result = self.xyzt[3] / 1e6
+        return result
+
 def parse_sp3(path):
-    """
-    Shubh wrote this
+    """Convert SP3 ephemeris file into a python dictionary.
+
+    Parameters
+    ----------
+    path : string
+        File location of SP3 file to read.
+
+    Returns
+    -------
+    nav_dict : dict
+        Dicionary containing satellite objects mapped by PRN number.
+
     """
     print("\nParsing %s:" % path)
     with open(path) as fd:
@@ -46,20 +89,66 @@ def parse_sp3(path):
 
 # Rotate to correct ECEF satellite positions
 def flight_time_correct(X, Y, Z, flight_time):
-    """
-    Shubh wrote this
+    """Get the time-of-flight corrected ECEF satellite positions
+
+    Uses the signal flight time to calculate the rotation to correct
+    the satellite positions.
+
+    Parameters
+    ----------
+    X : float
+        ECEF X position of satellite.
+    Y : float
+        ECEF Y position of satellite.
+    Z : float
+        ECEF Z position of satellite.
+
+    Returns
+    -------
+    X_corrected : float
+        Corrected ECEF X position of satellite.
+    Y_corrected : float
+        Corrected ECEF Y position of satellite.
+    Z_corrected : float
+        Corrected ECEF Z position of satellite.
+
     """
     theta = constants.WE * flight_time/1e6
     R = np.array([[np.cos(theta), np.sin(theta), 0.], [-np.sin(theta), np.cos(theta), 0.], [0., 0., 1.]])
 
     XYZ = np.array([X, Y, Z])
     rot_XYZ = R @  np.expand_dims(XYZ, axis=-1)
-    return rot_XYZ[0], rot_XYZ[1], rot_XYZ[2]
+    X_corrected = rot_XYZ[0]
+    Y_corrected = rot_XYZ[1]
+    Z_corrected = rot_XYZ[2]
 
-# Interpolate satellite position and correction for time t and prn
+    return X_corrected, Y_corrected, Z_corrected
+
+#
 def interpol_sp3(sp3, prn, t):
-    """
-    Shubh wrote this
+    """Interpolate satellite position and correction for time t and prn.
+
+    Parameters
+    ----------
+    sp3 : dict
+        Dicionary containing satellite objects mapped by PRN number
+        created by the parse_sp3() function.
+    prn : int
+        PRN number of satellite to interpolate.
+    t : float ???
+        Time to interpolate.
+
+    Returns
+    -------
+    X_interp : float
+        Interpolated ECEF X position of satellite.
+    Y_interp : float
+        Interpolated ECEF Y position of satellite.
+    Z_interp : float
+        Interpolated ECEF Z position of satellite.
+    B_interp : float
+        Interpolated time correction in distance (meters??).
+
     """
     inter_rad = 3
     subar = sp3['G'+"%02d" % prn]
@@ -94,4 +183,9 @@ def interpol_sp3(sp3, prn, t):
     gpsconsts = GPSConsts()
 
     # print( np.linalg.norm(np.array([X,Y,Z]) - gt_ecef) - c*B)
-    return X(t),Y(t),Z(t),gpsconsts.c*B(t)
+    X_interp = X(t)
+    Y_interp = Y(t)
+    Z_interp = Z(t)
+    B_interp = gpsconsts.c*B(t)
+
+    return X_interp, Y_interp, Z_interp, B_interp

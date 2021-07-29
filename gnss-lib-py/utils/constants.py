@@ -6,9 +6,10 @@
 
 import numpy as np
 
-
 class GPSConsts:
-    """Class containing constants required for GPS navigation
+    """Class containing constants required for GPS navigation.
+
+    Based on ECE 456 implementation [1]_.
 
     Attributes
     ----------
@@ -43,10 +44,11 @@ class GPSConsts:
     WEEKSEC : float
         Number of seconds in a week [s]
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Makela, Jonathan, ECE 456, Global Nav Satellite Systems, Fall 2017. 
-    University of Illinois Urbana-Champaign. Coding Assignments.
+      University of Illinois Urbana-Champaign. Coding Assignments.
+
     """
     def __init__(self):
         self.A = 6378137.
@@ -61,12 +63,12 @@ class GPSConsts:
         self.F2 = 1.22760e9
         self.PI = 3.1415926535898
         self.T_TRANS = 70*0.001
-        self.GRAV = -9.80665 
+        self.GRAV = -9.80665
         self.WEEKSEC = 604800
 
 
 class CoordConsts:
-    """Class containing constants required for coordinate conversion
+    """Class containing constants required for coordinate conversion.
 
     Attributes
     ----------
@@ -79,9 +81,10 @@ class CoordConsts:
     ESQ1: float
         Don't know what this is either
     """
+    # TODO: Update docstring for ESQ and ESQ1
 
     def __init__(self):
         self.A = 6378137.
-        self.B = 6356752.3145 
+        self.B = 6356752.3145
         self.ESQ = 6.69437999014 * 0.001
         self.E1SQ = 6.73949674228 * 0.001

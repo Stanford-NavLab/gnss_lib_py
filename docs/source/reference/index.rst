@@ -7,6 +7,6 @@ Reference
    :maxdepth: 2
 
    algorithms/modules
-   funcs/modules
+   core/modules
    io/modules
    utils/modules

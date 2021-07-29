@@ -1,6 +1,6 @@
 ########################################################################
 # Author(s):    Adam Dai, Shubh Gupta
-# Date:         16 July 2021
+# Date:         16 Jul 2021
 # Desc:         Functions to read data from NMEA files
 ########################################################################
 
@@ -11,13 +11,14 @@ import datetime
 import calendar
 import numpy as np
 sys.path.append("..")
-from funcs import coordinates as coord
+from core import coordinates as coord
 
-class NMEA:
+class NMEA():
+    """Class used to parse through NMEA files
+
+    """
     def __init__(self, filename):
-        """Read in NMEA file.
-
-        Author(s): S. Gupta and A. Dai
+        """Initialize NMEA class.
 
         Parameters
         ----------
@@ -42,8 +43,6 @@ class NMEA:
     def lla_gt(self):
         """Get latitude, longitude, and altitude ground truthself.
 
-        Author(s): S. Gupta and A. Dai
-
         Returns
         -------
         geo_ls : list
@@ -58,8 +57,6 @@ class NMEA:
 
     def ecef_gt(self):
         """Get ECEF ground truth.
-
-        Author(s): S. Gupta and A. Dai.
 
         Returns
         -------

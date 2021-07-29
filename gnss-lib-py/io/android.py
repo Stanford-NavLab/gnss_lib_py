@@ -1,19 +1,40 @@
 ########################################################################
 # Author(s):    Shubh Gupta, Adam Dai
-# Date:         13 July 2021
+# Date:         13 Jul 2021
 # Desc:         Functions to process Android measurements
 ########################################################################
 
-import numpy as np
 import csv
+import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
+
 from utils.constants import GPSConsts
 
 
-# Extract data different timesteps
 def extract_timedata(input_path):
-    """Shubh wrote these (may have google MATLAB counterpart)
+    """Extracts raw and fix data from GNSS log file.
+
+    Parameters
+    ----------
+    input_path : string
+        File location of data file to read.
+
+    Returns
+    -------
+    header_raw : string
+        Header for raw data.
+    raw_data : list
+        Raw data appended line by line.
+    header_fix : string
+        Header for fix data.
+    fix_data : list
+        Fix data appended line by line.
+
+    Notes
+    -----
+    This function doesn't appear to be used anywhere, is it needed?
+
     """
     raw_data = []
     fix_data = []
@@ -38,10 +59,28 @@ def extract_timedata(input_path):
                 raw_data[t].append(line_data[1:])
     return header_raw, raw_data, header_fix, fix_data
 
-#Extract data continuous and make a csv
-# field - 'Raw', 'Accel', 'Gyro'
 def make_csv(input_path, field):
-    """Shubh wrote these (may have google MATLAB counterpart)
+    """Write specific data types from a GNSS android log to a CSV.
+
+    Parameters
+    ----------
+    input_path : string
+        File location of data file to read.
+    field : string
+        Type of data to extract. Valid options are either "Raw",
+        "Accel", or "Gyro".
+
+    Returns
+    -------
+    out_path : string
+        New file location of the exported CSV.
+
+    Notes
+    -----
+    Based off of Matlab code from Google's gps-measurement-tools
+    repository: https://github.com/google/gps-measurement-tools. Compare
+    with MakeCsv() in opensource/ReadGnssLogger.m
+
     """
     out_path = field + ".csv"
     with open(out_path, 'w') as f:
@@ -62,9 +101,24 @@ def make_csv(input_path, field):
                         writer.writerow(line_data[1:])
     return out_path
 
-# Read Android raw file and produce gnss dataframe objects
+
 def make_gnss_dataframe(input_path, verbose=False):
-    """Shubh wrote this
+    """Read Android raw file and produce gnss dataframe objects
+
+    Parameters
+    ----------
+    input_path : string
+        File location of data file to read.
+    verbose : bool
+        If true, will print out any problems that were detected.
+
+    Returns
+    -------
+    corrected_measurements : pandas dataframe
+        Dataframe that contains a corrected version of the measurements.
+    andorid fixes : pandas dataframe
+        Dataframe that contains the andorid fixes from the log file.
+
     """
     with open(input_path) as csvfile:
         reader = csv.reader(csvfile)
@@ -83,11 +137,28 @@ def make_gnss_dataframe(input_path, verbose=False):
     android_fixes = pd.DataFrame(android_fixes[1:], columns = android_fixes[0])
     measurements = pd.DataFrame(measurements[1:], columns = measurements[0])
 
-    return fix_log(measurements, verbose=verbose), android_fixes
+    corrected_measurements = correct_log(measurements, verbose=verbose)
 
-# Read Android raw file and produce imu dataframe objects
+    return corrected_measurements, android_fixes
+
+
 def make_imu_dataframe(input_path, verbose=False):
-    """Adam Dai wrote this
+    """Read Android raw file and produce IMU dataframe objects
+
+    Parameters
+    ----------
+    input_path : string
+        File location of data file to read.
+    verbose : bool
+        If true, will print out any problems that were detected.
+
+    Returns
+    -------
+    accel : pandas dataframe
+        Dataframe that contains the accel measurements from the log.
+    gyro : pandas dataframe
+        Dataframe that contains the gyro measurements from the log.
+
     """
     with open(input_path) as csvfile:
         reader = csv.reader(csvfile)
@@ -108,9 +179,25 @@ def make_imu_dataframe(input_path, verbose=False):
 
     return accel, gyro
 
-# Compute required quantities from the log and check for errors
-def fix_log(measurements, verbose=False):
-    """Shubh wrote this
+#
+def correct_log(measurements, verbose=False):
+    """Compute required quantities from the log and check for errors.
+
+    This is a master function that calls the other correction functions
+    to validate a GNSS measurement log dataframe.
+
+    Parameters
+    ----------
+    measurements : pandas dataframe
+        pandas dataframe that holds gnss meassurements
+    verbose : bool
+        If true, will print out any problems that were detected.
+
+    Returns
+    -------
+    measurements : pandas dataframe
+        same dataframe with possibly some fixes or column additions
+
     """
     # Add leading 0
     measurements.loc[measurements['Svid'].str.len() == 1, 'Svid'] = '0' + measurements['Svid']
@@ -146,9 +233,29 @@ def fix_log(measurements, verbose=False):
             print("No problems detected.")
     return measurements
 
-#Check and fix clock field errors
 def check_gnss_clock(gnssRaw, gnssAnalysis):
-    """Shubh wrote this
+    """Checks and fixes clock field errors
+
+    Parameters
+    ----------
+    gnssRaw : pandas dataframe
+        pandas dataframe that holds gnss meassurements
+    gnssAnalysis : list
+        holds any error messages
+
+    Returns
+    -------
+    gnssRaw : pandas dataframe
+        same dataframe with possibly some fixes or column additions
+    gnssAnalysis : list
+        holds any error messages
+
+    Notes
+    -----
+    Based off of Matlab code from Google's gps-measurement-tools
+    repository: https://github.com/google/gps-measurement-tools. Compare
+    with CheckGnssClock() in opensource/ReadGnssLogger.m
+
     """
     # list of clock fields
     gnssClockFields = [
@@ -184,9 +291,30 @@ def check_gnss_clock(gnssRaw, gnssAnalysis):
     gnssRaw['allRxMillis'] = ((gnssRaw.TimeNanos - gnssRaw.FullBiasNanos)/1e6)
     return gnssRaw, gnssAnalysis
 
-#Check GNSS Measurements
+
 def check_gnss_measurements(gnssRaw, gnssAnalysis):
-    """Shubh wrote this (has GOOGLE MATLAB counterpart)
+    """Checks that GNSS measurement fields exist in dataframe.
+
+    Parameters
+    ----------
+    gnssRaw : pandas dataframe
+        pandas dataframe that holds gnss meassurements
+    gnssAnalysis : list
+        holds any error messages
+
+    Returns
+    -------
+    gnssRaw : pandas dataframe
+        exact same dataframe as input (why is this a return?)
+    gnssAnalysis : list
+        holds any error messages
+
+    Notes
+    -----
+    Based off of Matlab code from Google's gps-measurement-tools
+    repository: https://github.com/google/gps-measurement-tools. Compare
+    with ReportMissingFields() in opensource/ReadGnssLogger.m
+
     """
     # list of measurement fields
     gnssMeasurementFields = [
@@ -207,9 +335,31 @@ def check_gnss_measurements(gnssRaw, gnssAnalysis):
             gnssAnalysis.append('WARNING: '+field+' (Measurement) is missing from GNSS Logger file')
     return gnssRaw, gnssAnalysis
 
-# Compute times and epochs
+
 def compute_times(gnssRaw, gnssAnalysis):
-    """Shubh wrote this (has GOOGLE MATLAB counterpart)
+    """Compute times and epochs for GNSS measurements
+
+    Parameters
+    ----------
+    gnssRaw : pandas dataframe
+        pandas dataframe that holds gnss meassurements
+    gnssAnalysis : list
+        holds any error messages
+
+    Returns
+    -------
+    gnssRaw : pandas dataframe
+        Dataframe with added columns updated.
+    gnssAnalysis : list
+        Holds any error messages. This function doesn't actually add any
+        error messages, but it is a nice thought.
+
+    Notes
+    -----
+    Based off of Matlab code from Google's gps-measurement-tools
+    repository: https://github.com/google/gps-measurement-tools. Compare
+    with opensource/ProcessGnssMeas.m
+
     """
     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
     gnssRaw['GpsWeekNumber'] = np.floor(-1*gnssRaw['FullBiasNanos']*1e-9/WEEKSEC)
@@ -225,8 +375,31 @@ def compute_times(gnssRaw, gnssAnalysis):
     return gnssRaw, gnssAnalysis
 
 def compute_pseudorange(gnssRaw, gnssAnalysis):
-    """Shubh wrote this (has GOOGLE MATLAB counterpart)
+    """Compute psuedorange values and add to dataframe.
+
+    Parameters
+    ----------
+    gnssRaw : pandas dataframe
+        pandas dataframe that holds gnss meassurements
+    gnssAnalysis : list
+        holds any error messages
+
+    Returns
+    -------
+    gnssRaw : pandas dataframe
+        Dataframe with added columns updated.
+    gnssAnalysis : list
+        Holds any error messages. This function doesn't actually add any
+        error messages, but it is a nice thought.
+
+    Notes
+    -----
+    Based off of Matlab code from Google's gps-measurement-tools
+    repository: https://github.com/google/gps-measurement-tools. Compare
+    with opensource/ProcessGnssMeas.m
+
     """
+
     gpsconsts = GPSConsts()
     gnssRaw['Pseudorange_seconds'] = gnssRaw['tRxSeconds'] - gnssRaw['tTxSeconds']
     gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*gpsconsts.C

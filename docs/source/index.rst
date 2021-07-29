@@ -1,10 +1,10 @@
-.. gnss-lib documentation master file, created by
+.. gnss-lib-py documentation master file, created by
    sphinx-quickstart on Tue Jul 20 15:36:43 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to gnss-lib's documentation!
-====================================
+gnss-lib-py
+===========
 
 This is a helpful explanation that explains the purpose of this
 repository.

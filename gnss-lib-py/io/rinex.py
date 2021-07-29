@@ -1,21 +1,36 @@
 ########################################################################
 # Author(s):    Shubh Gupta
-# Date:         16 July 2021
-# Desc:         Functions to read data from NMEA files 
+# Date:         16 Jul 2021
+# Desc:         Functions to read data from NMEA files
 ########################################################################
 
-from datetime import datetime
-from io import BytesIO
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+from io import BytesIO # not the gnss-lib-py/io/ modules
+from datetime import datetime
 
 def _obstime(fol):
-    """
+    """Convert Rinex obs (observation) time to datetime.
+
+    Parameters
+    ----------
+    fol : list of strings???
+        list of relevant string snippets containing the date from the
+        rinex observation file header
+
+    Returns
+    -------
+    result : datetime object
+        converted datetime object of the provided date
+
+    Notes
+    -----
+    Copied from PyGPS by Michael Hirsch and Greg Starr:
+    https://github.com/gregstarr/PyGPS/blob/master/Examples/readRinexObs.py
+
     Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
 
-    Shubh got it from somewhere (need to determine)
     """
     year = int(fol[0])
     if 80 <= year <= 99:
@@ -23,14 +38,27 @@ def _obstime(fol):
     elif year < 80:  # because we might pass in four-digit year
         year += 2000
 
-    return datetime(year=year, month=int(fol[1]), day=int(fol[2]),
-                    hour=int(fol[3]), minute=int(fol[4]),
-                    second=int(float(fol[5])),
-                    microsecond=int(float(fol[5]) % 1 * 1000000)
-                    )
+    result = datetime(year=year, month=int(fol[1]), day=int(fol[2]),
+                      hour=int(fol[3]), minute=int(fol[4]),
+                      second=int(float(fol[5])),
+                      microsecond=int(float(fol[5]) % 1 * 1000000)
+                      )
+
+    return result
 
 def read_rinex2(input_path):
-    """ Shubh wrote this
+    """Convert Rinex 2 file into a pandas dataframe.
+
+    Parameters
+    ----------
+    input_path : string
+        filepath to the
+
+    Returns
+    -------
+    dsf_main : pandas dataframe
+        dataframe that holds converted rinex data
+
     """
     STARTCOL2 = 3
     Nl = 7  # number of additional lines per record, for RINEX 2 NAV

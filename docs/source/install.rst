@@ -12,7 +12,7 @@ Standard
 Instructions on how to install without the development dependencies.
 
 ::
-    git clone git@github.com:Stanford-NavLab/gnss-lib.git
+    git clone git@github.com:Stanford-NavLab/gnss-lib-py.git
 
 Development
 -----------
@@ -20,4 +20,4 @@ Development
 Instructions on how to install with the development dependencies.
 
 ::
-    git clone git@github.com:Stanford-NavLab/gnss-lib.git
+    git clone git@github.com:Stanford-NavLab/gnss-lib-py.git
