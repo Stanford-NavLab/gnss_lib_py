@@ -74,7 +74,7 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 html_static_path = []
 
-html_logo = "NAVLabLogo.PNG"
+html_logo = "nav_lab_logo.png"
 
 # document __init__ methods
 autoclass_content = 'both'
