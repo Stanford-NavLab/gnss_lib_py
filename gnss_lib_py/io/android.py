@@ -362,6 +362,7 @@ def compute_times(gnssRaw, gnssAnalysis):
 
     """
     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
+    WEEKSEC = 604800
     gnssRaw['GpsWeekNumber'] = np.floor(-1*gnssRaw['FullBiasNanos']*1e-9/WEEKSEC)
     gnssRaw['GpsTimeNanos'] = gnssRaw['TimeNanos'] - (gnssRaw['FullBiasNanos'] - gnssRaw['BiasNanos'])
     gnssRaw['tRxNanos'] = (gnssRaw['TimeNanos']+gnssRaw['TimeOffsetNanos'])-(gnssRaw['FullBiasNanos'].iloc[0]+gnssRaw['BiasNanos'].iloc[0])
