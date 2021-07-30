@@ -40,42 +40,42 @@ class NMEA():
                     print("WARNING: encountered checksum error while reading nmea")
 
 
-        def ecef_gt_w_time(self, date):
-            """Get ECEF ground truth as well as measurement timesself.
+    def ecef_gt_w_time(self, date):
+        """Get ECEF ground truth as well as measurement timesself.
 
-            Measurment times are returned in UTC secondsself.
+        Measurment times are returned in UTC secondsself.
 
-            Parameters
-            ----------
-            date : datetime object
-                Calendar day of the start of recording.
+        Parameters
+        ----------
+        date : datetime object
+            Calendar day of the start of recording.
 
-            Returns
-            -------
-            ecef : np.array
-                ECEF coordinates in array of shape [timesteps x 3] [m]
-            times : np.array
-                UTC time for ground truth measurements [s]
-            geo_ls : np.array
-                lat, lon, alt ground truth of shape [timesteps x 3]
+        Returns
+        -------
+        ecef : np.array
+            ECEF coordinates in array of shape [timesteps x 3] [m]
+        times : np.array
+            UTC time for ground truth measurements [s]
+        geo_ls : np.array
+            lat, lon, alt ground truth of shape [timesteps x 3]
 
-            """
-            geo_ls = []
-            times = []
+        """
+        geo_ls = []
+        times = []
 
-            # calculate date based on datestring
-            date_ts = calendar.timegm(date.timetuple())
+        # calculate date based on datestring
+        date_ts = calendar.timegm(date.timetuple())
 
-            for msg in self.gga_msgs:
-                geo_ls.append([float(msg.latitude), float(msg.longitude), float(msg.altitude)])
-                day_ts = (msg.timestamp.hour*3600 + msg.timestamp.minute*60 + msg.timestamp.second + msg.timestamp.microsecond*1e-6)
-                times.append(date_ts + day_ts)
+        for msg in self.gga_msgs:
+            geo_ls.append([float(msg.latitude), float(msg.longitude), float(msg.altitude)])
+            day_ts = (msg.timestamp.hour*3600 + msg.timestamp.minute*60 + msg.timestamp.second + msg.timestamp.microsecond*1e-6)
+            times.append(date_ts + day_ts)
 
-            ecef = coord.geodetic2ecef(geo_ls)
-            times = np.array(times)
-            geo_ls = np.array(geo_ls)
+        ecef = coord.geodetic2ecef(geo_ls)
+        times = np.array(times)
+        geo_ls = np.array(geo_ls)
 
-            return ecef, times, geo_ls
+        return ecef, times, geo_ls
 
 
     def lla_gt(self):
