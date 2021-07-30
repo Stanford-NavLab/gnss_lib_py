@@ -53,7 +53,7 @@ class GPSConsts:
     def __init__(self):
         self.A = 6378137.
         self.B = 6356752.3145
-        self.E = np.sqrt(1-(self.b**2)/(self.a**2))
+        self.E = np.sqrt(1-(self.B**2)/(self.A**2))
         self.LAT_ACC_THRESH = 1.57e-6
         self.MUEARTH = 398600.5e9
         self.OMEGAEDOT = 7.2921151467e-5
