@@ -6,7 +6,7 @@
 
 import numpy as np
 import pandas as pd
-from io import BytesIO # not the gnss-lib-py/io/ modules
+from io import BytesIO # not the gnss_lib_py/io/ modules
 from datetime import datetime
 
 def _obstime(fol):
