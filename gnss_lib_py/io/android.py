@@ -4,6 +4,12 @@
 # Desc:         Functions to process Android measurements
 ########################################################################
 
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import csv
 import numpy as np
 import pandas as pd
@@ -364,10 +370,12 @@ def compute_times(gnssRaw, gnssAnalysis):
     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
     WEEKSEC = 604800
     gnssRaw['GpsWeekNumber'] = np.floor(-1*gnssRaw['FullBiasNanos']*1e-9/WEEKSEC)
-    gnssRaw['GpsTimeNanos'] = gnssRaw['TimeNanos'] - (gnssRaw['FullBiasNanos'] - gnssRaw['BiasNanos'])
+    gnssRaw['GpsTimeNanos'] = gnssRaw['TimeNanos'] - (gnssRaw['FullBiasNanos'] + gnssRaw['BiasNanos'])
     gnssRaw['tRxNanos'] = (gnssRaw['TimeNanos']+gnssRaw['TimeOffsetNanos'])-(gnssRaw['FullBiasNanos'].iloc[0]+gnssRaw['BiasNanos'].iloc[0])
     gnssRaw['tRxSeconds'] = 1e-9*gnssRaw['tRxNanos'] - WEEKSEC * gnssRaw['GpsWeekNumber']
     gnssRaw['tTxSeconds'] = 1e-9*(gnssRaw['ReceivedSvTimeNanos'] + gnssRaw['TimeOffsetNanos'])
+    gnssRaw['LeapSecond'] = gnssRaw['LeapSecond'].fillna(0)
+    gnssRaw["UtcTimeNanos"] = pd.to_datetime(gnssRaw['GpsTimeNanos']  - gnssRaw["LeapSecond"] * 1E9, utc = True, origin=gpsepoch)
     gnssRaw['UnixTime'] = pd.to_datetime(gnssRaw['GpsTimeNanos'], utc = True, origin=gpsepoch)
 
     gnssRaw['Epoch'] = 0

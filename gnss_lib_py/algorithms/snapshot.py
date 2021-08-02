@@ -4,7 +4,14 @@
 # Desc:         Point solution methods using GNSS measurements
 ########################################################################
 
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import numpy as np
+
 from utils.constants import GPSConsts
 
 
@@ -12,8 +19,9 @@ def solve_pos(prange, X, Y, Z, B, e=1e-3):
     # TODO: Modify code to perform WLS if weights are given
     """Find user position, clock bias using WLS or NR methods
 
-    Find user position, clock bias by solving the weighted least squares (WLS) problem.
-    If no weights are given, the Newton Raphson (NR) position, clock bias solution is used instead.
+    Find user position, clock bias by solving the weighted least squares
+    (WLS) problem for m satellites. If no weights are given, the Newton
+    Raphson (NR) position, clock bias solution is used instead.
 
     Parameters
     ----------
@@ -36,14 +44,6 @@ def solve_pos(prange, X, Y, Z, B, e=1e-3):
         Solved 3D position and clock bias estimates
 
     """
-    gpsconsts = GPSConsts()
-    if len(prange)<4:
-        return np.empty(4)
-    x, y, z, cdt = 100., 100., 100., 0.
-
-    x0 = np.array([x, y, z, cdt])
-    x_fix, res_err = newton_raphson(_f, _df, x0, e=e)
-    x_fix[-1] = x_fix[-1]*1e6/gpsconsts.C
 
     def _f(vars):
         """Difference between expected and received pseudoranges
@@ -88,8 +88,16 @@ def solve_pos(prange, X, Y, Z, B, e=1e-3):
         derivatives[:, 3] = -1
         return derivatives
 
-    return x_fix
+    gpsconsts = GPSConsts()
+    if len(prange)<4:
+        return np.empty(4)
+    x, y, z, cdt = 100., 100., 100., 0.
 
+    x0 = np.array([x, y, z, cdt])
+    x_fix, res_err = newton_raphson(_f, _df, x0, e=e)
+    x_fix[-1] = x_fix[-1]*1e6/gpsconsts.C
+
+    return x_fix
 
 def newton_raphson(f, df, x0, e=1e-3, lam=1., max_count = 20):
     """Newton Raphson method to find zero of function.

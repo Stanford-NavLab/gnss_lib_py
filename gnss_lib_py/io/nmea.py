@@ -6,11 +6,14 @@
 
 import os
 import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import pynmea2
 import datetime
 import calendar
 import numpy as np
-sys.path.append("..")
 from core import coordinates as coord
 
 class NMEA():
@@ -31,14 +34,13 @@ class NMEA():
         with open(filename, "r") as f:
             for line in f:
                 try:
-                    msg = pynmea2.parse(line)
+                    msg = pynmea2.parse(line, check = False)
                     if type(msg) == pynmea2.GGA:
                         self.gga_msgs.append(msg)
                     elif type(msg) == pynmea2.RMC:
                         self.rmc_msgs.append(msg)
-                except:
-                    print("WARNING: encountered checksum error while reading nmea")
-
+                except pynmea2.ChecksumError as e:
+                    pass
 
     def ecef_gt_w_time(self, date):
         """Get ECEF ground truth as well as measurement timesself.

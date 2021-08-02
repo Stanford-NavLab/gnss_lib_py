@@ -1,5 +1,5 @@
 ########################################################################
-# Author(s):    Shubh Gupta, Derek Knowles
+# Author(s):    Shubh Gupta
 # Date:         13 July 2021
 # Desc:         Functions to download, save and process satellite
 #               ephemeris files

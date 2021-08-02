@@ -4,6 +4,12 @@
 # Desc:         Functions to read data from NMEA files
 ########################################################################
 
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import numpy as np
 import pandas as pd
 from datetime import datetime

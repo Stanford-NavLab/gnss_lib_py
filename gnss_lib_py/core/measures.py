@@ -5,7 +5,12 @@
 #               simulate pseudoranges and doppler for GPS satellites
 ########################################################################
 
-
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import numpy as np
 import pandas as pd
 from numpy.random import default_rng
@@ -333,7 +338,7 @@ def FindSat(ephem, times, gpsweek):
     dt = (times - ephem['t_oe']) + (np.mod(gpsweek, 1024) - np.mod(ephem['GPSWeek'],1024))*604800.0
     # Calculate the mean anomaly with corrections
     Mcorr = ephem['deltaN'] * dt
-    M = ephem['M_0'] + (np.sqrt(gpsconst.muearth) * ephem['sqrtA']**-3) * dt + Mcorr
+    M = ephem['M_0'] + (np.sqrt(gpsconst.MUEARTH) * ephem['sqrtA']**-3) * dt + Mcorr
 
     # Compute the eccentric anomaly from mean anomaly using the Newton-Raphson method
     # to solve for E in:
@@ -364,7 +369,7 @@ def FindSat(ephem, times, gpsweek):
 
     # Also correct for the rotation since the beginning of the GPS week for which the Omega0 is
     # defined.  Correct for GPS week rollovers.
-    Omega = ephem['Omega_0'] - gpsconst.OmegaEDot*(times+(np.mod(gpsweek,1024)-np.mod(ephem['GPSWeek'],1024))*604800.) + OmegaCorr
+    Omega = ephem['Omega_0'] - gpsconst.OMEGAEDOT*(times+(np.mod(gpsweek,1024)-np.mod(ephem['GPSWeek'],1024))*604800.) + OmegaCorr
 
 
     # Calculate orbital radius with correction
@@ -374,7 +379,7 @@ def FindSat(ephem, times, gpsweek):
     ############################################
     ######  Lines added for velocity (1)  ######
     ############################################
-    dE = (np.sqrt(gpsconst.muearth) * (ephem['sqrtA']**(-3)) + ephem['deltaN'])/(1 - ephem['e'] * np.cos(E))
+    dE = (np.sqrt(gpsconst.MUEARTH) * (ephem['sqrtA']**(-3)) + ephem['deltaN'])/(1 - ephem['e'] * np.cos(E))
     dphi = np.sqrt(1 - ephem['e']**2)*dE/(1 - ephem['e'] * np.cos(E))
     dr = ephem['sqrtA']**2 * ephem['e'] * dE * np.sin(E) + 2 * (ephem['C_rs']*cos2phi - ephem['C_rc']*sin2phi)*dphi # Changed from the paper
 
@@ -406,7 +411,7 @@ def FindSat(ephem, times, gpsweek):
     ############################################
     ######  Lines added for velocity (4)  ######
     ############################################
-    dOmega = ephem['OmegaDot'] - gpsconst.OmegaEDot
+    dOmega = ephem['OmegaDot'] - gpsconst.OMEGAEDOT
     satXYZV['vx'] = dxp*np.cos(Omega) - dyp*np.cos(i)*np.sin(Omega) + yp*np.sin(Omega)*np.sin(i)*di - (xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega))*dOmega
     satXYZV['vy'] = dxp*np.sin(Omega) + dyp*np.cos(i)*np.cos(Omega) - yp*np.sin(i)*np.cos(Omega)*di + (xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega))*dOmega
     satXYZV['vz'] = dyp*np.sin(i) + yp*np.cos(i)*di
