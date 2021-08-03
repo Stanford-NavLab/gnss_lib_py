@@ -150,7 +150,8 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     _, satXYZ, satV = _extract_pos_vel_arr(satXYZV)
     # satXYZ, satV, delXYZ are both Nx3
     # Obtain corrected pseudoranges and add receiver clock bias to them
-    prange = correct_pseudorange(gpstime, gpsweek, ephem, true_range, np.reshape(pos, [-1, 3])) + bias
+    # prange = correct_pseudorange(gpstime, gpsweek, ephem, true_range, np.reshape(pos, [-1, 3])) + bias
+    prange = true_range + bias
     # Obtain difference of velocity between satellite and receiver
     delV = satV - np.tile(np.reshape(vel, 3), [len(ephem), 1])
     prange_rate = np.sum(delV*delXYZ, axis=1)/true_range + b_dot
@@ -420,7 +421,7 @@ def FindSat(ephem, times, gpsweek):
     return satXYZV
 
 
-def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
+def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx=[[None]]):
     """Incorporate corrections in measurements
 
     Incorporate clock corrections (relativistic, drift), tropospheric and ionospheric clock corrections
@@ -501,11 +502,14 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
 
     #NOTE: Removed ionospheric delay calculation here
 
-    # Calculate the tropospheric delays
-    tropoDelay = calculate_tropo_delay(gpstime,gpsweek,ephem,rx)
-    # Calculate total pseudorange correction
-    # prCorr = pr_meas + clockCorr*gpsconsts.C - tropoDelay*gpsconsts.C
-    prCorr = pr_meas - corrPolynomial*gpsconsts.C + tropoDelay*gpsconsts.C
+    # calculate clock psuedorange correction
+    prCorr = pr_meas + clockCorr*gpsconsts.C
+
+    if rx[0][0] != None:
+        # Calculate the tropospheric delays
+        tropoDelay = calculate_tropo_delay(gpstime,gpsweek,ephem,rx)
+        # Calculate total pseudorange correction
+        prCorr -= tropoDelay*gpsconsts.C
 
     if isinstance(prCorr, pd.Series):
         prCorr = prCorr.to_numpy(dtype=float)
