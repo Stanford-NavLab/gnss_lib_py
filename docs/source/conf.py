@@ -15,16 +15,16 @@ import sys
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../gnss-lib-py/'))
-sys.path.insert(0, os.path.abspath('../../gnss-lib-py/algorithms/'))
-sys.path.insert(0, os.path.abspath('../../gnss-lib-py/core/'))
-sys.path.insert(0, os.path.abspath('../../gnss-lib-py/io/'))
-sys.path.insert(0, os.path.abspath('../../gnss-lib-py/utils/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/algorithms/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/core/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/io/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/utils/'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'gnss-lib-py'
+project = 'gnss_lib_py'
 copyright = '2021, Ashwin Kanhere, Derek Knowles'
 author = 'Ashwin Kanhere, Derek Knowles'
 
