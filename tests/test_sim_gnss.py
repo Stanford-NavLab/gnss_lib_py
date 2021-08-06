@@ -2,6 +2,9 @@ import pytest
 import numpy as np
 import pandas as pd
 import os, sys
+src_directory = os.path.join(os.getcwd(), 'gnss_lib_py')
+sys.path.insert(0, src_directory)
+# Path of package for pytest
 import datetime
 import pytz
 
