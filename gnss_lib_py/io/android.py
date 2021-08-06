@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
-from utils.constants import GPSConsts
+from core.constants import GPSConsts
 
 
 def extract_timedata(input_path):

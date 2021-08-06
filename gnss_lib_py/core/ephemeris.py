@@ -46,13 +46,13 @@ def datetime_to_tow(t, convert_gps=True):
     if hasattr(t, 'tzinfo'):
         t = t.replace(tzinfo=None)
     if convert_gps:
-        utc_2_gps = datetime.timedelta(seconds=18)
+        utc_2_gps = timedelta(seconds=18)
         #TODO: Move to ephemeris and use leapseconds attribute from ephemeris files
         t = t + utc_2_gps
-    wk_ref = datetime.datetime(2014, 2, 16, 0, 0, 0, 0, None)
+    wk_ref = datetime(2014, 2, 16, 0, 0, 0, 0, None)
     refwk = 1780
     wk = (t - wk_ref).days // 7 + refwk
-    tow = ((t - wk_ref) - datetime.timedelta((wk - refwk) * 7.0)).total_seconds()
+    tow = ((t - wk_ref) - timedelta((wk - refwk) * 7.0)).total_seconds()
     return wk, tow
 
 

@@ -10,8 +10,8 @@ from datetime import datetime
 from scipy import interpolate
 from collections import defaultdict
 
-from utils.timing import datetime_to_tow
-from utils.constants import GPSConsts
+from core.ephemeris import datetime_to_tow
+from core.constants import GPSConsts
 
 class PreciseNav(object):
     """Class that contain satellite data.
@@ -186,6 +186,6 @@ def interpol_sp3(sp3, prn, t):
     X_interp = X(t)
     Y_interp = Y(t)
     Z_interp = Z(t)
-    B_interp = gpsconsts.c*B(t)
+    B_interp = gpsconsts.C*B(t)
 
     return X_interp, Y_interp, Z_interp, B_interp

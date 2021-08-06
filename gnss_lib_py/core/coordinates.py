@@ -5,7 +5,7 @@
 ########################################################################
 
 import numpy as np
-from utils.constants import CoordConsts
+from core.constants import CoordConsts
 
 #Coordinate conversions (From https://github.com/commaai/laika)
 

@@ -10,7 +10,6 @@ import pynmea2
 import datetime
 import calendar
 import numpy as np
-sys.path.append("..")
 from core import coordinates as coord
 
 class NMEA():
