@@ -21,6 +21,9 @@ pynmea2 = "^1.18.0"
 Sphinx = "4.1.1"
 sphinx-rtd-theme = "0.5.2"
 sphinxcontrib-napoleon = "0.7"
+notebook = "^6.4.2"
+ipykernel = "^6.0.3"
+jupyter = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
