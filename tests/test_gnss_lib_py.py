@@ -1,8 +1,8 @@
-from gnss_lib_py import __version__
-import pytest
 import os, sys
 src_directory = os.path.join(os.getcwd(), 'gnss_lib_py')
 sys.path.insert(0, src_directory)
+from gnss_lib_py import __version__
+import pytest
 # Path of package for pytest
 # from gnss_lib_py.io.android import make_gnss_dataframe
 import pandas as pd

@@ -17,6 +17,7 @@ unlzw3 = "^0.2.1"
 reindent = "^3.5.1"
 pynmea2 = "^1.18.0"
 pytest = "^6.2.4"
+pylint = "^2.9.6"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "4.1.1"
