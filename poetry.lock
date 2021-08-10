@@ -751,6 +751,17 @@ optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
+name = "pyproj"
+version = "3.1.0"
+description = "Python interface to PROJ (cartographic projections and coordinate transformations library)"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+certifi = "*"
+
+[[package]]
 name = "pyrsistent"
 version = "0.18.0"
 description = "Persistent/Functional/Immutable data structures"
@@ -888,13 +899,15 @@ scipy = ">=1.0"
 
 [[package]]
 name = "send2trash"
-version = "1.7.1"
+version = "1.8.0"
 description = "Send file to trash natively under Mac OS X, Windows and Linux."
 category = "dev"
 optional = false
 python-versions = "*"
 
 [package.extras]
+nativelib = ["pyobjc-framework-cocoa", "pywin32"]
+objc = ["pyobjc-framework-cocoa"]
 win32 = ["pywin32"]
 
 [[package]]
@@ -1179,7 +1192,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8.0"
-content-hash = "f433c28bce25161b63e1cdfcff1dcb10c2db731636754f0f8604094417c318b8"
+content-hash = "8e06bb747acc82b5c5e06509a35c3ffadd92664b702d86dc26d50269ea01fd28"
 
 [metadata.files]
 alabaster = [
@@ -1705,6 +1718,27 @@ pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
     {file = "pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1"},
 ]
+pyproj = [
+    {file = "pyproj-3.1.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:8eda240225971b5cd0bac2d399ed6222068f0598ee92d5f6e847bd2019d2c8b0"},
+    {file = "pyproj-3.1.0-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:ae237492767e0225f99b53a0fd7110fde2b7e7cabc105bbc243c151a7497de88"},
+    {file = "pyproj-3.1.0-cp37-cp37m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:b635e7e21fea5af74e90fc9e54d1a4c27078efdce6f214101c98dd93afae599a"},
+    {file = "pyproj-3.1.0-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:aa87df0982aa0f4477478899d9c930cc0f97cd6d8a4ce84c43ac88ccf86d1da7"},
+    {file = "pyproj-3.1.0-cp37-cp37m-win32.whl", hash = "sha256:10dad599b9f7ce2194996dc25f1000e0aa15754ecef9db46b624713959c67957"},
+    {file = "pyproj-3.1.0-cp37-cp37m-win_amd64.whl", hash = "sha256:a162ed199cd2ec392cffe20b2fa3381b68e7a166d55f3f060eceb8d517e4f46d"},
+    {file = "pyproj-3.1.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:1e88ebc4e08e661e9011b5c1ebfb32f0d311963a9824a6effb4168c7e07918b1"},
+    {file = "pyproj-3.1.0-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:da88abc5e2f6a8fb07533855a57ca2a31845f58901a87f821b68b0db6b023978"},
+    {file = "pyproj-3.1.0-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:911d773da9fa4d4f3f7580173858c391e3ee0b61acaf0be303baab323d2eae78"},
+    {file = "pyproj-3.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5f8a8d982bde211e65dc2de1f8f36cf162f9cc7fcd8a7625046ea265284e5e65"},
+    {file = "pyproj-3.1.0-cp38-cp38-win32.whl", hash = "sha256:c4193e1069d165476b2d0f7d882b7712b3eab6e2e6fe2a0a78ef40de825a1f28"},
+    {file = "pyproj-3.1.0-cp38-cp38-win_amd64.whl", hash = "sha256:b6c74bbec679199746a3e02c0e0fad093c3652df96dd63e086a2fbf2afe9dc0e"},
+    {file = "pyproj-3.1.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:04c185102e659439c5bd428ac5473d36ef795fca8e225bbbe78e20643d804ec0"},
+    {file = "pyproj-3.1.0-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:ebbba7707fe83a01e54bce8e3e7342feb0b3e0d74ff8c28df12f8bc59b76827c"},
+    {file = "pyproj-3.1.0-cp39-cp39-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:9cc464a1c51baad28ffb7a233116e8d4ce4c560b32039fa986d0f992ac3c431f"},
+    {file = "pyproj-3.1.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4f3ad09cf3352bf5664794042b28d98781362ec8d9774ad73f28a1a0101a27f1"},
+    {file = "pyproj-3.1.0-cp39-cp39-win32.whl", hash = "sha256:ae5534fa7a3b74f20534694d297fce6f7483890ff6ca404394ecf372f3c589d4"},
+    {file = "pyproj-3.1.0-cp39-cp39-win_amd64.whl", hash = "sha256:808f5992320e9631b2e45444028a65cd6ba3ee40229292934178ef07020a5ffd"},
+    {file = "pyproj-3.1.0.tar.gz", hash = "sha256:67b94f4e694ae33fc90dfb7da0e6b5ed5f671dd0acc2f6cf46e9c39d56e16e1a"},
+]
 pyrsistent = [
     {file = "pyrsistent-0.18.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:f4c8cabb46ff8e5d61f56a037974228e978f26bfefce4f61a4b1ac0ba7a2ab72"},
     {file = "pyrsistent-0.18.0-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:da6e5e818d18459fa46fac0a4a4e543507fe1110e808101277c5a2b5bab0cd2d"},
@@ -1829,8 +1863,8 @@ seaborn = [
     {file = "seaborn-0.11.1.tar.gz", hash = "sha256:44e78eaed937c5a87fc7a892c329a7cc091060b67ebd1d0d306b446a74ba01ad"},
 ]
 send2trash = [
-    {file = "Send2Trash-1.7.1-py3-none-any.whl", hash = "sha256:c20fee8c09378231b3907df9c215ec9766a84ee20053d99fbad854fe8bd42159"},
-    {file = "Send2Trash-1.7.1.tar.gz", hash = "sha256:17730aa0a33ab82ed6ca76be3bb25f0433d0014f1ccf63c979bab13a5b9db2b2"},
+    {file = "Send2Trash-1.8.0-py3-none-any.whl", hash = "sha256:f20eaadfdb517eaca5ce077640cb261c7d2698385a6a0f072a4a5447fd49fa08"},
+    {file = "Send2Trash-1.8.0.tar.gz", hash = "sha256:d2c24762fd3759860a0aff155e45871447ea58d2be6bdd39b5c8f966a0c99c2d"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
