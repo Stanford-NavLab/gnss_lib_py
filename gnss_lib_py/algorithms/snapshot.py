@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(
                 os.path.realpath(__file__))))
 import numpy as np
 
-from utils.constants import GPSConsts
+from core.constants import GPSConsts
 
 
 def solve_pos(prange, X, Y, Z, B, e=1e-3):

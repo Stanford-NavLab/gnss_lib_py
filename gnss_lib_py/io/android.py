@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
-from utils.constants import GPSConsts
+from core.constants import GPSConsts
 
 
 def extract_timedata(input_path):
@@ -526,6 +526,7 @@ def compute_times(gnssRaw, gnssAnalysis):
     gnssRaw['LeapSecond'] = gnssRaw['LeapSecond'].fillna(0)
     gnssRaw["UtcTimeNanos"] = pd.to_datetime(gnssRaw['GpsTimeNanos']  - gnssRaw["LeapSecond"] * 1E9, utc = True, origin=gpsepoch)
     gnssRaw['UnixTime'] = pd.to_datetime(gnssRaw['GpsTimeNanos'], utc = True, origin=gpsepoch)
+    # TODO: Check if UnixTime is the same as UtcTime, if so remove it
 
     gnssRaw['Epoch'] = 0
     gnssRaw.loc[gnssRaw['UnixTime'] - gnssRaw['UnixTime'].shift() > timedelta(milliseconds=200), 'Epoch'] = 1
