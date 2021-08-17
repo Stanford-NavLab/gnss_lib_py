@@ -15,8 +15,10 @@ import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 
-from utils.constants import GPSConsts
+from core.constants import GPSConsts
 from core.coordinates import ecef2geodetic
+
+# TODO: Check if any of the functions are sorting the dataframe w.r.t SV while processing the measurements
 
 
 def _extract_pos_vel_arr(satXYZV):
@@ -150,8 +152,10 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     _, satXYZ, satV = _extract_pos_vel_arr(satXYZV)
     # satXYZ, satV, delXYZ are both Nx3
     # Obtain corrected pseudoranges and add receiver clock bias to them
-    # prange = correct_pseudorange(gpstime, gpsweek, ephem, true_range, np.reshape(pos, [-1, 3])) + bias
     prange = true_range + bias
+    # prange = correct_pseudorange(gpstime, gpsweek, ephem, true_range, np.reshape(pos, [-1, 3])) + bias
+    # TODO: Correction should be applied to the modelled pseudoranges, not received. Check with textbook + data
+    # TODO: Add corrections instead of returning corrected pseudoranges
     # Obtain difference of velocity between satellite and receiver
     delV = satV - np.tile(np.reshape(vel, 3), [len(ephem), 1])
     prange_rate = np.sum(delV*delXYZ, axis=1)/true_range + b_dot
@@ -409,6 +413,7 @@ def FindSat(ephem, times, gpsweek):
     satXYZV.loc[:,'x'] = xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega)
     satXYZV.loc[:,'y'] = xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega)
     satXYZV.loc[:,'z'] = yp*np.sin(i)
+    # TODO: Add satellite clock bias here using the 'clock corrections' not to be used but compared against SP3 and Android data
 
     ############################################
     ######  Lines added for velocity (4)  ######
@@ -455,6 +460,9 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx=[[None]]):
 
     """
     # TODO: Incorporate satellite clock rate changes into the doppler measurements
+    # TODO: Change default of rx to an array of None with size
+    # TODO: Change the sign for corrections to what will be added to expected measurements
+    # TODO: Return corrections instead of corrected measurements 
     # Load GPS Constants
     gpsconsts = GPSConsts()
 
@@ -505,7 +513,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx=[[None]]):
     # calculate clock psuedorange correction
     prCorr = pr_meas + clockCorr*gpsconsts.C
 
-    if rx[0][0] != None:
+    if rx[0][0] != None: # TODO: Reference using 2D array slicing
         # Calculate the tropospheric delays
         tropoDelay = calculate_tropo_delay(gpstime,gpsweek,ephem,rx)
         # Calculate total pseudorange correction

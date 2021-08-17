@@ -17,7 +17,7 @@ from scipy import interpolate
 from collections import defaultdict
 
 from utils.timing import datetime_to_tow
-from utils.constants import GPSConsts
+from core.constants import GPSConsts
 
 class PreciseNav(object):
     """Class that contain satellite data.
