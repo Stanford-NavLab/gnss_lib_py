@@ -333,10 +333,10 @@ def FindSat(ephem, times, gpsweek):
     #     times_all = np.reshape(times_all, len(ephem))
     # times = times_all
     satXYZV = pd.DataFrame()
-    satXYZV['sv'] = ephem.index
+    satXYZV.loc[:,'sv'] = ephem.index
     satXYZV.set_index('sv', inplace=True)
     #TODO: Check if 'dt' or 'times' should be stored in the final DataFrame
-    satXYZV['times'] = times
+    satXYZV.loc[:,'times'] = times
     dt = (times - ephem['t_oe']) + (np.mod(gpsweek, 1024) - np.mod(ephem['GPSWeek'],1024))*604800.0
     # Calculate the mean anomaly with corrections
     Mcorr = ephem['deltaN'] * dt
@@ -406,17 +406,17 @@ def FindSat(ephem, times, gpsweek):
     dxp = dr*np.cos(phi) - r*np.sin(phi)*du
     dyp = dr*np.sin(phi) + r*np.cos(phi)*du
     # Find satellite position in ECEF coordinates
-    satXYZV['x'] = xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega)
-    satXYZV['y'] = xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega)
-    satXYZV['z'] = yp*np.sin(i)
+    satXYZV.loc[:,'x'] = xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega)
+    satXYZV.loc[:,'y'] = xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega)
+    satXYZV.loc[:,'z'] = yp*np.sin(i)
 
     ############################################
     ######  Lines added for velocity (4)  ######
     ############################################
     dOmega = ephem['OmegaDot'] - gpsconst.OMEGAEDOT
-    satXYZV['vx'] = dxp*np.cos(Omega) - dyp*np.cos(i)*np.sin(Omega) + yp*np.sin(Omega)*np.sin(i)*di - (xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega))*dOmega
-    satXYZV['vy'] = dxp*np.sin(Omega) + dyp*np.cos(i)*np.cos(Omega) - yp*np.sin(i)*np.cos(Omega)*di + (xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega))*dOmega
-    satXYZV['vz'] = dyp*np.sin(i) + yp*np.cos(i)*di
+    satXYZV.loc[:,'vx'] = dxp*np.cos(Omega) - dyp*np.cos(i)*np.sin(Omega) + yp*np.sin(Omega)*np.sin(i)*di - (xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega))*dOmega
+    satXYZV.loc[:,'vy'] = dxp*np.sin(Omega) + dyp*np.cos(i)*np.cos(Omega) - yp*np.sin(i)*np.cos(Omega)*di + (xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega))*dOmega
+    satXYZV.loc[:,'vz'] = dyp*np.sin(i) + yp*np.cos(i)*di
 
     return satXYZV
 
@@ -513,6 +513,9 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx=[[None]]):
 
     if isinstance(prCorr, pd.Series):
         prCorr = prCorr.to_numpy(dtype=float)
+
+    # fill nans (fix for non-GPS satellites)
+    prCorr = np.where(np.isnan(prCorr),pr_meas,prCorr)
 
     return prCorr
 
