@@ -12,7 +12,7 @@ Note: Written with VS Code in mind
 3. Install `poetry` using the instructions [here](https://python-poetry.org/docs/#installation).
 4. Clone our repository. Using the command `pyenv local` and verify that the Python version is `3.8.9`.
 5. Install dependencies using `poetry install`.
-6. If Jupyter Notebooks don't work: Setup Jupyter as mentioned [here](https://blog.jayway.com/2019/12/28/pyenv-poetry-saviours-in-the-python-chaos/) using the command `poetry run ipython kernel install --user --name=GNSS_Google_Challenge`.
+6. If using Jupyter Notebooks and they don't work: Setup Jupyter as mentioned [here](https://blog.jayway.com/2019/12/28/pyenv-poetry-saviours-in-the-python-chaos/) using the command `poetry run ipython kernel install --user --name=gnss_lib_py`.
 7. To run the Poetry shell, use `poetry shell`. To run files using the local poetry environment, use `poetry run python *.py`.
 
 ## Running notebooks with VS Code
