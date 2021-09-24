@@ -5,13 +5,20 @@
 #               simulate pseudoranges and doppler for GPS satellites
 ########################################################################
 
-
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 
 from core.constants import GPSConsts
 from core.coordinates import ecef2geodetic
+
+# TODO: Check if any of the functions are sorting the dataframe w.r.t SV while processing the measurements
 
 
 def _extract_pos_vel_arr(satXYZV):
@@ -145,7 +152,10 @@ def expected_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel, satXYZV=No
     _, satXYZ, satV = _extract_pos_vel_arr(satXYZV)
     # satXYZ, satV, delXYZ are both Nx3
     # Obtain corrected pseudoranges and add receiver clock bias to them
-    prange = correct_pseudorange(gpstime, gpsweek, ephem, true_range, np.reshape(pos, [-1, 3])) + bias
+    prange = true_range + bias
+    # prange = correct_pseudorange(gpstime, gpsweek, ephem, true_range, np.reshape(pos, [-1, 3])) + bias
+    # TODO: Correction should be applied to the modelled pseudoranges, not received. Check with textbook + data
+    # TODO: Add corrections instead of returning corrected pseudoranges
     # Obtain difference of velocity between satellite and receiver
     delV = satV - np.tile(np.reshape(vel, 3), [len(ephem), 1])
     prange_rate = np.sum(delV*delXYZ, axis=1)/true_range + b_dot
@@ -239,6 +249,7 @@ def _find_sat_location(gpsweek, gpstime, ephem, pos, satXYZV=None):
     else:
         satellites = len(satXYZV.index)
     delXYZ, true_range = _find_delxyz_range(satXYZV, pos, satellites)
+    tcorr = true_range/gpsconsts.C
     # Corrections for the rotation of the Earth during transmission
     _, satXYZ, satV = _extract_pos_vel_arr(satXYZV)
     delX = gpsconsts.OMEGAEDOT*satXYZV['x'] * tcorr
@@ -326,10 +337,10 @@ def FindSat(ephem, times, gpsweek):
     #     times_all = np.reshape(times_all, len(ephem))
     # times = times_all
     satXYZV = pd.DataFrame()
-    satXYZV['sv'] = ephem.index
+    satXYZV.loc[:,'sv'] = ephem.index
     satXYZV.set_index('sv', inplace=True)
     #TODO: Check if 'dt' or 'times' should be stored in the final DataFrame
-    satXYZV['times'] = times
+    satXYZV.loc[:,'times'] = times
     dt = (times - ephem['t_oe']) + (np.mod(gpsweek, 1024) - np.mod(ephem['GPSWeek'],1024))*604800.0
     # Calculate the mean anomaly with corrections
     Mcorr = ephem['deltaN'] * dt
@@ -399,9 +410,10 @@ def FindSat(ephem, times, gpsweek):
     dxp = dr*np.cos(phi) - r*np.sin(phi)*du
     dyp = dr*np.sin(phi) + r*np.cos(phi)*du
     # Find satellite position in ECEF coordinates
-    satXYZV['x'] = xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega)
-    satXYZV['y'] = xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega)
-    satXYZV['z'] = yp*np.sin(i)
+    satXYZV.loc[:,'x'] = xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega)
+    satXYZV.loc[:,'y'] = xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega)
+    satXYZV.loc[:,'z'] = yp*np.sin(i)
+    # TODO: Add satellite clock bias here using the 'clock corrections' not to be used but compared against SP3 and Android data
 
     ############################################
     ######  Lines added for velocity (4)  ######
@@ -414,7 +426,7 @@ def FindSat(ephem, times, gpsweek):
     return satXYZV
 
 
-def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
+def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx=[[None]]):
     """Incorporate corrections in measurements
 
     Incorporate clock corrections (relativistic, drift), tropospheric and ionospheric clock corrections
@@ -448,6 +460,9 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
 
     """
     # TODO: Incorporate satellite clock rate changes into the doppler measurements
+    # TODO: Change default of rx to an array of None with size
+    # TODO: Change the sign for corrections to what will be added to expected measurements
+    # TODO: Return corrections instead of corrected measurements 
     # Load GPS Constants
     gpsconsts = GPSConsts()
 
@@ -502,6 +517,9 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx):
 
     if isinstance(prCorr, pd.Series):
         prCorr = prCorr.to_numpy(dtype=float)
+
+    # fill nans (fix for non-GPS satellites)
+    prCorr = np.where(np.isnan(prCorr),pr_meas,prCorr)
 
     return prCorr
 

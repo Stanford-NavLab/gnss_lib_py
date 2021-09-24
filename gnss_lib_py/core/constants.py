@@ -24,7 +24,7 @@ class GPSConsts:
     MUEARTH : float
         :math:`G*M_E`, the "gravitational constant" for orbital
         motion about the Earth [m^3/s^2]
-    OMEGA_DOT : float
+    OMEGAEDOT : float
         The sidereal rotation rate of the Earth
         (WGS-84) [rad/s]
     C : float

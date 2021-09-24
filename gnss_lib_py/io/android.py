@@ -4,6 +4,12 @@
 # Desc:         Functions to process Android measurements
 ########################################################################
 
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import csv
 import numpy as np
 import pandas as pd
@@ -180,7 +186,7 @@ def make_imu_dataframe(input_path, verbose=False):
     return accel, gyro
 
 #
-def correct_log(measurements, verbose=False):
+def correct_log(measurements, verbose=False, carrier_phase_checks = False):
     """Compute required quantities from the log and check for errors.
 
     This is a master function that calls the other correction functions
@@ -192,6 +198,8 @@ def correct_log(measurements, verbose=False):
         pandas dataframe that holds gnss meassurements
     verbose : bool
         If true, will print out any problems that were detected.
+    carrier_phase_checks : bool
+        If true, completes carrier phase checks
 
     Returns
     -------
@@ -210,18 +218,23 @@ def correct_log(measurements, verbose=False):
     # Drop non-GPS measurements
     measurements = measurements.loc[measurements['Constellation'] == 'G']
 
+    # TODO: Measurements should be discarded if the constellation is unknown.
+
     # Convert columns to numeric representation
-    measurements['Cn0DbHz'] = pd.to_numeric(measurements['Cn0DbHz'])
-    measurements['TimeNanos'] = pd.to_numeric(measurements['TimeNanos'])
-    measurements['FullBiasNanos'] = pd.to_numeric(measurements['FullBiasNanos'])
-    measurements['ReceivedSvTimeNanos']  = pd.to_numeric(measurements['ReceivedSvTimeNanos'])
-    measurements['PseudorangeRateMetersPerSecond'] = pd.to_numeric(measurements['PseudorangeRateMetersPerSecond'])
-    measurements['ReceivedSvTimeUncertaintyNanos'] = pd.to_numeric(measurements['ReceivedSvTimeUncertaintyNanos'])
+    # assign() function prevents SettingWithCopyWarning
+    measurements = measurements.assign(Cn0DbHz=pd.to_numeric(measurements['Cn0DbHz']))
+    measurements = measurements.assign(TimeNanos=pd.to_numeric(measurements['TimeNanos']))
+    measurements = measurements.assign(FullBiasNanos=pd.to_numeric(measurements['FullBiasNanos']))
+    measurements = measurements.assign(ReceivedSvTimeNanos=pd.to_numeric(measurements['ReceivedSvTimeNanos']))
+    measurements = measurements.assign(PseudorangeRateMetersPerSecond=pd.to_numeric(measurements['PseudorangeRateMetersPerSecond']))
+    measurements = measurements.assign(ReceivedSvTimeUncertaintyNanos=pd.to_numeric(measurements['ReceivedSvTimeUncertaintyNanos']))
 
     # Check clock fields
     error_logs = []
     measurements, error_logs = check_gnss_clock(measurements, error_logs)
     measurements, error_logs = check_gnss_measurements(measurements, error_logs)
+    if carrier_phase_checks:
+        measurements, error_logs = check_carrier_phase(measurements, error_logs)
     measurements, error_logs = compute_times(measurements, error_logs)
     measurements, error_logs = compute_pseudorange(measurements, error_logs)
 
@@ -235,6 +248,8 @@ def correct_log(measurements, verbose=False):
 
 def check_gnss_clock(gnssRaw, gnssAnalysis):
     """Checks and fixes clock field errors
+
+    Additonal checks added from [1]_.
 
     Parameters
     ----------
@@ -256,6 +271,14 @@ def check_gnss_clock(gnssRaw, gnssAnalysis):
     repository: https://github.com/google/gps-measurement-tools. Compare
     with CheckGnssClock() in opensource/ReadGnssLogger.m
 
+    References
+    ----------
+    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+       "Android Raw GNSS Measurement Datasets for Precise Positioning."
+       Proceedings of the 33rd International Technical Meeting of the
+       Satellite Division of The Institute of Navigation (ION GNSS+
+       2020). 2020.
+
     """
     # list of clock fields
     gnssClockFields = [
@@ -274,26 +297,49 @@ def check_gnss_clock(gnssRaw, gnssAnalysis):
         if field not in gnssRaw.head():
             gnssAnalysis.append('WARNING: '+field+' (Clock) is missing from GNSS Logger file')
         else:
-            gnssRaw[field] = pd.to_numeric(gnssRaw[field])
+            gnssRaw.loc[:,field] = pd.to_numeric(gnssRaw[field])
     ok = all(x in gnssRaw.head() for x in ['TimeNanos', 'FullBiasNanos'])
-    if 'BiasNanos' not in gnssRaw.head():
-        gnssRaw['BiasNanos'] = 0
-    if 'TimeOffsetNanos' not in gnssRaw.head():
-        gnssRaw['TimeOffsetNanos'] = 0
-    if 'HardwareClockDiscontinuityCount' not in gnssRaw.head():
-        gnssRaw['HardwareClockDiscontinuityCount'] = 0
-        gnssAnalysis.append('WARNING: Added HardwareClockDiscontinuityCount=0 because it is missing from GNSS Logger file')
-    if any(gnssRaw.FullBiasNanos > 0):
-        gnssRaw.FullBiasNanos = -1*gnssRaw.FullBiasNanos
-        gnssAnalysis.append('WARNING: FullBiasNanos wrong sign. Should be negative. Auto changing inside check_gnss_clock')
     if not ok:
         gnssAnalysis.append('FAIL Clock check')
-    gnssRaw['allRxMillis'] = ((gnssRaw.TimeNanos - gnssRaw.FullBiasNanos)/1e6)
+        return gnssRaw, gnssAnalysis
+
+    # Measurements should be discarded if TimeNanos is empty
+    if gnssRaw["TimeNanos"].isnull().values.any():
+        gnssRaw.dropna(how = "any", subset = ["TimeNanos"],
+                       inplace = True)
+        gnssAnalysis.append('empty or invalid TimeNanos')
+
+    if 'BiasNanos' not in gnssRaw.head():
+        gnssRaw.loc[:,'BiasNanos'] = 0
+    if 'TimeOffsetNanos' not in gnssRaw.head():
+        gnssRaw.loc[:,'TimeOffsetNanos'] = 0
+    if 'HardwareClockDiscontinuityCount' not in gnssRaw.head():
+        gnssRaw.loc[:,'HardwareClockDiscontinuityCount'] = 0
+        gnssAnalysis.append('WARNING: Added HardwareClockDiscontinuityCount=0 because it is missing from GNSS Logger file')
+
+    # measurements should be discarded if FullBiasNanos is zero or invalid
+    if any(gnssRaw.FullBiasNanos >= 0):
+        gnssRaw.FullBiasNanos = -1*gnssRaw.FullBiasNanos
+        gnssAnalysis.append('WARNING: FullBiasNanos wrong sign. Should be negative. Auto changing inside check_gnss_clock')
+
+    # Measurements should be discarded if BiasUncertaintyNanos is too
+    # large ## TODO: figure out how to choose this parameter better
+    if any(gnssRaw.BiasUncertaintyNanos >= 40.):
+        count = (gnssRaw["BiasUncertaintyNanos"] >= 40.).sum()
+        gnssAnalysis.append(str(count) +
+         ' rows with too large BiasUncertaintyNanos')
+        gnssRaw = gnssRaw[gnssRaw["BiasUncertaintyNanos"] < 40.]
+
+
+    gnssRaw = gnssRaw.assign(allRxMillis = ((gnssRaw.TimeNanos - gnssRaw.FullBiasNanos)/1e6))
+    # gnssRaw['allRxMillis'] = ((gnssRaw.TimeNanos - gnssRaw.FullBiasNanos)/1e6)
     return gnssRaw, gnssAnalysis
 
 
 def check_gnss_measurements(gnssRaw, gnssAnalysis):
     """Checks that GNSS measurement fields exist in dataframe.
+
+    Additonal checks added from [1]_.
 
     Parameters
     ----------
@@ -315,6 +361,14 @@ def check_gnss_measurements(gnssRaw, gnssAnalysis):
     repository: https://github.com/google/gps-measurement-tools. Compare
     with ReportMissingFields() in opensource/ReadGnssLogger.m
 
+    References
+    ----------
+    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+       "Android Raw GNSS Measurement Datasets for Precise Positioning."
+       Proceedings of the 33rd International Technical Meeting of the
+       Satellite Division of The Institute of Navigation (ION GNSS+
+       2020). 2020.
+
     """
     # list of measurement fields
     gnssMeasurementFields = [
@@ -333,11 +387,96 @@ def check_gnss_measurements(gnssRaw, gnssAnalysis):
     for field in gnssMeasurementFields:
         if field not in gnssRaw.head():
             gnssAnalysis.append('WARNING: '+field+' (Measurement) is missing from GNSS Logger file')
+
+    # measurements should be discarded if state is neither
+    # STATE_TOW_DECODED nor STATE_TOW_KNOWN
+    gnssRaw = gnssRaw.assign(State=pd.to_numeric(gnssRaw['State']))
+    STATE_TOW_DECODED = 0x8
+    STATE_TOW_KNOWN = 0x4000
+    invalid_state_count = np.invert((gnssRaw["State"] & STATE_TOW_DECODED).astype(bool) |
+                              (gnssRaw["State"] & STATE_TOW_KNOWN).astype(bool)).sum()
+    if invalid_state_count > 0:
+        gnssAnalysis.append(str(invalid_state_count) + " rows have " + \
+                            "state TOW neither decoded nor known")
+        gnssRaw = gnssRaw[(gnssRaw["State"] & STATE_TOW_DECODED).astype(bool) |
+                          (gnssRaw["State"] & STATE_TOW_KNOWN).astype(bool)]
+
+    # Measurements should be discarded if ReceivedSvTimeUncertaintyNanos
+    # is high ## TODO: figure out how to choose this parameter better
+    if any(gnssRaw.ReceivedSvTimeUncertaintyNanos >= 150.):
+        count = (gnssRaw["ReceivedSvTimeUncertaintyNanos"] >= 150.).sum()
+        gnssAnalysis.append(str(count) +
+         ' rows with too large ReceivedSvTimeUncertaintyNanos')
+        gnssRaw = gnssRaw[gnssRaw["ReceivedSvTimeUncertaintyNanos"] < 150.]
+
+    # convert multipath indicator to numeric
+    gnssRaw = gnssRaw.assign(MultipathIndicator=pd.to_numeric(gnssRaw['MultipathIndicator']))
+
+    return gnssRaw, gnssAnalysis
+
+def check_carrier_phase(gnssRaw, gnssAnalysis):
+    """Checks that carrier phase measurements.
+
+    Checks taken from [1]_.
+
+    Parameters
+    ----------
+    gnssRaw : pandas dataframe
+        pandas dataframe that holds gnss meassurements
+    gnssAnalysis : list
+        holds any error messages
+
+    Returns
+    -------
+    gnssRaw : pandas dataframe
+        exact same dataframe as input (why is this a return?)
+    gnssAnalysis : list
+        holds any error messages
+
+    References
+    ----------
+    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+       "Android Raw GNSS Measurement Datasets for Precise Positioning."
+       Proceedings of the 33rd International Technical Meeting of the
+       Satellite Division of The Institute of Navigation (ION GNSS+
+       2020). 2020.
+
+    """
+
+    # Measurements should be discarded if AdrState violates
+    # ADR_STATE_VALID == 1 & ADR_STATE_RESET == 0
+    # & ADR_STATE_CYCLE_SLIP == 0
+    gnssRaw = gnssRaw.assign(AccumulatedDeltaRangeState=pd.to_numeric(gnssRaw['AccumulatedDeltaRangeState']))
+    ADR_STATE_VALID = 0x1
+    ADR_STATE_RESET = 0x2
+    ADR_STATE_CYCLE_SLIP = 0x4
+
+    invalid_state_count = np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_VALID).astype(bool) &
+                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)) &
+                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool))).sum()
+    if invalid_state_count > 0:
+        gnssAnalysis.append(str(invalid_state_count) + " rows have " + \
+                            "ADRstate invalid")
+        gnssRaw = gnssRaw[(gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_VALID).astype(bool) &
+                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)) &
+                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool))]
+
+    # Measurements should be discarded if AccumulatedDeltaRangeUncertaintyMeters
+    # is too large ## TODO: figure out how to choose this parameter better
+    gnssRaw = gnssRaw.assign(AccumulatedDeltaRangeUncertaintyMeters=pd.to_numeric(gnssRaw['AccumulatedDeltaRangeUncertaintyMeters']))
+    if any(gnssRaw.AccumulatedDeltaRangeUncertaintyMeters >= 0.15):
+        count = (gnssRaw["AccumulatedDeltaRangeUncertaintyMeters"] >= 0.15).sum()
+        gnssAnalysis.append(str(count) +
+         ' rows with too large AccumulatedDeltaRangeUncertaintyMeters')
+        gnssRaw = gnssRaw[gnssRaw["AccumulatedDeltaRangeUncertaintyMeters"] < 0.15]
+
     return gnssRaw, gnssAnalysis
 
 
 def compute_times(gnssRaw, gnssAnalysis):
-    """Compute times and epochs for GNSS measurements
+    """Compute times and epochs for GNSS measurements.
+
+    Additional checks added from [1]_.
 
     Parameters
     ----------
@@ -360,14 +499,34 @@ def compute_times(gnssRaw, gnssAnalysis):
     repository: https://github.com/google/gps-measurement-tools. Compare
     with opensource/ProcessGnssMeas.m
 
+    References
+    ----------
+    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+       "Android Raw GNSS Measurement Datasets for Precise Positioning."
+       Proceedings of the 33rd International Technical Meeting of the
+       Satellite Division of The Institute of Navigation (ION GNSS+
+       2020). 2020.
+
     """
     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
+    WEEKSEC = 604800
     gnssRaw['GpsWeekNumber'] = np.floor(-1*gnssRaw['FullBiasNanos']*1e-9/WEEKSEC)
-    gnssRaw['GpsTimeNanos'] = gnssRaw['TimeNanos'] - (gnssRaw['FullBiasNanos'] - gnssRaw['BiasNanos'])
+    gnssRaw['GpsTimeNanos'] = gnssRaw['TimeNanos'] - (gnssRaw['FullBiasNanos'] + gnssRaw['BiasNanos'])
+
+    # Measurements should be discarded if arrival time is negative
+    if sum(gnssRaw['GpsTimeNanos'] <= 0) > 0:
+        gnssRaw = gnssRaw[gnssRaw['GpsTimeNanos'] > 0]
+        gnssAnalysis.append("negative arrival times removed")
+    # TODO: Measurements should be discarded if arrival time is
+    # unrealistically large
+
     gnssRaw['tRxNanos'] = (gnssRaw['TimeNanos']+gnssRaw['TimeOffsetNanos'])-(gnssRaw['FullBiasNanos'].iloc[0]+gnssRaw['BiasNanos'].iloc[0])
     gnssRaw['tRxSeconds'] = 1e-9*gnssRaw['tRxNanos'] - WEEKSEC * gnssRaw['GpsWeekNumber']
     gnssRaw['tTxSeconds'] = 1e-9*(gnssRaw['ReceivedSvTimeNanos'] + gnssRaw['TimeOffsetNanos'])
+    gnssRaw['LeapSecond'] = gnssRaw['LeapSecond'].fillna(0)
+    gnssRaw["UtcTimeNanos"] = pd.to_datetime(gnssRaw['GpsTimeNanos']  - gnssRaw["LeapSecond"] * 1E9, utc = True, origin=gpsepoch)
     gnssRaw['UnixTime'] = pd.to_datetime(gnssRaw['GpsTimeNanos'], utc = True, origin=gpsepoch)
+    # TODO: Check if UnixTime is the same as UtcTime, if so remove it
 
     gnssRaw['Epoch'] = 0
     gnssRaw.loc[gnssRaw['UnixTime'] - gnssRaw['UnixTime'].shift() > timedelta(milliseconds=200), 'Epoch'] = 1

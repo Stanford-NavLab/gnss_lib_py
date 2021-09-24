@@ -1,7 +1,7 @@
 ########################################################################
 # Author(s):    Shubh Gupta, Ashwin Kanhere
 # Date:         13 July 2021
-# Desc:         Functions to download, save and process satellite 
+# Desc:         Functions to download, save and process satellite
 #               ephemeris files
 ########################################################################
 
@@ -57,7 +57,7 @@ def datetime_to_tow(t, convert_gps=True):
 
 
 class EphemerisManager():
-    """Download, store and process ephemeris files 
+    """Download, store and process ephemeris files
 
     Attributes
     ----------
@@ -106,7 +106,7 @@ class EphemerisManager():
             data = data.loc[data['sv'].isin(satellites)]
         data = data.loc[data['time'] < timestamp]
         data = data.sort_values('time').groupby(
-            'sv').last().drop('index', 'columns')
+            'sv').last().drop(labels = 'index', axis = 'columns')
         data['Leap Seconds'] = self.leapseconds
         return data
 
@@ -132,7 +132,7 @@ class EphemerisManager():
 
         constellations : Set
             Set of satellites {"ConstIDSVID"}
-        
+
         """
         filepaths = EphemerisManager.get_filepaths(timestamp)
         data_list = []
@@ -235,7 +235,7 @@ class EphemerisManager():
         Returns
         -------
         extension : string
-            Extension of compressed ephemeris file 
+            Extension of compressed ephemeris file
         """
         # IGS switched from .Z to .gz compression format on December 1st, 2020
         if timestamp >= datetime(2020, 12, 1, 0, 0, 0, tzinfo=timezone.utc):
@@ -405,7 +405,7 @@ class EphemerisManager():
         Returns
         -------
         filepaths : Dict
-            Dictionary of dictionaries containing filepath and directory for ephemeris files 
+            Dictionary of dictionaries containing filepath and directory for ephemeris files
         """
         timetuple = timestamp.timetuple()
         extension = EphemerisManager.get_filetype(timestamp)
