@@ -4,6 +4,12 @@
 # Desc:         Functions to read data from NMEA files
 ########################################################################
 
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -11,7 +17,7 @@ from scipy import interpolate
 from collections import defaultdict
 
 from utils.timing import datetime_to_tow
-from utils.constants import GPSConsts
+from core.constants import GPSConsts
 
 class PreciseNav(object):
     """Class that contain satellite data.
@@ -29,7 +35,7 @@ class PreciseNav(object):
 
         """
         self.date = date
-        self.tow = datetime_to_tow(date)
+        self.tow = datetime_to_tow(date,False)[1]
         self.xyzt = np.array(list(map(float, sat_position)))  # [km, km, km, mcs]
 
     def eph2pos(self):
@@ -70,7 +76,6 @@ def parse_sp3(path):
         Dicionary containing satellite objects mapped by PRN number.
 
     """
-    print("\nParsing %s:" % path)
     with open(path) as fd:
         data = fd.readlines()
     nav_dict = defaultdict(list)
@@ -113,7 +118,10 @@ def flight_time_correct(X, Y, Z, flight_time):
         Corrected ECEF Z position of satellite.
 
     """
-    theta = constants.WE * flight_time/1e6
+
+    constants = GPSConsts()
+
+    theta = constants.OMEGAEDOT * flight_time/1e6
     R = np.array([[np.cos(theta), np.sin(theta), 0.], [-np.sin(theta), np.cos(theta), 0.], [0., 0., 1.]])
 
     XYZ = np.array([X, Y, Z])
@@ -125,7 +133,7 @@ def flight_time_correct(X, Y, Z, flight_time):
     return X_corrected, Y_corrected, Z_corrected
 
 #
-def interpol_sp3(sp3, prn, t):
+def interpol_sp3(sp3, prn, t, verbose=False):
     """Interpolate satellite position and correction for time t and prn.
 
     Parameters
@@ -150,8 +158,9 @@ def interpol_sp3(sp3, prn, t):
         Interpolated time correction in distance (meters??).
 
     """
-    inter_rad = 3
-    subar = sp3['G'+"%02d" % prn]
+    inter_rad = 4
+    # subar = sp3['G'+"%02d" % prn]
+    subar = sp3[prn]
     low_i, high_i = 0, 0
     for i, ephem in enumerate(subar):
         if ephem.tow > t:
@@ -175,10 +184,10 @@ def interpol_sp3(sp3, prn, t):
         _Z[i-low_i] = xyz[2]
         _B[i-low_i] = subar[i].time_offset()
 
-    X = interpolate.interp1d(_t, _X)
-    Y = interpolate.interp1d(_t, _Y)
-    Z = interpolate.interp1d(_t, _Z)
-    B = interpolate.interp1d(_t, _B)
+    X = interpolate.CubicSpline(_t, _X)
+    Y = interpolate.CubicSpline(_t, _Y)
+    Z = interpolate.CubicSpline(_t, _Z)
+    B = interpolate.CubicSpline(_t, _B)
 
     gpsconsts = GPSConsts()
 
@@ -186,6 +195,6 @@ def interpol_sp3(sp3, prn, t):
     X_interp = X(t)
     Y_interp = Y(t)
     Z_interp = Z(t)
-    B_interp = gpsconsts.c*B(t)
+    B_interp = gpsconsts.C*B(t)
 
     return X_interp, Y_interp, Z_interp, B_interp

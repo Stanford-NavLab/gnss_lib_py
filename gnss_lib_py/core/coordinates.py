@@ -4,19 +4,26 @@
 # Desc:         Functions for coordinate conversions required by GPS
 ########################################################################
 
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 import numpy as np
-from utils.constants import CoordConsts
+
+from core.constants import CoordConsts
 
 #Coordinate conversions (From https://github.com/commaai/laika)
 
 
 def geodetic2ecef(geodetic, radians=False):
-    """LLA to ECEF conversion 
+    """LLA to ECEF conversion
 
     Parameters
     ----------
     geodetic : ndarray
-        Float with WGS-84 LLA coordinates 
+        Float with WGS-84 LLA coordinates
     radians : bool
         Flag of whether input is in radians
 
@@ -55,7 +62,7 @@ def ecef2geodetic(ecef, radians=False):
     Parameters
     ----------
     ecef : ndarray
-        Float with ECEF coordinates 
+        Float with ECEF coordinates
     radians : bool
         Flag of whether output should be in radians
 
@@ -143,14 +150,14 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         init_ecef = geodetic2ecef(init_geodetic)
         local_coord = LocalCoord(init_geodetic, init_ecef)
         return local_coord
 
     @classmethod
-    def from_ecef(cls, init_ecef):        
+    def from_ecef(cls, init_ecef):
         """Instantiate class using the NED origin in ECEF coordinates
 
         Parameters
@@ -165,13 +172,13 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         init_geodetic = ecef2geodetic(init_ecef)
         local_coord = LocalCoord(init_geodetic, init_ecef)
         return local_coord
 
-    def ecef2ned(self, ecef):        
+    def ecef2ned(self, ecef):
         """Convert ECEF position vectors to NED position vectors
 
         Parameters
@@ -213,7 +220,7 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         ecef = np.array(ecef)
         # Convert to column vectors for calculation before returning in the same shape as the input
@@ -240,7 +247,7 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         ned = np.array(ned)
         # Convert to column vectors for calculation before returning in the same shape as the input
@@ -267,7 +274,7 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         #Coordinate conversions (From https://github.com/commaai/laika)
         ned = np.array(ned)
@@ -295,7 +302,7 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         #Coordinate conversions (From https://github.com/commaai/laika)
         ecef = geodetic2ecef(geodetic)
@@ -317,7 +324,7 @@ class LocalCoord(object):
 
         Notes
         -----
-        Based on code from https://github.com/commaai/laika        
+        Based on code from https://github.com/commaai/laika
         """
         #Coordinate conversions (From https://github.com/commaai/laika)
         ecef = self.ned2ecef(ned)
