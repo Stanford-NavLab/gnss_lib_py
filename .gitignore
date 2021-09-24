@@ -1,6 +1,4 @@
 # Project specific
-data/*
-notebooks/results/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -131,6 +129,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# ignore log folder
-log/
