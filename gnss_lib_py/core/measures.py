@@ -418,11 +418,11 @@ def FindSat(ephem, times, gpsweek):
     ############################################
     ######  Lines added for velocity (4)  ######
     ############################################
-    dOmega = ephem['OmegaDot'] - gpsconsts.OMEGAEDOT
-    satXYZV['vx'] = dxp*np.cos(Omega) - dyp*np.cos(i)*np.sin(Omega) + yp*np.sin(Omega)*np.sin(i)*di - (xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega))*dOmega
-    satXYZV['vy'] = dxp*np.sin(Omega) + dyp*np.cos(i)*np.cos(Omega) - yp*np.sin(i)*np.cos(Omega)*di + (xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega))*dOmega
-    satXYZV['vz'] = dyp*np.sin(i) + yp*np.cos(i)*di
-
+    dOmega = ephem['OmegaDot'] - gpsconst.OMEGAEDOT
+    satXYZV.loc[:,'vx'] = dxp*np.cos(Omega) - dyp*np.cos(i)*np.sin(Omega) + yp*np.sin(Omega)*np.sin(i)*di - (xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega))*dOmega
+    satXYZV.loc[:,'vy'] = dxp*np.sin(Omega) + dyp*np.cos(i)*np.cos(Omega) - yp*np.sin(i)*np.cos(Omega)*di + (xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega))*dOmega
+    satXYZV.loc[:,'vz'] = dyp*np.sin(i) + yp*np.cos(i)*di
+    
     return satXYZV
 
 
@@ -510,10 +510,14 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx=[[None]]):
 
     #NOTE: Removed ionospheric delay calculation here
 
-    # Calculate the tropospheric delays
-    tropoDelay = calculate_tropo_delay(gpstime,gpsweek,ephem,rx)
-    # Calculate total pseudorange correction
-    prCorr = pr_meas + clockCorr*gpsconsts.C - tropoDelay*gpsconsts.C
+    # calculate clock psuedorange correction
+    prCorr = pr_meas + clockCorr*gpsconsts.C
+
+    if rx[0][0] != None: # TODO: Reference using 2D array slicing
+        # Calculate the tropospheric delays
+        tropoDelay = calculate_tropo_delay(gpstime,gpsweek,ephem,rx)
+        # Calculate total pseudorange correction
+        prCorr -= tropoDelay*gpsconsts.C
 
     if isinstance(prCorr, pd.Series):
         prCorr = prCorr.to_numpy(dtype=float)
