@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
 import numpy as np
+
 from core.constants import CoordConsts
 
 #Coordinate conversions (From https://github.com/commaai/laika)
