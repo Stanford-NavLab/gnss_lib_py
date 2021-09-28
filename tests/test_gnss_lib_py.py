@@ -1,6 +1,9 @@
-import os, sys
-src_directory = os.path.join(os.getcwd(), 'gnss_lib_py')
-sys.path.insert(0, src_directory)
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 from gnss_lib_py import __version__
 import pytest
 # Path of package for pytest

@@ -1,9 +1,12 @@
 import pytest
 import numpy as np
 import pandas as pd
-import os, sys
-src_directory = os.path.join(os.getcwd(), 'gnss_lib_py')
-sys.path.insert(0, src_directory)
+import os
+import sys
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 # Path of package for pytest
 import datetime
 import pytz
@@ -106,4 +109,3 @@ def test_satV():
 def measure_sizes():
     measurements, satXYZV = static_test_measures()
     assert np.logical_and(len(measurements['prange'].index)==len(satXYZV.index))
-
