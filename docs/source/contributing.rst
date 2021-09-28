@@ -12,7 +12,8 @@ To report a bug, please submit an issue on
 Please include:
 
     * Your operating system name and version.
-    * Any details about your local setup that might be helpful in troubleshooting.
+    * Any details about your local setup that might be helpful in
+      troubleshooting.
     * Detailed steps to reproduce the bug.
 
 Feature requests and feedback
@@ -23,9 +24,11 @@ The best way to send feedback is to file an issue on
 
 If you are proposing a feature:
 
-* Explain in detail how it would work.
-* Keep the scope as narrow as possible, to make it easier to implement.
-* Remember that this is a volunteer-driven project, and that code contributions are welcome :)
+    * Explain in detail how it would work.
+    * Keep the scope as narrow as possible, to make it easier to
+      implement.
+    * Remember that this is a volunteer-driven project, and that code
+      contributions are welcome :)
 
 Development
 -----------
@@ -36,32 +39,36 @@ Standard GitHub Workflow
 1. Fork `gnss_lib_py <https://github.com/Stanford-NavLab/gnss_lib_py>`_
    (look for the "Fork" button).
 
-2. Clone your fork locally::
+2. Clone your fork locally:
 
-    git clone https://github.com/<your username>/gnss_lib_py
+   .. code-block:: bash
+
+      git clone https://github.com/<your username>/gnss_lib_py
 
 3. Follow the :ref:`developer install instructions<developer install>`
 to install pyenv, poetry, and the python dependencies:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    git checkout -b your-name/name-of-your-bugfix-or-feature
+      git checkout -b your-name/name-of-your-bugfix-or-feature
 
    Now you can make your changes locally.
 
-4. When you're done making changes run all the tests with::
+4. When you're done making changes run all the tests with:
 
-    poetry run pytest tests/
+   .. code-block:: bash
+
+      poetry run pytest tests/
 
 See the Testing and Documenting sections for more details.
 
 5. Commit your changes and push your branch to GitHub:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    git add -A
-    git commit -m "<describe changes in this commit>"
-    git push origin your-name/name-of-your-bugfix-or-feature
+      git add -A
+      git commit -m "<describe changes in this commit>"
+      git push origin your-name/name-of-your-bugfix-or-feature
 
 6. Submit a pull request through the GitHub website.
 
@@ -69,15 +76,20 @@ NAVLab GitHub Workflow
 ++++++++++++++++++++++
 
 1. Follow the :ref:`developer install instructions<developer install>`
-to install pyenv, poetry, python dependencies, and clone repo::
+to install pyenv, poetry, python dependencies, and clone the repository:
 
-    git checkout -b your-name/name-of-your-bugfix-or-feature
+    .. code-block:: bash
+
+       git checkout -b your-name/name-of-your-bugfix-or-feature
 
 2. Make changes and document them appropriately.
 
-3. When you're done making changes run all the tests with::
+3. When you're done making changes run all the tests with:
 
-    poetry run pytest tests/
+   .. code-block:: bash
+
+      poetry shell
+      python -m pytest
 
 4. When you're ready to commit changes follow the steps below to
 minimize unnecessary merging. This is especially important if multiple
@@ -85,14 +97,14 @@ people are working on the same branch. If you pull new changes, then
 repeat the tests above to double check that everything is still working
 as expected.
 
-.. code-block:: bash
+    .. code-block:: bash
 
-    git stash
-    git pull
-    git stash apply
-    git add <files to add to commit>
-    git commit -m "<describe changes in this commit>"
-    git push origin your-name/name-of-your-bugfix-or-feature
+        git stash
+        git pull
+        git stash apply
+        git add <files to add to commit>
+        git commit -m "<describe changes in this commit>"
+        git push origin your-name/name-of-your-bugfix-or-feature
 
 5. Submit a pull request through the GitHub website and request as a
 step in the pull request that either Ashwin or Derek to review your
@@ -123,7 +135,13 @@ TODO: UPDATE TESTING EXPLANATIONS
       to the structure in :code:`gnss_lib_py`.
     * Use pytest to write and implement the tests. To run previously
       written tests, go to the parent directory and run
-      :code:`python -m pytest`
+
+      .. code-block:: bash
+
+         poetry shell
+         python -m pytest
+
+
     * While writing your tests, you might need to use certain fixed
       objects (tuples, strings etc.) use :code:`@pytest.fixture` to
       define such objects. Fixtures can be composed as well.
@@ -182,13 +200,13 @@ File Header
 ^^^^^^^^^^^
 Use the following header for each file:
 
-::
+    ::
 
-    ########################################################################
-    # Author(s):    F. Lastname
-    # Date:         DD Mmm YYYY
-    # Desc:         Short helpful description
-    ########################################################################
+        ########################################################################
+        # Author(s):    F. Lastname
+        # Date:         DD Mmm YYYY
+        # Desc:         Short helpful description
+        ########################################################################
 
 Citations
 ^^^^^^^^^
@@ -214,9 +232,11 @@ Building Documentation
 ++++++++++++++++++++++
 
 If you made changes to filenames or moved files between directories,
-run the following from the :code:`docs` directory::
+run the following from the :code:`docs` directory:
 
-    ./rebuild_references.sh
+    .. code-block:: bash
+
+        ./rebuild_references.sh
 
 If you also changed directory names:
 
@@ -237,10 +257,12 @@ If you changed python dependencies:
 
 After the above, run the following commands from the :code:`docs`
 directory to update the documentation source and generate a local
-HTML version::
+HTML version:
 
-   make clean
-   make html
+    .. code-block:: bash
+
+       make clean
+       make html
 
 After building the html, you can open :code:`docs/build/html/index.html` in
 a browser to inspect your local copy.
