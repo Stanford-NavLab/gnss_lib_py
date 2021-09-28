@@ -14,7 +14,7 @@ Please include:
     * Your operating system name and version.
     * Any details about your local setup that might be helpful in
       troubleshooting.
-    * Detailed steps to reproduce the bug.
+    * A minimal working example to reproduce the bug.
 
 Feature requests and feedback
 -----------------------------
@@ -24,7 +24,7 @@ The best way to send feedback is to file an issue on
 
 If you are proposing a feature:
 
-    * Explain in detail how it would work.
+    * Explain in detail the intended feature, its purpose and how it would work.
     * Keep the scope as narrow as possible, to make it easier to
       implement.
     * Remember that this is a volunteer-driven project, and that code
@@ -46,7 +46,9 @@ Standard GitHub Workflow
       git clone https://github.com/<your username>/gnss_lib_py
 
 3. Follow the :ref:`developer install instructions<developer install>`
-to install pyenv, poetry, and the python dependencies:
+to install pyenv, poetry, and the python dependencies.
+
+4. Create a local branch:
 
    .. code-block:: bash
 
@@ -60,9 +62,9 @@ to install pyenv, poetry, and the python dependencies:
 
       poetry run pytest tests/
 
-See the Testing and Documenting sections for more details.
+See the :ref:`Testing<testing>` and :ref:`Documenting<documentation>` sections for more details.
 
-5. Commit your changes and push your branch to GitHub:
+5. Commit your changes and publish your branch to GitHub:
 
    .. code-block:: bash
 
@@ -107,7 +109,7 @@ as expected.
         git push origin your-name/name-of-your-bugfix-or-feature
 
 5. Submit a pull request through the GitHub website and request as a
-step in the pull request that either Ashwin or Derek to review your
+step in the pull request that either Ashwin or Derek review your
 code.
 
 Package Architecture
@@ -121,6 +123,8 @@ below for new features or functionality.
     * core: This directory contains TODO: DESCRIPTION
     * io: This directory contains TODO: DESCRIPTION
     * utils: This directory contains TODO: DESCRIPTION
+
+.. _testing:
 
 Testing
 +++++++
@@ -141,14 +145,22 @@ TODO: UPDATE TESTING EXPLANATIONS
          poetry shell
          python -m pytest
 
+      Alternatively, to run tests without spawning a poetry shell, from the parent directory, run
 
-    * While writing your tests, you might need to use certain fixed
-      objects (tuples, strings etc.) use :code:`@pytest.fixture` to
-      define such objects. Fixtures can be composed as well.
+      .. code-block::bash
+
+        poetry run pytest tests/
+
     * Within each test file, name each individual test function as
-      `test_funcname`. As far as possible, use fixtures to get fixed
+      `test_funcname`. 
+    * While writing your tests, you might need to use certain fixed
+      objects (tuples, strings etc.). Use :code:`@pytest.fixture` to
+      define such objects. Fixtures can be composed to create a fixture of a fixture.
+    * As far as possible, use fixtures to get fixed
       inputs to the function and use functions that don't require an
       input or return an output.
+
+.. _documentation:
 
 Documentation
 +++++++++++++
@@ -224,9 +236,22 @@ Miscellaneous Notes
     * Assert errors and tell the user what caused that particular error.
       For example, if a column vector is passed instead of a row vector,
       the assertion error message should say that a row vector was
-      expected.
+      expected. We maintain functions in :code:`utils/*` that might be 
+      useful for performing such checks. Please check if an existing 
+      function performs the desired task before adding new functions.
     * Write units in brackets in comments and docstrings. For example,
       [m].
+
+
+Adding to Documentation Pages
++++++++++++++++++++++++++++++
+
+If you find that documentation added to the code is not enough for your 
+intended use, you can add a page to the Sphinx documentation.
+
+Use the `RST Cheat Sheet
+<https://sphinx-tutorial.readthedocs.io/cheatsheet/>`_ from the Sphinx 
+documentation for any syntax queries.
 
 Building Documentation
 ++++++++++++++++++++++
