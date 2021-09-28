@@ -12,11 +12,12 @@ repository.
 This may also include some cool images of successful algorithms.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    install
    tutorial
+   contributing
    reference/index.rst
 
 

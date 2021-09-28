@@ -31,3 +31,43 @@ poetry shell
 python -m pytest
 ```
 from the parent directory
+
+## Building documentation
+We are currently working with local builds of Sphinx documentation. 
+Our plan is to migrate to [ReadTheDocs](https://readthedocs.org/) once 
+we release the Beta version of the repository to the public.
+
+Use the following steps to build and view the documentation locally.
+
+If you made changes to filenames or moved files between directories,
+run the following from the `docs` directory:
+
+```./rebuild_references.sh```
+
+If you also changed directory names:
+
+* update `docs/conf.py` to reflect correct directory names
+* update the helper tool `/docs/rebuild_references.sh`
+* search the entire package files to check that all references to the
+    directory have been changed
+
+If you changed python dependencies:
+
+* add the new dependency to the poetry dependency list with
+    `poetry add package=version` or if the dependency is a
+    development tool `poetry add --dev package=version`
+* update the poetry lock file with `poetry update`
+* export update requirements.txt file for sphinx by running the
+    following from the main directory:
+    `poetry export -f requirements.txt --output ./docs/source/requirements.txt`
+
+After the above, run the following commands from the `docs`
+directory to update the documentation source and generate a local
+HTML version:
+```
+make clean
+make html
+```
+
+After building the html, you can open `docs/build/html/index.html` in
+a browser to inspect your local copy of the documentation.
