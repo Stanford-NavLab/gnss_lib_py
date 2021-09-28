@@ -84,16 +84,20 @@ to install pyenv, poetry, python dependencies, and clone the repository:
 
        git checkout -b your-name/name-of-your-bugfix-or-feature
 
-2. Make changes and document them appropriately.
 
-3. When you're done making changes run all the tests with:
+2. Update your local :code:`poetry` environment to include all packages 
+   being used by using :code:`poetry install`
+
+3. Make changes and document them appropriately.
+
+4. When you're done making changes run all the tests with:
 
    .. code-block:: bash
 
       poetry shell
       python -m pytest
 
-4. When you're ready to commit changes follow the steps below to
+5. When you're ready to commit changes follow the steps below to
 minimize unnecessary merging. This is especially important if multiple
 people are working on the same branch. If you pull new changes, then
 repeat the tests above to double check that everything is still working
@@ -108,7 +112,7 @@ as expected.
         git commit -m "<describe changes in this commit>"
         git push origin your-name/name-of-your-bugfix-or-feature
 
-5. Submit a pull request through the GitHub website and request as a
+6. Submit a pull request through the GitHub website and request as a
 step in the pull request that either Ashwin or Derek review your
 code.
 
@@ -275,7 +279,6 @@ If you changed python dependencies:
     * add the new dependency to the poetry dependency list with
       :code:`poetry add package=version` or if the dependency is a
       development tool :code:`poetry add --dev package=version`
-    * update the poetry lock file with :code:`poetry update`
     * export update requirements.txt file for sphinx by running the
       following from the main directory:
       :code:`poetry export -f requirements.txt --output ./docs/source/requirements.txt`

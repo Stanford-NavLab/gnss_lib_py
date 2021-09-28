@@ -5,4 +5,3 @@ utils
    :maxdepth: 4
 
    sats
-   timing

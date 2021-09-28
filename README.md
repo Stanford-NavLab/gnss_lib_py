@@ -56,7 +56,6 @@ If you changed python dependencies:
 * add the new dependency to the poetry dependency list with
     `poetry add package=version` or if the dependency is a
     development tool `poetry add --dev package=version`
-* update the poetry lock file with `poetry update`
 * export update requirements.txt file for sphinx by running the
     following from the main directory:
     `poetry export -f requirements.txt --output ./docs/source/requirements.txt`
