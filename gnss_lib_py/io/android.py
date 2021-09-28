@@ -83,7 +83,7 @@ def make_csv(input_path, field):
 
     Notes
     -----
-    Based off of Matlab code from Google's gps-measurement-tools
+    Based off of MATLAB code from Google's gps-measurement-tools
     repository: https://github.com/google/gps-measurement-tools. Compare
     with MakeCsv() in opensource/ReadGnssLogger.m
 
@@ -267,7 +267,7 @@ def check_gnss_clock(gnssRaw, gnssAnalysis):
 
     Notes
     -----
-    Based off of Matlab code from Google's gps-measurement-tools
+    Based off of MATLAB code from Google's gps-measurement-tools
     repository: https://github.com/google/gps-measurement-tools. Compare
     with CheckGnssClock() in opensource/ReadGnssLogger.m
 
@@ -357,7 +357,7 @@ def check_gnss_measurements(gnssRaw, gnssAnalysis):
 
     Notes
     -----
-    Based off of Matlab code from Google's gps-measurement-tools
+    Based off of MATLAB code from Google's gps-measurement-tools
     repository: https://github.com/google/gps-measurement-tools. Compare
     with ReportMissingFields() in opensource/ReadGnssLogger.m
 
@@ -495,7 +495,7 @@ def compute_times(gnssRaw, gnssAnalysis):
 
     Notes
     -----
-    Based off of Matlab code from Google's gps-measurement-tools
+    Based off of MATLAB code from Google's gps-measurement-tools
     repository: https://github.com/google/gps-measurement-tools. Compare
     with opensource/ProcessGnssMeas.m
 
@@ -553,7 +553,7 @@ def compute_pseudorange(gnssRaw, gnssAnalysis):
 
     Notes
     -----
-    Based off of Matlab code from Google's gps-measurement-tools
+    Based off of MATLAB code from Google's gps-measurement-tools
     repository: https://github.com/google/gps-measurement-tools. Compare
     with opensource/ProcessGnssMeas.m
 
