@@ -1,23 +1,32 @@
 Install
 =======
 
-Dependencies
-------------
-Explanation of how to install dependencies through pyenv + poetry
+Standard Installation
+---------------------
 
+Install dependencies with pip:
 
-Standard
---------
+.. code-block:: bash
 
-Instructions on how to install without the development dependencies.
+    pip3 install -r requirements.txt
 
-::
-    git clone git@github.com:Stanford-NavLab/gnss_lib_py.git
+Clone the GitHub repository:
 
-Development
------------
+.. code-block:: bash
 
-Instructions on how to install with the development dependencies.
+    git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
 
-::
-    git clone git@github.com:Stanford-NavLab/gnss_lib_py.git
+.. _developer install:
+
+Developer Installation
+----------------------
+
+TODO: PYENV INSTALLATION INSTRUCTIONS
+
+TODO: POETRY INSTALL INSTRUCTIONS
+
+Clone the GitHub repository:
+
+.. code-block:: bash
+
+    git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
