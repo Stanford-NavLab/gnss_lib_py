@@ -16,7 +16,7 @@ from datetime import datetime
 from scipy import interpolate
 from collections import defaultdict
 
-from utils.timing import datetime_to_tow
+from core.ephemeris import datetime_to_tow
 from core.constants import GPSConsts
 
 class PreciseNav(object):
