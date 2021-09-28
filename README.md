@@ -25,3 +25,8 @@ To run the test suite, you can use pytest.
 ```
 poetry run pytest tests/
 ```
+or use the command 
+```
+python -m pytest
+```
+from the parent directory
