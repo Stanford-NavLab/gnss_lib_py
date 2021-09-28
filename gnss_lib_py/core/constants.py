@@ -77,9 +77,10 @@ class CoordConsts:
     B : float
         Semi-minor axis of the earth [m]
     ESQ : float
-        Don't know what this is
+        First esscentricity squared
     ESQ1: float
-        Don't know what this is either
+        Second eccentricity squared
+        
     """
     # TODO: Update docstring for ESQ and ESQ1
 
