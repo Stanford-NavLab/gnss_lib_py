@@ -283,9 +283,10 @@ If you changed python dependencies:
       following from the main directory:
       :code:`poetry export -f requirements.txt --output ./docs/source/requirements.txt`
 
-After the above, run the following commands from the :code:`docs`
-directory to update the documentation source and generate a local
-HTML version:
+After the above, activate your poetry environment from the parent 
+directory using :code:`poetry shell` and run the following commands 
+from the :code:`docs` directory to update the documentation source and 
+generate a local HTML version:
 
     .. code-block:: bash
 

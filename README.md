@@ -60,9 +60,10 @@ If you changed python dependencies:
     following from the main directory:
     `poetry export -f requirements.txt --output ./docs/source/requirements.txt`
 
-After the above, run the following commands from the `docs`
-directory to update the documentation source and generate a local
-HTML version:
+After the above, activate your local poetry environment using 
+`poetry shell` (in the parent directory) and run the following commands 
+from the `docs` directory to update the documentation source and 
+generate a local HTML version:
 ```
 make clean
 make html
