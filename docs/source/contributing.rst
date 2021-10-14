@@ -163,6 +163,10 @@ TODO: UPDATE TESTING EXPLANATIONS
     * As far as possible, use fixtures to get fixed
       inputs to the function and use functions that don't require an
       input or return an output.
+    * When creating plots in a test, ensure that all plots are saved for
+      checking later on. Plots that are created must be closed using 
+      :code:`plt.close()` before the tests stop running.
+
 
 .. _documentation:
 
@@ -211,6 +215,9 @@ include:
       prevailing style (e.g. threading.py), to retain backwards
       compatibility
     * Line lengths should generally be limited to 72 characters
+    * Variable and class names should be readable and follow the general
+      convention of :code:`generalcategory_subcategory`, eg. 
+      :code:`meas_gnss` and :code:`meas_lidar`
 
 File Header
 ^^^^^^^^^^^
@@ -235,8 +242,12 @@ Miscellaneous Notes
 ^^^^^^^^^^^^^^^^^^^
     * MATLAB is correctly written with all capital letters.
     * GitHub is correctly written with the G & H capitalized.
-    * Vectors (lists, np.ndarrays, etc.) should be rows and time should
-      be across columns.
+    * Vectors (lists, np.ndarrays, etc.) for a single time instance
+      should be column vectors.
+    * Collections of vectors should be 2D structures with each column 
+      representing the value of the vector for a particular time. In 
+      this convention, time varies across columns while physical 
+      quantities vary across rows. 
     * Assert errors and tell the user what caused that particular error.
       For example, if a column vector is passed instead of a row vector,
       the assertion error message should say that a row vector was
