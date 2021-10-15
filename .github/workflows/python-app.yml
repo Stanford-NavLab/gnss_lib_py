@@ -26,8 +26,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install Poetry
       run: |
-        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -
-        source $HOME/.poetry/env
+        pip install poetry
+#       curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -
+#        source $HOME/.poetry/env
     - name: Check Poetry installation
       run: |
         poetry --version
