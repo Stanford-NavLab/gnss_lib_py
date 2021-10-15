@@ -49,3 +49,6 @@ jobs:
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+    - name: Test if docs are building
+      run: |
+        ./build_docs.sh
