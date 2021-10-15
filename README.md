@@ -1,3 +1,5 @@
+[![build](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml/badge.svg)](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml)
+
 # gnss_lib_py
 Python code used for processing and simulating GNSS measurements.
 
