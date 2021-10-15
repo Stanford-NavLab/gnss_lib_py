@@ -85,7 +85,7 @@ to install pyenv, poetry, python dependencies, and clone the repository:
        git checkout -b your-name/name-of-your-bugfix-or-feature
 
 
-2. Update your local :code:`poetry` environment to include all packages 
+2. Update your local :code:`poetry` environment to include all packages
    being used by using :code:`poetry install`
 
 3. Make changes and document them appropriately.
@@ -156,7 +156,7 @@ TODO: UPDATE TESTING EXPLANATIONS
         poetry run pytest tests/
 
     * Within each test file, name each individual test function as
-      `test_funcname`. 
+      `test_funcname`.
     * While writing your tests, you might need to use certain fixed
       objects (tuples, strings etc.). Use :code:`@pytest.fixture` to
       define such objects. Fixtures can be composed to create a fixture of a fixture.
@@ -164,7 +164,7 @@ TODO: UPDATE TESTING EXPLANATIONS
       inputs to the function and use functions that don't require an
       input or return an output.
     * When creating plots in a test, ensure that all plots are saved for
-      checking later on. Plots that are created must be closed using 
+      checking later on. Plots that are created must be closed using
       :code:`plt.close()` before the tests stop running.
 
 
@@ -216,7 +216,7 @@ include:
       compatibility
     * Line lengths should generally be limited to 72 characters
     * Variable and class names should be readable and follow the general
-      convention of :code:`generalcategory_subcategory`, eg. 
+      convention of :code:`generalcategory_subcategory`, eg.
       :code:`meas_gnss` and :code:`meas_lidar`
 
 File Header
@@ -244,15 +244,15 @@ Miscellaneous Notes
     * GitHub is correctly written with the G & H capitalized.
     * Vectors (lists, np.ndarrays, etc.) for a single time instance
       should be column vectors.
-    * Collections of vectors should be 2D structures with each column 
-      representing the value of the vector for a particular time. In 
-      this convention, time varies across columns while physical 
-      quantities vary across rows. 
+    * Collections of vectors should be 2D structures with each column
+      representing the value of the vector for a particular time. In
+      this convention, time varies across columns while physical
+      quantities vary across rows.
     * Assert errors and tell the user what caused that particular error.
       For example, if a column vector is passed instead of a row vector,
       the assertion error message should say that a row vector was
-      expected. We maintain functions in :code:`utils/*` that might be 
-      useful for performing such checks. Please check if an existing 
+      expected. We maintain functions in :code:`utils/*` that might be
+      useful for performing such checks. Please check if an existing
       function performs the desired task before adding new functions.
     * Write units in brackets in comments and docstrings. For example,
       [m].
@@ -261,27 +261,20 @@ Miscellaneous Notes
 Adding to Documentation Pages
 +++++++++++++++++++++++++++++
 
-If you find that documentation added to the code is not enough for your 
+If you find that documentation added to the code is not enough for your
 intended use, you can add a page to the Sphinx documentation.
 
 Use the `RST Cheat Sheet
-<https://sphinx-tutorial.readthedocs.io/cheatsheet/>`_ from the Sphinx 
+<https://sphinx-tutorial.readthedocs.io/cheatsheet/>`_ from the Sphinx
 documentation for any syntax queries.
 
 Building Documentation
 ++++++++++++++++++++++
 
-If you made changes to filenames or moved files between directories,
-run the following from the :code:`docs` directory:
-
-    .. code-block:: bash
-
-        ./rebuild_references.sh
-
-If you also changed directory names:
+If you changed any directory names in the repository:
 
     * update :code:`docs/conf.py` to reflect correct directory names
-    * update the helper tool :code:`/docs/rebuild_references.sh`
+    * update the helper tool :code:`/build_docs.sh`
     * search the entire package files to check that all references to the
       directory have been changed
 
@@ -294,15 +287,13 @@ If you changed python dependencies:
       following from the main directory:
       :code:`poetry export -f requirements.txt --output ./docs/source/requirements.txt`
 
-After the above, activate your poetry environment from the parent 
-directory using :code:`poetry shell` and run the following commands 
-from the :code:`docs` directory to update the documentation source and 
-generate a local HTML version:
+After the above, you can run the helper tool from the main directory
+that will automatically rebuild references and build a local HTML copy
+of the documentation:
 
     .. code-block:: bash
 
-       make clean
-       make html
+       ./build_docs.sh
 
 After building the html, you can open :code:`docs/build/html/index.html` in
 a browser to inspect your local copy.
