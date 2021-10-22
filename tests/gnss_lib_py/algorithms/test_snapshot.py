@@ -1,8 +1,9 @@
-"""Test for snapshot.py algorithm.
-
-:Authors:
-    Bradley Collicott <bcollico@stanford.edu>
-"""
+########################################################################
+# Author(s):    Bradley Collicott
+# Date:         22 October 2021
+# Desc:         Test for snapshot positioning algorithm.
+########################################################################
+"""Test for snapshot positioning algorithm."""
 import os
 import sys
 import pytest

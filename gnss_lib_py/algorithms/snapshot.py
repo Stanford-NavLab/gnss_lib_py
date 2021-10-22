@@ -1,4 +1,8 @@
-
+########################################################################
+# Author(s):    Shubh Gupta, Bradley Collicott
+# Date:         19 July 2021
+# Desc:         Point solution methods using GNSS measurements.
+########################################################################
 """This module contains point solution methods for estimating position
 at a single GNSS measurement epoch. Position is solved using Newton-Raphson
 or Weighted Least Squares algorithms.
@@ -7,10 +11,6 @@ Notes
 -----
     Weighted Least Squares solver is not yet implemented. There is not an input
     field for specifying weighting matrix.
-
-:Authors:
-    Shubh Gupta <>
-    Bradley Collicott <bcollico@stanford.edu>
 """
 # python modules
 import os
@@ -64,7 +64,7 @@ def solvepos(
     """
 
     def _compute_prange_residual(user_fix):
-        """Difference between expected and received pseudoranges
+        """Compute the difference between expected and received pseudoranges.
 
         Parameters
         ----------
@@ -95,7 +95,8 @@ def solvepos(
 
     def _compute_prange_partials(user_fix):
         # TODO: Vectorize jacobian calculation
-        """Jacobian of expected pseudorange
+        """Compute the Jacobian of expected pseudorange with respect to the
+        user states.
 
         Parameters
         ----------
