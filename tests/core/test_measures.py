@@ -6,7 +6,8 @@ import sys
 # append <path>/gnss_lib_py/gnss_lib_py/ to path
 sys.path.append(os.path.dirname(
                 os.path.dirname(
-                os.path.realpath(__file__))))
+                os.path.dirname(
+                os.path.realpath(__file__)))))
 # Path of package for pytest
 import datetime
 import pytz
