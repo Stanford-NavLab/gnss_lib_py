@@ -181,6 +181,23 @@ In addition to class and function docstrings, any section of code that
 whose function is not blatantly obvious, should be independently
 commented.
 
+To reference textbooks/papers in the docstrings, create a new section
+titled References and include the reference as shown below in the 
+docstring. (Remove the block comment flag when inserting in already 
+written docstrings)
+
+.. code-block :: python
+
+    """
+    References
+    ----------
+    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+
 Parameter/Return Types
 ^^^^^^^^^^^^^^^^^^^^^^
 Following the numpy docstring formatting, the type of all parameters and
