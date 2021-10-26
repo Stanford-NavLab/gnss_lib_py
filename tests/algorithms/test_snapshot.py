@@ -4,18 +4,9 @@
 # Desc:         Test for snapshot positioning algorithm.
 ########################################################################
 """Test for snapshot positioning algorithm."""
-import os
-import sys
 import pytest
 import numpy as np
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__)))))
-
 from gnss_lib_py.algorithms import snapshot
-from gnss_lib_py.core.constants import GPSConsts
 
 # Defining test fixtures
 @pytest.fixture(name="tolerance")
@@ -63,7 +54,7 @@ def fixture_set_sv_states():
 
     Notes
     -----
-    .. [1] Weiss, M., & Ashby, N. (1999). 
+    .. [1] Weiss, M., & Ashby, N. (1999).
        Global Positioning System Receivers and Relativity.
     """
     x_sv = np.array([13005878.255, 20451225.952, 20983704.633, 13798849.321])
@@ -85,8 +76,6 @@ def test_snapshot(set_user_states, set_sv_states, tolerance):
     tolerance : fixture
         Error threshold for test pass/fail
     """
-    gpsconsts = GPSConsts()
-
     x_u , y_u , z_u , b_clk_u  = set_user_states
     x_sv, y_sv, z_sv, b_clk_sv = set_sv_states
 

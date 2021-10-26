@@ -15,17 +15,7 @@ Notes
 """
 
 # python modules
-import os
-import sys
 import numpy as np
-
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-
-# gnss_lib_py modules
-from core.constants import GPSConsts
 
 def solvepos(
     prange_measured:np.ndarray,
@@ -129,8 +119,6 @@ def solvepos(
         derivatives[:, 2] = -(z_fix - z_sv)/range_geometric
         derivatives[:, 3] = -1
         return derivatives
-
-    gpsconsts = GPSConsts()
 
     if len(prange_measured)<4:
         return np.empty(4)
