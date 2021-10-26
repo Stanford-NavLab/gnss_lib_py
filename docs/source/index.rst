@@ -18,6 +18,7 @@ This may also include some cool images of successful algorithms.
    install
    tutorial
    contributing
+   troubleshooting
    reference/index.rst
 
 
