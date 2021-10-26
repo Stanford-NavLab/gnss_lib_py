@@ -52,8 +52,8 @@ def fixture_set_sv_states():
     b_clk_u : np.ndarray
         Range biases due to satellite clock offset (c*dt), 4-by-3, units [m]
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Weiss, M., & Ashby, N. (1999).
        Global Positioning System Receivers and Relativity.
     """
