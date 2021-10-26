@@ -1,9 +1,6 @@
-########################################################################
-# Author(s):    Shubh Gupta, Bradley Collicott
-# Date:         19 July 2021
-# Desc:         Point solution methods using GNSS measurements.
-########################################################################
-"""This module contains point solution methods for estimating position
+"""Point solution methods using GNSS measurements.
+
+This module contains point solution methods for estimating position
 at a single GNSS measurement epoch. Position is solved using Newton-Raphson
 or Weighted Least Squares algorithms.
 
@@ -13,6 +10,9 @@ Notes
     field for specifying weighting matrix.
 
 """
+
+__authors__ = "Shubh Gupta, Bradley Collicott"
+__date__ = "19 July 2021"
 
 # python modules
 import numpy as np
@@ -27,7 +27,7 @@ def solvepos(
 ):
     # TODO: Modify code to perform WLS if weights are given
     # TODO: Change inputs to either DataFrame or Matrix
-    """Find user position, clock bias using WLS or NR methods
+    """Find user position, clock bias using WLS or NR methods.
 
     Find user position, clock bias by solving the weighted least squares
     (WLS) problem for n satellites. If no weights are given, the Newton
@@ -37,20 +37,20 @@ def solvepos(
     ----------
     prange_measured : ndarray
         Measured pseudoranges, dimension n
-    x_sv : ndaarray
+    x_sv : np.ndarray
         Satellite x positions, dimension n, units [m]
-    y_sv : ndaarray
+    y_sv : np.ndarray
         Satellite y positions, dimension n, units [m]
-    z_sv : ndaarray
+    z_sv : np.ndarray
         Satellite z positions, dimension n, units [m]
-    b_clk_sv : ndaarray
+    b_clk_sv : np.ndarray
         Range bias due to satellite clock offset (c*dt), dimension n, units [m]
     tol : float
         Termination threshold for LS solver, units [~]
 
     Returns
     -------
-    user_fix : ndarray
+    user_fix : np.ndarray
         Solved 3D position and clock bias estimate, dimension 4-by-1,
         units [m]
     """
@@ -73,8 +73,9 @@ def solvepos(
 
         Returns
         -------
-        prange_residual: ndarray
+        prange_residual: np.ndarray
             Float difference between expected and measured pseudoranges
+
         """
         x_fix, y_fix, z_fix, b_clk_u = list(user_fix)
         range_geometric = np.sqrt((x_fix - x_sv)**2
@@ -105,8 +106,9 @@ def solvepos(
 
         Returns
         -------
-        derivatives: ndarray
+        derivatives: np.ndarray
             Jacobian matrix of expected pseudorange, dimension n-by-4
+
         """
         x_fix, y_fix, z_fix, _ = list(user_fix)
         range_geometric = np.sqrt((x_fix - x_sv)**2
@@ -126,7 +128,7 @@ def solvepos(
     x_fix, y_fix, z_fix, b_clk_u = 0., 0., 0., 0.
     user_fix = np.array([x_fix, y_fix, z_fix, b_clk_u])
 
-    user_fix, _ = newtonraphson(
+    user_fix, _ = newton_raphson(
         _compute_prange_residual,
         _compute_prange_partials,
         user_fix,
@@ -135,8 +137,8 @@ def solvepos(
 
     return user_fix.reshape([-1,1])
 
-def newtonraphson(f_x, df_dx, x_0, tol = 1e-3, lam = 1., max_count = 20):
-    """Newton Raphson method to find zero of function.
+def newton_raphson(f_x, df_dx, x_0, tol = 1e-3, lam = 1., max_count = 20):
+    """Newton-Raphson method to find zero of function.
 
     Parameters
     ----------
@@ -144,7 +146,7 @@ def newtonraphson(f_x, df_dx, x_0, tol = 1e-3, lam = 1., max_count = 20):
         Function whose zero is required.
     df_dx : method
         Function that outputs derivative of f_x.
-    x_0: ndarray
+    x_0: np.ndarray
         Initial guess of solution.
     tol: float
         Maximum difference between consecutive guesses for termination.
@@ -155,10 +157,11 @@ def newtonraphson(f_x, df_dx, x_0, tol = 1e-3, lam = 1., max_count = 20):
 
     Returns
     -------
-    x0 : ndarray
+    x0 : np.ndarray
         Solution for zero of function.
     f_norm : float
         Norm of function magnitude at solution point.
+
     """
     delta_x = np.ones_like(x_0)
     count = 0
