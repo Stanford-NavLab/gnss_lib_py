@@ -20,8 +20,8 @@ from gnss_lib_py.core.constants import GPSConsts
 # Defining test fixtures
 @pytest.fixture(name="tolerance")
 def fixture_tolerance():
-    """Error threshold for test pass/fail criterion."""
-    return 1e-7
+    """Decimal threshold for test pass/fail criterion."""
+    return 7
 
 @pytest.fixture(name="set_user_states")
 def fixture_set_user_states():
@@ -50,9 +50,6 @@ def fixture_set_sv_states():
     """Set the location and clock bias of  of 4 satellite in Earth-Centered,
     Earth-Fixed coordinates.
 
-    Ref: Weiss, Marc & Ashby, Neil. (1999). Global Positioning System Receivers
-    and Relativity.
-
     Returns
     -------
     x_sv : np.ndarray
@@ -63,6 +60,11 @@ def fixture_set_sv_states():
         Satellite z positions, 4-by-3, units [m]
     b_clk_u : np.ndarray
         Range biases due to satellite clock offset (c*dt), 4-by-3, units [m]
+
+    Notes
+    -----
+    .. [1] Weiss, M., & Ashby, N. (1999). 
+       Global Positioning System Receivers and Relativity.
     """
     x_sv = np.array([13005878.255, 20451225.952, 20983704.633, 13798849.321])
     y_sv = np.array([18996947.213, 16359086.310, 15906974.416, -8709113.822])
@@ -90,12 +92,11 @@ def test_snapshot(set_user_states, set_sv_states, tolerance):
 
     # Compute noise-free pseudorange measurements
     prange_measured = (np.sqrt((x_u - x_sv)**2
-                            + (y_u - y_sv)**2
-                            + (z_u - z_sv)**2)
-                            + (b_clk_u - b_clk_sv))
+                             + (y_u - y_sv)**2
+                             + (z_u - z_sv)**2)
+                             + (b_clk_u - b_clk_sv))
 
     user_fix = snapshot.solvepos(prange_measured, x_sv , y_sv , z_sv , b_clk_sv)
-    # Convert user clock bias from [ms] to [m]
-    user_fix[-1] = user_fix[-1] / 1e6 * gpsconsts.C
-    solution_diff = abs(user_fix - np.array([x_u, y_u, z_u, b_clk_u]))
-    assert all(solution_diff < tolerance)
+    truth_fix = np.array([x_u, y_u, z_u, b_clk_u]).reshape([-1,1])
+
+    np.testing.assert_array_almost_equal(user_fix, truth_fix, decimal=tolerance)
