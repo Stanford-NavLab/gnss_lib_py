@@ -1,0 +1,4 @@
+ignore:
+  - "docs"  # ignore docs and all its contents
+  - "tests" # ignore tests and all its contents
+  - "data"  # ignore data and all its contents
