@@ -11,7 +11,9 @@ Notes
 -----
     Weighted Least Squares solver is not yet implemented. There is not an input
     field for specifying weighting matrix.
+
 """
+
 # python modules
 import os
 import sys
@@ -59,8 +61,8 @@ def solvepos(
     Returns
     -------
     user_fix : ndarray
-        Solved 3D position and clock bias estimate, dimension 1-by-4,
-        units [m] and [ms]
+        Solved 3D position and clock bias estimate, dimension 4-by-1,
+        units [m]
     """
 
     def _compute_prange_residual(user_fix):
@@ -133,7 +135,7 @@ def solvepos(
     if len(prange_measured)<4:
         return np.empty(4)
     # Inital guess for position estimate and clock offset bias
-    x_fix, y_fix, z_fix, b_clk_u = 100., 100., 100., 0.
+    x_fix, y_fix, z_fix, b_clk_u = 0., 0., 0., 0.
     user_fix = np.array([x_fix, y_fix, z_fix, b_clk_u])
 
     user_fix, _ = newtonraphson(
@@ -142,9 +144,8 @@ def solvepos(
         user_fix,
         tol=tol
     )
-    # Return user clock bias in units [ms]
-    user_fix[-1] = user_fix[-1]*1e6/gpsconsts.C
-    return user_fix
+
+    return user_fix.reshape([-1,1])
 
 def newtonraphson(f_x, df_dx, x_0, tol = 1e-3, lam = 1., max_count = 20):
     """Newton Raphson method to find zero of function.
