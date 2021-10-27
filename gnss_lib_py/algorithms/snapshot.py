@@ -1,116 +1,154 @@
-########################################################################
-# Author(s):    Shubh Gupta
-# Date:         19 July 2021
-# Desc:         Point solution methods using GNSS measurements
-########################################################################
+"""Point solution methods using GNSS measurements.
 
-import os
-import sys
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
+This module contains point solution methods for estimating position
+at a single GNSS measurement epoch. Position is solved using Newton-Raphson
+or Weighted Least Squares algorithms.
+
+Notes
+-----
+    Weighted Least Squares solver is not yet implemented. There is not an input
+    field for specifying weighting matrix.
+
+"""
+
+__authors__ = "Shubh Gupta, Bradley Collicott"
+__date__ = "19 July 2021"
+
+# python modules
 import numpy as np
 
-from core.constants import GPSConsts
-
-
-def solve_pos(prange, X, Y, Z, B, e=1e-3):
+def solvepos(
+    prange_measured:np.ndarray,
+    x_sv:np.ndarray,
+    y_sv:np.ndarray,
+    z_sv:np.ndarray,
+    b_clk_sv:np.ndarray,
+    tol:float=1e-3
+):
     # TODO: Modify code to perform WLS if weights are given
-    """Find user position, clock bias using WLS or NR methods
+    # TODO: Change inputs to either DataFrame or Matrix
+    """Find user position, clock bias using WLS or NR methods.
 
     Find user position, clock bias by solving the weighted least squares
-    (WLS) problem for m satellites. If no weights are given, the Newton
+    (WLS) problem for n satellites. If no weights are given, the Newton
     Raphson (NR) position, clock bias solution is used instead.
 
     Parameters
     ----------
-    prange : ndarray
-        Measured pseudoranges, dimension m
-    X : ndaarray
-        Satellite ECEF x positions, dimension m
-    Y : ndaarray
-        Satellite ECEF y positions, dimension m
-    Z : ndaarray
-        Satellite ECEF z positions, dimension m
-    B : ndaarray
-        Satellite onboard clock bias, dimension m
-    e : float
-        Termination threshold for LS solver
+    prange_measured : ndarray
+        Measured pseudoranges, dimension n
+    x_sv : np.ndarray
+        Satellite x positions, dimension n, units [m]
+    y_sv : np.ndarray
+        Satellite y positions, dimension n, units [m]
+    z_sv : np.ndarray
+        Satellite z positions, dimension n, units [m]
+    b_clk_sv : np.ndarray
+        Range bias due to satellite clock offset (c*dt), dimension n, units [m]
+    tol : float
+        Termination threshold for LS solver, units [~]
 
     Returns
     -------
-    x_fix : ndarray
-        Solved 3D position and clock bias estimates
-
+    user_fix : np.ndarray
+        Solved 3D position and clock bias estimate, dimension 4-by-1,
+        units [m]
     """
 
-    def _f(vars):
-        """Difference between expected and received pseudoranges
+    def _compute_prange_residual(user_fix):
+        """Compute the difference between expected and received pseudoranges.
 
         Parameters
         ----------
-        vars : list
+        user_fix : list
             List of estimates for position and time
+        x_fix : float
+            User x position estimate, scalar, units [m]
+        y_fix : float
+            User y position estimate, scalar, units [m]
+        z_fix : float
+            User z position estimate, scalar, units [m]
+        b_clk_u : float
+            Range bias due to user clock offset (c*dt), scalar, units [m]
 
         Returns
         -------
-        delta_prange: ndarray
+        prange_residual: np.ndarray
             Float difference between expected and measured pseudoranges
 
         """
-        x, y, z, cdt = list(vars)
-        tilde_prange = np.sqrt((x - X)**2 + (y - Y)**2 + (z - Z)**2)
-        _prange = tilde_prange + cdt - B
-        delta_prange = prange-_prange
-        return delta_prange
+        x_fix, y_fix, z_fix, b_clk_u = list(user_fix)
+        range_geometric = np.sqrt((x_fix - x_sv)**2
+                                + (y_fix - y_sv)**2
+                                + (z_fix - z_sv)**2)
 
-    def _df(vars):
-        """Jacobian of expected pseudorange
+        prange_expected = range_geometric + b_clk_u - b_clk_sv
+        prange_residual = prange_measured - prange_expected
+        return prange_residual
+
+    def _compute_prange_partials(user_fix):
+        # TODO: Vectorize jacobian calculation
+        """Compute the Jacobian of expected pseudorange with respect to the
+        user states.
 
         Parameters
         ----------
-        vars : list
+        user_fix : list
             List of estimates for position and time
+        x_fix : float
+            User x position estimate, scalar, units [m]
+        y_fix : float
+            User y position estimate, scalar, units [m]
+        z_fix : float
+            User z position estimate, scalar, units [m]
+        b_clk_u : float
+            Range bias due to user clock offset (c*dt), scalar, units [m]
 
         Returns
         -------
-        derivatives: ndarray
-            mx4 Jacobian matrix of expected pseudorange
+        derivatives: np.ndarray
+            Jacobian matrix of expected pseudorange, dimension n-by-4
+
         """
-        x, y, z, cdt = list(vars)
-        tilde_prange = np.sqrt((x - X)**2 + (y - Y)**2 + (z - Z)**2)
-        _prange = tilde_prange + cdt - B
-        derivatives = np.zeros((len(prange), 4))
-        derivatives[:, 0] = -(x - X)/tilde_prange
-        derivatives[:, 1] = -(y - Y)/tilde_prange
-        derivatives[:, 2] = -(z - Z)/tilde_prange
+        x_fix, y_fix, z_fix, _ = list(user_fix)
+        range_geometric = np.sqrt((x_fix - x_sv)**2
+                                + (y_fix - y_sv)**2
+                                + (z_fix - z_sv)**2)
+
+        derivatives = np.zeros((len(prange_measured), 4))
+        derivatives[:, 0] = -(x_fix - x_sv)/range_geometric
+        derivatives[:, 1] = -(y_fix - y_sv)/range_geometric
+        derivatives[:, 2] = -(z_fix - z_sv)/range_geometric
         derivatives[:, 3] = -1
         return derivatives
 
-    gpsconsts = GPSConsts()
-    if len(prange)<4:
+    if len(prange_measured)<4:
         return np.empty(4)
-    x, y, z, cdt = 100., 100., 100., 0.
+    # Inital guess for position estimate and clock offset bias
+    x_fix, y_fix, z_fix, b_clk_u = 0., 0., 0., 0.
+    user_fix = np.array([x_fix, y_fix, z_fix, b_clk_u])
 
-    x0 = np.array([x, y, z, cdt])
-    x_fix, res_err = newton_raphson(_f, _df, x0, e=e)
-    x_fix[-1] = x_fix[-1]*1e6/gpsconsts.C
+    user_fix, _ = newton_raphson(
+        _compute_prange_residual,
+        _compute_prange_partials,
+        user_fix,
+        tol=tol
+    )
 
-    return x_fix
+    return user_fix.reshape([-1,1])
 
-def newton_raphson(f, df, x0, e=1e-3, lam=1., max_count = 20):
-    """Newton Raphson method to find zero of function.
+def newton_raphson(f_x, df_dx, x_0, tol = 1e-3, lam = 1., max_count = 20):
+    """Newton-Raphson method to find zero of function.
 
     Parameters
     ----------
-    f : method
+    f_x : method
         Function whose zero is required.
-    df : method
-        Function that outputs derivative of f.
-    x0: ndarray
+    df_dx : method
+        Function that outputs derivative of f_x.
+    x_0: np.ndarray
         Initial guess of solution.
-    e: float
+    tol: float
         Maximum difference between consecutive guesses for termination.
     lam: float
         Scaling factor for step taken at each iteration.
@@ -119,19 +157,19 @@ def newton_raphson(f, df, x0, e=1e-3, lam=1., max_count = 20):
 
     Returns
     -------
-    x0 : ndarray
+    x0 : np.ndarray
         Solution for zero of function.
     f_norm : float
         Norm of function magnitude at solution point.
 
     """
-    delta_x = np.ones_like(x0)
+    delta_x = np.ones_like(x_0)
     count = 0
-    while np.sum(np.abs(delta_x)) > e:
-        delta_x = lam*(np.linalg.pinv(df(x0)) @ f(x0))
-        x0 = x0 - delta_x
+    while np.sum(np.abs(delta_x)) > tol:
+        delta_x = lam*(np.linalg.pinv(df_dx(x_0)) @ f_x(x_0))
+        x_0 = x_0 - delta_x
         count += 1
         if count >= max_count:
             raise RuntimeError("Newton Raphson did not converge.")
-    f_norm = np.linalg.norm(f(x0))
-    return x0, f_norm
+    f_norm = np.linalg.norm(f_x(x_0))
+    return x_0, f_norm
