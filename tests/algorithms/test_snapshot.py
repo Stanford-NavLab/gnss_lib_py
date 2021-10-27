@@ -38,7 +38,7 @@ def fixture_set_user_states():
 
 @pytest.fixture(name="set_sv_states")
 def fixture_set_sv_states():
-    """Set the location and clock bias of  of 4 satellite in Earth-Centered,
+    """Set the location and clock bias of 4 satellite in Earth-Centered,
     Earth-Fixed coordinates.
 
     Returns
