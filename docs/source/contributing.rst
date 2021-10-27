@@ -54,17 +54,27 @@ to install pyenv, poetry, and the python dependencies.
 
       git checkout -b your-name/name-of-your-bugfix-or-feature
 
-   Now you can make your changes locally.
+5. Make changes locally and document them appropriately. See the
+   :ref:`Documentation<documentation>` section for more details.
 
-4. When you're done making changes run all the tests with:
+6. When you're done making changes run all the tests with:
 
    .. code-block:: bash
 
       poetry run pytest tests/
 
-See the :ref:`Testing<testing>` and :ref:`Documenting<documentation>` sections for more details.
+   See the :ref:`Testing<testing>` section for more details.
 
-5. Commit your changes and publish your branch to GitHub:
+7. Verify that testing coverage has not decreased:
+
+   .. code-block:: bash
+
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run coverage report
+
+   See the :ref:`Coverage Report<coverage>` section for more details.
+
+8. Commit your changes and publish your branch to GitHub:
 
    .. code-block:: bash
 
@@ -72,32 +82,45 @@ See the :ref:`Testing<testing>` and :ref:`Documenting<documentation>` sections f
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-6. Submit a pull request through the GitHub website.
+9. Submit a pull request through the GitHub website.
 
 NAVLab GitHub Workflow
 ++++++++++++++++++++++
 
 1. Follow the :ref:`developer install instructions<developer install>`
-to install pyenv, poetry, python dependencies, and clone the repository:
+to install pyenv, poetry, python dependencies, and clone the repository.
+
+2. Update your local :code:`poetry` environment to include all packages
+   being used by using :code:`poetry install`
+
+3. Create a local branch:
 
     .. code-block:: bash
 
        git checkout -b your-name/name-of-your-bugfix-or-feature
 
 
-2. Update your local :code:`poetry` environment to include all packages
-   being used by using :code:`poetry install`
+4. Make changes locally and document them appropriately. See the
+   :ref:`Documentation<documentation>` section for more details.
 
-3. Make changes and document them appropriately.
-
-4. When you're done making changes run all the tests with:
+5. When you're done making changes run all the tests with:
 
    .. code-block:: bash
 
-      poetry shell
-      python -m pytest
+      poetry run pytest tests/
 
-5. When you're ready to commit changes follow the steps below to
+   See the :ref:`Testing<testing>` section for more details.
+
+6. Verify that testing coverage has not decreased:
+
+   .. code-block:: bash
+
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run coverage report
+
+   See the :ref:`Coverage Report<coverage>` section for more details.
+
+7. When you're ready to commit changes follow the steps below to
 minimize unnecessary merging. This is especially important if multiple
 people are working on the same branch. If you pull new changes, then
 repeat the tests above to double check that everything is still working
@@ -112,9 +135,48 @@ as expected.
         git commit -m "<describe changes in this commit>"
         git push origin your-name/name-of-your-bugfix-or-feature
 
-6. Submit a pull request through the GitHub website and request as a
+8. Submit a pull request through the GitHub website and request as a
 step in the pull request that either Ashwin or Derek review your
 code.
+
+Pull Request Review Workflow
+++++++++++++++++++++++++++++
+
+1. Change to the branch in review:
+
+.. code-block :: bash
+
+   git checkout their-name/name-of-the-bugfix-or-feature
+
+2. Update your local :code:`poetry` environment to include any
+   potentially new dependencies added to poetry:
+
+.. code-block :: bash
+
+   poetry install
+
+3. Verify that documentation is complete and updated if necessary. See
+   the :ref:`Documentation<documentation>` section for more details on
+   what to check.
+
+4. Verify that all tests run on your system:
+
+   .. code-block:: bash
+
+      poetry run pytest tests/
+
+   See the :ref:`Testing<testing>` section for more details.
+
+5. Verify that testing coverage has not decreased:
+
+   .. code-block:: bash
+
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run coverage report
+
+   See the :ref:`Coverage Report<coverage>` section for more details.
+
+6. Submit your approval or any comments on GitHub.
 
 Package Architecture
 ++++++++++++++++++++
@@ -123,10 +185,13 @@ The gnss_lib_py package is broadly divided into the following sections.
 Please choose the most appropriate location based on the descriptions
 below for new features or functionality.
 
-    * algorithms: This directory contains TODO: DESCRIPTION
-    * core: This directory contains TODO: DESCRIPTION
-    * io: This directory contains TODO: DESCRIPTION
-    * utils: This directory contains TODO: DESCRIPTION
+    * algorithms: This directory contains localization algorithms.
+    * core: This directory contains functionality that is commonly used
+      to deal with GNSS measurements.
+    * io: This directory contains functions to read and process various
+      GNSS data/file types.
+    * utils: This directory contains visualization functions and other
+      code that is non-critical to the most common GNSS use cases.
 
 .. _testing:
 
@@ -146,12 +211,11 @@ TODO: UPDATE TESTING EXPLANATIONS
 
       .. code-block:: bash
 
-         poetry shell
-         python -m pytest
+         poetry run pytest tests/
 
       Alternatively, to run tests without spawning a poetry shell, from the parent directory, run
 
-      .. code-block::bash
+      .. code-block:: bash
 
         poetry run pytest tests/
 
@@ -167,6 +231,22 @@ TODO: UPDATE TESTING EXPLANATIONS
       checking later on. Plots that are created must be closed using
       :code:`plt.close()` before the tests stop running.
 
+.. _coverage:
+
+Coverage Report
++++++++++++++++
+In general, you should not submit new functionality without also
+providing corresponding tests for the code. Testing coverage reports
+are indicated at the top of the GitHub repository and can be generated
+locally with the following commands:
+
+.. code-block:: bash
+
+   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+   poetry run coverage report
+
+The total percentage of code covered (bottom right percentage) is the
+main number of priority.
 
 .. _documentation:
 
@@ -182,8 +262,8 @@ whose function is not blatantly obvious, should be independently
 commented.
 
 To reference textbooks/papers in the docstrings, create a new section
-titled References and include the reference as shown below in the 
-docstring. (Remove the block comment flag when inserting in already 
+titled References and include the reference as shown below in the
+docstring. (Remove the block comment flag when inserting in already
 written docstrings)
 
 .. code-block :: python
@@ -238,15 +318,33 @@ include:
 
 File Header
 ^^^^^^^^^^^
-Use the following header for each file:
+You should begin with formatting similar to the example below following
+the PEP 8 style guide for
+`imports <https://www.python.org/dev/peps/pep-0008/#imports>`__ and
+author and date inclusions
+(`dunders <https://www.python.org/dev/peps/pep-0008/#module-level-dunder-names>`__).
 
-    ::
+.. code-block :: python
 
-        ########################################################################
-        # Author(s):    F. Lastname
-        # Date:         DD Mmm YYYY
-        # Desc:         Short helpful description
-        ########################################################################
+   """ Short description of the file contents.
+
+   Lengthier description of the file contents that may span across
+   multiple lines if necessary. All descriptions should start with a
+   capital letter and end with a period. There should also be a
+   blank line before the close of the docstring.
+
+   """
+
+   __authors__ = "Firstname Lastname, Firstname Lastname"
+   __date__ = "DD Mmm YYYY"
+
+   import os # import statements from the standard Python library
+   import sys
+
+   import numpy as np # a blank line and then third-party imports
+   import scipy as sp
+
+   from core.constants import CoordConsts # a blank line then gnss_lib_py imports
 
 Citations
 ^^^^^^^^^
