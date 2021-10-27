@@ -46,7 +46,7 @@ Standard GitHub Workflow
       git clone https://github.com/<your username>/gnss_lib_py
 
 3. Follow the :ref:`developer install instructions<developer install>`
-to install pyenv, poetry, and the python dependencies.
+   to install pyenv, poetry, and the python dependencies.
 
 4. Create a local branch:
 
@@ -155,6 +155,12 @@ Pull Request Review Workflow
 
    poetry install
 
+3. Review the changes and added code. Look for common sense errors, 
+   violated conventions or places where a better implementation is 
+   possible. If doing an in-depth review of an algorithm and related 
+   tests, verify the correctness of the math and that the tests make 
+   valid assumptions. 
+
 3. Verify that documentation is complete and updated if necessary. See
    the :ref:`Documentation<documentation>` section for more details on
    what to check.
@@ -236,9 +242,9 @@ TODO: UPDATE TESTING EXPLANATIONS
 Coverage Report
 +++++++++++++++
 In general, you should not submit new functionality without also
-providing corresponding tests for the code. Testing coverage reports
-are indicated at the top of the GitHub repository and can be generated
-locally with the following commands:
+providing corresponding tests for the code. Visual testing coverage 
+reports can be found at the top of the GitHub repository. Similar 
+reports can be generated locally with the following commands:
 
 .. code-block:: bash
 

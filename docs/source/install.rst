@@ -84,6 +84,9 @@ Windows
    can be installed following instructions
    `here <https://pypi.org/project/pyenv-win/>`__.
 
+2. The workflow for installing :code:`poetry` and :code:`gnss_lib_py` is
+   similar once :code:`pyenv` has been set up.
+
 
 Refer to the :ref:`Documentation<documentation>` section once you add
 code/documentation and want to build and view the documentation locally.
