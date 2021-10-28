@@ -1,26 +1,22 @@
-########################################################################
-# Author(s):    Shubh Gupta, Ashwin Kanhere
-# Date:         13 July 2021
-# Desc:         Functions to download, save and process satellite
-#               ephemeris files
-########################################################################
+"""Functions to download, save and process satellite ephemeris files.
 
-############################################################################################################################
-# Ephemeris manager class ()
-############################################################################################################################
+"""
 
-from ftplib import FTP_TLS, FTP
-import ftplib
-import gzip
-import shutil
+__authors__ = "Shubh Gupta, Ashwin Kanhere"
+__date__ = "13 July 2021"
+
 import os
+import shutil
+import gzip
+import ftplib
+from ftplib import FTP_TLS, FTP
 from datetime import datetime, timedelta, timezone
-import georinex
+
 import xarray
 import unlzw3
-import pandas as pd
+import georinex
 import numpy as np
-
+import pandas as pd
 
 def datetime_to_tow(t, convert_gps=True):
     """Convert Python datetime object to GPS Week and time of week

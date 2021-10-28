@@ -1,19 +1,21 @@
-########################################################################
-# Author(s):    Shubh Gupta, Adam Dai
-# Date:         13 Jul 2021
-# Desc:         Functions to process Android measurements
-########################################################################
+"""Functions to process Android measurements.
+
+"""
+
+__authors__ = "Shubh Gupta, Adam Dai"
+__date__ = "13 Jul 2021"
 
 import os
 import sys
+import csv
+from datetime import datetime, timedelta
 # append <path>/gnss_lib_py/gnss_lib_py/ to path
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-import csv
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
 
 from core.constants import GPSConsts
 

@@ -1,9 +1,12 @@
-########################################################################
-# Author(s):    Ashwin Kanhere, Shubh Gupta
-# Date:         16 July 2021
-# Desc:         Utility functions to simulate satellite positions
-########################################################################
+"""Utility functions to simulate satellite positions.
+
+"""
+
+__authors__ = "Ashwin Kanhere, Shubh Gupta"
+__date__ = "16 July 2021"
+
 import math
+
 import numpy as np
 
 #TODO: Consider moving to core.ephemeris

@@ -1,23 +1,29 @@
-import pytest
-import numpy as np
-import pandas as pd
+"""Tests for measures.
+
+"""
+
+__authors__ = "Ashwin Kanhere"
+__date__ = "6 Aug 2021"
+
 import os
 import sys
+import datetime
 # append <path>/gnss_lib_py/gnss_lib_py/ to path
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__)))))
-# Path of package for pytest
-import datetime
+
 import pytz
+import pytest
+import numpy as np
+import pandas as pd
 
 from gnss_lib_py.core.coordinates import geodetic2ecef
 from gnss_lib_py.core.constants import GPSConsts
 from gnss_lib_py.core import measures
 from gnss_lib_py.core.ephemeris import datetime_to_tow
 from gnss_lib_py.core.ephemeris import EphemerisManager
-
 
 # Defining test fixtures
 

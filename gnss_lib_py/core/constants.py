@@ -1,8 +1,9 @@
-########################################################################
-# Author(s):    Ashwin Kanhere
-# Date:         13 July 2021
-# Desc:         GPS constants
-########################################################################
+"""Constants for GPS and coordinate transforms.
+
+"""
+
+__authors__ = "Ashwin Kanhere"
+__date__ = "13 July 2021"
 
 import numpy as np
 
@@ -80,7 +81,7 @@ class CoordConsts:
         First esscentricity squared
     ESQ1: float
         Second eccentricity squared
-        
+
     """
     # TODO: Update docstring for ESQ and ESQ1
 

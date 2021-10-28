@@ -1,19 +1,22 @@
-########################################################################
-# Author(s):    Adam Dai, Shubh Gupta, Derek Knowles
-# Date:         16 Jul 2021
-# Desc:         Functions to read data from NMEA files
-########################################################################
+"""Functions to read data from NMEA files.
+
+"""
+
+__authors__ = "Adam Dai, Shubh Gupta, Derek Knowles"
+__date__ = "16 Jul 2021"
 
 import os
 import sys
+import datetime
+import calendar
 # append <path>/gnss_lib_py/gnss_lib_py/ to path
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
+
 import pynmea2
-import datetime
-import calendar
 import numpy as np
+
 from core import coordinates as coord
 
 class NMEA():

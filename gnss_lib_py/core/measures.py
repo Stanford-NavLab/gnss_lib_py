@@ -1,9 +1,12 @@
-########################################################################
-# Author(s):    Ashwin Kanhere
-# Date:         16 July 2021
-# Desc:         Functions to generate expected measurements and to
-#               simulate pseudoranges and doppler for GPS satellites
-########################################################################
+"""Generates expected measurements and simulates pseudoranges.
+
+Functions to generate expected measurements and to simulate pseudoranges
+and doppler for GPS satellites.
+
+"""
+
+__authors__ = "Ashwin Kanhere"
+__date__ = "16 July 2021"
 
 import os
 import sys
@@ -11,6 +14,7 @@ import sys
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
+
 import numpy as np
 import pandas as pd
 from numpy.random import default_rng
@@ -19,7 +23,6 @@ from core.constants import GPSConsts
 from core.coordinates import ecef2geodetic
 
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while processing the measurements
-
 
 def _extract_pos_vel_arr(satXYZV):
     """Extract satellite positions and velocities into numpy arrays
@@ -422,7 +425,7 @@ def FindSat(ephem, times, gpsweek):
     satXYZV.loc[:,'vx'] = dxp*np.cos(Omega) - dyp*np.cos(i)*np.sin(Omega) + yp*np.sin(Omega)*np.sin(i)*di - (xp*np.sin(Omega) + yp*np.cos(i)*np.cos(Omega))*dOmega
     satXYZV.loc[:,'vy'] = dxp*np.sin(Omega) + dyp*np.cos(i)*np.cos(Omega) - yp*np.sin(i)*np.cos(Omega)*di + (xp*np.cos(Omega) - yp*np.cos(i)*np.sin(Omega))*dOmega
     satXYZV.loc[:,'vz'] = dyp*np.sin(i) + yp*np.cos(i)*di
-    
+
     return satXYZV
 
 
@@ -462,7 +465,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx=[[None]]):
     # TODO: Incorporate satellite clock rate changes into the doppler measurements
     # TODO: Change default of rx to an array of None with size
     # TODO: Change the sign for corrections to what will be added to expected measurements
-    # TODO: Return corrections instead of corrected measurements 
+    # TODO: Return corrections instead of corrected measurements
     # Load GPS Constants
     gpsconsts = GPSConsts()
 

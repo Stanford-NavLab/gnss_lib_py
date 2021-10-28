@@ -1,8 +1,9 @@
-########################################################################
-# Author(s):    Shubh Gupta, Ashwin Kanhere
-# Date:         20 July 2021
-# Desc:         Functions for coordinate conversions required by GPS
-########################################################################
+"""Functions for coordinate conversions required by GPS.
+
+"""
+
+__authors__ = "Shubh Gupta, Ashwin Kanhere"
+__date__ = "20 July 2021"
 
 import os
 import sys
@@ -10,12 +11,12 @@ import sys
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
+
 import numpy as np
 
 from core.constants import CoordConsts
 
 #Coordinate conversions (From https://github.com/commaai/laika)
-
 
 def geodetic2ecef(geodetic, radians=False):
     """LLA to ECEF conversion

@@ -1,20 +1,22 @@
-########################################################################
-# Author(s):    Shubh Gupta
-# Date:         10 Apr 2021
-# Desc:         Functions to read data from NMEA files
-########################################################################
+"""Functions to read data from NMEA files.
+
+"""
+
+__authors__ = "Shubh Gupta"
+__date__ = "10 Apr 2021"
 
 import os
 import sys
+from datetime import datetime
+from collections import defaultdict
 # append <path>/gnss_lib_py/gnss_lib_py/ to path
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
 from scipy import interpolate
-from collections import defaultdict
 
 from core.ephemeris import datetime_to_tow
 from core.constants import GPSConsts

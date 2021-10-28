@@ -1,13 +1,15 @@
-########################################################################
-# Author(s):    Shubh Gupta
-# Date:         16 Jul 2021
-# Desc:         Functions to read data from NMEA files
-########################################################################
+"""Functions to read data from NMEA files.
+
+"""
+
+__authors__ = "Shubh Gupta"
+__date__ = "16 Jul 2021"
+
+from io import BytesIO # not the gnss_lib_py/io/ modules
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from io import BytesIO # not the gnss_lib_py/io/ modules
-from datetime import datetime
 
 def _obstime(fol):
     """Convert Rinex obs (observation) time to datetime.
