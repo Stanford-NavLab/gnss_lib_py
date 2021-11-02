@@ -2,8 +2,8 @@
 
 """
 
-__authors__ = "Shubh Gupta, Adam Dai"
-__date__ = "13 Jul 2021"
+__authors__ = "Shubh Gupta, Adam Dai, Ashwin Kanhere"
+__date__ = "02 Nov 2021"
 
 import os
 import sys
@@ -18,6 +18,49 @@ import numpy as np
 import pandas as pd
 
 from core.constants import GPSConsts
+
+
+class AndroidDerived():
+    def __init__(self, input_path):
+        derived_df = pd.read_csv(input_path)
+        num_times = len(derived_df)
+        # num_values = len(derived_df.columns)
+        self.arr_dtype = np.float64
+        self.array = np.empty([0, num_times], dtype= self.arr_dtype) 
+        # Defining using an empty array to conserve space and not maintain huge duplicates
+        self.map = {col_name: idx for idx, col_name in enumerate(derived_df.columns)}
+        str_bool = {col_name: type(derived_df.loc[0, col_name])==str for col_name in self.map.keys()}
+        # Assuming that the data type of all objects in a single series is the same
+        self.str_map = {}
+        for key in self.map.keys():
+            # indexing by key to maintain same order as eventual map
+            val = str_bool[key]
+            # print(key)
+            values = derived_df.loc[:, key]
+            new_values = np.copy(values)
+            if val:
+                string_vals = np.unique(derived_df.loc[:, key])
+                val_dict = {idx : string_name for idx, string_name in enumerate(string_vals)}
+                self.str_map[key] = val_dict
+
+                for key, val in val_dict.items():
+                    new_values[values==val] = key
+                # Copy set to false to prevent memory overflows
+                new_values = new_values.astype(self.arr_dtype, copy=False)
+            else:
+                self.str_map[key] = {}
+            new_values = np.reshape(new_values, [1, -1])
+            # print('self.array shape: ', np.shape(self.array))
+            # print('new_values shape: ', np.shape(new_values))
+            self.array = np.vstack((self.array, new_values))
+
+    def get_strings(self, key):
+        values_int = self.array[self.map[key],:]
+        values_str = values_int.astype(str, copy=True) 
+        # True by default but making explicit for clarity
+        for key, val in self.str_map[key].items():
+            values_str[values_int==key] = val
+        return values_str
 
 
 def extract_timedata(input_path):
@@ -248,21 +291,21 @@ def correct_log(measurements, verbose=False, carrier_phase_checks = False):
             print("No problems detected.")
     return measurements
 
-def check_gnss_clock(gnssRaw, gnssAnalysis):
+def check_gnss_clock(gnss_raw, gnssAnalysis):
     """Checks and fixes clock field errors
 
     Additonal checks added from [1]_.
 
     Parameters
     ----------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         pandas dataframe that holds gnss meassurements
     gnssAnalysis : list
         holds any error messages
 
     Returns
     -------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         same dataframe with possibly some fixes or column additions
     gnssAnalysis : list
         holds any error messages
@@ -296,63 +339,63 @@ def check_gnss_clock(gnssRaw, gnssAnalysis):
       'BiasNanos'
       ]
     for field in gnssClockFields:
-        if field not in gnssRaw.head():
+        if field not in gnss_raw.head():
             gnssAnalysis.append('WARNING: '+field+' (Clock) is missing from GNSS Logger file')
         else:
-            gnssRaw.loc[:,field] = pd.to_numeric(gnssRaw[field])
-    ok = all(x in gnssRaw.head() for x in ['TimeNanos', 'FullBiasNanos'])
+            gnss_raw.loc[:,field] = pd.to_numeric(gnss_raw[field])
+    ok = all(x in gnss_raw.head() for x in ['TimeNanos', 'FullBiasNanos'])
     if not ok:
         gnssAnalysis.append('FAIL Clock check')
-        return gnssRaw, gnssAnalysis
+        return gnss_raw, gnssAnalysis
 
     # Measurements should be discarded if TimeNanos is empty
-    if gnssRaw["TimeNanos"].isnull().values.any():
-        gnssRaw.dropna(how = "any", subset = ["TimeNanos"],
+    if gnss_raw["TimeNanos"].isnull().values.any():
+        gnss_raw.dropna(how = "any", subset = ["TimeNanos"],
                        inplace = True)
         gnssAnalysis.append('empty or invalid TimeNanos')
 
-    if 'BiasNanos' not in gnssRaw.head():
-        gnssRaw.loc[:,'BiasNanos'] = 0
-    if 'TimeOffsetNanos' not in gnssRaw.head():
-        gnssRaw.loc[:,'TimeOffsetNanos'] = 0
-    if 'HardwareClockDiscontinuityCount' not in gnssRaw.head():
-        gnssRaw.loc[:,'HardwareClockDiscontinuityCount'] = 0
+    if 'BiasNanos' not in gnss_raw.head():
+        gnss_raw.loc[:,'BiasNanos'] = 0
+    if 'TimeOffsetNanos' not in gnss_raw.head():
+        gnss_raw.loc[:,'TimeOffsetNanos'] = 0
+    if 'HardwareClockDiscontinuityCount' not in gnss_raw.head():
+        gnss_raw.loc[:,'HardwareClockDiscontinuityCount'] = 0
         gnssAnalysis.append('WARNING: Added HardwareClockDiscontinuityCount=0 because it is missing from GNSS Logger file')
 
     # measurements should be discarded if FullBiasNanos is zero or invalid
-    if any(gnssRaw.FullBiasNanos >= 0):
-        gnssRaw.FullBiasNanos = -1*gnssRaw.FullBiasNanos
+    if any(gnss_raw.FullBiasNanos >= 0):
+        gnss_raw.FullBiasNanos = -1*gnss_raw.FullBiasNanos
         gnssAnalysis.append('WARNING: FullBiasNanos wrong sign. Should be negative. Auto changing inside check_gnss_clock')
 
     # Measurements should be discarded if BiasUncertaintyNanos is too
     # large ## TODO: figure out how to choose this parameter better
-    if any(gnssRaw.BiasUncertaintyNanos >= 40.):
-        count = (gnssRaw["BiasUncertaintyNanos"] >= 40.).sum()
+    if any(gnss_raw.BiasUncertaintyNanos >= 40.):
+        count = (gnss_raw["BiasUncertaintyNanos"] >= 40.).sum()
         gnssAnalysis.append(str(count) +
          ' rows with too large BiasUncertaintyNanos')
-        gnssRaw = gnssRaw[gnssRaw["BiasUncertaintyNanos"] < 40.]
+        gnss_raw = gnss_raw[gnss_raw["BiasUncertaintyNanos"] < 40.]
 
 
-    gnssRaw = gnssRaw.assign(allRxMillis = ((gnssRaw.TimeNanos - gnssRaw.FullBiasNanos)/1e6))
-    # gnssRaw['allRxMillis'] = ((gnssRaw.TimeNanos - gnssRaw.FullBiasNanos)/1e6)
-    return gnssRaw, gnssAnalysis
+    gnss_raw = gnss_raw.assign(allRxMillis = ((gnss_raw.TimeNanos - gnss_raw.FullBiasNanos)/1e6))
+    # gnss_raw['allRxMillis'] = ((gnss_raw.TimeNanos - gnss_raw.FullBiasNanos)/1e6)
+    return gnss_raw, gnssAnalysis
 
 
-def check_gnss_measurements(gnssRaw, gnssAnalysis):
+def check_gnss_measurements(gnss_raw, gnssAnalysis):
     """Checks that GNSS measurement fields exist in dataframe.
 
     Additonal checks added from [2]_.
 
     Parameters
     ----------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         pandas dataframe that holds gnss meassurements
     gnssAnalysis : list
         holds any error messages
 
     Returns
     -------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         exact same dataframe as input (why is this a return?)
     gnssAnalysis : list
         holds any error messages
@@ -387,50 +430,50 @@ def check_gnss_measurements(gnssRaw, gnssAnalysis):
         'AccumulatedDeltaRangeUncertaintyMeters'
         ]
     for field in gnssMeasurementFields:
-        if field not in gnssRaw.head():
+        if field not in gnss_raw.head():
             gnssAnalysis.append('WARNING: '+field+' (Measurement) is missing from GNSS Logger file')
 
     # measurements should be discarded if state is neither
     # STATE_TOW_DECODED nor STATE_TOW_KNOWN
-    gnssRaw = gnssRaw.assign(State=pd.to_numeric(gnssRaw['State']))
+    gnss_raw = gnss_raw.assign(State=pd.to_numeric(gnss_raw['State']))
     STATE_TOW_DECODED = 0x8
     STATE_TOW_KNOWN = 0x4000
-    invalid_state_count = np.invert((gnssRaw["State"] & STATE_TOW_DECODED).astype(bool) |
-                              (gnssRaw["State"] & STATE_TOW_KNOWN).astype(bool)).sum()
+    invalid_state_count = np.invert((gnss_raw["State"] & STATE_TOW_DECODED).astype(bool) |
+                              (gnss_raw["State"] & STATE_TOW_KNOWN).astype(bool)).sum()
     if invalid_state_count > 0:
         gnssAnalysis.append(str(invalid_state_count) + " rows have " + \
                             "state TOW neither decoded nor known")
-        gnssRaw = gnssRaw[(gnssRaw["State"] & STATE_TOW_DECODED).astype(bool) |
-                          (gnssRaw["State"] & STATE_TOW_KNOWN).astype(bool)]
+        gnss_raw = gnss_raw[(gnss_raw["State"] & STATE_TOW_DECODED).astype(bool) |
+                          (gnss_raw["State"] & STATE_TOW_KNOWN).astype(bool)]
 
     # Measurements should be discarded if ReceivedSvTimeUncertaintyNanos
     # is high ## TODO: figure out how to choose this parameter better
-    if any(gnssRaw.ReceivedSvTimeUncertaintyNanos >= 150.):
-        count = (gnssRaw["ReceivedSvTimeUncertaintyNanos"] >= 150.).sum()
+    if any(gnss_raw.ReceivedSvTimeUncertaintyNanos >= 150.):
+        count = (gnss_raw["ReceivedSvTimeUncertaintyNanos"] >= 150.).sum()
         gnssAnalysis.append(str(count) +
          ' rows with too large ReceivedSvTimeUncertaintyNanos')
-        gnssRaw = gnssRaw[gnssRaw["ReceivedSvTimeUncertaintyNanos"] < 150.]
+        gnss_raw = gnss_raw[gnss_raw["ReceivedSvTimeUncertaintyNanos"] < 150.]
 
     # convert multipath indicator to numeric
-    gnssRaw = gnssRaw.assign(MultipathIndicator=pd.to_numeric(gnssRaw['MultipathIndicator']))
+    gnss_raw = gnss_raw.assign(MultipathIndicator=pd.to_numeric(gnss_raw['MultipathIndicator']))
 
-    return gnssRaw, gnssAnalysis
+    return gnss_raw, gnssAnalysis
 
-def check_carrier_phase(gnssRaw, gnssAnalysis):
+def check_carrier_phase(gnss_raw, gnssAnalysis):
     """Checks that carrier phase measurements.
 
     Checks taken from [3]_.
 
     Parameters
     ----------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         pandas dataframe that holds gnss meassurements
     gnssAnalysis : list
         holds any error messages
 
     Returns
     -------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         exact same dataframe as input (why is this a return?)
     gnssAnalysis : list
         holds any error messages
@@ -448,48 +491,48 @@ def check_carrier_phase(gnssRaw, gnssAnalysis):
     # Measurements should be discarded if AdrState violates
     # ADR_STATE_VALID == 1 & ADR_STATE_RESET == 0
     # & ADR_STATE_CYCLE_SLIP == 0
-    gnssRaw = gnssRaw.assign(AccumulatedDeltaRangeState=pd.to_numeric(gnssRaw['AccumulatedDeltaRangeState']))
+    gnss_raw = gnss_raw.assign(AccumulatedDeltaRangeState=pd.to_numeric(gnss_raw['AccumulatedDeltaRangeState']))
     ADR_STATE_VALID = 0x1
     ADR_STATE_RESET = 0x2
     ADR_STATE_CYCLE_SLIP = 0x4
 
-    invalid_state_count = np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_VALID).astype(bool) &
-                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)) &
-                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool))).sum()
+    invalid_state_count = np.invert((gnss_raw["AccumulatedDeltaRangeState"] & ADR_STATE_VALID).astype(bool) &
+                          np.invert((gnss_raw["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)) &
+                          np.invert((gnss_raw["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool))).sum()
     if invalid_state_count > 0:
         gnssAnalysis.append(str(invalid_state_count) + " rows have " + \
                             "ADRstate invalid")
-        gnssRaw = gnssRaw[(gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_VALID).astype(bool) &
-                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)) &
-                          np.invert((gnssRaw["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool))]
+        gnss_raw = gnss_raw[(gnss_raw["AccumulatedDeltaRangeState"] & ADR_STATE_VALID).astype(bool) &
+                          np.invert((gnss_raw["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)) &
+                          np.invert((gnss_raw["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool))]
 
     # Measurements should be discarded if AccumulatedDeltaRangeUncertaintyMeters
     # is too large ## TODO: figure out how to choose this parameter better
-    gnssRaw = gnssRaw.assign(AccumulatedDeltaRangeUncertaintyMeters=pd.to_numeric(gnssRaw['AccumulatedDeltaRangeUncertaintyMeters']))
-    if any(gnssRaw.AccumulatedDeltaRangeUncertaintyMeters >= 0.15):
-        count = (gnssRaw["AccumulatedDeltaRangeUncertaintyMeters"] >= 0.15).sum()
+    gnss_raw = gnss_raw.assign(AccumulatedDeltaRangeUncertaintyMeters=pd.to_numeric(gnss_raw['AccumulatedDeltaRangeUncertaintyMeters']))
+    if any(gnss_raw.AccumulatedDeltaRangeUncertaintyMeters >= 0.15):
+        count = (gnss_raw["AccumulatedDeltaRangeUncertaintyMeters"] >= 0.15).sum()
         gnssAnalysis.append(str(count) +
          ' rows with too large AccumulatedDeltaRangeUncertaintyMeters')
-        gnssRaw = gnssRaw[gnssRaw["AccumulatedDeltaRangeUncertaintyMeters"] < 0.15]
+        gnss_raw = gnss_raw[gnss_raw["AccumulatedDeltaRangeUncertaintyMeters"] < 0.15]
 
-    return gnssRaw, gnssAnalysis
+    return gnss_raw, gnssAnalysis
 
 
-def compute_times(gnssRaw, gnssAnalysis):
+def compute_times(gnss_raw, gnssAnalysis):
     """Compute times and epochs for GNSS measurements.
 
     Additional checks added from [4]_.
 
     Parameters
     ----------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         pandas dataframe that holds gnss meassurements
     gnssAnalysis : list
         holds any error messages
 
     Returns
     -------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         Dataframe with added columns updated.
     gnssAnalysis : list
         Holds any error messages. This function doesn't actually add any
@@ -512,42 +555,42 @@ def compute_times(gnssRaw, gnssAnalysis):
     """
     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
     WEEKSEC = 604800
-    gnssRaw['GpsWeekNumber'] = np.floor(-1*gnssRaw['FullBiasNanos']*1e-9/WEEKSEC)
-    gnssRaw['GpsTimeNanos'] = gnssRaw['TimeNanos'] - (gnssRaw['FullBiasNanos'] + gnssRaw['BiasNanos'])
+    gnss_raw['GpsWeekNumber'] = np.floor(-1*gnss_raw['FullBiasNanos']*1e-9/WEEKSEC)
+    gnss_raw['GpsTimeNanos'] = gnss_raw['TimeNanos'] - (gnss_raw['FullBiasNanos'] + gnss_raw['BiasNanos'])
 
     # Measurements should be discarded if arrival time is negative
-    if sum(gnssRaw['GpsTimeNanos'] <= 0) > 0:
-        gnssRaw = gnssRaw[gnssRaw['GpsTimeNanos'] > 0]
+    if sum(gnss_raw['GpsTimeNanos'] <= 0) > 0:
+        gnss_raw = gnss_raw[gnss_raw['GpsTimeNanos'] > 0]
         gnssAnalysis.append("negative arrival times removed")
     # TODO: Measurements should be discarded if arrival time is
     # unrealistically large
 
-    gnssRaw['tRxNanos'] = (gnssRaw['TimeNanos']+gnssRaw['TimeOffsetNanos'])-(gnssRaw['FullBiasNanos'].iloc[0]+gnssRaw['BiasNanos'].iloc[0])
-    gnssRaw['tRxSeconds'] = 1e-9*gnssRaw['tRxNanos'] - WEEKSEC * gnssRaw['GpsWeekNumber']
-    gnssRaw['tTxSeconds'] = 1e-9*(gnssRaw['ReceivedSvTimeNanos'] + gnssRaw['TimeOffsetNanos'])
-    gnssRaw['LeapSecond'] = gnssRaw['LeapSecond'].fillna(0)
-    gnssRaw["UtcTimeNanos"] = pd.to_datetime(gnssRaw['GpsTimeNanos']  - gnssRaw["LeapSecond"] * 1E9, utc = True, origin=gpsepoch)
-    gnssRaw['UnixTime'] = pd.to_datetime(gnssRaw['GpsTimeNanos'], utc = True, origin=gpsepoch)
+    gnss_raw['tRxNanos'] = (gnss_raw['TimeNanos']+gnss_raw['TimeOffsetNanos'])-(gnss_raw['FullBiasNanos'].iloc[0]+gnss_raw['BiasNanos'].iloc[0])
+    gnss_raw['tRxSeconds'] = 1e-9*gnss_raw['tRxNanos'] - WEEKSEC * gnss_raw['GpsWeekNumber']
+    gnss_raw['tTxSeconds'] = 1e-9*(gnss_raw['ReceivedSvTimeNanos'] + gnss_raw['TimeOffsetNanos'])
+    gnss_raw['LeapSecond'] = gnss_raw['LeapSecond'].fillna(0)
+    gnss_raw["UtcTimeNanos"] = pd.to_datetime(gnss_raw['GpsTimeNanos']  - gnss_raw["LeapSecond"] * 1E9, utc = True, origin=gpsepoch)
+    gnss_raw['UnixTime'] = pd.to_datetime(gnss_raw['GpsTimeNanos'], utc = True, origin=gpsepoch)
     # TODO: Check if UnixTime is the same as UtcTime, if so remove it
 
-    gnssRaw['Epoch'] = 0
-    gnssRaw.loc[gnssRaw['UnixTime'] - gnssRaw['UnixTime'].shift() > timedelta(milliseconds=200), 'Epoch'] = 1
-    gnssRaw['Epoch'] = gnssRaw['Epoch'].cumsum()
-    return gnssRaw, gnssAnalysis
+    gnss_raw['Epoch'] = 0
+    gnss_raw.loc[gnss_raw['UnixTime'] - gnss_raw['UnixTime'].shift() > timedelta(milliseconds=200), 'Epoch'] = 1
+    gnss_raw['Epoch'] = gnss_raw['Epoch'].cumsum()
+    return gnss_raw, gnssAnalysis
 
-def compute_pseudorange(gnssRaw, gnssAnalysis):
+def compute_pseudorange(gnss_raw, gnssAnalysis):
     """Compute psuedorange values and add to dataframe.
 
     Parameters
     ----------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         pandas dataframe that holds gnss meassurements
     gnssAnalysis : list
         holds any error messages
 
     Returns
     -------
-    gnssRaw : pandas dataframe
+    gnss_raw : pandas dataframe
         Dataframe with added columns updated.
     gnssAnalysis : list
         Holds any error messages. This function doesn't actually add any
@@ -562,7 +605,7 @@ def compute_pseudorange(gnssRaw, gnssAnalysis):
     """
 
     gpsconsts = GPSConsts()
-    gnssRaw['Pseudorange_seconds'] = gnssRaw['tRxSeconds'] - gnssRaw['tTxSeconds']
-    gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*gpsconsts.C
-    gnssRaw['Pseudorange_sigma_meters'] = gpsconsts.C * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']
-    return gnssRaw, gnssAnalysis
+    gnss_raw['Pseudorange_seconds'] = gnss_raw['tRxSeconds'] - gnss_raw['tTxSeconds']
+    gnss_raw['Pseudorange_meters'] = gnss_raw['Pseudorange_seconds']*gpsconsts.C
+    gnss_raw['Pseudorange_sigma_meters'] = gpsconsts.C * 1e-9 * gnss_raw['ReceivedSvTimeUncertaintyNanos']
+    return gnss_raw, gnssAnalysis
