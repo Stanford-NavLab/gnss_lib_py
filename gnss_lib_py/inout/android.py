@@ -18,49 +18,63 @@ import numpy as np
 import pandas as pd
 
 from core.constants import GPSConsts
+from inout.measurement import Measurement
 
 
-class AndroidDerived():
+class AndroidDerived(Measurement):
     def __init__(self, input_path):
-        derived_df = pd.read_csv(input_path)
-        num_times = len(derived_df)
-        # num_values = len(derived_df.columns)
-        self.arr_dtype = np.float64
-        self.array = np.empty([0, num_times], dtype= self.arr_dtype) 
-        # Defining using an empty array to conserve space and not maintain huge duplicates
-        self.map = {col_name: idx for idx, col_name in enumerate(derived_df.columns)}
-        str_bool = {col_name: type(derived_df.loc[0, col_name])==str for col_name in self.map.keys()}
-        # Assuming that the data type of all objects in a single series is the same
-        self.str_map = {}
-        for key in self.map.keys():
-            # indexing by key to maintain same order as eventual map
-            val = str_bool[key]
-            # print(key)
-            values = derived_df.loc[:, key]
-            new_values = np.copy(values)
-            if val:
-                string_vals = np.unique(derived_df.loc[:, key])
-                val_dict = {idx : string_name for idx, string_name in enumerate(string_vals)}
-                self.str_map[key] = val_dict
+        super().__init__(self, input_path)
 
-                for key, val in val_dict.items():
-                    new_values[values==val] = key
-                # Copy set to false to prevent memory overflows
-                new_values = new_values.astype(self.arr_dtype, copy=False)
-            else:
-                self.str_map[key] = {}
-            new_values = np.reshape(new_values, [1, -1])
-            # print('self.array shape: ', np.shape(self.array))
-            # print('new_values shape: ', np.shape(new_values))
-            self.array = np.vstack((self.array, new_values))
+    def preprocess(self, input_path, params=None):
+        pd_df = pd.read_csv(input_path)
+        return pd_df
 
-    def get_strings(self, key):
-        values_int = self.array[self.map[key],:]
-        values_str = values_int.astype(str, copy=True) 
-        # True by default but making explicit for clarity
-        for key, val in self.str_map[key].items():
-            values_str[values_int==key] = val
-        return values_str
+    def postprocess(self, params=None):
+        pass
+
+
+# class AndroidDerived():
+#     def __init__(self, input_path):
+#         derived_df = pd.read_csv(input_path)
+#         num_times = len(derived_df)
+#         # num_values = len(derived_df.columns)
+#         self.arr_dtype = np.float64
+#         self.array = np.empty([0, num_times], dtype= self.arr_dtype)
+#         # Defining using an empty array to conserve space and not maintain huge duplicates
+#         self.map = {col_name: idx for idx, col_name in enumerate(derived_df.columns)}
+#         str_bool = {col_name: type(derived_df.loc[0, col_name])==str for col_name in self.map.keys()}
+#         # Assuming that the data type of all objects in a single series is the same
+#         self.str_map = {}
+#         #TODO: See if we can avoid this loop to speed things up
+#         for key in self.map.keys():
+#             # indexing by key to maintain same order as eventual map
+#             val = str_bool[key]
+#             # print(key)
+#             values = derived_df.loc[:, key]
+#             new_values = np.copy(values)
+#             if val:
+#                 string_vals = np.unique(derived_df.loc[:, key])
+#                 val_dict = {idx : string_name for idx, string_name in enumerate(string_vals)}
+#                 self.str_map[key] = val_dict
+
+#                 for key, val in val_dict.items():
+#                     new_values[values==val] = key
+#                 # Copy set to false to prevent memory overflows
+#                 new_values = new_values.astype(self.arr_dtype, copy=False)
+#             else:
+#                 self.str_map[key] = {}
+#             new_values = np.reshape(new_values, [1, -1])
+#             # print('self.array shape: ', np.shape(self.array))
+#             # print('new_values shape: ', np.shape(new_values))
+#             self.array = np.vstack((self.array, new_values))
+
+#     def get_strings(self, key):
+#         values_int = self.array[self.map[key],:]
+#         values_str = values_int.astype(str, copy=True)
+#         # True by default but making explicit for clarity
+#         for key, val in self.str_map[key].items():
+#             values_str[values_int==key] = val
+        # return values_str
 
 
 def extract_timedata(input_path):

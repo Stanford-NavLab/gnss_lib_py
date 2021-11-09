@@ -1,5 +1,7 @@
 # Project specific
 data/
+dev/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
