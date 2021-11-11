@@ -9,14 +9,14 @@ import os
 import sys
 import csv
 from datetime import datetime, timedelta
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
 
 import numpy as np
 import pandas as pd
+# append <path>/gnss_lib_py/gnss_lib_py/ to path
 
+sys.path.append(os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
 from core.constants import GPSConsts
 from inout.measurement import Measurement
 
@@ -26,10 +26,10 @@ class AndroidDerived(Measurement):
 
     Inherits from Measurement().
     """
-    def __init__(self, input_path):
-        super().__init__(input_path)
+    #NOTE: Inherits __init__() and isn't defined explicitly here because
+    # no additional implementations/attributes are needed
 
-    def preprocess(self, input_path, params=None):
+    def preprocess(self, input_path):
         """Android specific loading and preprocessing for Measurement()
 
         Parameters
@@ -47,12 +47,12 @@ class AndroidDerived(Measurement):
         pd_df.rename(columns=col_map, inplace=True)
         return pd_df
 
-    def postprocess(self, params=None):
+    def postprocess(self):
         """Android derived specific postprocessing for Measurement()
 
         Notes
         -----
-        Adds corrected pseudoranges to measurements. Corrections 
+        Adds corrected pseudoranges to measurements. Corrections
         implemented from https://www.kaggle.com/carlmcbrideellis/google-smartphone-decimeter-eda
         retrieved on 9th November, 2021
         """
@@ -65,7 +65,7 @@ class AndroidDerived(Measurement):
     @staticmethod
     def _column_map():
         """Map of column names from loaded to gnss_lib_py standard
-        
+
         Returns
         -------
         col_map : Dict
@@ -79,7 +79,7 @@ class AndroidDerived(Measurement):
                 'xSatVelMps' : 'vx',
                 'ySatVelMps' : 'vy',
                 'zSatVelMps' : 'vz',
-                'satClkBiasM' : 'b', 
+                'satClkBiasM' : 'b',
                 'satClkDriftMps' : 'b_dot',
                 }
         return col_map
@@ -390,7 +390,8 @@ def check_gnss_clock(gnss_raw, gnssAnalysis):
         gnssAnalysis.append('WARNING: FullBiasNanos wrong sign. Should be negative. Auto changing inside check_gnss_clock')
 
     # Measurements should be discarded if BiasUncertaintyNanos is too
-    # large ## TODO: figure out how to choose this parameter better
+    # large
+    # TODO: figure out how to choose this parameter better
     if any(gnss_raw.BiasUncertaintyNanos >= 40.):
         count = (gnss_raw["BiasUncertaintyNanos"] >= 40.).sum()
         gnssAnalysis.append(str(count) +
@@ -469,7 +470,8 @@ def check_gnss_measurements(gnss_raw, gnssAnalysis):
                           (gnss_raw["State"] & STATE_TOW_KNOWN).astype(bool)]
 
     # Measurements should be discarded if ReceivedSvTimeUncertaintyNanos
-    # is high ## TODO: figure out how to choose this parameter better
+    # is high 
+    # TODO: figure out how to choose this parameter better
     if any(gnss_raw.ReceivedSvTimeUncertaintyNanos >= 150.):
         count = (gnss_raw["ReceivedSvTimeUncertaintyNanos"] >= 150.).sum()
         gnssAnalysis.append(str(count) +
