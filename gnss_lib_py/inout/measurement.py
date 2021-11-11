@@ -17,9 +17,25 @@ import numpy as np
 import pandas as pd
 
 class Measurement(ABC):
+    """gnss_lib_py specific class for handling measurements.
+    Uses numpy for speed combined with pandas like intuitive indexing
+
+    Attributes
+    ----------
+    arr_dtype : numpy.dtype
+        Type of values stored in data array
+    array : numpy.ndarray
+        Array containing measurements, dimension M x N
+    map : Dict
+        Map of the form {pandas column name : array row number }
+    str_map : Dict
+        Map of the form {pandas column name : {array value : string}}.
+        Map is of the form {pandas column name : {}} for non string rows.    
+    """
     def __init__(self, input_path, params=None):
         data_df = self.preprocess(input_path, params=params)
-      
+        if not type(data_df)==pd.DataFrame:
+            raise TypeError("data_df must be pd.DataFrame") 
         num_times = len(data_df)
         self.arr_dtype = np.float64
         self.array = np.empty([0, num_times], dtype= self.arr_dtype) 
@@ -60,6 +76,13 @@ class Measurement(ABC):
         pass
     
     def pandas_df(self):
+        """Return pandas DataFrame equivalent to class
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            DataFrame with measurements, including strings as strings
+        """
         df_list = []
         for key, value in self.str_map.items():
             if value:
@@ -72,6 +95,17 @@ class Measurement(ABC):
         return df
 
     def get_strings(self, key):
+        """Return list of strings for given key
+
+        Parameters
+        ----------
+        key : string for column name required as string
+
+        Returns
+        -------
+        values_str : np.ndarray
+            1D array with string entries corresponding to dataset
+        """
         values_int = self.array[self.map[key],:].astype(int)
         values_str = values_int.astype(str, copy=True)
         # True by default but making explicit for clarity
@@ -80,11 +114,32 @@ class Measurement(ABC):
         return values_str
 
     def save_csv(self, outpath):
+        """Save measurements as csv
+
+        Parameters
+        ----------
+        outpath : string
+            Path where csv should be saved
+        """
         pd_df = self.pandas_df()
         pd_df.to_csv(outpath)
         return None
 
     def __getitem__(self, key_idx):
+        """Return item indexed from class
+
+        Parameters
+        ----------
+        key_idx : tuple
+            tuple of form (row_name, idx). Row name can be string,
+            list or 'all' for all rows
+
+        Returns
+        -------
+        arr_slice : numpy.ndarray
+            Array of measurements containing row names and time indexed
+            columns 
+        """
         rows = []
         cols = key_idx[1]
         if key_idx[0] == 'all':
@@ -100,6 +155,16 @@ class Measurement(ABC):
         return arr_slice
 
     def __setitem__(self, key, newvalue):
+        """Add/update rows
+
+        Parameters
+        ----------
+        key : string
+            Name of column to add/update
+
+        newvalue : numpy.ndarray/list
+            List or array of values to be added to measurements
+        """
         #DEBUG: Print type of newvalue
         #TODO: Currently breaks if you pass strings as np.ndarray
         if key in self.map.keys():
@@ -128,10 +193,24 @@ class Measurement(ABC):
         return None
 
     def __len__(self):
+        """Return length of class
+
+        Returns
+        -------
+        length : int
+            Number of time steps in measurement
+        """
         length = np.shape(self.array)[1]
         return length 
 
     def shape(self):
+        """Return shape of class
+
+        Returns
+        -------
+        shp : tuple
+            (M, N), M is number of rows and N number of time steps
+        """
         shp = np.shape(self.array)
         return shp
 

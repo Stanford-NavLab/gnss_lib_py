@@ -22,59 +22,67 @@ from inout.measurement import Measurement
 
 
 class AndroidDerived(Measurement):
+    """Class handling derived measurements from Android dataset.
+
+    Inherits from Measurement().
+    """
     def __init__(self, input_path):
-        super().__init__(self, input_path)
+        super().__init__(input_path)
 
     def preprocess(self, input_path, params=None):
+        """Android specific loading and preprocessing for Measurement()
+
+        Parameters
+        ----------
+        input_path : string
+            Path to measurement csv file
+
+        Returns
+        -------
+        pd_df : pandas.DataFrame
+            Loaded measurements with consistent column names
+        """
         pd_df = pd.read_csv(input_path)
+        col_map = self._column_map()
+        pd_df.rename(columns=col_map, inplace=True)
         return pd_df
 
     def postprocess(self, params=None):
-        pass
+        """Android derived specific postprocessing for Measurement()
 
+        Notes
+        -----
+        Adds corrected pseudoranges to measurements. Corrections 
+        implemented from https://www.kaggle.com/carlmcbrideellis/google-smartphone-decimeter-eda
+        retrieved on 9th November, 2021
+        """
+        pr_corrected = self['rawPrM', :] + self['b', :] - \
+                    self['isrbM', :] - self['tropoDelayM', :] \
+                    - self['ionoDelayM', :]
+        self['pseudo'] = pr_corrected
+        return None
 
-# class AndroidDerived():
-#     def __init__(self, input_path):
-#         derived_df = pd.read_csv(input_path)
-#         num_times = len(derived_df)
-#         # num_values = len(derived_df.columns)
-#         self.arr_dtype = np.float64
-#         self.array = np.empty([0, num_times], dtype= self.arr_dtype)
-#         # Defining using an empty array to conserve space and not maintain huge duplicates
-#         self.map = {col_name: idx for idx, col_name in enumerate(derived_df.columns)}
-#         str_bool = {col_name: type(derived_df.loc[0, col_name])==str for col_name in self.map.keys()}
-#         # Assuming that the data type of all objects in a single series is the same
-#         self.str_map = {}
-#         #TODO: See if we can avoid this loop to speed things up
-#         for key in self.map.keys():
-#             # indexing by key to maintain same order as eventual map
-#             val = str_bool[key]
-#             # print(key)
-#             values = derived_df.loc[:, key]
-#             new_values = np.copy(values)
-#             if val:
-#                 string_vals = np.unique(derived_df.loc[:, key])
-#                 val_dict = {idx : string_name for idx, string_name in enumerate(string_vals)}
-#                 self.str_map[key] = val_dict
-
-#                 for key, val in val_dict.items():
-#                     new_values[values==val] = key
-#                 # Copy set to false to prevent memory overflows
-#                 new_values = new_values.astype(self.arr_dtype, copy=False)
-#             else:
-#                 self.str_map[key] = {}
-#             new_values = np.reshape(new_values, [1, -1])
-#             # print('self.array shape: ', np.shape(self.array))
-#             # print('new_values shape: ', np.shape(new_values))
-#             self.array = np.vstack((self.array, new_values))
-
-#     def get_strings(self, key):
-#         values_int = self.array[self.map[key],:]
-#         values_str = values_int.astype(str, copy=True)
-#         # True by default but making explicit for clarity
-#         for key, val in self.str_map[key].items():
-#             values_str[values_int==key] = val
-        # return values_str
+    @staticmethod
+    def _column_map():
+        """Map of column names from loaded to gnss_lib_py standard
+        
+        Returns
+        -------
+        col_map : Dict
+            Dictionary of the form {old_name : new_name}
+        """
+        col_map = {'millisSinceGpsEpoch' : 'toe',
+                'svid' : 'SV',
+                'xSatPosM' : 'x',
+                'ySatPosM' : 'y',
+                'zSatPosM' : 'z',
+                'xSatVelMps' : 'vx',
+                'ySatVelMps' : 'vy',
+                'zSatVelMps' : 'vz',
+                'satClkBiasM' : 'b', 
+                'satClkDriftMps' : 'b_dot',
+                }
+        return col_map
 
 
 def extract_timedata(input_path):
