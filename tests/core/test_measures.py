@@ -24,12 +24,15 @@ from gnss_lib_py.core.ephemeris import EphemerisManager
 def timestamp():
     return datetime.datetime(2020, 5, 15, 0, 47, 15, 448796, pytz.UTC)
 
-
 def ephem_man():
     parent_directory = os.getcwd()
     src_directory = os.path.join(parent_directory, 'src')
-    ephemeris_data_directory = os.path.join(parent_directory, 'data', 'ephemeris')
+
+    ephemeris_data_directory = os.path.join(parent_directory, 
+                                            'data', 'ephemeris')
+
     return EphemerisManager(ephemeris_data_directory)
+
 
 def Rx_ECEF():
     x_LLA = np.reshape([37.427112, -122.1764146, 16], [1, 3])
@@ -45,13 +48,16 @@ def extract_ephem():
 def static_test_measures(deltaT=0):
     gpsweek = 2105
     _, gpstime = datetime_to_tow(timestamp())
-    measurement, satXYZV = measures.simulate_measures(gpsweek, gpstime + deltaT, extract_ephem(), Rx_ECEF(), 0., 0., np.zeros([3, 1]))
+
+    #NOTE: Calling measures to generate measurements to test measures?
+    measurement, satXYZV = measures.simulate_measures(
+        gpsweek, gpstime + deltaT,extract_ephem(), Rx_ECEF(), 
+        0., 0., np.zeros([3, 1]))
+
     return measurement, satXYZV
 
-
-# Defining tests
-
-def test_extract_XYZ():
+@pytest.fixture(name="set_XYZ")
+def fixture_set_XYZ():
     pos_array = np.array([
         [100, 200, 300],
         [400, 500, 600],
@@ -63,9 +69,15 @@ def test_extract_XYZ():
         [70, 80, 90],
     ])
     times = np.array([[1.], [1.], [1.]])
+    return pos_array, vel_array, times
+# Defining tests
+
+def test_extract_XYZ(set_XYZ):
+    pos_array, vel_array, times = set_XYZ
     svs = np.array(['G01', 'G02', 'G03'])
     comb_array = np.hstack((times, pos_array, vel_array))
-    test_XYZV = pd.DataFrame(data= comb_array, index=svs, columns=['times', 'x', 'y', 'z', 'vx', 'vy', 'vz'])
+    test_XYZV = pd.DataFrame(data= comb_array, index=svs,
+                             columns=['times', 'x', 'y', 'z', 'vx', 'vy', 'vz'])
     prns, test_pos, test_vel = measures._extract_pos_vel_arr(test_XYZV)
     np.testing.assert_array_equal(test_pos, pos_array)
     np.testing.assert_array_equal(test_vel, vel_array)
@@ -93,19 +105,37 @@ def test_find_elaz():
 def test_measures_value_range():
     gpsconsts = GPSConsts()
     measurements, satXYZV = static_test_measures()
-    assert np.logical_and(measurements['prange'].values > 20000e3, measurements['prange'].values < 3e7).all(), "Invalid range of pseudorange values"
-    assert np.logical_and(measurements['doppler'].values > -5000, measurements['doppler'].values < 5000).all(), "Magnitude of doppler values is greater than 5 KHz"
-    assert np.all(np.abs(satXYZV['x']).values < gpsconsts.A + 2e7), "Invalid range of ECEF x for satellite position"
-    assert np.all(np.abs(satXYZV['y']).values < gpsconsts.A + 2e7), "Invalid range of ECEF y for satellite position"
-    assert np.all(np.abs(satXYZV['z']).values < gpsconsts.A + 2e7), "Invalid range of ECEF z for satellite position"
+
+    assert np.logical_and(measurements['prange'].values > 20000e3,
+        measurements['prange'].values < 3e7).all(), ("Invalid range of "
+        "pseudorange values")
+
+    assert np.logical_and(measurements['doppler'].values > -5000,
+        measurements['doppler'].values < 5000).all(), ("Magnitude of doppler "
+        "values is greater than 5 KHz")
+
+    assert np.all(np.abs(satXYZV['x']).values < gpsconsts.A + 2e7), ("Invalid "
+        "range of ECEF x for satellite position")
+
+    assert np.all(np.abs(satXYZV['y']).values < gpsconsts.A + 2e7), ("Invalid "
+        "range of ECEF y for satellite position")
+
+    assert np.all(np.abs(satXYZV['z']).values < gpsconsts.A + 2e7), ("Invalid "
+        "range of ECEF z for satellite position")
 
 def test_satV():
     deltaT = 0.1
     _, satXYZV_prev = static_test_measures()
     _, satXYZV_curr = static_test_measures(deltaT=deltaT)
-    np.testing.assert_array_almost_equal((satXYZV_curr['y'] - satXYZV_prev['y'])/deltaT, satXYZV_prev['vy'], decimal=1)
-    np.testing.assert_array_almost_equal((satXYZV_curr['x'] - satXYZV_prev['x'])/deltaT, satXYZV_prev['vx'], decimal=1)
-    np.testing.assert_array_almost_equal((satXYZV_curr['z'] - satXYZV_prev['z'])/deltaT, satXYZV_prev['vz'], decimal=1)
+
+    np.testing.assert_array_almost_equal((satXYZV_curr['y'] - satXYZV_prev['y'])
+    / deltaT, satXYZV_prev['vy'], decimal=1)
+
+    np.testing.assert_array_almost_equal((satXYZV_curr['x'] - satXYZV_prev['x'])
+    / deltaT, satXYZV_prev['vx'], decimal=1)
+
+    np.testing.assert_array_almost_equal((satXYZV_curr['z'] - satXYZV_prev['z'])
+    / deltaT, satXYZV_prev['vz'], decimal=1)
 
 def measure_sizes():
     measurements, satXYZV = static_test_measures()
