@@ -12,30 +12,31 @@ import ftplib
 from ftplib import FTP_TLS, FTP
 from datetime import datetime, timedelta, timezone
 
-import xarray
 import unlzw3
 import georinex
 import numpy as np
 import pandas as pd
 
-def datetime_to_tow(t, convert_gps=True):
-    """Convert Python datetime object to GPS Week and time of week
+import core.constants as consts
+
+def datetime2tow(t, convert_gps=True):
+    """Convert Python datetime object to GPS Week and time of week.
 
     Parameters
     ----------
     t : datetime.datetime
-      Datetime object for Time of Clock
+        Datetime object for Time of Clock.
 
     convert_gps : Bool
-      Flag for whether output is in UTC seconds or GPS seconds
+        Flag for whether output is in UTC seconds or GPS seconds
 
     Returns
     -------
     wk : float
-      GPS week
+        GPS week
 
     tow : float
-      GPS time of week in seconds
+        GPS time of week [s]
 
     """
     # DateTime to GPS week and TOW
@@ -211,9 +212,8 @@ class EphemerisManager():
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = decompressed_filename
-        WEEKSEC = 604800
         data['t_oc'] = pd.to_numeric(data['time'] - datetime(1980, 1, 6, 0, 0, 0))
-        data['t_oc']  = 1e-9 * data['t_oc'] - WEEKSEC * np.floor(1e-9 * data['t_oc'] / WEEKSEC)
+        data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
         data['time'] = data['time'].dt.tz_localize('UTC')
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
@@ -287,7 +287,7 @@ class EphemerisManager():
 
     @staticmethod
     def calculate_toc(timestamp):
-        """I think this is equivalent of datetime_to_tow()
+        """I think this is equivalent of datetime2tow()
         #TODO: See if this function is needed or can be deleted
         """
         pass

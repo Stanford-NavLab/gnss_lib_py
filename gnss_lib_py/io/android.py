@@ -17,8 +17,7 @@ sys.path.append(os.path.dirname(
 import numpy as np
 import pandas as pd
 
-from core.constants import GPSConsts
-
+import core.constants as consts
 
 def extract_timedata(input_path):
     """Extracts raw and fix data from GNSS log file.
@@ -561,8 +560,7 @@ def compute_pseudorange(gnssRaw, gnssAnalysis):
 
     """
 
-    gpsconsts = GPSConsts()
     gnssRaw['Pseudorange_seconds'] = gnssRaw['tRxSeconds'] - gnssRaw['tTxSeconds']
-    gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*gpsconsts.C
-    gnssRaw['Pseudorange_sigma_meters'] = gpsconsts.C * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']
+    gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*consts.C
+    gnssRaw['Pseudorange_sigma_meters'] = consts.C * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']
     return gnssRaw, gnssAnalysis

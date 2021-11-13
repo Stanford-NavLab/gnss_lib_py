@@ -155,11 +155,11 @@ Pull Request Review Workflow
 
    poetry install
 
-3. Review the changes and added code. Look for common sense errors, 
-   violated conventions or places where a better implementation is 
-   possible. If doing an in-depth review of an algorithm and related 
-   tests, verify the correctness of the math and that the tests make 
-   valid assumptions. 
+3. Review the changes and added code. Look for common sense errors,
+   violated conventions or places where a better implementation is
+   possible. If doing an in-depth review of an algorithm and related
+   tests, verify the correctness of the math and that the tests make
+   valid assumptions.
 
 3. Verify that documentation is complete and updated if necessary. See
    the :ref:`Documentation<documentation>` section for more details on
@@ -242,8 +242,8 @@ TODO: UPDATE TESTING EXPLANATIONS
 Coverage Report
 +++++++++++++++
 In general, you should not submit new functionality without also
-providing corresponding tests for the code. Visual testing coverage 
-reports can be found at the top of the GitHub repository. Similar 
+providing corresponding tests for the code. Visual testing coverage
+reports can be found at the top of the GitHub repository. Similar
 reports can be generated locally with the following commands:
 
 .. code-block:: bash
@@ -350,7 +350,7 @@ author and date inclusions
    import numpy as np # a blank line and then third-party imports
    import scipy as sp
 
-   from core.constants import CoordConsts # a blank line then gnss_lib_py imports
+   import core.constants as consts # a blank line then gnss_lib_py imports
 
 Citations
 ^^^^^^^^^
