@@ -131,7 +131,6 @@ class Measurement(ABC):
         """
         pd_df = self.pandas_df()
         pd_df.to_csv(outpath)
-        return None
 
     def __getitem__(self, key_idx):
         """Return item indexed from class
