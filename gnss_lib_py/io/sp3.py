@@ -15,7 +15,6 @@ sys.path.append(os.path.dirname(
                 os.path.realpath(__file__))))
 
 import numpy as np
-import pandas as pd
 from scipy import interpolate
 
 import core.constants as consts
@@ -122,7 +121,9 @@ def flight_time_correct(X, Y, Z, flight_time):
     """
 
     theta = consts.OMEGA_E_DOT * flight_time/1e6
-    R = np.array([[np.cos(theta), np.sin(theta), 0.], [-np.sin(theta), np.cos(theta), 0.], [0., 0., 1.]])
+    R = np.array([[np.cos(theta), np.sin(theta), 0.],
+                  [-np.sin(theta), np.cos(theta), 0.],
+                  [0., 0., 1.]])
 
     XYZ = np.array([X, Y, Z])
     rot_XYZ = R @  np.expand_dims(XYZ, axis=-1)

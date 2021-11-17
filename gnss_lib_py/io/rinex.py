@@ -30,7 +30,7 @@ def _obstime(fol):
     Copied from PyGPS by Michael Hirsch and Greg Starr:
     https://github.com/gregstarr/PyGPS/blob/master/Examples/readRinexObs.py
 
-    Python >= 3.7 supports nanoseconds.  https://www.python.org/dev/peps/pep-0564/
+    Python >= 3.7 supports nanoseconds. https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
 
     """
@@ -74,9 +74,11 @@ def read_rinex2(input_path):
         assert int(ver) == 2
         if line[20] == 'N':
             svtype = 'G'  # GPS
-            fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate', 'IODE', 'Crs', 'DeltaN',
-                      'M0', 'Cuc', 'Eccentricity', 'Cus', 'sqrtA', 'Toe', 'Cic', 'Omega0', 'Cis', 'Io',
-                      'Crc', 'omega', 'OmegaDot', 'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag', 'SVacc',
+            fields = ['SVclockBias', 'SVclockDrift', 'SVclockDriftRate',
+                      'IODE', 'Crs', 'DeltaN', 'M0', 'Cuc',
+                      'Eccentricity', 'Cus', 'sqrtA', 'Toe', 'Cic',
+                      'Omega0', 'Cis', 'Io', 'Crc', 'omega', 'OmegaDot',
+                      'IDOT', 'CodesL2', 'GPSWeek', 'L2Pflag', 'SVacc',
                       'health', 'TGD', 'IODC', 'TransTime', 'FitIntvl']
         # elif line[20] == 'G':
         #   svtype = 'R'  # GLONASS
@@ -97,8 +99,8 @@ def read_rinex2(input_path):
             # format I2 http://gage.upc.edu/sites/default/files/gLAB/HTML/GPS_Navigation_Rinex_v2.11.html
             svs.append(int(ln[:2]))
             # format I2
-            dt.append(_obstime([ln[3:5], ln[6:8], ln[9:11],
-                                ln[12:14], ln[15:17], ln[17:20], ln[17:22]]))
+            dt.append(_obstime([ln[3:5], ln[6:8], ln[9:11], ln[12:14],
+                                ln[15:17], ln[17:20], ln[17:22]]))
             """
             now get the data as one big long string per SV
             """

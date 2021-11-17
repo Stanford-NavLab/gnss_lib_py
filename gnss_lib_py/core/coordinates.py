@@ -28,7 +28,7 @@ def geodetic2ecef(geodetic, radians=False):
 
     Returns
     -------
-    ecef : ndarray
+    ecef : np.ndarray
         ECEF coordinates corresponding to input LLA.
 
     Notes
@@ -60,14 +60,14 @@ def ecef2geodetic(ecef, radians=False):
 
     Parameters
     ----------
-    ecef : ndarray
+    ecef : np.ndarray
         Float with ECEF coordinates
     radians : bool
         Flag of whether output should be in radians
 
     Returns
     -------
-    geodetic : ndarray
+    geodetic : np.ndarray
         Float with WGS-84 LLA coordinates corresponding to input ECEF
 
     Notes

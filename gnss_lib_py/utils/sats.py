@@ -13,7 +13,7 @@ import numpy as np
 
 pi = math.pi
 # Generate points in a circle
-def PointsInCircum(r, n=100):
+def points_in_circum(r, n=100):
     """Generate uniformly spaced points in a circle
 
     Parameters
@@ -26,24 +26,25 @@ def PointsInCircum(r, n=100):
 
     Returns
     -------
-    pts : ndarray
+    pts : np.ndarray
         Generated points
     """
-    pts = np.array([[math.cos(2*pi/n*x)*r, math.sin(2*pi/n*x)*r] for x in range(0, n+1)])
+    pts = np.array([[math.cos(2*pi/n*x)*r,
+                    math.sin(2*pi/n*x)*r] for x in range(0, n+1)])
     return pts
 
 
 def sats_from_el_az(elaz_deg):
-    """Generate NED positions for satellites at given elevation and azimuth angles
+    """Generate NED satellite positions at given elevation and azimuth.
 
     Parameters
     ----------
-    elaz_deg : ndarray
+    elaz_deg : np.ndarray
         Nx2 array of elevation and azimuth angles [degrees]
 
     Returns
     -------
-    sats_ned : ndarray
+    sats_ned : np.ndarray
         Nx3 satellite NED positions
     """
     assert np.shape(elaz_deg)[1] == 2, "elaz_deg should be a Nx2 array"

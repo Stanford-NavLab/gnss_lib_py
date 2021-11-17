@@ -7,7 +7,6 @@ __date__ = "16 Jul 2021"
 
 import os
 import sys
-import datetime
 import calendar
 # append <path>/gnss_lib_py/gnss_lib_py/ to path
 sys.path.append(os.path.dirname(
@@ -72,8 +71,13 @@ class NMEA():
         date_ts = calendar.timegm(date.timetuple())
 
         for msg in self.gga_msgs:
-            geo_ls.append([float(msg.latitude), float(msg.longitude), float(msg.altitude)])
-            day_ts = (msg.timestamp.hour*3600 + msg.timestamp.minute*60 + msg.timestamp.second + msg.timestamp.microsecond*1e-6)
+            geo_ls.append([float(msg.latitude),
+                           float(msg.longitude),
+                           float(msg.altitude)])
+            day_ts = (msg.timestamp.hour*3600 \
+                   + msg.timestamp.minute*60 \
+                   + msg.timestamp.second \
+                   + msg.timestamp.microsecond*1e-6)
             times.append(date_ts + day_ts)
 
         ecef = coord.geodetic2ecef(geo_ls)
@@ -95,7 +99,9 @@ class NMEA():
         """
         geo_ls = []
         for msg in self.gga_msgs:
-            geo_ls.append([float(msg.latitude), float(msg.longitude), float(msg.altitude)])
+            geo_ls.append([float(msg.latitude),
+                           float(msg.longitude),
+                           float(msg.altitude)])
         return np.array(geo_ls)
 
     def ecef_gt(self):
