@@ -752,11 +752,11 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
 
     Parameters
     ----------
-    M : float
-        Satellite orbit mean anomoly
+    M : pd.DataFrame
+        Mean anomoly of GNSS satellite orbits
 
-    e : float
-        Satellite orbit eccentricity
+    e : pd.DataFrame
+        Eccentricity of GNSS satellite orbits
 
     tol : float
         Tolerance for Newton-Raphson convergence
@@ -766,8 +766,8 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
 
     Returns
     -------
-    E : float
-        Satellite Eccentric Anomoly
+    E : pd.DataFrame
+        Eccentric Anomoly of GNSS satellite orbits
 
     """
     E = M
@@ -777,7 +777,7 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
         dE   = -f / dfdE
         E    = E + dE
 
-    if dE > tol:
+    if any(dE.iloc[:] > tol):
         print("Eccentric Anomoly may not have converged: dE = ", dE)
 
     return E
