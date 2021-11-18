@@ -20,6 +20,7 @@ sys.path.append(os.path.dirname(
 
 
 class Measurement(ABC):
+    #TODO: Add handling for datetime.datetime objects
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing
 
@@ -37,6 +38,23 @@ class Measurement(ABC):
     """
     def __init__(self, input_path):
         data_df = self.preprocess(input_path)
+        self.build_measurement(data_df)
+        self.postprocess()
+
+    @abstractmethod
+    def preprocess(self, input_path):
+        """Load and preprocess measurements. Implemented in subclasses
+        """
+        #NOTE: Use class attributes or custom methods as parameters
+        raise NotImplementedError
+
+    @abstractmethod
+    def postprocess(self):
+        """Postprocess loaded measurements. Implemented in subclasses
+        """
+        raise NotImplementedError
+
+    def build_measurement(self, data_df):
         if not isinstance(data_df, pd.DataFrame):
             raise TypeError("data_df must be pd.DataFrame")
         num_times = len(data_df)
@@ -44,7 +62,8 @@ class Measurement(ABC):
         self.array = np.empty([0, num_times], dtype= self.arr_dtype)
         # Using an empty array to conserve space and not maintain huge duplicates
         self.map = {col_name: idx for idx, col_name in enumerate(data_df.columns)}
-        str_bool = {col_name: isinstance(data_df.loc[0, col_name], str) for col_name in self.map.keys()}
+        str_bool = {col_name: isinstance(data_df.loc[0, col_name], str) \
+                    for col_name in self.map.keys()}
         # Assuming that the data type of all objects in a single series is the same
         self.str_map = {}
         #TODO: See if we can avoid this loop to speed things up
@@ -67,21 +86,6 @@ class Measurement(ABC):
                 self.str_map[key] = {}
             new_values = np.reshape(new_values, [1, -1])
             self.array = np.vstack((self.array, new_values))
-
-        self.postprocess()
-
-    @abstractmethod
-    def preprocess(self, input_path):
-        """Load and preprocess measurements. Implemented in subclasses
-        """
-        #NOTE: Use class attributes or custom methods as parameters
-        raise NotImplementedError
-
-    @abstractmethod
-    def postprocess(self):
-        """Postprocess loaded measurements. Implemented in subclasses
-        """
-        raise NotImplementedError
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
@@ -174,6 +178,7 @@ class Measurement(ABC):
             List or array of values to be added to measurements
         """
         #DEBUG: Print type of newvalue
+        #TODO: Add functionality for changing values in ALL ROWS
         #TODO: Currently breaks if you pass strings as np.ndarray
         if key in self.map.keys():
             if not isinstance(self[key, 0], type(newvalue[0])):
@@ -221,3 +226,14 @@ class Measurement(ABC):
         """
         shp = np.shape(self.array)
         return shp
+
+    def rows(self):
+        """Return all rows in instance as a list
+        
+        Returns
+        -------
+        rows : list
+            List of rows in measurements
+        """
+        rows = list(self.map.keys())
+        return rows

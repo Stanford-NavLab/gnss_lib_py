@@ -18,7 +18,7 @@ sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__)))))
 
-from gnss_lib_py.inout.android import AndroidDerived
+from gnss_lib_py.parsers.android import AndroidDerived
 
 
 

@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/algorithms/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/core/'))
-sys.path.insert(0, os.path.abspath('../../gnss_lib_py/inout/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/parsers/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/utils/'))
 
 

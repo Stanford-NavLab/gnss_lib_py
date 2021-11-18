@@ -8,5 +8,5 @@ Reference
 
    algorithms/modules
    core/modules
-   inout/modules
+   parsers/modules
    utils/modules

@@ -6,7 +6,7 @@ poetry run sphinx-apidoc -f -M -o ./source/reference/algorithms/ ./../gnss_lib_p
 rm -rv ./source/reference/core/*
 poetry run sphinx-apidoc -f -M -o ./source/reference/core/ ./../gnss_lib_py/core/
 rm -rv ./source/reference/io/*
-poetry run sphinx-apidoc -f -M -o ./source/reference/inout/ ./../gnss_lib_py/inout/
+poetry run sphinx-apidoc -f -M -o ./source/reference/parsers/ ./../gnss_lib_py/parsers/
 rm -rv ./source/reference/utils/*
 poetry run sphinx-apidoc -f -M -o ./source/reference/utils/ ./../gnss_lib_py/utils/
 echo "Cleaning up existing make"
