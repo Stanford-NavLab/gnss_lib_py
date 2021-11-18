@@ -17,6 +17,7 @@ pynmea2 = "^1.18.0"
 pytest = "^6.2.5"
 pylint = "^2.11.1"
 pytest-cov = "^3.0.0"
+NavPy = "^1.0"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "4.1.1"
