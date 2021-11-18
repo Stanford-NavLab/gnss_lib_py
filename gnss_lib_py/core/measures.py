@@ -365,7 +365,7 @@ def find_sat(ephem, times, gpsweek):
     M_corr = dN * dt
     M = M_0 + (sqrt_mu_A * dt) + M_corr
 
-    # Compute Eccentric Anomoly
+    # Compute Eccentric Anomaly
     E = _compute_eccentric_anomoly(M, e, tol=1e-5)
 
     cos_E   = np.cos(E)
@@ -520,7 +520,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
     M_corr = ephem['deltaN'] * dt
     M      = ephem['M_0'] + (sqrt_mu_A * dt) + M_corr
 
-    # Compute Eccentric Anomoly
+    # Compute Eccentric Anomaly
     E = _compute_eccentric_anomoly(M, e, tol=1e-5)
 
     # Determine pseudorange corrections due to satellite clock corrections.
@@ -711,7 +711,7 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
     Parameters
     ----------
     M : pd.DataFrame
-        Mean anomoly of GNSS satellite orbits
+        Mean Anomaly of GNSS satellite orbits
     e : pd.DataFrame
         Eccentricity of GNSS satellite orbits
     tol : float
@@ -722,7 +722,7 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
     Returns
     -------
     E : pd.DataFrame
-        Eccentric Anomoly of GNSS satellite orbits
+        Eccentric Anomaly of GNSS satellite orbits
 
     """
     E = M
@@ -733,6 +733,6 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
         E    = E + dE
 
     if any(dE.iloc[:] > tol):
-        print("Eccentric Anomoly may not have converged: dE = ", dE)
+        print("Eccentric Anomaly may not have converged: dE = ", dE)
 
     return E
