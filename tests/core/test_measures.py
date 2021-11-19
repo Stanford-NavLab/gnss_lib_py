@@ -40,6 +40,7 @@ def ephem_man():
 
     ephemeris_data_directory = os.path.join(parent_directory,
                                             'data', 'ephemeris')
+    # TODO: Change this to unit_test directory so that data is on GitHub?
 
     return EphemerisManager(ephemeris_data_directory)
 
