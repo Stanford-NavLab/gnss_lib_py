@@ -1,5 +1,11 @@
 # Project specific
-data/
+data/*
+dev/
+
+#Excluding VS Code files
+.vscode/*
+*/.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
