@@ -30,6 +30,9 @@ def _obstime(fol):
     Copied from PyGPS by Michael Hirsch and Greg Starr:
     https://github.com/gregstarr/PyGPS/blob/master/Examples/readRinexObs.py
 
+    See the assocaited GNU Affero General Public License v3.0 here:
+    https://github.com/gregstarr/PyGPS/blob/master/LICENSE.
+
     Python >= 3.7 supports nanoseconds. https://www.python.org/dev/peps/pep-0564/
     Python < 3.7 supports microseconds.
 
