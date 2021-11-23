@@ -21,13 +21,11 @@ sys.path.append(os.path.dirname(
                 os.path.realpath(__file__)))))
 
 from gnss_lib_py.core.coordinates import geodetic2ecef
-from gnss_lib_py.core.constants import GPSConsts
+import gnss_lib_py.core.constants as consts
 from gnss_lib_py.core import measures
-from gnss_lib_py.core.ephemeris import datetime_to_tow
+from gnss_lib_py.core.ephemeris import datetime2tow
 from gnss_lib_py.core.ephemeris import EphemerisManager
 
-
-gpsconsts = GPSConsts()
 T = 0.1
 
 def timestamp():
@@ -74,7 +72,7 @@ def simulate_test_measures(delta_time=0):
 
     """
     gpsweek = 2105
-    _, gpstime = datetime_to_tow(timestamp())
+    _, gpstime = datetime2tow(timestamp())
 
     #NOTE: Calling measures to generate measurements to test measures?
     measurement, sat_posvel = measures.simulate_measures(
@@ -338,5 +336,4 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
 
     diff_prev = meas_prev_corr - meas_prev['prange']
     diff_new  = meas_new_corr  - meas_new['prange']
-
     np.testing.assert_array_almost_equal(diff_prev, diff_new, decimal=2)

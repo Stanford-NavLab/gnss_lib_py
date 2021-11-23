@@ -5,7 +5,7 @@ and doppler for GPS satellites.
 
 """
 
-__authors__ = "Ashwin Kanhere, Bradley Collicott"
+_authors__ = "Ashwin Kanhere, Bradley Collicott"
 __date__ = "16 July 2021"
 
 import os
@@ -18,8 +18,9 @@ from numpy.random import default_rng
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-from core.constants import GPSConsts
-from core.coordinates import ecef2geodetic
+
+import core.constants as consts
+rom core.coordinates import ecef2geodetic
 
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
@@ -147,7 +148,6 @@ def expected_measures(gpsweek, gpstime, ephem, pos,
     # gpstime from measurement
     pos = np.reshape(pos, [1, 3])
     vel = np.reshape(vel, [1, 3])
-    gpsconsts = GPSConsts()
     sat_posvel, del_pos, true_range = _find_sat_location(gpsweek, gpstime,
                                                          ephem, pos, sat_posvel)
     # sat_pos, sat_vel, del_pos are both Nx3
@@ -162,9 +162,11 @@ def expected_measures(gpsweek, gpstime, ephem, pos,
     # TODO: Add corrections instead of returning corrected pseudoranges
 
     # Obtain difference of velocity between satellite and receiver
+
     del_vel = sat_vel - np.tile(np.reshape(vel, 3), [len(ephem), 1])
     prange_rate = np.sum(del_vel*del_pos, axis=1)/true_range + b_dot
-    doppler = -(gpsconsts.F1/gpsconsts.C) * (prange_rate)
+    doppler = -(consts.F1/consts.C) * (prange_rate)
+
     # doppler = pd.DataFrame(doppler, index=prange.index.copy())
     measurements = pd.DataFrame(np.column_stack((prange, doppler)),
                                 index=sat_posvel.index,
@@ -195,9 +197,10 @@ def _find_visible_sats(gpsweek, gpstime, rx_ecef, ephem, el_mask=5.):
         Ephemeris parameters of visible satellites
 
     """
-    gpsconsts = GPSConsts()
+
     # Find positions and velocities of all satellites
-    approx_posvel = find_sat(ephem, gpstime - gpsconsts.T_TRANS, gpsweek)
+    approx_posvel = find_sat(ephem, gpstime - consts.T_TRANS, gpsweek)
+
     # Find elevation and azimuth angles for all satellites
     _, approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
     approx_el_az = find_elaz(np.reshape(rx_ecef, [1, 3]), approx_pos)
@@ -238,26 +241,27 @@ def _find_sat_location(gpsweek, gpstime, ephem, pos, sat_posvel=None):
         Distance between satellite and receiver positions
 
     """
-    gpsconsts = GPSConsts()
     pos = np.reshape(pos, [1, 3])
     if sat_posvel is None:
         satellites = len(ephem.index)
-        sat_posvel = find_sat(ephem, gpstime - gpsconsts.T_TRANS, gpsweek)
+        sat_posvel = find_sat(ephem, gpstime - consts.T_TRANS, gpsweek)
         del_pos, true_range = _find_delxyz_range(sat_posvel, pos, satellites)
-        t_corr = true_range/gpsconsts.C
+        t_corr = true_range/consts.C
+
         # Find satellite locations at (a more accurate) time of transmission
         sat_posvel = find_sat(ephem, gpstime-t_corr, gpsweek)
     else:
         satellites = len(sat_posvel.index)
     del_pos, true_range = _find_delxyz_range(sat_posvel, pos, satellites)
-    t_corr = true_range/gpsconsts.C
+    t_corr = true_range/consts.C
     # Corrections for the rotation of the Earth during transmission
     # _, sat_pos, sat_vel = _extract_pos_vel_arr(sat_posvel)
-    del_x = gpsconsts.OMEGAEDOT*sat_posvel['x'] * t_corr
-    del_y = gpsconsts.OMEGAEDOT*sat_posvel['y'] * t_corr
+    del_x = consts.OMEGAEDOT*sat_posvel['x'] * t_corr
+    del_y = consts.OMEGAEDOT*sat_posvel['y'] * t_corr
     sat_posvel['x'] = sat_posvel['x'] + del_x
     sat_posvel['y'] = sat_posvel['y'] + del_y
     return sat_posvel, del_pos, true_range
+
 
 
 def _find_delxyz_range(sat_posvel, pos, satellites):
@@ -327,9 +331,6 @@ def find_sat(ephem, times, gpsweek):
     """
     # Satloc contains both positions and velocities.
 
-    # Load in GPS constants
-    gpsconsts = GPSConsts()
-
     # Extract parameters
     c_is = ephem['C_is']
     c_ic = ephem['C_ic']
@@ -346,7 +347,7 @@ def find_sat(ephem, times, gpsweek):
     sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
     sma      = sqrt_sma**2      # semi-major axis
 
-    sqrt_mu_A = np.sqrt(gpsconsts.MUEARTH) * sqrt_sma**-3 # mean angular motion
+    sqrt_mu_A = np.sqrt(consts.MUEARTH) * sqrt_sma**-3 # mean angular motion
     gpsweek_diff = np.mod(gpsweek,1024) - np.mod(ephem['GPSWeek'],1024)*604800.
 
     # if np.size(times_all)==1:
@@ -390,9 +391,12 @@ def find_sat(ephem, times, gpsweek):
     # Calculate the longitude of ascending node with correction
     omega_corr = ephem['OmegaDot'] * dt
 
+    # Also correct for the rotation since the beginning of the GPS week for which the Omega0 is
+    # defined.  Correct for GPS week rollovers.
+
     # Also correct for the rotation since the beginning of the GPS week for
     # which the Omega0 is defined.  Correct for GPS week rollovers.
-    omega = omega_0 - (gpsconsts.OMEGAEDOT*(times + gpsweek_diff)) + omega_corr
+    omega = omega_0 - (consts.OMEGAEDOT*(times + gpsweek_diff)) + omega_corr
 
     # Calculate orbital radius with correction
     r_corr = c_rc * cos_to_phi + c_rs * sin_to_phi
@@ -486,14 +490,10 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
     Urbana-Champaign. Fall 2017
 
     """
-    # TODO: Incorporate satellite clock rate changes into doppler measurements
-    # TODO: Change default of rx_ecef to an array of None with size
-    # TODO: Change the sign for corrections to what will be added to expected
-    # measurements
+    # TODO: Incorporate satellite clock rate changes into the doppler measurements
+    # TODO: Change default of rx to an array of None with size
+    # TODO: Change the sign for corrections to what will be added to expected measurements
     # TODO: Return corrections instead of corrected measurements
-
-    # Load GPS Constants
-    gpsconsts = GPSConsts()
 
     # Extract parameters
     # M_0  = ephem['M_0']
@@ -539,7 +539,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
                      + ephem['SVclockDriftRate']*t_offset**2)
 
     # Calcualte the relativistic clock correction
-    corr_relativistic = gpsconsts.F * e * sqrt_sma * np.sin(E)
+    corr_relativistic = consts.F * e * sqrt_sma * np.sin(E)
 
     # Calculate the total clock correction including the Tgd term
     clk_corr = (corr_polynomial - ephem['TGD'] + corr_relativistic)
@@ -590,8 +590,6 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     Urbana-Champaign. Fall 2017
 
     """
-    # Load gpsconstants
-    gpsconsts = GPSConsts()
 
     # Make sure things are arrays
     if not isinstance(gpstime, np.ndarray):
