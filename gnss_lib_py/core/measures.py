@@ -90,9 +90,11 @@ def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel,
         Satellite positions and velocities (same as input if provided)
 
     """
-    # TODO: Modify to work with input satellite positions
-    # TODO: Add assertions/error handling for sizes of position, bias, b_dot and
+    #TODO: Modify to work with input satellite positions
+    #TODO: Add assertions/error handling for sizes of position, bias, b_dot and
     # velocity arrays
+    #TODO: Modify to use single state vector instead of multiple inputs
+    #TODO: Modify to use single dictionary with uncertainty values
     ephem = _find_visible_sats(gpsweek, gpstime, pos, ephem)
     measurements, sat_posvel = expected_measures(gpsweek, gpstime, ephem, pos,
                                               bias, b_dot, vel, sat_posvel)
@@ -324,7 +326,6 @@ def find_sat(ephem, times, gpsweek):
 
     """
     # Satloc contains both positions and velocities.
-    #TODO: Look into combining this method with the ones in read_rinex.py
 
     # Load in GPS constants
     gpsconsts = GPSConsts()
@@ -623,11 +624,6 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     tropo_delay = c_1/(np.sin(el_r)+c_2) * np.exp(-height*c_3)/gpsconsts.C
 
     return tropo_delay
-
-
-##########################################################
-### Code taken from Makela's Python code as is follows ###
-##########################################################
 
 
 def find_elaz(rx_pos, sat_pos):

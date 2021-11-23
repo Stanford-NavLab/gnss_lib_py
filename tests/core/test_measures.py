@@ -39,8 +39,7 @@ def ephem_man():
     parent_directory = os.getcwd()
 
     ephemeris_data_directory = os.path.join(parent_directory,
-                                            'data', 'ephemeris')
-    # TODO: Change this to unit_test directory so that data is on GitHub?
+                                        'data', 'unit_test', 'ephemeris')
 
     return EphemerisManager(ephemeris_data_directory)
 
@@ -253,9 +252,8 @@ def test_measures_value_range(get_meas):
         measurements['prange'].values < 3e7).all(), ("Invalid range of "
         "pseudorange values")
 
-    assert np.logical_and(measurements['doppler'].values > -5000,
-        measurements['doppler'].values < 5000).all(), ("Magnitude of doppler "
-        "values is greater than 5 KHz")
+    assert np.all(np.abs(measurements['doppler'].values) < 5000), \
+        "Magnitude of doppler values is greater than 5 KHz"
 
     assert np.all(np.abs(sat_posvel['x']).values < gpsconsts.A + 2e7), \
     ("Invalid range of ECEF x for satellite position")
@@ -318,6 +316,7 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
         Measurements simated at the base timestamp + T
 
     """
+    #TODO: Alternatively check ranges of corrections/against true values
     meas_prev, _ = get_meas
     meas_new , _  = get_meas_dt
 
