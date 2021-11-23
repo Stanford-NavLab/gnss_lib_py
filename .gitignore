@@ -1,6 +1,8 @@
 # Project specific
 data/*
 dev/
+# Including small datasets used for unit testing Measurement objects
+!data/unit_test/
 
 #Excluding VS Code files
 .vscode/*
