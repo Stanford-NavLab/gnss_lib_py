@@ -218,7 +218,7 @@ class AndroidRawGnss(Measurement):
         self["allRxMillis"] = (self["TimeNanos", :] - self["FullBiasNanos", :])//1e6
 
 
-    def check_gnss_measurements(self, gnss_raw, gnssAnalysis):
+    def check_gnss_measurements(self):
         """Checks that GNSS measurement fields exist in dataframe.
 
         Additonal checks added from [1]_.
@@ -452,11 +452,11 @@ class AndroidRawFixes(Measurement):
         android_fixes = pd.DataFrame(android_fixes[1:], columns = android_fixes[0])
         return android_fixes
 
-
     def postprocess(self):
         # Currently not performing any post processing on measurments
         # but need to define to override abstract method
         pass
+
 
 def make_csv(input_path, field):
     """Write specific data types from a GNSS android log to a CSV.
