@@ -1,11 +1,13 @@
-########################################################################
-# Author(s):    Bradley Collicott
-# Date:         22 October 2021
-# Desc:         Test for snapshot positioning algorithm.
-########################################################################
-"""Test for snapshot positioning algorithm."""
+"""Test for snapshot positioning algorithm.
+
+"""
+
+__authors__ = "Bradley Collicott"
+__date__ = "22 October 2021"
+
 import pytest
 import numpy as np
+
 from gnss_lib_py.algorithms import snapshot
 
 # Defining test fixtures

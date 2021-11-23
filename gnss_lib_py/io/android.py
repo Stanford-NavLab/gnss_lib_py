@@ -1,22 +1,23 @@
-########################################################################
-# Author(s):    Shubh Gupta, Adam Dai
-# Date:         13 Jul 2021
-# Desc:         Functions to process Android measurements
-########################################################################
+"""Functions to process Android measurements.
+
+"""
+
+__authors__ = "Shubh Gupta, Adam Dai"
+__date__ = "13 Jul 2021"
 
 import os
 import sys
+import csv
+from datetime import datetime, timedelta
 # append <path>/gnss_lib_py/gnss_lib_py/ to path
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-import csv
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
 
-from core.constants import GPSConsts
-
+import core.constants as consts
 
 def extract_timedata(input_path):
     """Extracts raw and fix data from GNSS log file.
@@ -559,8 +560,7 @@ def compute_pseudorange(gnssRaw, gnssAnalysis):
 
     """
 
-    gpsconsts = GPSConsts()
     gnssRaw['Pseudorange_seconds'] = gnssRaw['tRxSeconds'] - gnssRaw['tTxSeconds']
-    gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*gpsconsts.C
-    gnssRaw['Pseudorange_sigma_meters'] = gpsconsts.C * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']
+    gnssRaw['Pseudorange_meters'] = gnssRaw['Pseudorange_seconds']*consts.C
+    gnssRaw['Pseudorange_sigma_meters'] = consts.C * 1e-9 * gnssRaw['ReceivedSvTimeUncertaintyNanos']
     return gnssRaw, gnssAnalysis
