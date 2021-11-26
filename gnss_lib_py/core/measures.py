@@ -20,7 +20,7 @@ sys.path.append(os.path.dirname(
                 os.path.realpath(__file__))))
 
 import core.constants as consts
-rom core.coordinates import ecef2geodetic
+from core.coordinates import ecef2geodetic
 
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
@@ -256,8 +256,8 @@ def _find_sat_location(gpsweek, gpstime, ephem, pos, sat_posvel=None):
     t_corr = true_range/consts.C
     # Corrections for the rotation of the Earth during transmission
     # _, sat_pos, sat_vel = _extract_pos_vel_arr(sat_posvel)
-    del_x = consts.OMEGAEDOT*sat_posvel['x'] * t_corr
-    del_y = consts.OMEGAEDOT*sat_posvel['y'] * t_corr
+    del_x = consts.OMEGA_E_DOT*sat_posvel['x'] * t_corr
+    del_y = consts.OMEGA_E_DOT*sat_posvel['y'] * t_corr
     sat_posvel['x'] = sat_posvel['x'] + del_x
     sat_posvel['y'] = sat_posvel['y'] + del_y
     return sat_posvel, del_pos, true_range
@@ -347,7 +347,7 @@ def find_sat(ephem, times, gpsweek):
     sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
     sma      = sqrt_sma**2      # semi-major axis
 
-    sqrt_mu_A = np.sqrt(consts.MUEARTH) * sqrt_sma**-3 # mean angular motion
+    sqrt_mu_A = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
     gpsweek_diff = np.mod(gpsweek,1024) - np.mod(ephem['GPSWeek'],1024)*604800.
 
     # if np.size(times_all)==1:
@@ -396,7 +396,7 @@ def find_sat(ephem, times, gpsweek):
 
     # Also correct for the rotation since the beginning of the GPS week for
     # which the Omega0 is defined.  Correct for GPS week rollovers.
-    omega = omega_0 - (consts.OMEGAEDOT*(times + gpsweek_diff)) + omega_corr
+    omega = omega_0 - (consts.OMEGA_E_DOT*(times + gpsweek_diff)) + omega_corr
 
     # Calculate orbital radius with correction
     r_corr = c_rc * cos_to_phi + c_rs * sin_to_phi
@@ -444,7 +444,7 @@ def find_sat(ephem, times, gpsweek):
     ############################################
     ######  Lines added for velocity (4)  ######
     ############################################
-    omega_dot = ephem['OmegaDot'] - gpsconsts.OMEGAEDOT
+    omega_dot = ephem['OmegaDot'] - consts.OMEGA_E_DOT
     sat_posvel.loc[:,'vx'] = (dxp * cos_omega
                          - dyp * cos_i*sin_omega
                          + yp  * sin_omega*sin_i*di
@@ -502,7 +502,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
     e        = ephem['e']     # eccentricity
     sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
 
-    sqrt_mu_A = np.sqrt(gpsconsts.MUEARTH) * sqrt_sma**-3 # mean angular motion
+    sqrt_mu_A = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
 
     # Make sure gpstime and gpsweek are arrays
     if not isinstance(gpstime, np.ndarray):
@@ -547,13 +547,13 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
     # NOTE: Removed ionospheric delay calculation here
 
     # calculate clock psuedorange correction
-    pr_corr +=  clk_corr*gpsconsts.C
+    pr_corr +=  clk_corr*consts.C
 
     if rx_ecef[0][0] is not None: # TODO: Reference using 2D array slicing
         # Calculate the tropospheric delays
         tropo_delay = calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef)
         # Calculate total pseudorange correction
-        pr_corr -= tropo_delay*gpsconsts.C
+        pr_corr -= tropo_delay*consts.C
 
     if isinstance(pr_corr, pd.Series):
         pr_corr = pr_corr.to_numpy(dtype=float)
@@ -619,7 +619,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     c_1 = 2.47
     c_2 = 0.0121
     c_3 = 1.33e-4
-    tropo_delay = c_1/(np.sin(el_r)+c_2) * np.exp(-height*c_3)/gpsconsts.C
+    tropo_delay = c_1/(np.sin(el_r)+c_2) * np.exp(-height*c_3)/consts.C
 
     return tropo_delay
 

@@ -166,16 +166,16 @@ def fixture_set_sat_pos():
         
     """
     sat_pos = np.zeros([6, 3])
-    sat_pos[0,0] =  gpsconsts.A*1.25
-    sat_pos[1,0] =  gpsconsts.A*0.75
-    sat_pos[2,0] =  gpsconsts.A
-    sat_pos[2,1] =  gpsconsts.A
-    sat_pos[3,0] =  gpsconsts.A
-    sat_pos[3,1] = -gpsconsts.A
-    sat_pos[4,0] =  gpsconsts.A
-    sat_pos[4,2] =  gpsconsts.A
-    sat_pos[5,0] =  gpsconsts.A
-    sat_pos[5,2] = -gpsconsts.A
+    sat_pos[0,0] =  consts.A*1.25
+    sat_pos[1,0] =  consts.A*0.75
+    sat_pos[2,0] =  consts.A
+    sat_pos[2,1] =  consts.A
+    sat_pos[3,0] =  consts.A
+    sat_pos[3,1] = -consts.A
+    sat_pos[4,0] =  consts.A
+    sat_pos[4,2] =  consts.A
+    sat_pos[5,0] =  consts.A
+    sat_pos[5,2] = -consts.A
     return sat_pos
 
 @pytest.fixture(name="set_rx_pos")
@@ -188,7 +188,7 @@ def fixture_set_rx_pos():
         Array containing 6 satellite x, y, z coordinates
 
     """
-    rx_pos = np.reshape(np.array([gpsconsts.A, 0, 0]), [1, 3])
+    rx_pos = np.reshape(np.array([consts.A, 0, 0]), [1, 3])
     return rx_pos
 
 # Define tests
@@ -253,13 +253,13 @@ def test_measures_value_range(get_meas):
     assert np.all(np.abs(measurements['doppler'].values) < 5000), \
         "Magnitude of doppler values is greater than 5 KHz"
 
-    assert np.all(np.abs(sat_posvel['x']).values < gpsconsts.A + 2e7), \
+    assert np.all(np.abs(sat_posvel['x']).values < consts.A + 2e7), \
     ("Invalid range of ECEF x for satellite position")
 
-    assert np.all(np.abs(sat_posvel['y']).values < gpsconsts.A + 2e7), \
+    assert np.all(np.abs(sat_posvel['y']).values < consts.A + 2e7), \
     ("Invalid range of ECEF y for satellite position")
 
-    assert np.all(np.abs(sat_posvel['z']).values < gpsconsts.A + 2e7), \
+    assert np.all(np.abs(sat_posvel['z']).values < consts.A + 2e7), \
     ("Invalid range of ECEF z for satellite position")
 
 def test_sat_velocity(get_meas, get_meas_dt):
@@ -319,7 +319,7 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
     meas_new , _  = get_meas_dt
 
     gpsweek = 2105
-    _, gpstime = datetime_to_tow(timestamp())
+    _, gpstime = datetime2tow(timestamp())
 
     rx_ecef = np.reshape(set_rx_ecef(), [-1, 3])
 
