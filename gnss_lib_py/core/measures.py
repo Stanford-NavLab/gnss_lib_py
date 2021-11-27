@@ -5,7 +5,7 @@ and doppler for GPS satellites.
 
 """
 
-_authors__ = "Ashwin Kanhere, Bradley Collicott"
+__authors__ = "Ashwin Kanhere, Bradley Collicott"
 __date__ = "16 July 2021"
 
 import os
@@ -99,14 +99,14 @@ def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel,
     ephem = _find_visible_sats(gpsweek, gpstime, pos, ephem)
     measurements, sat_posvel = expected_measures(gpsweek, gpstime, ephem, pos,
                                               bias, b_dot, vel, sat_posvel)
-    M   = len(measurements.index)
+    num_sats   = len(measurements.index)
     rng = default_rng()
 
     measurements['prange']  = (measurements['prange']
-        + prange_sigma *rng.standard_normal(M))
+        + prange_sigma *rng.standard_normal(num_sats))
 
     measurements['doppler'] = (measurements['doppler']
-        + doppler_sigma*rng.standard_normal(M))
+        + doppler_sigma*rng.standard_normal(num_sats))
 
     return measurements, sat_posvel
 
@@ -341,7 +341,7 @@ def find_sat(ephem, times, gpsweek):
     M_0  = ephem['M_0']
     dN   = ephem['deltaN']
 
-    e        = ephem['e']     # eccentricity
+    ecc        = ephem['e']     # eccentricity
     omega    = ephem['omega'] # argument of perigee
     omega_0  = ephem['Omega_0']
     sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
@@ -368,15 +368,15 @@ def find_sat(ephem, times, gpsweek):
     M = M_0 + (sqrt_mu_A * dt) + M_corr
 
     # Compute Eccentric Anomaly
-    E = _compute_eccentric_anomoly(M, e, tol=1e-5)
+    E = _compute_eccentric_anomoly(M, ecc, tol=1e-5)
 
     cos_E   = np.cos(E)
     sin_E   = np.sin(E)
-    e_cos_E = (1 - e*cos_E)
+    e_cos_E = (1 - ecc*cos_E)
 
     # Calculate the true anomaly from the eccentric anomaly
-    sin_nu = np.sqrt(1 - e**2) * (sin_E/e_cos_E)
-    cos_nu = (cos_E-e) / e_cos_E
+    sin_nu = np.sqrt(1 - ecc**2) * (sin_E/e_cos_E)
+    cos_nu = (cos_E-ecc) / e_cos_E
     nu     = np.arctan2(sin_nu, cos_nu)
 
     # Calcualte the argument of latitude iteratively
@@ -406,9 +406,9 @@ def find_sat(ephem, times, gpsweek):
     ######  Lines added for velocity (1)  ######
     ############################################
     dE   = (sqrt_mu_A + dN) / e_cos_E
-    dphi = np.sqrt(1 - e**2)*dE / e_cos_E
+    dphi = np.sqrt(1 - ecc**2)*dE / e_cos_E
     # Changed from the paper
-    dr   = (sma * e * dE * sin_E) + 2*(c_rs*cos_to_phi - c_rc*sin_to_phi)*dphi
+    dr   = (sma * ecc * dE * sin_E) + 2*(c_rs*cos_to_phi - c_rc*sin_to_phi)*dphi
 
     # Calculate the inclination with correction
     i_corr = c_ic*cos_to_phi + c_is*sin_to_phi + ephem['IDOT']*dt

@@ -50,7 +50,7 @@ def set_rx_ecef():
 def extract_ephem():
     """Extract satellite ephemeris."""
     manager = ephem_man()
-    sats = ['G'+"%02d"%sv_num for sv_num in range(1, 33)]
+    sats = [f"G{sv_num:02d}" for sv_num in range(1,33)]
     ephemeris = manager.get_ephemeris(timestamp(), sats)
     return ephemeris
 
@@ -163,7 +163,7 @@ def fixture_set_sat_pos():
     -------
     sat_pos : np.ndarray
         Array containing 6 satellite x, y, z coordinates
-        
+
     """
     sat_pos = np.zeros([6, 3])
     sat_pos[0,0] =  consts.A*1.25
