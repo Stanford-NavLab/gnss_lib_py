@@ -1,5 +1,13 @@
 # Project specific
-data/
+data/*
+dev/
+# Including small datasets used for unit testing Measurement objects
+!data/unit_test/
+
+#Excluding VS Code files
+.vscode/*
+*/.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
