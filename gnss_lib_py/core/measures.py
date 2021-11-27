@@ -8,20 +8,12 @@ and doppler for GPS satellites.
 __authors__ = "Ashwin Kanhere, Bradley Collicott"
 __date__ = "16 July 2021"
 
-import os
-import sys
 import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-
-import core.constants as consts
-from core.coordinates import ecef2geodetic
-
+import gnss_lib_py.core.constants as consts
+from gnss_lib_py.core.coordinates import ecef2geodetic
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
 

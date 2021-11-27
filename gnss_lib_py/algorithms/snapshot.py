@@ -14,7 +14,6 @@ Notes
 __authors__ = "Shubh Gupta, Bradley Collicott"
 __date__ = "19 July 2021"
 
-# python modules
 import numpy as np
 
 def solvepos(

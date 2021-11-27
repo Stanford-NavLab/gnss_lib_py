@@ -17,7 +17,7 @@ import georinex
 import numpy as np
 import pandas as pd
 
-import core.constants as consts
+import gnss_lib_py.core.constants as consts
 
 def datetime2tow(t, convert_gps=True):
     """Convert Python datetime object to GPS Week and time of week.

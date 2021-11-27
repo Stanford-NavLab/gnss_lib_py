@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "gnss_lib_python"
+name = "gnss-lib-py"
 version = "0.1.0"
 description = "Python code to process, simulate and demonstrate using GNSS measurements"
 authors = ["Ashwin Kanhere"]

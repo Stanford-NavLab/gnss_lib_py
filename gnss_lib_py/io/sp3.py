@@ -5,20 +5,14 @@
 __authors__ = "Shubh Gupta"
 __date__ = "10 Apr 2021"
 
-import os
-import sys
 from datetime import datetime
 from collections import defaultdict
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
 
 import numpy as np
 from scipy import interpolate
 
-import core.constants as consts
-from core.ephemeris import datetime2tow
+import gnss_lib_py.core.constants as consts
+from gnss_lib_py.core.ephemeris import datetime2tow
 
 class PreciseNav(object):
     """Class that contain satellite data.
