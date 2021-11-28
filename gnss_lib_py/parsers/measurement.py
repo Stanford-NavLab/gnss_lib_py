@@ -58,6 +58,8 @@ class Measurement(ABC):
     def build_measurement(self, data_df):
         if not isinstance(data_df, pd.DataFrame):
             raise TypeError("data_df must be pd.DataFrame")
+        if len(data_df)==0:
+            raise ValueError("Empty data_df passed to build_measurement")
         num_times = len(data_df)
         self.arr_dtype = np.float64
         self.array = np.empty([0, num_times], dtype= self.arr_dtype)
@@ -71,7 +73,6 @@ class Measurement(ABC):
         for key in self.map.keys():
             # indexing by key to maintain same order as eventual map
             val = str_bool[key]
-            # print(key)
             values = data_df.loc[:, key]
             new_values = np.copy(values)
             if val:
