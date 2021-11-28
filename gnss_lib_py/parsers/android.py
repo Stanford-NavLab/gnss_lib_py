@@ -137,15 +137,15 @@ class AndroidRawGnss(Measurement):
         """Built on correct_log
         """
         # Check clock and measurement fields
-        self.check_gnss_clock()
-        self.check_gnss_measurements()
+        self._check_gnss_clock()
+        self._check_gnss_measurements()
         if self.use_carrier:
-            self.check_carrier_phase()
-        self.compute_times()
-        self.compute_pseudorange()
+            self._check_carrier_phase()
+        self._compute_times()
+        self._compute_pseudorange()
 
 
-    def check_gnss_clock(self):
+    def _check_gnss_clock(self):
         """Checks and fixes clock field errors
 
         Additonal checks added from [1]_.
@@ -183,16 +183,16 @@ class AndroidRawGnss(Measurement):
         gnss_fields = self.rows()
         for field in gnss_clock_fields:
             if field not in gnss_fields:
-                self.update_log('WARNING: '+field+' (Clock) is missing from GNSS Logger file')
+                self._update_log('WARNING: '+field+' (Clock) is missing from GNSS Logger file')
         measure_ok = all(x in gnss_fields for x in ['TimeNanos', 'FullBiasNanos'])
         if not measure_ok:
-            self.update_log('FAIL clock check.')
+            self._update_log('FAIL clock check.')
             raise RuntimeError("Measurement file failed clock check")
 
         # Measurements should be discarded if TimeNanos is empty
         if self["TimeNanos"].isnull().values.any():
             self['all', :] = self['all', np.logical_not(np.isnan(self["TimeNanos"]))]
-            self.update_log('Empty or invalid TimeNanos')
+            self._update_log('Empty or invalid TimeNanos')
 
         if 'BiasNanos' not in gnss_fields:
             self["BiasNanos", :] = 0
@@ -200,25 +200,25 @@ class AndroidRawGnss(Measurement):
             self["TimeOffsetNanos", :] = 0
         if 'HardwareClockDiscontinuityCount' not in gnss_fields:
             self["HardwareClockDiscontinuityCount", :] = 0
-            self.update_log('WARNING: Added HardwareClockDiscontinuityCount=0 because it is missing from GNSS Logger file')
+            self._update_log('WARNING: Added HardwareClockDiscontinuityCount=0 because it is missing from GNSS Logger file')
 
         # measurements should be discarded if FullBiasNanos is zero or invalid
         if any(self["FullBiasNanos", :] >= 0):
             self["FullBiasNanos", :] = -1*self["FullBiasNanos", :]
-            self.update_log('WARNING: FullBiasNanos wrong sign. Should be negative. Auto changing inside check_gnss_clock')
+            self._update_log('WARNING: FullBiasNanos wrong sign. Should be negative. Auto changing inside check_gnss_clock')
 
         # Discard measurements if BiasUncertaintyNanos is too large
         # TODO: figure out how to choose this parameter better
         if any(self["BiasUncertaintyNanos", :] >= 40.):
             count = (self["BiasUncertaintyNanos", :] >= 40.).sum()
-            self.update_log(str(count) + ' rows with too large BiasUncertaintyNanos')
+            self._update_log(str(count) + ' rows with too large BiasUncertaintyNanos')
             self['all', :] = self['all', self["BiasUncertaintyNanos", :] < 40.]
             #TODO: Figure out a way that actually works and implement 
 
         self["allRxMillis"] = (self["TimeNanos", :] - self["FullBiasNanos", :])//1e6
 
 
-    def check_gnss_measurements(self):
+    def _check_gnss_measurements(self):
         """Checks that GNSS measurement fields exist in dataframe.
 
         Additonal checks added from [1]_.
@@ -255,7 +255,7 @@ class AndroidRawGnss(Measurement):
         gnss_fields = self.rows()
         for field in gnss_measurement_fields:
             if field not in gnss_fields:
-                self.update_log('WARNING: '+field+' (Measurement) is missing from GNSS Logger file')
+                self._update_log('WARNING: '+field+' (Measurement) is missing from GNSS Logger file')
 
         # Discard measurements if state is neither of following
         STATE_TOW_DECODED = 0x8
@@ -263,7 +263,7 @@ class AndroidRawGnss(Measurement):
         invalid_state_count = np.invert((self["State", :] & STATE_TOW_DECODED).astype(bool) |
                                 (self["State", :] & STATE_TOW_KNOWN).astype(bool)).sum()
         if invalid_state_count > 0:
-            self.update_log(str(invalid_state_count) + " rows have " + \
+            self._update_log(str(invalid_state_count) + " rows have " + \
                                 "state TOW neither decoded nor known")
             valid_state_idx = (self["State", :] & STATE_TOW_DECODED).astype(bool) | \
                             (self["State", :] & STATE_TOW_KNOWN).astype(bool)
@@ -272,11 +272,11 @@ class AndroidRawGnss(Measurement):
         # TODO: figure out how to choose this parameter better
         if any(self["ReceivedSvTimeUncertaintyNanos", :] >= 150.):
             count = (self["ReceivedSvTimeUncertaintyNanos", :] >= 150.).sum()
-            self.update_log(str(count) + ' rows with too large ReceivedSvTimeUncertaintyNanos')
+            self._update_log(str(count) + ' rows with too large ReceivedSvTimeUncertaintyNanos')
             self['all'] = self['all', self["ReceivedSvTimeUncertaintyNanos", :] < 150.]
             #TODO: Updating all values here
 
-    def check_carrier_phase(self):
+    def _check_carrier_phase(self):
         """Checks that carrier phase measurements are valid
 
         Checks taken from [1]_.
@@ -302,7 +302,7 @@ class AndroidRawGnss(Measurement):
                             np.invert((self["AccumulatedDeltaRangeState", :] & ADR_STATE_RESET).astype(bool)) &
                             np.invert((self["AccumulatedDeltaRangeState", :] & ADR_STATE_CYCLE_SLIP).astype(bool))).sum()
         if invalid_state_count > 0:
-            self.update_log(str(invalid_state_count) + " rows have " + \
+            self._update_log(str(invalid_state_count) + " rows have " + \
                                 "ADRstate invalid")
             #TODO: Same operation is happening twice, functionalize or perform once
             valid_states = (self["AccumulatedDeltaRangeState", :] & ADR_STATE_VALID).astype(bool) & \
@@ -315,12 +315,12 @@ class AndroidRawGnss(Measurement):
         #TODO: figure out how to choose this parameter better
         if any(self["AccumulatedDeltaRangeUncertaintyMeters", :] >= 0.15):
             count = (self["AccumulatedDeltaRangeUncertaintyMeters", :] >= 0.15).sum()
-            self.update_log(str(count) + 'rows with too large' +
+            self._update_log(str(count) + 'rows with too large' +
                             ' AccumulatedDeltaRangeUncertaintyMeters')
             self['all'] = self['all', self["AccumulatedDeltaRangeUncertaintyMeters", :] < 0.15]
             #TODO: Updating all values here
 
-    def compute_times(self):
+    def _compute_times(self):
         """Compute times and epochs for GNSS measurements.
 
         Additional checks added from [1]_.
@@ -348,7 +348,7 @@ class AndroidRawGnss(Measurement):
         # Measurements should be discarded if arrival time is negative
         if sum(self['toe_nanos', :] <= 0) > 0:
             self['all'] = self['all', self['toe_nanos'] > 0]
-            self.update_log("negative arrival times removed")
+            self._update_log("negative arrival times removed")
         # TODO: Discard measurements if arrival time is too large
 
         self['tRxNanos'] = (self['TimeNanos', :]+self['TimeOffsetNanos', :])-(self['FullBiasNanos', 0]+self['BiasNanos',:])
@@ -368,7 +368,7 @@ class AndroidRawGnss(Measurement):
         self['Epoch', epoch_non_zero] = 1
         self['Epoch'] = self['Epoch', :].cumsum()
     
-    def compute_pseudorange(self):
+    def _compute_pseudorange(self):
         """Compute psuedorange values and add to dataframe.
 
         Notes
@@ -384,7 +384,7 @@ class AndroidRawGnss(Measurement):
         self['pseudo'] = self['Pseudorange_seconds', :]*gpsconsts.C
         self['pseudo_sigma'] = gpsconsts.C * 1e-9 * self['ReceivedSvTimeUncertaintyNanos']
 
-    def update_log(self, msg):
+    def _update_log(self, msg):
         self.log.append(msg)
         if self.verbose:
             print(msg)
@@ -396,6 +396,12 @@ class AndroidRawGnss(Measurement):
 
 
 class AndroidRawImu(Measurement):
+    def __init__(self, input_path, group_time=10):
+        self.group_time = group_time
+        data_df = self.preprocess(input_path)
+        self.build_measurement(data_df)
+        self.postprocess()
+    
     def preprocess(self, input_path):
         """Read Android raw file and produce IMU dataframe objects
 
@@ -425,17 +431,32 @@ class AndroidRawImu(Measurement):
                     elif row[0] == 'Gyro':
                         gyro.append(row[1:])
 
-        accel = pd.DataFrame(accel[1:], columns = accel[0])
-        gyro = pd.DataFrame(gyro[1:], columns = gyro[0])
+        accel = pd.DataFrame(accel[1:], columns = accel[0], dtype=np.float64)
+        gyro = pd.DataFrame(gyro[1:], columns = gyro[0], dtype=np.float64)
 
-        measurements = pd.concat([accel, gyro])
-        #TODO: Check that this concatenration returns the right thing
+        #Drop common columns from gyro and keep values from accel
+        gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'], inplace=True)
+        measurements = pd.concat([accel, gyro], axis=1)
+        #NOTE: Assuming pandas index corresponds to measurements order
+        measurements.rename(columns=self._column_map(), inplace=True)
         return measurements
 
     def postprocess(self):
         # Currently not performing any post processing on measurments
-        # but need to define to override abstract method
+        # but need to define method to override abstract method
         pass
+
+    @staticmethod
+    def _column_map():
+        col_map = {'AccelXMps2' : 'acc_x',
+                'AccelYMps2' : 'acc_y',
+                'AccelZMps2' : 'acc_z',
+                'GyroXRadPerSec' : 'omega_x',
+                'GyroYRadPerSec' : 'omega_y',
+                'GyroZRadPerSec' : 'omega_z',
+                }
+        return col_map
+
 
 class AndroidRawFixes(Measurement):
     def preprocess(self, input_path):
@@ -449,8 +470,8 @@ class AndroidRawFixes(Measurement):
                     if row[0] == 'Fix':
                         android_fixes.append(row[1:])
 
-        android_fixes = pd.DataFrame(android_fixes[1:], columns = android_fixes[0])
-        return android_fixes
+        fix_df = pd.DataFrame(android_fixes[1:], columns = android_fixes[0])
+        return fix_df
 
     def postprocess(self):
         # Currently not performing any post processing on measurments
@@ -459,15 +480,16 @@ class AndroidRawFixes(Measurement):
 
 
 def make_csv(input_path, field):
+    #TODO: Add handling for first n times field appear
     """Write specific data types from a GNSS android log to a CSV.
 
     Parameters
     ----------
     input_path : string
         File location of data file to read.
-    field : string
+    fields : list of strings
         Type of data to extract. Valid options are either "Raw",
-        "Accel", or "Gyro".
+        "Accel", "Gyro", "Mag", or "Fix".
 
     Returns
     -------

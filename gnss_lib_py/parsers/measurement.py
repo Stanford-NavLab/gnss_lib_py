@@ -40,6 +40,7 @@ class Measurement(ABC):
         data_df = self.preprocess(input_path)
         self.build_measurement(data_df)
         self.postprocess()
+        #TODO: Add units?
 
     @abstractmethod
     def preprocess(self, input_path):
@@ -86,6 +87,8 @@ class Measurement(ABC):
                 self.str_map[key] = {}
             new_values = np.reshape(new_values, [1, -1])
             self.array = np.vstack((self.array, new_values))
+            #TODO: Use __setitem__ here for self consistency
+            #TODO: Rebuild map after all additions/deletions?
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
@@ -155,15 +158,15 @@ class Measurement(ABC):
         cols = key_idx[1]
         if key_idx[0] == 'all':
             row_key = list(self.map.keys())
+            arr_slice = self.array[:, cols]
         else:
             if not isinstance(key_idx[0],list):
                 row_key = [key_idx[0]]
             else:
                 row_key = key_idx[0]
-        for key in row_key:
-            rows.append(self.map[key])
-        arr_slice = self.array[rows, cols]
-        #TODO: Currently, the returned object is 2D. Does this need to be fixed?
+            for key in row_key:
+                rows.append(self.map[key])
+            arr_slice = self.array[rows, cols]
         return arr_slice
 
     def __setitem__(self, key, newvalue):
@@ -178,27 +181,32 @@ class Measurement(ABC):
             List or array of values to be added to measurements
         """
         #DEBUG: Print type of newvalue
-        #TODO: Add functionality for changing values in ALL ROWS
         #TODO: Currently breaks if you pass strings as np.ndarray
-        if key in self.map.keys():
+        if key=='all':
+            # Check that number of rows is consistent
+            #NOTE: Might not be needed if dictionary updated here
+            assert np.shape(newvalue)[0] == self.shape()[0], \
+                "Inconsistent rows between old and new array"
+            self.array = newvalue
+        elif key in self.map.keys():
             if not isinstance(self[key, 0], type(newvalue[0])):
                 raise TypeError("Type inconsistency in __setitem__")
             self.array[self.map[key], :] = newvalue
         else:
-            #TODO: Change name of new_values to prevent confusion with
-            # newvalue
             values = newvalue
             self.map[key] = np.shape(self.array)[0]
             if isinstance(newvalue[0], str):
+                assert isinstance(newvalue, list), \
+                    "Only lists supported with strings"
                 #TODO: Replace this and in __init__ with private method?
                 string_vals = np.unique(newvalue[:])
                 val_dict = dict(enumerate(string_vals))
                 self.str_map[key] = val_dict
-                new_values = np.empty(np.shape(newvalue), dtype=self.arr_dtype)
+                added_vals = np.empty(np.shape(newvalue), dtype=self.arr_dtype)
                 for str_key, str_val in val_dict.items():
-                    new_values[values==str_val] = str_key
+                    added_vals[values==str_val] = str_key
                 # Copy set to false to prevent memory overflows
-                newvalue = np.round(new_values.astype(self.arr_dtype, copy=False))
+                newvalue = np.round(added_vals.astype(self.arr_dtype, copy=False))
             else:
                 self.str_map[key] = {}
             self.array = np.vstack((self.array, \
