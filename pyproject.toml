@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "gnss_lib_py"
+name = "gnss_lib_python"
 version = "0.1.0"
 description = "Python code to process, simulate and demonstrate using GNSS measurements"
 authors = ["Ashwin Kanhere"]
@@ -17,7 +17,6 @@ pynmea2 = "^1.18.0"
 pytest = "^6.2.5"
 pylint = "^2.11.1"
 pytest-cov = "^3.0.0"
-NavPy = "^1.0"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "4.1.1"
