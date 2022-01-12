@@ -72,7 +72,7 @@ Ubuntu/WSL2
 
    .. code-block:: bash
 
-      poetry run pytest tests/
+      poetry run pytest
 
    Check the :ref:`Testing<testing>` section in the Contribution guide
    for more details

@@ -61,7 +61,7 @@ Standard GitHub Workflow
 
    .. code-block:: bash
 
-      poetry run pytest tests/
+      poetry run pytest
 
    See the :ref:`Testing<testing>` section for more details.
 
@@ -107,7 +107,7 @@ to install pyenv, poetry, python dependencies, and clone the repository.
 
    .. code-block:: bash
 
-      poetry run pytest tests/
+      poetry run pytest
 
    See the :ref:`Testing<testing>` section for more details.
 
@@ -169,7 +169,7 @@ Pull Request Review Workflow
 
    .. code-block:: bash
 
-      poetry run pytest tests/
+      poetry run pytest
 
    See the :ref:`Testing<testing>` section for more details.
 
@@ -217,13 +217,13 @@ TODO: UPDATE TESTING EXPLANATIONS
 
       .. code-block:: bash
 
-         poetry run pytest tests/
+         poetry run pytest
 
       Alternatively, to run tests without spawning a poetry shell, from the parent directory, run
 
       .. code-block:: bash
 
-        poetry run pytest tests/
+        poetry run pytest
 
     * Within each test file, name each individual test function as
       `test_funcname`.
