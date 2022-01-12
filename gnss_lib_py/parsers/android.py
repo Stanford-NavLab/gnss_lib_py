@@ -129,6 +129,8 @@ class AndroidRawImu(Measurement):
         gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'], inplace=True)
         measurements = pd.concat([accel, gyro], axis=1)
         #NOTE: Assuming pandas index corresponds to measurements order
+        #NOTE: Override times of gyro measurments with corresponding 
+        # accel times
         measurements.rename(columns=self._column_map(), inplace=True)
         return measurements
 
@@ -176,13 +178,15 @@ class AndroidRawFixes(Measurement):
         return fix_df
 
 
-def make_csv(input_path, field):
+def make_csv(input_path, output_location, field, show_path=False):
     """Write specific data types from a GNSS android log to a CSV.
 
     Parameters
     ----------
     input_path : string
         File location of data file to read.
+    output_location : string
+        Location where new csv file should be created
     fields : list of strings
         Type of data to extract. Valid options are either "Raw",
         "Accel", "Gyro", "Mag", or "Fix".
@@ -199,7 +203,9 @@ def make_csv(input_path, field):
     with MakeCsv() in opensource/ReadGnssLogger.m
 
     """
-    out_path = field + ".csv"
+    if not os.path.isdir(output_location):
+        os.makedirs(output_location)
+    out_path = os.path.join(output_location, field + ".csv")
     with open(out_path, 'w', encoding="utf8") as out_csv:
         writer = csv.writer(out_csv)
         with open(input_path, 'r', encoding="utf8") as in_txt:
@@ -217,4 +223,5 @@ def make_csv(input_path, field):
                     line_data = line.rstrip('\n').replace(" ","").split(",")
                     if line_data[0] == field:
                         writer.writerow(line_data[1:])
-    return out_path
+    if show_path:
+        print(out_path)

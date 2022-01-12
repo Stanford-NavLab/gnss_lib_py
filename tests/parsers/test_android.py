@@ -13,6 +13,7 @@ import pytest
 
 from gnss_lib_py.parsers.android import AndroidDerived, AndroidRawFixes, AndroidRawImu
 from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.android import make_csv
 
 
 @pytest.fixture(name="root_path")
@@ -28,6 +29,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/')
     return root_path
 
 
@@ -40,20 +42,20 @@ def fixture_derived_path(root_path):
     derived_path : string
         Location for the unit_test Android derived measurements
     """
-    derived_path = os.path.join(root_path, 'data/unit_test/Pixel4_derived.csv')
+    derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
     return derived_path
 
 
 @pytest.fixture(name="android_raw_path")
-def fixture_imu_path(root_path):
-    """Filepath of Android IMU measurements
+def fixture_raw_path(root_path):
+    """Filepath of Android Raw measurements
 
     Returns
     -------
     raw_path : string
-        Location for text log file with Android IMU measurements
+        Location for text log file with Android Raw measurements
     """
-    raw_path = os.path.join(root_path, 'data/unit_test/Pixel4_GnssLog.txt')
+    raw_path = os.path.join(root_path, 'Pixel4_GnssLog.txt')
     return raw_path
 
 
@@ -123,10 +125,8 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
     ----------
     derived : pytest.fixture
         Instance of AndroidDerived for testing
-
     pd_df : pytest.fixture
         pd.DataFrame for testing measurements
-
     derived_col_map : pytest.fixture
         Column map to convert standard to original derived column names
 
@@ -152,13 +152,10 @@ def test_derived_value_check(derived, row_name, index, value):
     ----------
     derived : pytest.fixture
         Instance of AndroidDerived for testing
-
     row_name : string
         Row key for test example
-
     index : int
         Column number for test example
-
     value : float or string
         Known value to be checked against
 
@@ -206,7 +203,7 @@ def test_set_all(derived):
     Parameters
     ----------
     derived : pytest.fixture
-        Instance of AndroidDerivevd for testing
+        Instance of AndroidDerived for testing
     """
     assign_vals = np.zeros(len(derived))
     assign_vals[int(len(derived)/2):] = 1
@@ -221,18 +218,84 @@ def test_set_all(derived):
 
 def test_imu_raw(android_raw_path):
     """Test that AndroidRawImu initialization
+
+    Parameters
+    ----------
+    android_raw_path : pytest.fixture
+        Path to Android Raw measurements text log file
     """
-    _ = AndroidRawImu(android_raw_path)
+    test_imu = AndroidRawImu(android_raw_path)
+    isinstance(test_imu, Measurement)
 
 
 def test_fix_raw(android_raw_path):
     """Test that AndroidRawImu initialization
+
+    Parameters
+    ----------
+    android_raw_path : pytest.fixture
+        Path to Android Raw measurements text log file
     """
-    _ = AndroidRawFixes(android_raw_path)
+    test_fix = AndroidRawFixes(android_raw_path)
+    isinstance(test_fix, Measurement)
 
 
 def test_measurement_type(derived):
-    """Test that AndroidDerived is a subclass of Measurement
+    """Test that all subclasses inherit from Measurement
+
+    Parameters
+    ----------
+    derived : pytest.fixture
+        Instance of AndroidDerived for testing
     """
     isinstance(derived, Measurement)
     isinstance(derived, AndroidDerived)
+
+
+#TODO: Add check for equivalence of Raw measurements
+@pytest.mark.parametrize('file_type',
+                        ['Accel',
+                        'Gyro',
+                        'Fix'])
+def test_csv_equivalence(android_raw_path, root_path, file_type):
+    """Test equivalence of loaded measurements and data from split csv
+
+    Parameters
+    ----------
+    android_raw_path : pytest.fixture
+        Path to Android Raw measurements text log file
+
+    root_path : pytest.fixture
+        Path to location of all data for Android unit testing
+
+    file_type : string
+        Type of measurement to be extracted into csv files
+
+    """
+    #NOTE: Times for gyroscope measurements are overridden by accel times
+    # and are not checked in this test for any measurement
+    no_check = ['utcTimeMillis', 'elapsedRealtimeNanos']
+    if file_type=='Accel' or file_type=='Gyro':
+        test_measure = AndroidRawImu(android_raw_path)
+    elif file_type=='Fix':
+        test_measure = AndroidRawFixes(android_raw_path)
+    output_location = os.path.join(root_path, 'csv_test')
+    make_csv(android_raw_path, output_location, file_type)
+    csv_loc = os.path.join(output_location, file_type + ".csv")
+    test_df = pd.read_csv(csv_loc)
+    test_measure = AndroidRawImu(android_raw_path)
+    col_map = test_measure._column_map()
+    for col_name in test_df.columns:
+        if col_name in col_map:
+            row_idx = col_map[col_name]
+        else:
+            row_idx = col_name
+        if col_name in no_check or col_name :
+            break
+        measure_slice = test_measure[row_idx, :]
+        df_slice = test_df[col_name].values
+        np.testing.assert_almost_equal(measure_slice, df_slice)
+    os.remove(csv_loc)
+
+
+
