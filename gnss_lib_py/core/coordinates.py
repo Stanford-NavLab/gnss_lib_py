@@ -30,16 +30,9 @@ SOFTWARE.
 __authors__ = "Shubh Gupta, Ashwin Kanhere"
 __date__ = "20 July 2021"
 
-import os
-import sys
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-
 import numpy as np
 
-import core.constants as consts
+import gnss_lib_py.core.constants as consts
 
 def geodetic2ecef(geodetic, radians=False):
     """LLA to ECEF conversion.

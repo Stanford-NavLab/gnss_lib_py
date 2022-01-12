@@ -5,19 +5,13 @@
 __authors__ = "Shubh Gupta, Adam Dai"
 __date__ = "13 Jul 2021"
 
-import os
-import sys
 import csv
 from datetime import datetime, timedelta
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
 
 import numpy as np
 import pandas as pd
 
-import core.constants as consts
+import gnss_lib_py.core.constants as consts
 
 def extract_timedata(input_path):
     """Extracts raw and fix data from GNSS log file.
