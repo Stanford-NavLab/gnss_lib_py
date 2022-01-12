@@ -5,18 +5,10 @@
 __authors__ = "Ashwin Kanhere"
 __date__ = "03 Nov 2021"
 
-import os
-import sys
 from abc import abstractmethod
 
 import numpy as np
 import pandas as pd
-
-
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
 
 
 class Measurement:

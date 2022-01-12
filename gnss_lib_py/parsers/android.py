@@ -11,12 +11,8 @@ import csv
 
 import numpy as np
 import pandas as pd
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
 
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-from parsers.measurement import Measurement
+from gnss_lib_py.parsers.measurement import Measurement
 
 
 class AndroidDerived(Measurement):
