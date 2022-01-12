@@ -12,30 +12,31 @@ import ftplib
 from ftplib import FTP_TLS, FTP
 from datetime import datetime, timedelta, timezone
 
-import xarray
 import unlzw3
 import georinex
 import numpy as np
 import pandas as pd
 
-def datetime_to_tow(t, convert_gps=True):
-    """Convert Python datetime object to GPS Week and time of week
+import gnss_lib_py.core.constants as consts
+
+def datetime2tow(t, convert_gps=True):
+    """Convert Python datetime object to GPS Week and time of week.
 
     Parameters
     ----------
     t : datetime.datetime
-      Datetime object for Time of Clock
+        Datetime object for Time of Clock.
 
     convert_gps : Bool
-      Flag for whether output is in UTC seconds or GPS seconds
+        Flag for whether output is in UTC seconds or GPS seconds
 
     Returns
     -------
     wk : float
-      GPS week
+        GPS week
 
     tow : float
-      GPS time of week in seconds
+        GPS time of week [s]
 
     """
     # DateTime to GPS week and TOW
@@ -67,6 +68,38 @@ class EphemerisManager():
     Notes
     -----
     Class code taken from https://github.com/johnsonmitchelld/gnss-analysis/blob/main/gnssutils/ephemeris_manager.py
+
+    The associated license is copied below:
+
+    BSD 3-Clause License
+
+    Copyright (c) 2021, Mitchell D Johnson
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this
+       list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright notice,
+       this list of conditions and the following disclaimer in the documentation
+       and/or other materials provided with the distribution.
+
+    3. Neither the name of the copyright holder nor the names of its
+       contributors may be used to endorse or promote products derived from
+       this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     """
     def __init__(self, data_directory=os.path.join(os.getcwd(), 'data', 'ephemeris')):
@@ -211,9 +244,8 @@ class EphemerisManager():
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = decompressed_filename
-        WEEKSEC = 604800
         data['t_oc'] = pd.to_numeric(data['time'] - datetime(1980, 1, 6, 0, 0, 0))
-        data['t_oc']  = 1e-9 * data['t_oc'] - WEEKSEC * np.floor(1e-9 * data['t_oc'] / WEEKSEC)
+        data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
         data['time'] = data['time'].dt.tz_localize('UTC')
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
@@ -287,7 +319,7 @@ class EphemerisManager():
 
     @staticmethod
     def calculate_toc(timestamp):
-        """I think this is equivalent of datetime_to_tow()
+        """I think this is equivalent of datetime2tow()
         #TODO: See if this function is needed or can be deleted
         """
         pass

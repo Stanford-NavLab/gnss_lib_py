@@ -5,14 +5,6 @@
 __authors__ = "Ashwin Kanhere"
 __date__ = "6 Aug 2021"
 
-import os
-import sys
-# append <path>/gnss_lib_py/gnss_lib_py/ to path
-sys.path.append(os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-
-import pytest
 import numpy as np
 import pandas as pd
 
