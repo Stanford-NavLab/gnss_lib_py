@@ -8,7 +8,6 @@ __date__ = "02 Nov 2021"
 import os
 import sys
 import csv
-from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -17,7 +16,6 @@ import pandas as pd
 sys.path.append(os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-from core.constants import GPSConsts
 from parsers.measurement import Measurement
 
 
@@ -39,7 +37,7 @@ class AndroidDerived(Measurement):
 
         Returns
         -------
-        pd_df : pandas.DataFrame
+        pd_df : pd.DataFrame
             Loaded measurements with consistent column names
         """
         pd_df = pd.read_csv(input_path)
@@ -56,11 +54,10 @@ class AndroidDerived(Measurement):
         implemented from https://www.kaggle.com/carlmcbrideellis/google-smartphone-decimeter-eda
         retrieved on 9th November, 2021
         """
-        pr_corrected = self['rawPrM', :] + self['b', :] - \
+        pr_corrected = self['rawPrM', :] + self['b_sat_m', :] - \
                     self['isrbM', :] - self['tropoDelayM', :] \
                     - self['ionoDelayM', :]
         self['pseudo'] = pr_corrected
-        return None
 
     @staticmethod
     def _column_map():
@@ -71,27 +68,31 @@ class AndroidDerived(Measurement):
         col_map : Dict
             Dictionary of the form {old_name : new_name}
         """
-        col_map = {'millisSinceGpsEpoch' : 'toe',
+        col_map = {'millisSinceGpsEpoch' : 'toeMillis',
                 'svid' : 'PRN',
-                'xSatPosM' : 'x',
-                'ySatPosM' : 'y',
-                'zSatPosM' : 'z',
-                'xSatVelMps' : 'vx',
-                'ySatVelMps' : 'vy',
-                'zSatVelMps' : 'vz',
-                'satClkBiasM' : 'b',
-                'satClkDriftMps' : 'b_dot',
+                'xSatPosM' : 'x_sat_m',
+                'ySatPosM' : 'y_sat_m',
+                'zSatPosM' : 'z_sat_m',
+                'xSatVelMps' : 'vx_sat_mps',
+                'ySatVelMps' : 'vy_sat_mps',
+                'zSatVelMps' : 'vz_sat_mps',
+                'satClkBiasM' : 'b_sat_m',
+                'satClkDriftMps' : 'b_dot_sat_mps',
                 }
         return col_map
 
 
 class AndroidRawImu(Measurement):
+    """Class handling IMU measurements from raw Android dataset.
+
+    Inherits from Measurement().
+    """
     def __init__(self, input_path, group_time=10):
         self.group_time = group_time
         data_df = self.preprocess(input_path)
         self.build_measurement(data_df)
         self.postprocess()
-    
+
     def preprocess(self, input_path):
         """Read Android raw file and produce IMU dataframe objects
 
@@ -101,13 +102,13 @@ class AndroidRawImu(Measurement):
             File location of data file to read.
         Returns
         -------
-        accel : pandas dataframe
+        accel : pd.DataFrame
             Dataframe that contains the accel measurements from the log.
-        gyro : pandas dataframe
+        gyro : pd.DataFrame
             Dataframe that contains the gyro measurements from the log.
 
         """
-        with open(input_path) as csvfile:
+        with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
                 if row[0][0] == '#':
@@ -131,26 +132,37 @@ class AndroidRawImu(Measurement):
         measurements.rename(columns=self._column_map(), inplace=True)
         return measurements
 
-    def postprocess(self):
-        # Currently not performing any post processing on measurments
-        # but need to define method to override abstract method
-        pass
-
     @staticmethod
     def _column_map():
-        col_map = {'AccelXMps2' : 'acc_x',
-                'AccelYMps2' : 'acc_y',
-                'AccelZMps2' : 'acc_z',
-                'GyroXRadPerSec' : 'omega_x',
-                'GyroYRadPerSec' : 'omega_y',
-                'GyroZRadPerSec' : 'omega_z',
+        col_map = {'AccelXMps2' : 'acc_x_mps2',
+                'AccelYMps2' : 'acc_y_mps2',
+                'AccelZMps2' : 'acc_z_mps2',
+                'GyroXRadPerSec' : 'omega_x_radps',
+                'GyroYRadPerSec' : 'omega_y_radps',
+                'GyroZRadPerSec' : 'omega_z_radps',
                 }
         return col_map
 
 
 class AndroidRawFixes(Measurement):
+    """Class handling location fix measurements from raw Android dataset.
+
+    Inherits from Measurement().
+    """
     def preprocess(self, input_path):
-        with open(input_path) as csvfile:
+        """Read Android raw file and produce location fix dataframe objects
+
+        Parameters
+        ----------
+        input_path : string
+            File location of data file to read.
+        Returns
+        -------
+        fix_df : pd.DataFrame
+            Dataframe that contains the location fixes from the log.
+
+        """
+        with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
                 if row[0][0] == '#':
@@ -163,14 +175,8 @@ class AndroidRawFixes(Measurement):
         fix_df = pd.DataFrame(android_fixes[1:], columns = android_fixes[0])
         return fix_df
 
-    def postprocess(self):
-        # Currently not performing any post processing on measurments
-        # but need to define to override abstract method
-        pass
-
 
 def make_csv(input_path, field):
-    #TODO: Add handling for first n times field appear
     """Write specific data types from a GNSS android log to a CSV.
 
     Parameters
@@ -194,13 +200,14 @@ def make_csv(input_path, field):
 
     """
     out_path = field + ".csv"
-    with open(out_path, 'w') as f:
-        writer = csv.writer(f)
-        with open(input_path, 'r') as f:
-            for line in f:
+    with open(out_path, 'w', encoding="utf8") as out_csv:
+        writer = csv.writer(out_csv)
+        with open(input_path, 'r', encoding="utf8") as in_txt:
+            for line in in_txt:
                 # Comments in the log file
                 if line[0] == '#':
-                    # Remove initial '#', spaces, trailing newline and split using commas as delimiter
+                    # Remove initial '#', spaces, trailing newline
+                    # and split using commas as delimiter
                     line_data = line[2:].rstrip('\n').replace(" ","").split(",")
                     if line_data[0] == field:
                         writer.writerow(line_data[1:])
@@ -211,5 +218,3 @@ def make_csv(input_path, field):
                     if line_data[0] == field:
                         writer.writerow(line_data[1:])
     return out_path
-
-

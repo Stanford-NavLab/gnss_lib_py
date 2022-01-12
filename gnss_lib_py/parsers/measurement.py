@@ -7,7 +7,7 @@ __date__ = "03 Nov 2021"
 
 import os
 import sys
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(
                 os.path.realpath(__file__))))
 
 
-class Measurement(ABC):
+class Measurement:
     #TODO: Add handling for datetime.datetime objects
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing
@@ -49,13 +49,18 @@ class Measurement(ABC):
         #NOTE: Use class attributes or custom methods as parameters
         raise NotImplementedError
 
-    @abstractmethod
     def postprocess(self):
-        """Postprocess loaded measurements. Implemented in subclasses
+        """Postprocess loaded measurements. Optional in subclass
         """
-        raise NotImplementedError
+        pass
 
     def build_measurement(self, data_df):
+        """Build attributes of Measurement using pd.DataFrame
+
+        Parameters
+        ----------
+        data_df : pd.DataFrame of measurements
+        """
         if not isinstance(data_df, pd.DataFrame):
             raise TypeError("data_df must be pd.DataFrame")
         if len(data_df)==0:
@@ -181,7 +186,6 @@ class Measurement(ABC):
         newvalue : numpy.ndarray/list
             List or array of values to be added to measurements
         """
-        #DEBUG: Print type of newvalue
         #TODO: Currently breaks if you pass strings as np.ndarray
         if key=='all':
             # Check that number of rows is consistent
@@ -212,7 +216,6 @@ class Measurement(ABC):
                 self.str_map[key] = {}
             self.array = np.vstack((self.array, \
                         np.reshape(newvalue, [1, -1])))
-        return None
 
     def __len__(self):
         """Return length of class
@@ -238,7 +241,7 @@ class Measurement(ABC):
 
     def rows(self):
         """Return all rows in instance as a list
-        
+
         Returns
         -------
         rows : list
