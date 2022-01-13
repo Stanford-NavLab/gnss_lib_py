@@ -61,7 +61,7 @@ Standard GitHub Workflow
 
    .. code-block:: bash
 
-      poetry run pytest tests/
+      poetry run pytest
 
    See the :ref:`Testing<testing>` section for more details.
 
@@ -69,7 +69,7 @@ Standard GitHub Workflow
 
    .. code-block:: bash
 
-      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
       poetry run coverage report
 
    See the :ref:`Coverage Report<coverage>` section for more details.
@@ -107,7 +107,7 @@ to install pyenv, poetry, python dependencies, and clone the repository.
 
    .. code-block:: bash
 
-      poetry run pytest tests/
+      poetry run pytest
 
    See the :ref:`Testing<testing>` section for more details.
 
@@ -115,7 +115,7 @@ to install pyenv, poetry, python dependencies, and clone the repository.
 
    .. code-block:: bash
 
-      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
       poetry run coverage report
 
    See the :ref:`Coverage Report<coverage>` section for more details.
@@ -169,7 +169,7 @@ Pull Request Review Workflow
 
    .. code-block:: bash
 
-      poetry run pytest tests/
+      poetry run pytest
 
    See the :ref:`Testing<testing>` section for more details.
 
@@ -177,7 +177,7 @@ Pull Request Review Workflow
 
    .. code-block:: bash
 
-      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
       poetry run coverage report
 
    See the :ref:`Coverage Report<coverage>` section for more details.
@@ -194,7 +194,7 @@ below for new features or functionality.
     * algorithms: This directory contains localization algorithms.
     * core: This directory contains functionality that is commonly used
       to deal with GNSS measurements.
-    * io: This directory contains functions to read and process various
+    * parsers: This directory contains functions to read and process various
       GNSS data/file types.
     * utils: This directory contains visualization functions and other
       code that is non-critical to the most common GNSS use cases.
@@ -217,13 +217,13 @@ TODO: UPDATE TESTING EXPLANATIONS
 
       .. code-block:: bash
 
-         poetry run pytest tests/
+         poetry run pytest
 
       Alternatively, to run tests without spawning a poetry shell, from the parent directory, run
 
       .. code-block:: bash
 
-        poetry run pytest tests/
+        poetry run pytest
 
     * Within each test file, name each individual test function as
       `test_funcname`.
@@ -248,7 +248,7 @@ reports can be generated locally with the following commands:
 
 .. code-block:: bash
 
-   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/io --cov=gnss_lib_py/utils --cov-report=xml
+   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
    poetry run coverage report
 
 The total percentage of code covered (bottom right percentage) is the

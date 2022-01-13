@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/algorithms/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/core/'))
-sys.path.insert(0, os.path.abspath('../../gnss_lib_py/io/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/parsers/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/utils/'))
 
 
@@ -56,7 +56,7 @@ autodoc_default_options = {
                             "undoc-members": True,
                             "private-members": True,
                             # "special-members": True,
-                            # "inherited-members": True,
+                            "inherited-members": True,
                             "show-inheritance": True,
                            }
 
