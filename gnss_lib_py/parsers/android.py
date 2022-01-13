@@ -6,7 +6,6 @@ __authors__ = "Shubh Gupta, Adam Dai, Ashwin Kanhere"
 __date__ = "02 Nov 2021"
 
 import os
-import sys
 import csv
 
 import numpy as np
@@ -47,12 +46,12 @@ class AndroidDerived(Measurement):
         Notes
         -----
         Adds corrected pseudoranges to measurements. Corrections
-        implemented from https://www.kaggle.com/carlmcbrideellis/google-smartphone-decimeter-eda
-        retrieved on 9th November, 2021
+        implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+        retrieved on 12 January, 2022
         """
-        pr_corrected = self['rawPrM', :] + self['b_sat_m', :] - \
-                    self['isrbM', :] - self['tropoDelayM', :] \
-                    - self['ionoDelayM', :]
+        pr_corrected = self['rawPrM', :] + self['b_sat_m', :] \
+                     - self['isrbM', :] - self['tropoDelayM', :] \
+                     - self['ionoDelayM', :]
         self['pseudo'] = pr_corrected
 
     @staticmethod
@@ -85,9 +84,7 @@ class AndroidRawImu(Measurement):
     """
     def __init__(self, input_path, group_time=10):
         self.group_time = group_time
-        data_df = self.preprocess(input_path)
-        self.build_measurement(data_df)
-        self.postprocess()
+        super().__init__(input_path)
 
     def preprocess(self, input_path):
         """Read Android raw file and produce IMU dataframe objects
@@ -96,6 +93,7 @@ class AndroidRawImu(Measurement):
         ----------
         input_path : string
             File location of data file to read.
+
         Returns
         -------
         accel : pd.DataFrame
@@ -125,7 +123,7 @@ class AndroidRawImu(Measurement):
         gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'], inplace=True)
         measurements = pd.concat([accel, gyro], axis=1)
         #NOTE: Assuming pandas index corresponds to measurements order
-        #NOTE: Override times of gyro measurments with corresponding 
+        #NOTE: Override times of gyro measurments with corresponding
         # accel times
         measurements.rename(columns=self._column_map(), inplace=True)
         return measurements
@@ -154,6 +152,7 @@ class AndroidRawFixes(Measurement):
         ----------
         input_path : string
             File location of data file to read.
+
         Returns
         -------
         fix_df : pd.DataFrame
@@ -174,22 +173,22 @@ class AndroidRawFixes(Measurement):
         return fix_df
 
 
-def make_csv(input_path, output_location, field, show_path=False):
+def make_csv(input_path, output_directory, field, show_path=False):
     """Write specific data types from a GNSS android log to a CSV.
 
     Parameters
     ----------
     input_path : string
         File location of data file to read.
-    output_location : string
-        Location where new csv file should be created
+    output_directory : string
+        Directory where new csv file should be created
     fields : list of strings
         Type of data to extract. Valid options are either "Raw",
         "Accel", "Gyro", "Mag", or "Fix".
 
     Returns
     -------
-    out_path : string
+    output_path : string
         New file location of the exported CSV.
 
     Notes
@@ -199,10 +198,10 @@ def make_csv(input_path, output_location, field, show_path=False):
     with MakeCsv() in opensource/ReadGnssLogger.m
 
     """
-    if not os.path.isdir(output_location):
-        os.makedirs(output_location)
-    out_path = os.path.join(output_location, field + ".csv")
-    with open(out_path, 'w', encoding="utf8") as out_csv:
+    if not os.path.isdir(output_directory):
+        os.makedirs(output_directory)
+    output_path = os.path.join(output_directory, field + ".csv")
+    with open(output_path, 'w', encoding="utf8") as out_csv:
         writer = csv.writer(out_csv)
         with open(input_path, 'r', encoding="utf8") as in_txt:
             for line in in_txt:
@@ -220,4 +219,6 @@ def make_csv(input_path, output_location, field, show_path=False):
                     if line_data[0] == field:
                         writer.writerow(line_data[1:])
     if show_path:
-        print(out_path)
+        print(output_path)
+
+    return output_path

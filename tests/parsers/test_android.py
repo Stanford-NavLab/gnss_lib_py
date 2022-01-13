@@ -279,9 +279,8 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         test_measure = AndroidRawImu(android_raw_path)
     elif file_type=='Fix':
         test_measure = AndroidRawFixes(android_raw_path)
-    output_location = os.path.join(root_path, 'csv_test')
-    make_csv(android_raw_path, output_location, file_type)
-    csv_loc = os.path.join(output_location, file_type + ".csv")
+    output_directory = os.path.join(root_path, 'csv_test')
+    csv_loc = make_csv(android_raw_path, output_directory, file_type)
     test_df = pd.read_csv(csv_loc)
     test_measure = AndroidRawImu(android_raw_path)
     col_map = test_measure._column_map()

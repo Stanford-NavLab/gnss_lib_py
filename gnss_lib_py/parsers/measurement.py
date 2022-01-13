@@ -126,16 +126,16 @@ class Measurement:
             values_str[values_int==str_key] = str_val
         return values_str
 
-    def save_csv(self, outpath):
+    def save_csv(self, output_path):
         """Save measurements as csv
 
         Parameters
         ----------
-        outpath : string
+        output_path : string
             Path where csv should be saved
         """
         pd_df = self.pandas_df()
-        pd_df.to_csv(outpath)
+        pd_df.to_csv(output_path)
 
     def __getitem__(self, key_idx):
         """Return item indexed from class
