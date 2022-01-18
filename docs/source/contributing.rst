@@ -404,9 +404,6 @@ If you changed python dependencies:
     * add the new dependency to the poetry dependency list with
       :code:`poetry add package=version` or if the dependency is a
       development tool :code:`poetry add --dev package=version`
-    * export update requirements.txt file for sphinx by running the
-      following from the main directory:
-      :code:`poetry export -f requirements.txt --output ./docs/source/requirements.txt`
 
 After the above, you can run the helper tool from the main directory
 that will automatically rebuild references and build a local HTML copy

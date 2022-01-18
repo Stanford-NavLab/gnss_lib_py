@@ -74,6 +74,11 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 html_static_path = []
 
+html_theme_options = {
+    "style_nav_header_background" : "#8C1515",
+
+}
+
 html_logo = "nav_lab_logo.png"
 
 # document __init__ methods
