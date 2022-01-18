@@ -14,3 +14,4 @@ poetry run make clean
 echo "Building docs in html"
 poetry run make html
 cd ..
+poetry export -f requirements.txt --output ./docs/source/requirements.txt
