@@ -49,9 +49,11 @@ class AndroidDerived(Measurement):
         implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
         retrieved on 12 January, 2022
         """
-        pr_corrected = self['rawPrM', :] + self['b_sat_m', :] \
-                     - self['isrbM', :] - self['tropoDelayM', :] \
-                     - self['ionoDelayM', :]
+        pr_corrected = self['raw_pseudorange_m', :] \
+                     + self['b_sat_m', :] \
+                     - self['intersignal_bias_m', :] \
+                     - self['tropo_delay_m', :] \
+                     - self['iono_delay_m', :]
         self['pseudo'] = pr_corrected
 
     @staticmethod
@@ -63,17 +65,27 @@ class AndroidDerived(Measurement):
         col_map : Dict
             Dictionary of the form {old_name : new_name}
         """
-        col_map = {'millisSinceGpsEpoch' : 'toeMillis',
-                'svid' : 'PRN',
-                'xSatPosM' : 'x_sat_m',
-                'ySatPosM' : 'y_sat_m',
-                'zSatPosM' : 'z_sat_m',
-                'xSatVelMps' : 'vx_sat_mps',
-                'ySatVelMps' : 'vy_sat_mps',
-                'zSatVelMps' : 'vz_sat_mps',
-                'satClkBiasM' : 'b_sat_m',
-                'satClkDriftMps' : 'b_dot_sat_mps',
-                }
+        col_map = {'collectionName' : 'collection_name',
+                   'phoneName' : 'receiver_device_name',
+                   'millisSinceGpsEpoch' : 'time_of_ephemeris_millis',
+                   'constellationType' : 'constellation_type',
+                   'svid' : 'svid',
+                   'signalType' : 'signal_type',
+                   'receivedSvTimeInGpsNanos' : 'received_sv_time_nanos',
+                   'xSatPosM' : 'x_sat_m',
+                   'ySatPosM' : 'y_sat_m',
+                   'zSatPosM' : 'z_sat_m',
+                   'xSatVelMps' : 'vx_sat_mps',
+                   'ySatVelMps' : 'vy_sat_mps',
+                   'zSatVelMps' : 'vz_sat_mps',
+                   'satClkBiasM' : 'b_sat_m',
+                   'satClkDriftMps' : 'b_dot_sat_mps',
+                   'rawPrM' : 'raw_pseudorange_m',
+                   'rawPrUncM' : 'raw_pseudorange_uncertainty_m',
+                   'isrbM' : 'intersignal_bias_m',
+                   'ionoDelayM' : 'iono_delay_m',
+                   'tropoDelayM' : 'tropo_delay_m',
+                   }
         return col_map
 
 
