@@ -32,6 +32,8 @@ class Measurement:
         data_df = self.preprocess(input_path)
         self.build_measurement(data_df)
         self.postprocess()
+        self.shape = self._shape()
+        self.columns = self._columns()
         #TODO: Add units?
 
     @abstractmethod
@@ -182,7 +184,7 @@ class Measurement:
         if key=='all':
             # Check that number of rows is consistent
             #NOTE: Might not be needed if dictionary updated here
-            assert np.shape(newvalue)[0] == self.shape()[0], \
+            assert np.shape(newvalue)[0] == self.shape[0], \
                 "Inconsistent rows between old and new array"
             self.array = newvalue
         elif key in self.map.keys():
@@ -220,7 +222,7 @@ class Measurement:
         length = np.shape(self.array)[1]
         return length
 
-    def shape(self):
+    def _shape(self):
         """Return shape of class
 
         Returns
@@ -231,13 +233,13 @@ class Measurement:
         shp = np.shape(self.array)
         return shp
 
-    def rows(self):
-        """Return all rows in instance as a list
+    def _columns(self):
+        """Return all column names in instance as a list
 
         Returns
         -------
-        rows : list
-            List of rows in measurements
+        cols : list
+            List of column names in measurements
         """
-        rows = list(self.map.keys())
-        return rows
+        columns = list(self.map.keys())
+        return columns
