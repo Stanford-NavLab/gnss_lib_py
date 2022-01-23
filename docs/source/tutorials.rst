@@ -33,44 +33,6 @@ make use of the added functionality.
 
 3. Create a new :code:`_column_map()` function that translates the
 column names from the new measurement type into our standard names.
-Those standard names are as follows:
-
-    * :code:`collection_name`
-    * :code:`receiver_device_name`
-    * :code:`time_of_ephemeris_millis` : (int) time of ephemeris as
-      number of milliseconds since the start of the GPS epoch,
-      January 6th, 1980.
-    * :code:`constellation_type` : (int) GNSS constellation type using
-      the following mapping
-
-        *  0 : UNKNOWN
-        *  1 : GPS
-        *  2 : SBAS
-        *  3 : GLONASS
-        *  4 : QZSS
-        *  5 : BEIDOU
-        *  6 : GALILEO
-        *  7 : IRNSS
-
-    * :code:`svid` : (int) satellite vehicle identification number
-    * :code:`signal_type`
-    * :code:`received_sv_time_nanos`
-    * :code:`x_sat_m` : (float) satellite ECEF x position in meters at best
-      estimated true signal transmission time.
-    * :code:`y_sat_m` : (float) satellite ECEF x position in meters at best
-      estimated true signal transmission time.
-    * :code:`z_sat_m` : (float) satellite ECEF x position in meters at best
-      estimated true signal transmission time.
-    * :code:`vx_sat_mps`
-    * :code:`vy_sat_mps`
-    * :code:`vz_sat_mps`
-    * :code:`b_sat_m`
-    * :code:`b_dot_sat_mps`
-    * :code:`raw_pseudorange_m`
-    * :code:`raw_pseudorange_uncertainty_m`
-    * :code:`intersignal_bias_m`
-    * :code:`iono_delay_m`
-    * :code:`tropo_delay_m`
 
 Your finished class might look something like:
 
@@ -131,6 +93,20 @@ Your finished class might look something like:
         return col_map
 
 
+GPS Time Conversions
+--------------------
+
+* Converting GPS millis since gps start -> UTC
+* UTC to GPS week / time of the week
+* GPS week / time into UTC
+* added info about when GPS week starts/ends
+* GPS week rollover discussion
+* leap second discussion (when was it last changed?) From 18 to 19 on
+  December 2016(??)
+* Other common errors?
+* :code:`time_of_ephemeris_millis` : (int) time of ephemeris as
+  number of milliseconds since the start of the GPS epoch,
+  January 6th, 1980.
 
 Visualize your Data
 -------------------

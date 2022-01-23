@@ -116,13 +116,11 @@ def fixture_inverse_col_map():
     inverse_col_map : Dict
         Column names for inverse map of form {standard_name : derived_name}
     """
-    inverse_col_map = {'collection_name' : 'collectionName',
-                       'receiver_device_name' : 'phoneName',
-                       'time_of_ephemeris_millis' : 'millisSinceGpsEpoch',
-                       'constellation_type' : 'constellationType',
-                       'svid' : 'svid',
+    inverse_col_map = {'trace_name' : 'collectionName',
+                       'rx_name' : 'phoneName',
+                       'gnss_id' : 'constellationType',
+                       'sv_id' : 'svid',
                        'signal_type' : 'signalType',
-                       'received_sv_time_nanos' : 'receivedSvTimeInGpsNanos',
                        'x_sat_m' : 'xSatPosM',
                        'y_sat_m' : 'ySatPosM',
                        'z_sat_m' : 'zSatPosM',
@@ -131,8 +129,8 @@ def fixture_inverse_col_map():
                        'vz_sat_mps' : 'zSatVelMps',
                        'b_sat_m' : 'satClkBiasM',
                        'b_dot_sat_mps' : 'satClkDriftMps',
-                       'raw_pseudorange_m' : 'rawPrM',
-                       'raw_pseudorange_uncertainty_m' : 'rawPrUncM',
+                       'raw_pr_m' : 'rawPrM',
+                       'raw_pr_sigma_m' : 'rawPrUncM',
                        'intersignal_bias_m' : 'isrbM',
                        'iono_delay_m' : 'ionoDelayM',
                        'tropo_delay_m' : 'tropoDelayM',
@@ -179,8 +177,8 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
 
 
 @pytest.mark.parametrize('row_name, index, value',
-                        [('collection_name', 0, '2020-05-14-US-MTV-1'),
-                         ('receiver_device_name', 1, 'Pixel4'),
+                        [('trace_name', 0, '2020-05-14-US-MTV-1'),
+                         ('rx_name', 1, 'Pixel4'),
                          ('vy_sat_mps', 7, 411.162),
                          ('b_dot_sat_mps', 41, -0.003),
                          ('signal_type', 6, 'GLO_G1')]

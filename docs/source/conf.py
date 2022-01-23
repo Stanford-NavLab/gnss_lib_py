@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.abspath('../../gnss_lib_py/utils/'))
 # -- Project information -----------------------------------------------------
 
 project = 'gnss_lib_py'
-copyright = '2021, Ashwin Kanhere, Derek Knowles'
+copyright = '2022, Stanford NAV Lab'
 author = 'Ashwin Kanhere, Derek Knowles'
 
 
