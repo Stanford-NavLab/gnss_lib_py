@@ -237,7 +237,7 @@ class Measurement:
         Returns
         -------
         rows : list
-            List of column names in measurements
+            List of row names in measurements
         """
         rows = list(self.map.keys())
         return rows
