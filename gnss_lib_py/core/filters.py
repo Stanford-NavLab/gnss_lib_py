@@ -109,10 +109,10 @@ class BaseExtendedKalmanFilter(BaseFilter):
         pass
 
     @abstractmethod
-    def expect_measure(self, update_dict=None):
+    def meas_model(self, update_dict=None):
         pass
 
     @abstractmethod
-    def dyn_func(u, predict_dict=None):
+    def dyn_model(u, predict_dict=None):
         # This function should perform non-linear propagation of the state
         pass
