@@ -209,6 +209,20 @@ class Measurement:
             self.array = np.vstack((self.array, \
                         np.reshape(newvalue, [1, -1])))
 
+    def __iter__(self):
+        self.curr_col = 0
+        self.num_cols = np.shape(self.array)[1]
+        return self
+
+    def __next__(self):
+        if self.curr_col < self.num_cols:
+            #TODO: Replace 'all' with slice for all rows
+            x_curr = self['all', self.curr_col]
+            self.curr_col += 1
+            return x_curr
+        else:
+            raise StopIteration
+
     def __len__(self):
         """Return length of class
 
