@@ -93,20 +93,6 @@ Your finished class might look something like:
         return col_map
 
 
-GPS Time Conversions
---------------------
-
-* Converting GPS millis since gps start -> UTC
-* UTC to GPS week / time of the week
-* GPS week / time into UTC
-* added info about when GPS week starts/ends
-* GPS week rollover discussion
-* leap second discussion (when was it last changed?) From 18 to 19 on
-  December 2016(??)
-* Other common errors?
-* :code:`time_of_ephemeris_millis` : (int) time of ephemeris as
-  number of milliseconds since the start of the GPS epoch,
-  January 6th, 1980.
 
 Visualize your Data
 -------------------

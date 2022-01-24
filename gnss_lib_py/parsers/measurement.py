@@ -32,9 +32,6 @@ class Measurement:
         data_df = self.preprocess(input_path)
         self.build_measurement(data_df)
         self.postprocess()
-        self.shape = self._shape()
-        self.columns = self._columns()
-        #TODO: Add units?
 
     @abstractmethod
     def preprocess(self, input_path):
@@ -156,9 +153,8 @@ class Measurement:
         """
         rows = []
         cols = key_idx[1]
-        if key_idx[0] == 'all':
-            row_key = list(self.map.keys())
-            arr_slice = self.array[:, cols]
+        if isinstance(key_idx[0], slice):
+            arr_slice = self.array[key_idx[0], cols]
         else:
             if not isinstance(key_idx[0],list):
                 row_key = [key_idx[0]]
@@ -175,7 +171,7 @@ class Measurement:
         Parameters
         ----------
         key : string
-            Name of column to add/update
+            Name of row to add/update
 
         newvalue : numpy.ndarray/list
             List or array of values to be added to measurements
@@ -222,7 +218,8 @@ class Measurement:
         length = np.shape(self.array)[1]
         return length
 
-    def _shape(self):
+    @property
+    def shape(self):
         """Return shape of class
 
         Returns
@@ -233,13 +230,14 @@ class Measurement:
         shp = np.shape(self.array)
         return shp
 
-    def _columns(self):
-        """Return all column names in instance as a list
+    @property
+    def rows(self):
+        """Return all row names in instance as a list
 
         Returns
         -------
-        cols : list
+        rows : list
             List of column names in measurements
         """
-        columns = list(self.map.keys())
-        return columns
+        rows = list(self.map.keys())
+        return rows

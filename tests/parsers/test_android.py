@@ -249,7 +249,7 @@ def test_set_all(derived):
 
     # choose_rows = [0, 2, 3, 5, 6]
     old_vals = derived.array[:, assign_vals==1]
-    derived['all'] = derived['all', assign_vals==1]
+    derived['all'] = derived[:, assign_vals==1]
     np.testing.assert_equal(len(derived), num_ones)
     np.testing.assert_equal(derived.array[:, :], old_vals)
 
@@ -288,6 +288,24 @@ def test_measurement_type(derived):
     """
     isinstance(derived, Measurement)
     isinstance(derived, AndroidDerived)
+
+
+def test_shape_update(derived):
+    """Test that shape gets updated after adding a row.
+
+    Parameters
+    ----------
+    derived : pytest.fixture
+        Instance of AndroidDerived for testing
+    """
+    old_shape = derived.shape
+    derived["new_column"] = np.ones((old_shape[1]))
+    new_shape = derived.shape
+
+    # should still have the same number of columns (timesteps)
+    np.testing.assert_equal(old_shape[1], new_shape[1])
+    # should have added one new row
+    np.testing.assert_equal(old_shape[0] + 1, new_shape[0])
 
 
 #TODO: Add check for equivalence of Raw measurements
