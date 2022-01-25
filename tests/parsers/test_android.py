@@ -44,9 +44,9 @@ def fixture_derived_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset, 
+    Test data is a subset of the Android Raw Measurement Dataset,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
-    was retrieved from 
+    was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
@@ -72,9 +72,9 @@ def fixture_raw_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset, 
+    Test data is a subset of the Android Raw Measurement Dataset,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
-    was retrieved from 
+    was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
@@ -116,16 +116,24 @@ def fixture_inverse_col_map():
     inverse_col_map : Dict
         Column names for inverse map of form {standard_name : derived_name}
     """
-    inverse_col_map = {'toeMillis' : 'millisSinceGpsEpoch',
-                        'PRN' : 'svid',
-                        'x_sat_m' : 'xSatPosM',
-                        'y_sat_m' : 'ySatPosM',
-                        'z_sat_m' : 'zSatPosM',
-                        'vx_sat_mps' : 'xSatVelMps',
-                        'vy_sat_mps' : 'ySatVelMps',
-                        'vz_sat_mps' : 'zSatVelMps',
-                        'b_sat_m' : 'satClkBiasM',
-                        'b_dot_sat_mps' : 'satClkDriftMps'
+    inverse_col_map = {'trace_name' : 'collectionName',
+                       'rx_name' : 'phoneName',
+                       'gnss_id' : 'constellationType',
+                       'sv_id' : 'svid',
+                       'signal_type' : 'signalType',
+                       'x_sat_m' : 'xSatPosM',
+                       'y_sat_m' : 'ySatPosM',
+                       'z_sat_m' : 'zSatPosM',
+                       'vx_sat_mps' : 'xSatVelMps',
+                       'vy_sat_mps' : 'ySatVelMps',
+                       'vz_sat_mps' : 'zSatVelMps',
+                       'b_sat_m' : 'satClkBiasM',
+                       'b_dot_sat_mps' : 'satClkDriftMps',
+                       'raw_pr_m' : 'rawPrM',
+                       'raw_pr_sigma_m' : 'rawPrUncM',
+                       'intersignal_bias_m' : 'isrbM',
+                       'iono_delay_m' : 'ionoDelayM',
+                       'tropo_delay_m' : 'tropoDelayM',
                     }
     return inverse_col_map
 
@@ -169,11 +177,11 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
 
 
 @pytest.mark.parametrize('row_name, index, value',
-                        [('collectionName', 0, '2020-05-14-US-MTV-1'),
-                         ('phoneName', 1, 'Pixel4'),
+                        [('trace_name', 0, '2020-05-14-US-MTV-1'),
+                         ('rx_name', 1, 'Pixel4'),
                          ('vy_sat_mps', 7, 411.162),
                          ('b_dot_sat_mps', 41, -0.003),
-                         ('signalType', 6, 'GLO_G1')]
+                         ('signal_type', 6, 'GLO_G1')]
                         )
 def test_derived_value_check(derived, row_name, index, value):
     """Check AndroidDerived entries against known values using test matrix
@@ -241,7 +249,7 @@ def test_set_all(derived):
 
     # choose_rows = [0, 2, 3, 5, 6]
     old_vals = derived.array[:, assign_vals==1]
-    derived['all'] = derived['all', assign_vals==1]
+    derived['all'] = derived[:, assign_vals==1]
     np.testing.assert_equal(len(derived), num_ones)
     np.testing.assert_equal(derived.array[:, :], old_vals)
 
@@ -280,6 +288,24 @@ def test_measurement_type(derived):
     """
     isinstance(derived, Measurement)
     isinstance(derived, AndroidDerived)
+
+
+def test_shape_update(derived):
+    """Test that shape gets updated after adding a row.
+
+    Parameters
+    ----------
+    derived : pytest.fixture
+        Instance of AndroidDerived for testing
+    """
+    old_shape = derived.shape
+    derived["new_row"] = np.ones((old_shape[1]))
+    new_shape = derived.shape
+
+    # should still have the same number of columns (timesteps)
+    np.testing.assert_equal(old_shape[1], new_shape[1])
+    # should have added one new row
+    np.testing.assert_equal(old_shape[0] + 1, new_shape[0])
 
 
 #TODO: Add check for equivalence of Raw measurements
@@ -325,6 +351,3 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         df_slice = test_df[col_name].values
         np.testing.assert_almost_equal(measure_slice, df_slice)
     os.remove(csv_loc)
-
-
-

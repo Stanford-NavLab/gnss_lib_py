@@ -1,3 +1,5 @@
+.. _install:
+
 Install
 =======
 
@@ -58,7 +60,7 @@ Ubuntu/WSL2
 
 3. Clone the :code:`gnss_lib_py` repository.
 
-4. Inside the :code:`gnss_lib_py` run `pyenv local 3.8.9` (switching
+4. Inside the :code:`gnss_lib_py` run :code:`pyenv local 3.8.9` (switching
    out with the version of Python you installed in the previous step
    if different than 3.8.9) to set the Python version that code in the
    repository will run.

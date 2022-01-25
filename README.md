@@ -5,7 +5,7 @@
 Python library that provides solutions for easily processing, simulating, and localizaing using GNSS measurements.
 
 ## Installation instructions
-See installation structions in the documentation [here](https://github.com/Stanford-NavLab/gnss_lib_py/blob/documentation/docs/source/install.rst).
+See installation structions in the documentation [here](https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/docs/source/install.rst).
 
 ## Testing and Building Documentation
-View instructions on how to run tests and build documentation in the contributing guide [here](https://github.com/Stanford-NavLab/gnss_lib_py/blob/documentation/docs/source/contributing.rst).
+View instructions on how to run tests and build documentation in the contributing guide [here](https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/docs/source/contributing.rst).

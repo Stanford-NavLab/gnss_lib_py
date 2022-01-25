@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.abspath('../../gnss_lib_py/utils/'))
 # -- Project information -----------------------------------------------------
 
 project = 'gnss_lib_py'
-copyright = '2021, Ashwin Kanhere, Derek Knowles'
+copyright = '2022, Stanford NAV Lab'
 author = 'Ashwin Kanhere, Derek Knowles'
 
 
@@ -73,6 +73,11 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
 html_static_path = []
+
+html_theme_options = {
+    "style_nav_header_background" : "#8C1515",
+
+}
 
 html_logo = "nav_lab_logo.png"
 
