@@ -5,13 +5,13 @@
 __authors__ = "Ashwin Kanhere"
 __date__ = "03 Nov 2021"
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 
 
-class Measurement:
+class Measurement(ABC):
     #TODO: Add handling for datetime.datetime objects
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing

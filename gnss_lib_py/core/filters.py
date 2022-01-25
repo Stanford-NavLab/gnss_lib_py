@@ -5,12 +5,12 @@ __authors__ = "Ashwin Kanhere, Shivam Soni"
 __date__ = "20 Januray 2020"
 
 import numpy as np
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from gnss_lib_py.utils.matrices import check_col_vect, check_square_mat
 
 
-class BaseFilter():
+class BaseFilter(ABC):
 
     def __init__(self, x_dim, x0, P0):
         self.x_dim = x_dim
