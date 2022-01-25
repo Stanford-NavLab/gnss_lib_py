@@ -299,7 +299,7 @@ def test_shape_update(derived):
         Instance of AndroidDerived for testing
     """
     old_shape = derived.shape
-    derived["new_column"] = np.ones((old_shape[1]))
+    derived["new_row"] = np.ones((old_shape[1]))
     new_shape = derived.shape
 
     # should still have the same number of columns (timesteps)

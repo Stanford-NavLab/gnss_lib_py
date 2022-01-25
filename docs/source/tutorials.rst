@@ -19,20 +19,22 @@ How to Create a New Measurement Child Class
 -------------------------------------------
 The modular and versatile functionality of this :code:`gnss_lib_py`
 repository is enabled by loading all measurement data types into a
-standard Python `Measurement class <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/parsers/measurement.py>`__.
+custom Python `Measurement class <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/parsers/measurement.py>`__.
 If your measurements use a file type not already supported in the list
 on our :ref:`main page<mainpage>`, then you will need to create a new
-child measurement Python class. This tutorial will guide you on how to
+child Measurement Python class. This tutorial will guide you on how to
 set up your custom Python class. Once complete, please feel free to
 submit a pull request to our GitHub repository so other users can also
 make use of the added functionality.
 
 1. Create preprocess.
 
-2. Create postprocess
+2. Create postprocess. Must be defined for a valid child class. Use 
+   :code:`pass` inside the function definition if not performing any 
+   operations.
 
 3. Create a new :code:`_column_map()` function that translates the
-column names from the new measurement type into our standard names.
+   column names from the new measurement type into our standard names.
 
 Your finished class might look something like:
 

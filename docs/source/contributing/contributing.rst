@@ -41,7 +41,7 @@ public user, Stanford NAV Lab member, or a project maintainer.
 
 For increased user confidence, we have implemented testing across our
 code. We have pages on how to :ref:`write and run tests<testing>` and
-how to run :ref:`coverage reports<coverage>`
+how to create :ref:`coverage reports<coverage>`
 
 The :ref:`Documentation<documentation>` section includes a detailed
 guide on how to write and build documentation.
