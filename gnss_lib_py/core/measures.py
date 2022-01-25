@@ -538,7 +538,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
 
     # NOTE: Removed ionospheric delay calculation here
 
-    # calculate clock psuedorange correction
+    # calculate clock pseudorange correction
     pr_corr +=  clk_corr*consts.C
 
     if rx_ecef[0][0] is not None: # TODO: Reference using 2D array slicing

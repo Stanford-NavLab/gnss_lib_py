@@ -49,9 +49,11 @@ class AndroidDerived(Measurement):
         implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
         retrieved on 12 January, 2022
         """
-        pr_corrected = self['rawPrM', :] + self['b_sat_m', :] \
-                     - self['isrbM', :] - self['tropoDelayM', :] \
-                     - self['ionoDelayM', :]
+        pr_corrected = self['raw_pr_m', :] \
+                     + self['b_sat_m', :] \
+                     - self['intersignal_bias_m', :] \
+                     - self['tropo_delay_m', :] \
+                     - self['iono_delay_m', :]
         self['pseudo'] = pr_corrected
 
     @staticmethod
@@ -63,17 +65,25 @@ class AndroidDerived(Measurement):
         col_map : Dict
             Dictionary of the form {old_name : new_name}
         """
-        col_map = {'millisSinceGpsEpoch' : 'toeMillis',
-                'svid' : 'PRN',
-                'xSatPosM' : 'x_sat_m',
-                'ySatPosM' : 'y_sat_m',
-                'zSatPosM' : 'z_sat_m',
-                'xSatVelMps' : 'vx_sat_mps',
-                'ySatVelMps' : 'vy_sat_mps',
-                'zSatVelMps' : 'vz_sat_mps',
-                'satClkBiasM' : 'b_sat_m',
-                'satClkDriftMps' : 'b_dot_sat_mps',
-                }
+        col_map = {'collectionName' : 'trace_name',
+                   'phoneName' : 'rx_name',
+                   'constellationType' : 'gnss_id',
+                   'svid' : 'sv_id',
+                   'signalType' : 'signal_type',
+                   'xSatPosM' : 'x_sat_m',
+                   'ySatPosM' : 'y_sat_m',
+                   'zSatPosM' : 'z_sat_m',
+                   'xSatVelMps' : 'vx_sat_mps',
+                   'ySatVelMps' : 'vy_sat_mps',
+                   'zSatVelMps' : 'vz_sat_mps',
+                   'satClkBiasM' : 'b_sat_m',
+                   'satClkDriftMps' : 'b_dot_sat_mps',
+                   'rawPrM' : 'raw_pr_m',
+                   'rawPrUncM' : 'raw_pr_sigma_m',
+                   'isrbM' : 'intersignal_bias_m',
+                   'ionoDelayM' : 'iono_delay_m',
+                   'tropoDelayM' : 'tropo_delay_m',
+                   }
         return col_map
 
 
@@ -131,12 +141,12 @@ class AndroidRawImu(Measurement):
     @staticmethod
     def _column_map():
         col_map = {'AccelXMps2' : 'acc_x_mps2',
-                'AccelYMps2' : 'acc_y_mps2',
-                'AccelZMps2' : 'acc_z_mps2',
-                'GyroXRadPerSec' : 'omega_x_radps',
-                'GyroYRadPerSec' : 'omega_y_radps',
-                'GyroZRadPerSec' : 'omega_z_radps',
-                }
+                   'AccelYMps2' : 'acc_y_mps2',
+                   'AccelZMps2' : 'acc_z_mps2',
+                   'GyroXRadPerSec' : 'ang_vel_x_radps',
+                   'GyroYRadPerSec' : 'ang_vel_y_radps',
+                   'GyroZRadPerSec' : 'ang_vel_z_radps',
+                   }
         return col_map
 
 

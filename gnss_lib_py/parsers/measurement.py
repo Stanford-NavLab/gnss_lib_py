@@ -32,7 +32,6 @@ class Measurement:
         data_df = self.preprocess(input_path)
         self.build_measurement(data_df)
         self.postprocess()
-        #TODO: Add units?
 
     @abstractmethod
     def preprocess(self, input_path):
@@ -154,9 +153,8 @@ class Measurement:
         """
         rows = []
         cols = key_idx[1]
-        if key_idx[0] == 'all':
-            row_key = list(self.map.keys())
-            arr_slice = self.array[:, cols]
+        if isinstance(key_idx[0], slice):
+            arr_slice = self.array[key_idx[0], cols]
         else:
             if not isinstance(key_idx[0],list):
                 row_key = [key_idx[0]]
@@ -173,7 +171,7 @@ class Measurement:
         Parameters
         ----------
         key : string
-            Name of column to add/update
+            Name of row to add/update
 
         newvalue : numpy.ndarray/list
             List or array of values to be added to measurements
@@ -182,7 +180,7 @@ class Measurement:
         if key=='all':
             # Check that number of rows is consistent
             #NOTE: Might not be needed if dictionary updated here
-            assert np.shape(newvalue)[0] == self.shape()[0], \
+            assert np.shape(newvalue)[0] == self.shape[0], \
                 "Inconsistent rows between old and new array"
             self.array = newvalue
         elif key in self.map.keys():
@@ -234,6 +232,7 @@ class Measurement:
         length = np.shape(self.array)[1]
         return length
 
+    @property
     def shape(self):
         """Return shape of class
 
@@ -245,13 +244,14 @@ class Measurement:
         shp = np.shape(self.array)
         return shp
 
+    @property
     def rows(self):
-        """Return all rows in instance as a list
+        """Return all row names in instance as a list
 
         Returns
         -------
         rows : list
-            List of rows in measurements
+            List of row names in measurements
         """
         rows = list(self.map.keys())
         return rows
