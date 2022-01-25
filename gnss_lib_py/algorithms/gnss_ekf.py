@@ -9,4 +9,5 @@ import numpy as np
 from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
 
 class GNSSEKF(BaseExtendedKalmanFilter):
-    pass
+    def __init__():
+        pass

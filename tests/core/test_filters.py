@@ -10,10 +10,10 @@ import math
 import pytest
 from numpy.random import default_rng
 
-from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
+from gnss_lib_py.core.filters import BaseKalmanFilter
 
 
-class MSD_EKF(BaseExtendedKalmanFilter):
+class MSD_EKF(BaseKalmanFilter):
     #TODO: Define the state space, measurment space etc. here
     def __init__(self, init_dict, params_dict):
         self.rng = default_rng()
@@ -30,16 +30,20 @@ class MSD_EKF(BaseExtendedKalmanFilter):
         H = np.array([[1, 0]])
         return H
 
-    def measure_model(self, update_dict=None):
-        meas = self.x[0]
-        return meas
-
-    def dyn_model(self, u, predict_dict=None):
-        A = self.linearize_dynamics()
+    def get_B(self, predict_dict=None):
         B = np.zeros([2,1])
-        prop_noise = self.rng.multivariate_normal(np.zeros(self.x_dim), self.Q, size=1)
-        new_state = A @ self.x + B @ u + prop_noise.T
-        return new_state
+        return B
+
+    # def measure_model(self, update_dict=None):
+    #     meas = self.x[0]
+    #     return meas
+
+    # def dyn_model(self, u, predict_dict=None):
+    #     A = self.linearize_dynamics()
+    #     B = np.zeros([2,1])
+    #     # prop_noise = self.rng.multivariate_normal(np.zeros(self.x_dim), self.Q, size=1)
+    #     new_state = A @ self.x + B @ u # + prop_noise.T
+    #     return new_state
 
 
 
@@ -130,7 +134,7 @@ def test_exact_sol(times, x_exact, init_dict, filter_type):
                         (0.00001, 0.01),
                         (0.01, 0.01)])
 def test_filter_cov_tests(times, x_exact, init_dict, q, r, filter_type):
-    x_filter, P_pre, P_post = msd_filter_sol(times, x_exact, init_dict, q, r, filter_type)
+    _, P_pre, P_post = msd_filter_sol(times, x_exact, init_dict, q, r, filter_type)
     # Test that all P matrices are positive semidefinite
     for idx in range(np.shape(P_pre)[0]):
         # Cholesky factorization will fail if matrix is not PSD
