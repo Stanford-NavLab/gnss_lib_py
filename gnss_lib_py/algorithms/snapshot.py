@@ -16,6 +16,102 @@ __date__ = "19 July 2021"
 
 import numpy as np
 
+def solve_WLS(measurements):
+    """Runs weighted least squares across each timestep.
+
+    Runs weighted least squares across each timestep and adds a new
+    columns for the receiver's position and clock bias
+
+    Parameters
+    ----------
+    measurements : gnss_lib_py.parsers.measurement
+        Instance of the Measurement class
+
+    """
+
+    if "x_sat_m" not in measurements.rows:
+        raise KeyError("x_sat_m (ECEF x position of sv) missing.")
+    if "y_sat_m" not in measurements.rows:
+        raise KeyError("y_sat_m (ECEF y position of sv) missing.")
+    if "z_sat_m" not in measurements.rows:
+        raise KeyError("z_sat_m (ECEF z position of sv) missing.")
+    if "b_sat_m" not in measurements.rows:
+        raise KeyError("b_sat_m (clock bias of sv) missing.")
+
+    for timestep in np.unique(measurements["millisSinceGpsEpoch",:]):
+        # TODO: make this work across for gps_tow + gps_week
+        print(timestep)
+
+
+def wls(x_est, rb, data, tol = 1e-9, stationary = False):
+        """Weighted least squares solver for GNSS measurements
+        Parameters:
+        
+
+        input(s)
+            x_est:  [3 x 1] state estimate
+            rb: receiver clock bias
+            data: measurements DataFrame
+
+        Returns
+        -------
+        x: float or array
+            returns float of receiver clock bias if stationary == True
+            otherwise returns full state.
+
+        """
+        count = 0
+        delta = np.inf*np.ones((4,1))
+        MAX_COUNT = 20
+
+        numSats = len(data)
+
+        sat_pos = np.hstack((data["xSatPosM"].to_numpy().reshape(-1,1),
+                             data["ySatPosM"].to_numpy().reshape(-1,1),
+                             data["zSatPosM"].to_numpy().reshape(-1,1)))
+
+        x_est = x_est.copy()
+
+        while np.linalg.norm(delta) > 1E-9:
+
+            gt_pos = np.tile(x_est,(sat_pos.shape[0],1))
+
+            gt_psuedoranges = np.linalg.norm(gt_pos - sat_pos, axis = 1)
+
+            if stationary:
+                G = np.ones((numSats,1))
+            else:
+                G = np.ones((numSats,4))
+                G[:,:3] = np.divide(gt_pos - sat_pos,gt_psuedoranges.reshape(-1,1))
+
+            # W = np.diag(1./data["rawPrUncM"]**2)
+            W = np.diag(1./np.ones(len(data))**2)
+
+            rho_diff = data["correctedPrM"].to_numpy() \
+                     + data["satClkBiasM"].to_numpy() \
+                     - gt_psuedoranges \
+                     - rb
+
+            rho_diff = rho_diff.reshape(-1,1)
+
+            delta = np.linalg.pinv(W.dot(G)).dot(W).dot(rho_diff)
+
+            if stationary:
+                rb += delta[0,0]
+            else:
+                x_est += delta[0:3,0]
+                rb += delta[3,0]
+
+            count += 1
+            # print(stationary,count,np.linalg.norm(delta))
+            if count >= MAX_COUNT:
+                break
+
+        if stationary:
+            return rb
+        else:
+            return x_est, rb
+
 def solvepos(
     prange_measured:np.ndarray,
     x_sv:np.ndarray,

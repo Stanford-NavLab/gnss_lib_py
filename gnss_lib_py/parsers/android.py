@@ -54,7 +54,7 @@ class AndroidDerived(Measurement):
                      - self['intersignal_bias_m', :] \
                      - self['tropo_delay_m', :] \
                      - self['iono_delay_m', :]
-        self['pseudo'] = pr_corrected
+        self['corr_pr_m'] = pr_corrected
 
     @staticmethod
     def _column_map():
