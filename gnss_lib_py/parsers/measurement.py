@@ -20,7 +20,7 @@ class Measurement(ABC):
     ----------
     arr_dtype : numpy.dtype
         Type of values stored in data array
-    array : numpy.ndarray
+    array : np.ndarray
         Array containing measurements, dimension M x N
     map : Dict
         Map of the form {pandas column name : array row number }
@@ -92,7 +92,7 @@ class Measurement(ABC):
 
         Returns
         -------
-        df : pandas.DataFrame
+        df : pd.DataFrame
             DataFrame with measurements, including strings as strings
         """
         df_list = []
@@ -147,7 +147,7 @@ class Measurement(ABC):
 
         Returns
         -------
-        arr_slice : numpy.ndarray
+        arr_slice : np.ndarray
             Array of measurements containing row names and time indexed
             columns
         """
@@ -173,7 +173,7 @@ class Measurement(ABC):
         key : string
             Name of row to add/update
 
-        newvalue : numpy.ndarray/list
+        newvalue : np.ndarray/list
             List or array of values to be added to measurements
         """
         #TODO: Currently breaks if you pass strings as np.ndarray

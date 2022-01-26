@@ -1,4 +1,5 @@
 """Classes for GNSS-based Kalman Filter implementations
+
 """
 
 __authors__ = "Ashwin Kanhere"
@@ -9,6 +10,17 @@ import numpy as np
 from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
 
 class GNSSEKF(BaseExtendedKalmanFilter):
+    """GNSS-only EKF implementation
+    
+    Attributes
+    ----------
+    dt : float
+        Time between prediction instances
+    motion_type : string
+        Type of motion (stationary or constant velocity)
+    measure_type : string
+        Measurement types (pseudoranges)
+    """
     def __init__(self, init_dict, params_dict):
         super().__init__(init_dict, params_dict)
         self.dt = params_dict['dt']
@@ -22,11 +34,37 @@ class GNSSEKF(BaseExtendedKalmanFilter):
             self.measure_type = 'pseudoranges'
 
     def dyn_model(self, u, predict_dict=None):
+        """Non linear dynamics
+        
+        Parameters
+        ----------
+        u : np.ndarray
+            Control signal, not used for propagation
+        predict_dict : Dict
+            Additional prediction parameters, not used currently
+
+        Returns
+        -------
+        new_x : np.ndarray
+            Propagated state
+        """
         A = self.linearize_dynamics()
         new_x = A @ self.x
         return new_x
 
     def measure_model(self, update_dict):
+        """Measurement model
+
+        Parameters
+        ----------
+        update_dict : Dict
+            Update dictionary containing satellite positions with key 'sv_pos'
+
+        Returns
+        -------
+        z : np.ndarray
+            Expected measurement, depending on type (pseudorange)
+        """
         if self.measure_type=='pseudorange':
             sv_pos = update_dict['sv_pos']
             pseudo = np.sqrt((self.x[0] - sv_pos[0, :])**2 
@@ -39,6 +77,18 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         return z
 
     def linearize_dynamics(self, predict_dict=None):
+        """Linearization of dynamics model
+
+        Parameters
+        ----------
+        predict_dict : Dict
+            Additional predict parameters, not used in current implementation
+
+        Returns
+        -------
+        A : np.ndarray
+            Linear dynamics model depending on motion_type
+        """
         if self.motion_type == 'stationary':
             A = np.eye(7)
         elif self.motion_type == 'constant_velocity':
@@ -49,6 +99,18 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         return A
 
     def linearize_measurements(self, update_dict):
+        """Linearization of measurement model
+
+        Parameters
+        ----------
+        update_dict : Dict
+            Update dictionary containing satellite positions with key 'sv_pos'
+
+        Returns
+        -------
+        H : np.ndarray
+            Jacobian of measurement model, dimension M x N
+        """
         if self.measure_type == 'pseudorange':
             sv_pos = update_dict['sv_pos']
             m = np.shape(sv_pos)[1]

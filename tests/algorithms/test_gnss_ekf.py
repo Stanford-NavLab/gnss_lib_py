@@ -14,6 +14,13 @@ from gnss_lib_py.algorithms.gnss_ekf import GNSSEKF
 
 @pytest.fixture(name='init_dict')
 def gnss_init_params():
+    """Testing parameters for GNSS-only EKF
+
+    Returns
+    -------
+    init_dict : Dict
+        Dictionary with KF initialization parameters
+    """
     x0 = np.zeros([7, 1])
     x0[0] = -2700628.97971166
     x0[1] = -4292443.61165747
@@ -31,6 +38,13 @@ def gnss_init_params():
 
 @pytest.fixture(name="params_dict")
 def gnss_run_params():
+    """Run time parameters for GNSS-only EKF test
+
+    Returns
+    -------
+    params_dict : Dict
+        Dicitonary with satellite positions, dt and measure type
+    """
     sv_pos = np.array([
         [16033696.6255441, -19379870.1543683, -8529912.10997747],
         [-2904524.74773657, -26399200.3920454, -253278.373568479],
@@ -49,6 +63,18 @@ def gnss_run_params():
 @pytest.mark.parametrize('motion_type', ['stationary',
                                         'constant_velocity'])
 def test_stationary_filter(init_dict, params_dict, motion_type):
+    """Test if solution of EKF with small measurement noise is submeter 
+    close to truth
+    
+    Parameters
+    ----------
+    init_dict : Dict
+        Dictionary of initialization parameters
+    params_dict : Dict
+        Dictionary of run-time parameters for GNSS-only EKF
+    motion_type : string
+        Stationary or constant velocity
+    """
     # Run stationary filter for 10 timesteps and verify that obtained position is near original position
     run_rng = default_rng()
     params_dict['motion_type'] = motion_type
