@@ -34,18 +34,6 @@ class MSD_EKF(BaseKalmanFilter):
         B = np.zeros([2,1])
         return B
 
-    # def measure_model(self, update_dict=None):
-    #     meas = self.x[0]
-    #     return meas
-
-    # def dyn_model(self, u, predict_dict=None):
-    #     A = self.linearize_dynamics()
-    #     B = np.zeros([2,1])
-    #     # prop_noise = self.rng.multivariate_normal(np.zeros(self.x_dim), self.Q, size=1)
-    #     new_state = A @ self.x + B @ u # + prop_noise.T
-    #     return new_state
-
-
 
 @pytest.fixture(name="times")
 def msd_times():

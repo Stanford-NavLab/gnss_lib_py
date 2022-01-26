@@ -1,13 +1,62 @@
 """Classes for GNSS-based Kalman Filter implementations
 """
 
-__authors__ = "Ashwin Kanhere, Shivam Soni"
-__date__ = "20 Januray 2020"
+__authors__ = "Ashwin Kanhere"
+__date__ = "25 Januray 2020"
 
 import numpy as np
 
 from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
 
 class GNSSEKF(BaseExtendedKalmanFilter):
-    def __init__():
-        pass
+    def __init__(self, init_dict, params_dict):
+        super().__init__(init_dict, params_dict)
+        self.dt = params_dict['dt']
+        try:
+            self.motion_type = params_dict['motion_type']
+        except KeyError:
+            self.motion_type = 'stationary'
+        try:
+            self.measure_type = params_dict['measure_type']
+        except KeyError:
+            self.measure_type = 'pseudoranges'
+
+    def dyn_model(self, u, predict_dict=None):
+        A = self.linearize_dynamics()
+        new_x = A @ self.x
+        return new_x
+
+    def measure_model(self, update_dict):
+        if self.measure_type=='pseudorange':
+            sv_pos = update_dict['sv_pos']
+            pseudo = np.sqrt((self.x[0] - sv_pos[0, :])**2 
+                            + (self.x[1] - sv_pos[1, :])**2 
+                            + (self.x[2] - sv_pos[2, :])**2) \
+                            + self.x[6]
+            z = np.reshape(pseudo, [-1, 1])
+        else:
+            raise NotImplementedError
+        return z
+
+    def linearize_dynamics(self, predict_dict=None):
+        if self.motion_type == 'stationary':
+            A = np.eye(7)
+        elif self.motion_type == 'constant_velocity':
+            A = np.eye(7)
+            A[:3, -4:-1] = self.dt*np.eye(3)
+        else:
+            raise NotImplementedError
+        return A
+
+    def linearize_measurements(self, update_dict):
+        if self.measure_type == 'pseudorange':
+            sv_pos = update_dict['sv_pos']
+            m = np.shape(sv_pos)[1]
+            H = np.zeros([m, self.x_dim])
+            pseudo_expect = self.measure_model(update_dict)
+            rx_pos = np.reshape(self.x[:3], [-1, 1])
+            H[:, :3] = (rx_pos - sv_pos).T/pseudo_expect
+            H[:, 6] = 1
+        else:
+            raise NotImplementedError
+        return H
