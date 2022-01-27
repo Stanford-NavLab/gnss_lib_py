@@ -1,8 +1,8 @@
 """Point solution methods using GNSS measurements.
 
 This module contains point solution methods for estimating position
-at a single GNSS measurement epoch. Position is solved using Newton-Raphson
-or Weighted Least Squares algorithms.
+at a single GNSS measurement epoch. Position is solved using the
+Weighted Least Squares algorithm.
 
 Notes
 -----
@@ -11,8 +11,8 @@ Notes
 
 """
 
-__authors__ = "Shubh Gupta, Bradley Collicott"
-__date__ = "19 July 2021"
+__authors__ = "D. Knowles"
+__date__ = "25 Jan 2022"
 
 import numpy as np
 
@@ -41,17 +41,41 @@ def solve_WLS(measurements):
     for timestep in np.unique(measurements["millisSinceGpsEpoch",:]):
         # TODO: make this work across for gps_tow + gps_week
         print(timestep)
+        idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
+        print("idx:\n",idxs)
+        pos_sv_m = np.hstack((measurements["x_sat_m",idxs].reshape(-1,1),
+                              measurements["y_sat_m",idxs].reshape(-1,1),
+                              measurements["z_sat_m",idxs].reshape(-1,1)))
+        corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
+        position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m)
+        print("calculated position:\n",position.shape,"\n",position)
 
 
-def wls(x_est, rb, data, tol = 1e-9, stationary = False):
+def wls(rx_est_m, pos_sv_m, corr_pr_m, stationary = False,
+        tol = 1e-7, max_count = 20):
         """Weighted least squares solver for GNSS measurements
-        Parameters:
-        
 
-        input(s)
-            x_est:  [3 x 1] state estimate
-            rb: receiver clock bias
-            data: measurements DataFrame
+        Parameters
+        ----------
+        rx_est_m : np.ndarray
+            Estimated receiver position in ECEF frame in meters and the
+            estimated receiver clock bias also in meters in an
+            array with shape (4 x 1) and the following order:
+            x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+        pos_sv_m : np.ndarray
+            Satellite positions as an array of shape [# svs x 3] where
+            the columns contain in order x_sv_m, y_sv_m, and z_sv_m.
+        corr_pr_m : np.ndarray
+            Corrected pseudoranges for all satellites with shape of
+            [# svs x 1]
+        stationary : bool
+            If True, then only the receiver clock bias is estimated.
+            Otherwise, both position and clock bias are estimated.
+        tol : float
+            Tolerance used for the convergence check.
+        max_count : int
+            Number of maximum iterations before process is aborted and
+            solution returned.
 
         Returns
         -------
@@ -60,211 +84,45 @@ def wls(x_est, rb, data, tol = 1e-9, stationary = False):
             otherwise returns full state.
 
         """
+
         count = 0
-        delta = np.inf*np.ones((4,1))
-        MAX_COUNT = 20
+        num_svs = pos_sv_m.shape[0]
+        pos_x_delta = np.inf*np.ones((4,1))
 
-        numSats = len(data)
+        while np.max(pos_x_delta) > tol:
+            print(rx_est_m[0:3,:].shape)
+            pos_rx_m = np.tile(rx_est_m[0:3,:].T, (num_svs, 1))
 
-        sat_pos = np.hstack((data["xSatPosM"].to_numpy().reshape(-1,1),
-                             data["ySatPosM"].to_numpy().reshape(-1,1),
-                             data["zSatPosM"].to_numpy().reshape(-1,1)))
-
-        x_est = x_est.copy()
-
-        while np.linalg.norm(delta) > 1E-9:
-
-            gt_pos = np.tile(x_est,(sat_pos.shape[0],1))
-
-            gt_psuedoranges = np.linalg.norm(gt_pos - sat_pos, axis = 1)
+            gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
+                                     keepdims = True)
 
             if stationary:
-                G = np.ones((numSats,1))
+                G = np.ones((num_svs,1))
             else:
-                G = np.ones((numSats,4))
-                G[:,:3] = np.divide(gt_pos - sat_pos,gt_psuedoranges.reshape(-1,1))
+                G = np.ones((num_svs,4))
+                G[:,:3] = np.divide(pos_rx_m - pos_sv_m,
+                                    gt_pr_m.reshape(-1,1))
 
-            # W = np.diag(1./data["rawPrUncM"]**2)
-            W = np.diag(1./np.ones(len(data))**2)
+            W = np.eye(num_svs)
 
-            rho_diff = data["correctedPrM"].to_numpy() \
-                     + data["satClkBiasM"].to_numpy() \
-                     - gt_psuedoranges \
-                     - rb
+            pr_delta = corr_pr_m - gt_pr_m - rx_est_m[3,0]
 
-            rho_diff = rho_diff.reshape(-1,1)
-
-            delta = np.linalg.pinv(W.dot(G)).dot(W).dot(rho_diff)
+            pos_x_delta = np.linalg.pinv(W.dot(G)).dot(W).dot(pr_delta)
 
             if stationary:
-                rb += delta[0,0]
+                rx_est_m[3,0] += pos_x_delta[0,0]
             else:
-                x_est += delta[0:3,0]
-                rb += delta[3,0]
+                rx_est_m += pos_x_delta
 
             count += 1
-            # print(stationary,count,np.linalg.norm(delta))
-            if count >= MAX_COUNT:
+
+            if count >= max_count:
+                raise RuntimeWarning("Newton Raphson did not converge.")
                 break
 
+
+
         if stationary:
-            return rb
+            return rx_est_m[-1]
         else:
-            return x_est, rb
-
-def solvepos(
-    prange_measured:np.ndarray,
-    x_sv:np.ndarray,
-    y_sv:np.ndarray,
-    z_sv:np.ndarray,
-    b_clk_sv:np.ndarray,
-    tol:float=1e-3
-):
-    # TODO: Modify code to perform WLS if weights are given
-    # TODO: Change inputs to either DataFrame or Matrix
-    """Find user position, clock bias using WLS or NR methods.
-
-    Find user position, clock bias by solving the weighted least squares
-    (WLS) problem for n satellites. If no weights are given, the Newton
-    Raphson (NR) position, clock bias solution is used instead.
-
-    Parameters
-    ----------
-    prange_measured : ndarray
-        Measured pseudoranges, dimension n
-    x_sv : np.ndarray
-        Satellite x positions, dimension n, units [m]
-    y_sv : np.ndarray
-        Satellite y positions, dimension n, units [m]
-    z_sv : np.ndarray
-        Satellite z positions, dimension n, units [m]
-    b_clk_sv : np.ndarray
-        Range bias due to satellite clock offset (c*dt), dimension n, units [m]
-    tol : float
-        Termination threshold for LS solver, units [~]
-
-    Returns
-    -------
-    user_fix : np.ndarray
-        Solved 3D position and clock bias estimate, dimension 4-by-1,
-        units [m]
-    """
-
-    def _compute_prange_residual(user_fix):
-        """Compute the difference between expected and received pseudoranges.
-
-        Parameters
-        ----------
-        user_fix : list
-            List of estimates for position and time
-        x_fix : float
-            User x position estimate, scalar, units [m]
-        y_fix : float
-            User y position estimate, scalar, units [m]
-        z_fix : float
-            User z position estimate, scalar, units [m]
-        b_clk_u : float
-            Range bias due to user clock offset (c*dt), scalar, units [m]
-
-        Returns
-        -------
-        prange_residual: np.ndarray
-            Float difference between expected and measured pseudoranges
-
-        """
-        x_fix, y_fix, z_fix, b_clk_u = list(user_fix)
-        range_geometric = np.sqrt((x_fix - x_sv)**2
-                                + (y_fix - y_sv)**2
-                                + (z_fix - z_sv)**2)
-
-        prange_expected = range_geometric + b_clk_u - b_clk_sv
-        prange_residual = prange_measured - prange_expected
-        return prange_residual
-
-    def _compute_prange_partials(user_fix):
-        # TODO: Vectorize jacobian calculation
-        """Compute the Jacobian of expected pseudorange with respect to the
-        user states.
-
-        Parameters
-        ----------
-        user_fix : list
-            List of estimates for position and time
-        x_fix : float
-            User x position estimate, scalar, units [m]
-        y_fix : float
-            User y position estimate, scalar, units [m]
-        z_fix : float
-            User z position estimate, scalar, units [m]
-        b_clk_u : float
-            Range bias due to user clock offset (c*dt), scalar, units [m]
-
-        Returns
-        -------
-        derivatives: np.ndarray
-            Jacobian matrix of expected pseudorange, dimension n-by-4
-
-        """
-        x_fix, y_fix, z_fix, _ = list(user_fix)
-        range_geometric = np.sqrt((x_fix - x_sv)**2
-                                + (y_fix - y_sv)**2
-                                + (z_fix - z_sv)**2)
-
-        derivatives = np.zeros((len(prange_measured), 4))
-        derivatives[:, 0] = -(x_fix - x_sv)/range_geometric
-        derivatives[:, 1] = -(y_fix - y_sv)/range_geometric
-        derivatives[:, 2] = -(z_fix - z_sv)/range_geometric
-        derivatives[:, 3] = -1
-        return derivatives
-
-    if len(prange_measured)<4:
-        return np.empty(4)
-    # Inital guess for position estimate and clock offset bias
-    x_fix, y_fix, z_fix, b_clk_u = 0., 0., 0., 0.
-    user_fix = np.array([x_fix, y_fix, z_fix, b_clk_u])
-
-    user_fix, _ = newton_raphson(
-        _compute_prange_residual,
-        _compute_prange_partials,
-        user_fix,
-        tol=tol
-    )
-
-    return user_fix.reshape([-1,1])
-
-def newton_raphson(f_x, df_dx, x_0, tol = 1e-3, lam = 1., max_count = 20):
-    """Newton-Raphson method to find zero of function.
-
-    Parameters
-    ----------
-    f_x : method
-        Function whose zero is required.
-    df_dx : method
-        Function that outputs derivative of f_x.
-    x_0: np.ndarray
-        Initial guess of solution.
-    tol: float
-        Maximum difference between consecutive guesses for termination.
-    lam: float
-        Scaling factor for step taken at each iteration.
-    max_count : int
-        Maximum number of iterations to perform before raising an error.
-
-    Returns
-    -------
-    x0 : np.ndarray
-        Solution for zero of function.
-    f_norm : float
-        Norm of function magnitude at solution point.
-
-    """
-    delta_x = np.ones_like(x_0)
-    count = 0
-    while np.sum(np.abs(delta_x)) > tol:
-        delta_x = lam*(np.linalg.pinv(df_dx(x_0)) @ f_x(x_0))
-        x_0 = x_0 - delta_x
-        count += 1
-        if count >= max_count:
-            raise RuntimeError("Newton Raphson did not converge.")
-    f_norm = np.linalg.norm(f_x(x_0))
-    return x_0, f_norm
+            return rx_est_m
