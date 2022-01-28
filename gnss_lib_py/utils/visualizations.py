@@ -5,6 +5,14 @@
 __authors__ = "D. Knowles"
 __date__ = "27 Jan 2022"
 
+import os
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
+from matplotlib.collections import LineCollection
+
+from gnss_lib_py.core.coordinates import LocalCoord
 
 def plot_skyplot(measurements, states):
     """Skyplot of data
@@ -67,13 +75,34 @@ def plot_skyplot(measurements, states):
     cc = 0
     for signal_type, signal_data in skyplot_data.items():
         ss = 0
+        color = "C" + str(cc % 10)
+        if signal_type == "GPS_L1":
+            cmap = "Reds"
+            color = "r"
+            marker = "o"
+        elif signal_type == "GAL_E1":
+            cmap = "Blues"
+            color = "b"
+            marker = "*"
+        elif signal_type == "GLO_G1":
+            cmap = "Greens"
+            color = "g"
+            marker = "P"
         for sv, sv_data in signal_data.items():
-            color = "C" + str(cc % 10)
+            points = np.array([sv_data[0], sv_data[1]]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            norm = plt.Normalize(0,len(segments))
+            lc = LineCollection(segments, cmap=cmap, norm=norm)
+            lc.set_array(range(len(segments)))
+            lc.set_linewidth(2)
+            lin = ax.add_collection(lc)
             if ss == 0:
-                ax.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
+                # ax.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
+                ax.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+                        marker=marker, label=signal_type)
             else:
-                ax.plot(sv_data[0],sv_data[1],c=color)
-            ax.plot(sv_data[0][-1],sv_data[1][-1],"o",c=color)
+                ax.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+                        marker=marker)
             ss += 1
         cc += 1
 
@@ -83,8 +112,7 @@ def plot_skyplot(measurements, states):
     ax.set_ylim(90,0)
     # yLabel = ['90', '', '', '60', '', '', '30', '', '', '']
 
-    plt.legend(bbox_to_anchor=(1.05, 1))
-    # plt.show()
+    ax.legend(bbox_to_anchor=(1.05, 1))
 
     plt_file = os.path.join(root_path,"dev","skyplot.png")
 
