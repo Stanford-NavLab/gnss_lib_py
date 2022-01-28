@@ -266,7 +266,7 @@ def test_filter_cov_tests(times, x_exact, init_dict, params_dict, q, r, filter_t
     _, P_pre, P_post = msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type)
     # Test that all P matrices are positive semidefinite
     for idx in range(np.shape(P_pre)[0]):
-        # Cholesky factorization will fail if matrix is not PSD
+        # Cholesky factorization will fail if matrix is not PD
         np.linalg.cholesky(P_pre[idx, :, :])
         np.linalg.cholesky(P_post[idx, :, :])
     # Covariance should decrease after EKF update
