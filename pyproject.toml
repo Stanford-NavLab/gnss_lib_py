@@ -18,6 +18,7 @@ pytest = "^6.2.5"
 pylint = "^2.11.1"
 pytest-cov = "^3.0.0"
 scipy = "^1.7.3"
+matplotlib = "^3.5.1"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "4.1.1"

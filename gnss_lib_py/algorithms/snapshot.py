@@ -27,6 +27,14 @@ def solve_WLS(measurements):
     measurements : gnss_lib_py.parsers.measurement
         Instance of the Measurement class
 
+    Returns
+    -------
+    states : np.ndarray
+        Estimated receiver position in ECEF frame in meters and the
+        estimated receiver clock bias also in meters in an
+        array with shape (4 x # timesteps) and the following order of
+        rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+
     """
 
     if "x_sat_m" not in measurements.rows:
@@ -38,18 +46,20 @@ def solve_WLS(measurements):
     if "b_sat_m" not in measurements.rows:
         raise KeyError("b_sat_m (clock bias of sv) missing.")
 
-    for timestep in np.unique(measurements["millisSinceGpsEpoch",:]):
+    for ii, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
         # TODO: make this work across for gps_tow + gps_week
-        print(timestep)
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
-        print("idx:\n",idxs)
         pos_sv_m = np.hstack((measurements["x_sat_m",idxs].reshape(-1,1),
                               measurements["y_sat_m",idxs].reshape(-1,1),
                               measurements["z_sat_m",idxs].reshape(-1,1)))
         corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
         position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m)
-        print("calculated position:\n",position.shape,"\n",position)
+        if ii == 0:
+            states = position
+        else:
+            states = np.hstack((states,position))
 
+    return states
 
 def wls(rx_est_m, pos_sv_m, corr_pr_m, stationary = False,
         tol = 1e-7, max_count = 20):
@@ -79,18 +89,21 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, stationary = False,
 
         Returns
         -------
-        x: float or array
-            returns float of receiver clock bias if stationary == True
-            otherwise returns full state.
+        rx_est_m : np.ndarray
+            Estimated receiver position in ECEF frame in meters and the
+            estimated receiver clock bias also in meters in an
+            array with shape (4 x 1) and the following order:
+            x_rx_m, y_rx_m, z_rx_m, b_rx_m.
 
         """
 
         count = 0
         num_svs = pos_sv_m.shape[0]
+        if num_svs < 4:
+            raise RuntimeError("Need at least four satellites for WLS.")
         pos_x_delta = np.inf*np.ones((4,1))
 
         while np.max(pos_x_delta) > tol:
-            print(rx_est_m[0:3,:].shape)
             pos_rx_m = np.tile(rx_est_m[0:3,:].T, (num_svs, 1))
 
             gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
