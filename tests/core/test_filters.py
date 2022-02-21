@@ -188,6 +188,7 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
         init_dict['Q'] = q*np.eye(init_dict['x_dim'])
         init_dict['R'] = r*np.eye(1)
         msd_filter = MSD_EKF(init_dict, params_dict)
+        # TODO: elif for 'ukf'
     else:
         raise NotImplementedError
     t_len = np.size(times)
@@ -211,7 +212,7 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
     return x_filter, P_pre, P_post
 
 
-@pytest.mark.parametrize("filter_type", ['ekf'])
+@pytest.mark.parametrize("filter_type", ['ekf', 'ukf'])
 def test_exact_sol(times, x_exact, init_dict, params_dict, filter_type):
     """Compare solution from KF to exact solution of the system
 
@@ -236,7 +237,7 @@ def test_exact_sol(times, x_exact, init_dict, params_dict, filter_type):
     np.testing.assert_array_almost_equal(x_exact, x_filter, decimal=2)
 
 
-@pytest.mark.parametrize("filter_type", ['ekf'])
+@pytest.mark.parametrize("filter_type", ['ekf', 'ukf'])
 @pytest.mark.parametrize('q, r',
                         [(0.01, 0.00001),
                         (0.00001, 0.01),

@@ -3,7 +3,7 @@
 """
 
 __authors__ = "Ashwin Kanhere, Shivam Soni"
-__date__ = "20 Januray 2020"
+__date__ = "20 January 2020"
 
 import numpy as np
 from abc import ABC, abstractmethod
@@ -23,6 +23,7 @@ class BaseFilter(ABC):
     P : np.ndarray
         Current uncertainty estimated for state estimate (2D covariance)
     """
+
     def __init__(self, x_dim, x0, P0):
         self.x_dim = x_dim
         assert check_col_vect(x0, self.x_dim), "Incorrect initial state shape"
@@ -55,6 +56,7 @@ class BaseExtendedKalmanFilter(BaseFilter):
     params_dict : Dict
         Dictionary of additional parameters required, implementation dependent
     """
+
     def __init__(self, init_dict, params_dict):
         super().__init__(init_dict['x_dim'], init_dict['x0'], init_dict['P0'])
         assert check_square_mat(init_dict['Q'], self.x_dim)
@@ -72,13 +74,13 @@ class BaseExtendedKalmanFilter(BaseFilter):
         predict_dict : Dict
             Additional parameters needed to implement predict step
         """
-        self.x = self.dyn_model(u, predict_dict) # Can pass parameters via predict_dict
+        self.x = self.dyn_model(u, predict_dict)  # Can pass parameters via predict_dict
         A = self.linearize_dynamics(predict_dict)
         self.P = A @ self.P @ A.T + self.Q
         assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after prediction"
         assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after prediction"
 
-    def update(self, z, update_dict=None):         
+    def update(self, z, update_dict=None):
         """Update the state of the filter given a noisy measurement of the state
 
         Parameters
@@ -89,11 +91,11 @@ class BaseExtendedKalmanFilter(BaseFilter):
             Additional parameters needed to implement update step
         """
         assert check_col_vect(z, np.size(z)), "Measurements are not a column vector"
-        H = self.linearize_measurements(update_dict) # Can pass arguments via update_dict      
+        H = self.linearize_measurements(update_dict)  # Can pass arguments via update_dict
         S = H @ self.P @ H.T + self.R
         K = self.P @ H.T @ np.linalg.inv(S)
-        z_expect = self.measure_model(update_dict) # Can pass arguments via update_dict
-        #Updating state
+        z_expect = self.measure_model(update_dict)  # Can pass arguments via update_dict
+        # Updating state
         self.x = self.x + K @ (z - z_expect)
         # Update covariance
         self.P = (np.eye(self.x_dim) - K @ H) @ self.P
@@ -130,6 +132,7 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
     case of BaseExtendedKalmanFilter with linear dynamics and measurement 
     model
     """
+
     def dyn_model(self, u, predict_dict=None):
         """Linear dynamics model
 
@@ -164,9 +167,166 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
         H = self.linearize_measurements(update_dict)
         z_expect = H @ self.x
         return z_expect
-    
+
     @abstractmethod
     def get_B(self, predict_dict=None):
         """Map from control to state, should return B matrix
+        """
+        raise NotImplementedError
+
+
+class BaseUKF(BaseFilter):
+    """General Unscented Kalman Filter implementation.
+    Class with general Unscented Kalman filter implementation
+
+    Attributes
+    ----------
+    Q : np.ndarray
+        Process noise covariance, tunable parameter
+    R : np.ndarray
+        Measurement noise covariance, tunable parameter
+    params_dict : Dict
+        Dictionary of additional parameters required, implementation dependent
+    """
+
+    def __init__(self, init_dict, params_dict):
+        super().__init__(init_dict['x_dim'], init_dict['x0'], init_dict['P0'])
+        assert check_square_mat(init_dict['Q'], self.x_dim)
+        self.Q = init_dict['Q']
+        self.R = init_dict['R']
+        if init_dict['lam']:
+            self.lam = init_dict['lam']
+        else:
+            self.lam = 2
+
+        if init_dict['N_sig']:
+            self.N_sig = init_dict['N_sig']
+        else:
+            self.N_sig = int(2 * self.x_dim + 1)
+
+        # TODO: Default Init handling - Done
+        self.params_dict = params_dict
+
+    def predict(self, u, predict_dict=None):
+        """Predict the state of the filter given the control input
+
+        Parameters
+        ----------
+        u : np.ndarray
+            The control signal given to the actual system, dimension x_dim x D
+        predict_dict : Dict
+            Additional parameters needed to implement predict step
+        """
+        # TODO: self.n_sig here if not new one - Done
+
+        N = self.x_dim
+        N_sig = self.N_sig
+        x_t_tm = np.zeros((N, N_sig))
+        x_tm_tm, W = self.U_transform()
+
+        for ind in range(N_sig):
+            self.x = x_tm_tm[:, ind]  # Since dynamics model uses "self.x"
+            x_t_tm[:, ind] = self.dyn_model(self, u)
+
+        mu_t_tm, S_t_tm = self.inv_U_transform(x_t_tm, W)
+        S_t_tm = S_t_tm + self.Q
+        self.x = mu_t_tm
+        self.P = S_t_tm
+        assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after prediction"
+        assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after prediction"
+
+    def update(self, z, update_dict=None):
+        """Update the state of the filter given a noisy measurement of the state
+
+        Parameters
+        ----------
+        z : np.ndarray
+            Noisy measurement of state, dimension M x 1
+        update_dict : Dict
+            Additional parameters needed to implement update step
+        """
+        assert check_col_vect(z, np.size(z)), "Measurements are not a column vector"
+        N = self.x_dim  # TODO: self.x_dim - Done
+        N_sig = self.N_sig  # TODO: N -> num_sig - Done
+        # TODO: Check initialization like lambda - Done
+
+        y_t_tm = np.zeros((np.shape(self.R)[0], N_sig))
+        S_xy_t_tm = np.zeros(N, np.shape(z)[0])
+
+        x_t_tm, W = self.U_transform()
+
+        for ind in range(N_sig):
+            y_t_tm[:, ind] = self.measure_model(x_t_tm[:, ind])  # TODO: simplify - does not have to follow EKF - Done
+
+        y_hat_t_tm, S_y_t_tm = self.inv_U_transform(W, y_t_tm)
+        S_y_t_tm = S_y_t_tm + self.R
+
+        for ind in range(N_sig):
+            # TODO: Don't use "temp1, etc." - Done
+            S_xy_t_tm = S_xy_t_tm + np.multiply(W[ind], np.matmul(x_t_tm[:, ind] - self.x,  np.transpose(y_t_tm[:, ind] - y_hat_t_tm)))
+
+        meas_res = z - y_hat_t_tm
+        self.x = self.x + S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ meas_res
+        self.P = self.P - S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ np.transpose(S_xy_t_tm)
+
+        assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after update"
+        assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after update"
+
+    def U_transform(self):
+        """
+        Sigma Point Transform
+        """
+        N = self.x_dim
+        N_sig = self.N_sig
+        X = np.zeros([N, N_sig])
+        W = np.zeros([N_sig, 1])
+        delta = np.linalg.cholesky((self.lam + N) * self.P)
+        X[:, 0] = self.x
+
+        for ind in range(N):
+            X[:, ind] = self.x + delta[:, ind]
+            X[:, ind + N] = self.x - delta[:, ind]
+
+        W[0] = self.lam / (self.lam + N)
+        W[1:] = (1 / (2 * (self.lam + N))) * np.ones([2 * N, 1])
+
+        return X, W
+
+    def inv_U_transform(self, W, x_t_tm):
+        """
+        Inverse Sigma Point Transform
+        """
+
+        N = self.x_dim
+        N_sig = self.N_sig
+        mu = np.sum(np.multiply(np.transpose(W), x_t_tm), axis=1)
+        S = np.zeros(np.shape(self.x)[0])
+        x_hat = x_t_tm - mu
+        for ind in range(N_sig):
+            S = S + np.multiply(W[ind], np.matmul(x_hat, np.transpose(x_hat)))
+
+        return mu, S
+
+    @abstractmethod
+    def linearize_dynamics(self, predict_dict=None):
+        """Linearization of system dynamics, should return A matrix
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def linearize_measurements(self, update_dict=None):
+        """Linearization of measurement model, should return H matrix
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def measure_model(self, update_dict=None):
+        """Non-linear measurement model
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def dyn_model(self, u, predict_dict=None):
+        """Non-linear dynamics model
         """
         raise NotImplementedError
