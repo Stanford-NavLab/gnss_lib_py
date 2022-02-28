@@ -232,6 +232,7 @@ def test_exact_sol(times, x_exact, init_dict, params_dict, filter_type):
     #TODO: Check why increasing the q value below from 0.001 to 0.01 makes the test pass
     x_filter, _, _ = msd_filter_sol(times, x_exact, init_dict, params_dict, 0.01, 0.0001, filter_type)
     #TODO: Why are different indices being compared here? Add findings as a note
+    # Note: Due to the setup, at time-step k=2, the estimation is for k=1.
     print('x_exact shape', x_exact.shape)
     print('x_filter shape', x_filter.shape)
     np.testing.assert_array_almost_equal(x_exact, x_filter, decimal=2)
