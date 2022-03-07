@@ -10,6 +10,7 @@ import pytest
 from numpy.random import default_rng
 
 from gnss_lib_py.core.filters import BaseKalmanFilter
+from gnss_lib_py.core.filters import BaseUKF
 
 
 class MSD_EKF(BaseKalmanFilter):
@@ -24,13 +25,14 @@ class MSD_EKF(BaseKalmanFilter):
     b : float
         Damping coeeficient of system
     """
-    #TODO: Define the state space, measurment space etc. here
+
+    # TODO: Define the state space, measurment space etc. here
     def __init__(self, init_dict, params_dict):
         self.k = params_dict['k']
         self.m = params_dict['m']
         self.b = params_dict['b']
         super().__init__(init_dict, params_dict)
-    
+
     def linearize_dynamics(self, predict_dict=None):
         """Linearization of dynamics model
 
@@ -77,8 +79,97 @@ class MSD_EKF(BaseKalmanFilter):
         B : np.ndarray
             2 x 1 array of all zero elements
         """
-        B = np.zeros([2,1])
+        B = np.zeros([2, 1])
         return B
+
+
+class MSD_UKF(BaseUKF):
+    """Mass spring damper system for testing EKF implementation
+
+    Attributes
+    ----------
+    k : float
+        Spring constant of system
+    m : float
+        Mass of system
+    b : float
+        Damping coefficient of system
+    """
+
+    # TODO: Define the state space, measurment space etc. here
+    def __init__(self, init_dict, params_dict):
+        self.k = params_dict['k']
+        self.m = params_dict['m']
+        self.b = params_dict['b']
+        super().__init__(init_dict, params_dict)
+
+    def linearize_dynamics(self, predict_dict=None):
+        """Linearization of dynamics model
+
+        Parameters
+        ----------
+        predict_dict : Dict
+            Additional predict parameters, not used in current implementation
+
+        Returns
+        -------
+        A : np.ndarray
+            Linear dynamics model for MSD
+        B : np.ndarray
+            Linear input state matrix for MSD
+        """
+        A = np.array([[0, 1], [-self.k / self.m, -self.b / self.m]])
+        B = np.zeros([2, 1])
+        return A, B
+
+    def dyn_model(self, x, u, predict_dict=None):
+        """Full dynamics model
+
+                Parameters
+                ----------
+                x : UKF belief state under unscented transformation
+                u : Input vector
+                predict_dict : Dict
+                    Additional update parameters, not used in current implementation
+
+                Returns
+                -------
+                x : np.ndarray
+                    predicted state, dimension 2 x 1
+        """
+        A, B = self.linearize_dynamics()
+        return A @ x + B @ u
+
+    def linearize_measurements(self, update_dict=None):
+        """Linearization of measurement model
+
+        Parameters
+        ----------
+        update_dict : Dict
+            Additional update parameters, not used in current implementation
+
+        Returns
+        -------
+        H : np.ndarray
+            Jacobian of measurement model, dimension 2 x 1
+        """
+        H = np.array([[1, 0]])
+        return H
+
+    def measure_model(self, update_dict=None):
+        """Full measurement model
+
+                Parameters
+                ----------
+                update_dict : Dict
+                    Additional update parameters, not used in current implementation
+
+                Returns
+                -------
+                y : np.ndarray
+                    measurement, dimension 2 x 1
+        """
+        return self.linearize_measurements() @ self.x
 
 
 @pytest.fixture(name="times")
@@ -140,6 +231,21 @@ def msd_ekf_params():
     return ekf_init_dict
 
 
+@pytest.fixture(name="init_dict")
+def msd_ukf_params():
+    """Return dictionary of initial parameters for MSD UKF implementation
+
+    Returns
+    -------
+    ekf_init_dict : Dict
+        Dictionary with UKF state dimension, initial state and covariance
+    """
+    ukf_init_dict = {'x_dim': 2,
+                     'x0': np.array([[1], [1]]),
+                     'P0': np.eye(2)}
+    return ukf_init_dict
+
+
 @pytest.fixture(name="params_dict")
 def msd_params():
     """Return dictionary of additional parameters for MSD KF implementation
@@ -150,8 +256,8 @@ def msd_params():
         Dictionary with MSD mass, spring constant and damping coefficient
     """
     params = {'m': 1,
-            'b' : 2,
-            'k' : 4}
+              'b': 2,
+              'k': 4}
     return params
 
 
@@ -165,7 +271,7 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
     x_exact : np.ndarray
         Vector containing exact state positions
     init_dict : Dict
-        Dictionary of EKF initialization parameters
+        Dictionary of filter initialization parameters
     params_dict : Dict
         Dictionary of MSD parameters
     q : float
@@ -184,11 +290,15 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
     P_post : np.ndarray
         State covariance after update step, dimension T x 2 x 2
     """
-    if filter_type=='ekf':
-        init_dict['Q'] = q*np.eye(init_dict['x_dim'])
-        init_dict['R'] = r*np.eye(1)
+    if filter_type == 'ekf':
+        init_dict['Q'] = q * np.eye(init_dict['x_dim'])
+        init_dict['R'] = r * np.eye(1)
         msd_filter = MSD_EKF(init_dict, params_dict)
-        # TODO: elif for 'ukf'
+    elif filter_type == 'ukf':
+        init_dict['Q'] = q * np.eye(init_dict['x_dim'])
+        init_dict['R'] = r * np.eye(1)
+        msd_filter = MSD_UKF(init_dict, params_dict)
+        # TODO: elif for 'ukf' - Done
     else:
         raise NotImplementedError
     t_len = np.size(times)
@@ -198,7 +308,7 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
     x_filter = np.empty([0, 1])
     P_pre = np.empty([0, 2, 2])
     P_post = np.empty([0, 2, 2])
-    
+
     for t_idx in range(t_len):
         msd_filter.predict(u)
         P_pre_temp = np.reshape(msd_filter.P, [1, msd_filter.x_dim, msd_filter.x_dim])
@@ -223,15 +333,15 @@ def test_exact_sol(times, x_exact, init_dict, params_dict, filter_type):
     x_exact : np.ndarray
         Vector containing exact state positions
     init_dict : Dict
-        Dictionary of EKF initialization parameters
+        Dictionary of filter initialization parameters
     params_dict : Dict
         Dictionary of MSD parameters
     filter_type : string
         Type of filter to test, currently ekf
     """
-    #TODO: Check why increasing the q value below from 0.001 to 0.01 makes the test pass
+    # TODO: Check why increasing the q value below from 0.001 to 0.01 makes the test pass
     x_filter, _, _ = msd_filter_sol(times, x_exact, init_dict, params_dict, 0.01, 0.0001, filter_type)
-    #TODO: Why are different indices being compared here? Add findings as a note
+    # TODO: Why are different indices being compared here? Add findings as a note
     # Note: Due to the setup, at time-step k=2, the estimation is for k=1.
     print('x_exact shape', x_exact.shape)
     print('x_filter shape', x_filter.shape)
@@ -240,9 +350,9 @@ def test_exact_sol(times, x_exact, init_dict, params_dict, filter_type):
 
 @pytest.mark.parametrize("filter_type", ['ekf', 'ukf'])
 @pytest.mark.parametrize('q, r',
-                        [(0.01, 0.00001),
-                        (0.00001, 0.01),
-                        (0.01, 0.01)])
+                         [(0.01, 0.00001),
+                          (0.00001, 0.01),
+                          (0.01, 0.01)])
 def test_filter_cov_tests(times, x_exact, init_dict, params_dict, q, r, filter_type):
     """
     Test that covariance is PSD, decreases after update and increases

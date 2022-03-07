@@ -194,12 +194,12 @@ class BaseUKF(BaseFilter):
         assert check_square_mat(init_dict['Q'], self.x_dim)
         self.Q = init_dict['Q']
         self.R = init_dict['R']
-        if init_dict['lam']:
+        if 'lam' in init_dict:
             self.lam = init_dict['lam']
         else:
             self.lam = 2
 
-        if init_dict['N_sig']:
+        if 'N_sig' in init_dict:
             self.N_sig = init_dict['N_sig']
         else:
             self.N_sig = int(2 * self.x_dim + 1)
@@ -222,12 +222,14 @@ class BaseUKF(BaseFilter):
         N = self.x_dim
         N_sig = self.N_sig
         x_t_tm = np.zeros((N, N_sig))
+
+        # Compute U-Transform:
         x_tm_tm, W = self.U_transform()
 
         for ind in range(N_sig):
-            self.x = x_tm_tm[:, ind]  # Since dynamics model uses "self.x"
-            x_t_tm[:, ind] = self.dyn_model(self, u)
+            x_t_tm[:, ind] = self.dyn_model(self, x_tm_tm[:, ind], u)
 
+        # Compute Inverse U-Transform:
         mu_t_tm, S_t_tm = self.inv_U_transform(x_t_tm, W)
         S_t_tm = S_t_tm + self.Q
         self.x = mu_t_tm
@@ -263,7 +265,8 @@ class BaseUKF(BaseFilter):
 
         for ind in range(N_sig):
             # TODO: Don't use "temp1, etc." - Done
-            S_xy_t_tm = S_xy_t_tm + np.multiply(W[ind], np.matmul(x_t_tm[:, ind] - self.x,  np.transpose(y_t_tm[:, ind] - y_hat_t_tm)))
+            S_xy_t_tm = S_xy_t_tm + np.multiply(W[ind], np.matmul(x_t_tm[:, ind] - self.x,
+                                                                  np.transpose(y_t_tm[:, ind] - y_hat_t_tm)))
 
         meas_res = z - y_hat_t_tm
         self.x = self.x + S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ meas_res
@@ -281,11 +284,11 @@ class BaseUKF(BaseFilter):
         X = np.zeros([N, N_sig])
         W = np.zeros([N_sig, 1])
         delta = np.linalg.cholesky((self.lam + N) * self.P)
-        X[:, 0] = self.x
+        X[:, 0] = np.squeeze(self.x)
 
         for ind in range(N):
-            X[:, ind] = self.x + delta[:, ind]
-            X[:, ind + N] = self.x - delta[:, ind]
+            X[:, ind + 1] = np.squeeze(self.x) + delta[:, ind]
+            X[:, ind + 1 + N] = np.squeeze(self.x) - delta[:, ind]
 
         W[0] = self.lam / (self.lam + N)
         W[1:] = (1 / (2 * (self.lam + N))) * np.ones([2 * N, 1])
@@ -300,7 +303,7 @@ class BaseUKF(BaseFilter):
         N = self.x_dim
         N_sig = self.N_sig
         mu = np.sum(np.multiply(np.transpose(W), x_t_tm), axis=1)
-        S = np.zeros(np.shape(self.x)[0])
+        S = np.zeros([N, N])
         x_hat = x_t_tm - mu
         for ind in range(N_sig):
             S = S + np.multiply(W[ind], np.matmul(x_hat, np.transpose(x_hat)))
@@ -326,7 +329,8 @@ class BaseUKF(BaseFilter):
         raise NotImplementedError
 
     @abstractmethod
-    def dyn_model(self, u, predict_dict=None):
+    def dyn_model(self, x, u, predict_dict=None):
         """Non-linear dynamics model
         """
         raise NotImplementedError
+
