@@ -6,6 +6,7 @@ __authors__ = "Ashwin Kanhere, Shivam Soni"
 __date__ = "20 January 2020"
 
 import numpy as np
+from scipy.linalg import sqrtm
 from abc import ABC, abstractmethod
 
 from gnss_lib_py.utils.matrices import check_col_vect, check_square_mat
@@ -227,10 +228,12 @@ class BaseUKF(BaseFilter):
         x_tm_tm, W = self.U_transform()
 
         for ind in range(N_sig):
-            x_t_tm[:, ind] = self.dyn_model(self, x_tm_tm[:, ind], u)
+            # Todo: Change x_tm_tm[:, ind] Shape
+            x_sigma = np.expand_dims(x_tm_tm[:, ind], axis=1)
+            x_t_tm[:, [ind]] = self.dyn_model(x_sigma, u, predict_dict)
 
         # Compute Inverse U-Transform:
-        mu_t_tm, S_t_tm = self.inv_U_transform(x_t_tm, W)
+        mu_t_tm, S_t_tm = self.inv_U_transform(W, x_t_tm)
         S_t_tm = S_t_tm + self.Q
         self.x = mu_t_tm
         self.P = S_t_tm
@@ -253,24 +256,24 @@ class BaseUKF(BaseFilter):
         # TODO: Check initialization like lambda - Done
 
         y_t_tm = np.zeros((np.shape(self.R)[0], N_sig))
-        S_xy_t_tm = np.zeros(N, np.shape(z)[0])
+        S_xy_t_tm = np.zeros((N, np.shape(z)[0]))
 
         x_t_tm, W = self.U_transform()
 
         for ind in range(N_sig):
-            y_t_tm[:, ind] = self.measure_model(x_t_tm[:, ind])  # TODO: simplify - does not have to follow EKF - Done
+            y_t_tm[:, [ind]] = self.measure_model(x_t_tm[:, [ind]])
+            # TODO: simplify - does not have to follow EKF - Done
 
         y_hat_t_tm, S_y_t_tm = self.inv_U_transform(W, y_t_tm)
         S_y_t_tm = S_y_t_tm + self.R
 
         for ind in range(N_sig):
             # TODO: Don't use "temp1, etc." - Done
-            S_xy_t_tm = S_xy_t_tm + np.multiply(W[ind], np.matmul(x_t_tm[:, ind] - self.x,
-                                                                  np.transpose(y_t_tm[:, ind] - y_hat_t_tm)))
+            S_xy_t_tm = S_xy_t_tm + W[ind] * np.outer((x_t_tm[:, [ind]] - self.x),  (y_t_tm[:, [ind]] - y_hat_t_tm))
 
         meas_res = z - y_hat_t_tm
         self.x = self.x + S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ meas_res
-        self.P = self.P - S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ np.transpose(S_xy_t_tm)
+        self.P = self.P - S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ S_xy_t_tm.T
 
         assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after update"
         assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after update"
@@ -283,7 +286,7 @@ class BaseUKF(BaseFilter):
         N_sig = self.N_sig
         X = np.zeros([N, N_sig])
         W = np.zeros([N_sig, 1])
-        delta = np.linalg.cholesky((self.lam + N) * self.P)
+        delta = sqrtm((self.lam + N) * self.P)
         X[:, 0] = np.squeeze(self.x)
 
         for ind in range(N):
@@ -300,21 +303,21 @@ class BaseUKF(BaseFilter):
         Inverse Sigma Point Transform
         """
 
-        N = self.x_dim
+        N = x_t_tm.shape[0]
         N_sig = self.N_sig
         mu = np.sum(np.multiply(np.transpose(W), x_t_tm), axis=1)
         S = np.zeros([N, N])
-        x_hat = x_t_tm - mu
+        x_hat = x_t_tm - np.expand_dims(mu, axis=1)
         for ind in range(N_sig):
-            S = S + np.multiply(W[ind], np.matmul(x_hat, np.transpose(x_hat)))
+            S = S + W[ind] * np.outer(x_hat[:, [ind]], x_hat[:, [ind]])
 
-        return mu, S
+        return np.expand_dims(mu, axis=1), S
 
-    @abstractmethod
-    def linearize_dynamics(self, predict_dict=None):
-        """Linearization of system dynamics, should return A matrix
-        """
-        raise NotImplementedError
+    # @abstractmethod
+    # def linearize_dynamics(self, predict_dict=None):
+    #     """Linearization of system dynamics, should return A matrix
+    #     """
+    #     raise NotImplementedError
 
     @abstractmethod
     def linearize_measurements(self, update_dict=None):
@@ -323,7 +326,7 @@ class BaseUKF(BaseFilter):
         raise NotImplementedError
 
     @abstractmethod
-    def measure_model(self, update_dict=None):
+    def measure_model(self, x, update_dict=None):
         """Non-linear measurement model
         """
         raise NotImplementedError
@@ -333,4 +336,3 @@ class BaseUKF(BaseFilter):
         """Non-linear dynamics model
         """
         raise NotImplementedError
-

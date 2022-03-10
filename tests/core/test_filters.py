@@ -103,25 +103,6 @@ class MSD_UKF(BaseUKF):
         self.b = params_dict['b']
         super().__init__(init_dict, params_dict)
 
-    def linearize_dynamics(self, predict_dict=None):
-        """Linearization of dynamics model
-
-        Parameters
-        ----------
-        predict_dict : Dict
-            Additional predict parameters, not used in current implementation
-
-        Returns
-        -------
-        A : np.ndarray
-            Linear dynamics model for MSD
-        B : np.ndarray
-            Linear input state matrix for MSD
-        """
-        A = np.array([[0, 1], [-self.k / self.m, -self.b / self.m]])
-        B = np.zeros([2, 1])
-        return A, B
-
     def dyn_model(self, x, u, predict_dict=None):
         """Full dynamics model
 
@@ -137,7 +118,14 @@ class MSD_UKF(BaseUKF):
                 x : np.ndarray
                     predicted state, dimension 2 x 1
         """
-        A, B = self.linearize_dynamics()
+        """
+        A : np.ndarray
+            Linear dynamics model for MSD
+        B : np.ndarray
+            Linear input state matrix for MSD
+        """
+        A = np.array([[0, 1], [-self.k / self.m, -self.b / self.m]])
+        B = np.zeros([2, 1])
         return A @ x + B @ u
 
     def linearize_measurements(self, update_dict=None):
@@ -156,20 +144,22 @@ class MSD_UKF(BaseUKF):
         H = np.array([[1, 0]])
         return H
 
-    def measure_model(self, update_dict=None):
+    def measure_model(self, x, update_dict=None):
         """Full measurement model
 
                 Parameters
                 ----------
                 update_dict : Dict
                     Additional update parameters, not used in current implementation
+                x: np.ndarray
+                    State for measurement model
 
                 Returns
                 -------
                 y : np.ndarray
                     measurement, dimension 2 x 1
         """
-        return self.linearize_measurements() @ self.x
+        return self.linearize_measurements() @ x
 
 
 @pytest.fixture(name="times")
