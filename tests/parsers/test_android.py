@@ -232,10 +232,10 @@ def test_get_and_set_str(derived):
     key = 'testing123_string'
     value = ['word']*len(derived)
     derived[key] = value
-    print('Raw array is ')
-    print(value)
-    print('Converted array is ')
-    print(derived[key, :])
+#     print('Raw array is ')
+#     print(value)
+#     print('Converted array is ')
+#     print(derived[key, :])
     np.testing.assert_equal(derived[key, :], np.zeros([1, len(derived)]))
 
 def test_set_all(derived):
