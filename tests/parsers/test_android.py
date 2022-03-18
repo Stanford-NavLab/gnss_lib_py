@@ -232,8 +232,14 @@ def test_get_and_set_str(derived):
     key = 'testing123_string'
     value = ['word']*len(derived)
     derived[key] = value
-    np.testing.assert_equal(derived[key, :], np.zeros([1, len(derived)]))
-
+    try:
+        np.testing.assert_equal(derived[key, :], np.zeros([1, len(derived)]))
+    except AssertionError:
+        print('Raw array is ')
+        print(value)
+        print('Converted array is ')
+        print(derived[key, :])
+        raise ValueError # To fail the test anyway
 
 def test_set_all(derived):
     """Testing __setitem__ method for all rows simultaneously
