@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 from numpy.random import default_rng
 
-from gnss_lib_py.algorithms.gnss_ekf import GNSSEKF
+from gnss_lib_py.algorithms.gnss_filters import GNSSEKF
 
 
 @pytest.fixture(name='init_dict')
