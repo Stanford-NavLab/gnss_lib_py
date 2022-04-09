@@ -155,7 +155,7 @@ class MSD_UKF(BaseUnscentedKalmanFilter):
         y : np.ndarray
             measurement, dimension 2 x 1
         """
-        H = self.linerize_measurements()
+        H = self.linearize_measurements()
         z_expect = H @ x
         return z_expect
 
