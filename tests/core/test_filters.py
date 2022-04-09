@@ -10,7 +10,7 @@ import pytest
 from numpy.random import default_rng
 
 from gnss_lib_py.core.filters import BaseKalmanFilter
-from gnss_lib_py.core.filters import BaseUKF
+from gnss_lib_py.core.filters import BaseUnscentedKalmanFilter
 
 
 class MSD_EKF(BaseKalmanFilter):
@@ -83,7 +83,7 @@ class MSD_EKF(BaseKalmanFilter):
         return B
 
 
-class MSD_UKF(BaseUKF):
+class MSD_UKF(BaseUnscentedKalmanFilter):
     """Mass spring damper system for testing EKF implementation
 
     Attributes

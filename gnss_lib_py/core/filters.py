@@ -75,6 +75,7 @@ class BaseExtendedKalmanFilter(BaseFilter):
         predict_dict : Dict
             Additional parameters needed to implement predict step
         """
+        assert check_col_vect(u, np.size(u)), "Control input is not a column vector"
         self.x = self.dyn_model(u, predict_dict)  # Can pass parameters via predict_dict
         A = self.linearize_dynamics(predict_dict)
         self.P = A @ self.P @ A.T + self.Q
@@ -96,6 +97,7 @@ class BaseExtendedKalmanFilter(BaseFilter):
         S = H @ self.P @ H.T + self.R
         K = self.P @ H.T @ np.linalg.inv(S)
         z_expect = self.measure_model(update_dict)  # Can pass arguments via update_dict
+        assert check_col_vect(z_expect, np.size(z)), "Expected measurements are not a column vector"
         # Updating state
         self.x = self.x + K @ (z - z_expect)
         # Update covariance
@@ -176,7 +178,7 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
         raise NotImplementedError
 
 
-class BaseUKF(BaseFilter):
+class BaseUnscentedKalmanFilter(BaseFilter):
     """General Unscented Kalman Filter implementation.
     Class with general Unscented Kalman filter implementation
 
@@ -204,8 +206,6 @@ class BaseUKF(BaseFilter):
             self.N_sig = init_dict['N_sig']
         else:
             self.N_sig = int(2 * self.x_dim + 1)
-
-        # TODO: Default Init handling - Done
         self.params_dict = params_dict
 
     def predict(self, u, predict_dict=None):
@@ -218,7 +218,6 @@ class BaseUKF(BaseFilter):
         predict_dict : Dict
             Additional parameters needed to implement predict step
         """
-        # TODO: self.n_sig here if not new one - Done
 
         N = self.x_dim
         N_sig = self.N_sig
@@ -251,9 +250,8 @@ class BaseUKF(BaseFilter):
             Additional parameters needed to implement update step
         """
         assert check_col_vect(z, np.size(z)), "Measurements are not a column vector"
-        N = self.x_dim  # TODO: self.x_dim - Done
-        N_sig = self.N_sig  # TODO: N -> num_sig - Done
-        # TODO: Check initialization like lambda - Done
+        N = self.x_dim  
+        N_sig = self.N_sig
 
         y_t_tm = np.zeros((np.shape(self.R)[0], N_sig))
         S_xy_t_tm = np.zeros((N, np.shape(z)[0]))
@@ -262,13 +260,11 @@ class BaseUKF(BaseFilter):
 
         for ind in range(N_sig):
             y_t_tm[:, [ind]] = self.measure_model(x_t_tm[:, [ind]])
-            # TODO: simplify - does not have to follow EKF - Done
 
         y_hat_t_tm, S_y_t_tm = self.inv_U_transform(W, y_t_tm)
         S_y_t_tm = S_y_t_tm + self.R
 
         for ind in range(N_sig):
-            # TODO: Don't use "temp1, etc." - Done
             S_xy_t_tm = S_xy_t_tm + W[ind] * np.outer((x_t_tm[:, [ind]] - self.x),  (y_t_tm[:, [ind]] - y_hat_t_tm))
 
         meas_res = z - y_hat_t_tm
@@ -312,18 +308,6 @@ class BaseUKF(BaseFilter):
             S = S + W[ind] * np.outer(x_hat[:, [ind]], x_hat[:, [ind]])
 
         return np.expand_dims(mu, axis=1), S
-
-    # @abstractmethod
-    # def linearize_dynamics(self, predict_dict=None):
-    #     """Linearization of system dynamics, should return A matrix
-    #     """
-    #     raise NotImplementedError
-
-    @abstractmethod
-    def linearize_measurements(self, update_dict=None):
-        """Linearization of measurement model, should return H matrix
-        """
-        raise NotImplementedError
 
     @abstractmethod
     def measure_model(self, x, update_dict=None):
