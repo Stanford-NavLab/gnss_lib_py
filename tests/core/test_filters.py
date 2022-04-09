@@ -106,27 +106,23 @@ class MSD_UKF(BaseUnscentedKalmanFilter):
     def dyn_model(self, x, u, predict_dict=None):
         """Full dynamics model
 
-                Parameters
-                ----------
-                x : UKF belief state under unscented transformation
-                u : Input vector
-                predict_dict : Dict
-                    Additional update parameters, not used in current implementation
+        Parameters
+        ----------
+        x : UKF belief state under unscented transformation
+        u : Input vector
+        predict_dict : Dict
+            Additional update parameters, not used in current implementation
 
-                Returns
-                -------
-                x : np.ndarray
-                    predicted state, dimension 2 x 1
+        Returns
+        -------
+        x_new : np.ndarray
+            predicted state, dimension 2 x 1
         """
-        """
-        A : np.ndarray
-            Linear dynamics model for MSD
-        B : np.ndarray
-            Linear input state matrix for MSD
-        """
+
         A = np.array([[0, 1], [-self.k / self.m, -self.b / self.m]])
         B = np.zeros([2, 1])
-        return A @ x + B @ u
+        x_new = A @ x + B @ u
+        return x_new
 
     def linearize_measurements(self, update_dict=None):
         """Linearization of measurement model
@@ -147,19 +143,21 @@ class MSD_UKF(BaseUnscentedKalmanFilter):
     def measure_model(self, x, update_dict=None):
         """Full measurement model
 
-                Parameters
-                ----------
-                update_dict : Dict
-                    Additional update parameters, not used in current implementation
-                x: np.ndarray
-                    State for measurement model
+        Parameters
+        ----------
+        update_dict : Dict
+            Additional update parameters, not used in current implementation
+        x: np.ndarray
+            State for measurement model
 
-                Returns
-                -------
-                y : np.ndarray
-                    measurement, dimension 2 x 1
+        Returns
+        -------
+        y : np.ndarray
+            measurement, dimension 2 x 1
         """
-        return self.linearize_measurements() @ x
+        H = self.linerize_measurements()
+        z_expect = H @ x
+        return z_expect
 
 
 @pytest.fixture(name="times")
