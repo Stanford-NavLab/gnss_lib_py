@@ -231,12 +231,16 @@ def test_get_and_set_str(derived):
     """
     key = 'testing123_string'
     value = ['word']*len(derived)
+    derived_size = len(derived)
+    size1 = int(derived_size/2)
+    size2 = (derived_size-int(derived_size/2))
+    value1 = ['ashwin']*size1
+    value2 = ['derek']*size2
+    value = np.concatenate((np.asarray(value1, dtype=object), np.asarray(value2, dtype=object)))
     derived[key] = value
-#     print('Raw array is ')
-#     print(value)
-#     print('Converted array is ')
-#     print(derived[key, :])
-    np.testing.assert_equal(derived[key, :], np.zeros([1, len(derived)]))
+    
+    control_arr = np.hstack((np.zeros((1, size1)), np.ones((1, size2))))
+    np.testing.assert_equal(derived[key, :], control_arr)
 
 def test_set_all(derived):
     """Testing __setitem__ method for all rows simultaneously
