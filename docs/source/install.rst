@@ -24,6 +24,27 @@ Install dependencies with pip:
 
     pip3 install -r requirements.txt
 
+Update pip version. For Linux:
+
+.. code-block:: bash
+   
+   pip install -U pip
+
+For Windows: 
+
+.. code-block:: bash
+   
+   python -m pip install -U pip
+
+Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+
+.. code-block:: bash
+   
+   pip install -e .
+
+Verify installation by running :code:`pytest`
+
+
 .. _developer install:
 
 Developer Installation
