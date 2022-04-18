@@ -10,7 +10,10 @@ import numpy as np
 from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
 
 class GNSSEKF(BaseExtendedKalmanFilter):
-    """GNSS-only EKF implementation
+    """GNSS-only EKF implementation.
+
+    States: 3D position, 3D velocity and clock bias (in m).
+    The state vector is :math:`\\bar{x} = [x, y, z, v_x, v_y, v_y, b]^T`
     
     Attributes
     ----------
