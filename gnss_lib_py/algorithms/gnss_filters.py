@@ -58,6 +58,9 @@ class GNSSEKF(BaseExtendedKalmanFilter):
     def measure_model(self, update_dict):
         """Measurement model
 
+        Pseudorange model adds true range and clock bias estimate:
+        :math:`\\rho = \\sqrt{(x-x_{sat})^2 + (y-y_{sat})^2 + (z-z_{sat})^2} + b`
+
         Parameters
         ----------
         update_dict : Dict
@@ -67,6 +70,13 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         -------
         z : np.ndarray
             Expected measurement, depending on type (pseudorange)
+        References
+        ----------
+        .. [1] Morton, Y. Jade, Frank van Diggelen, James J. Spilker Jr,
+            Bradford W. Parkinson, Sherman Lo, and Grace Gao, eds.
+            Position, navigation, and timing technologies in the 21st century:
+            integrated satellite navigation, sensor systems, and civil
+            applications. John Wiley & Sons, 2021.
         """
         if self.measure_type=='pseudorange':
             sv_pos = update_dict['sv_pos']
