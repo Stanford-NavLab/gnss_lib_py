@@ -1,4 +1,5 @@
 #!/bin/bash
+poetry export -f requirements.txt --output ./docs/source/requirements.txt
 cd docs
 echo "Rebuilding References"
 rm -rv ./source/reference/algorithms/*
@@ -13,5 +14,4 @@ echo "Cleaning up existing make"
 poetry run make clean
 echo "Building docs in html"
 poetry run make html
-cd ..
-poetry export -f requirements.txt --output ./docs/source/requirements.txt
+

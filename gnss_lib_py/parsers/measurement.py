@@ -191,13 +191,14 @@ class Measurement:
             values = newvalue
             self.map[key] = np.shape(self.array)[0]
             if isinstance(newvalue[0], str):
-                assert isinstance(newvalue, list), \
-                    "Only lists supported with strings"
+                assert isinstance(newvalue, np.ndarray), \
+                    "Only numpy arrays supported with strings"
                 #TODO: Replace this and in __init__ with private method?
-                string_vals = np.unique(newvalue[:])
+                string_vals = np.unique(newvalue)
                 val_dict = dict(enumerate(string_vals))
                 self.str_map[key] = val_dict
-                added_vals = np.empty(np.shape(newvalue), dtype=self.arr_dtype)
+                added_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+                # Set unassigned value to int not accessed by string map
                 for str_key, str_val in val_dict.items():
                     added_vals[values==str_val] = str_key
                 # Copy set to false to prevent memory overflows
