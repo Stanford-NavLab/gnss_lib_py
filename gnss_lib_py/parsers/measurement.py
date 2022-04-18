@@ -58,7 +58,7 @@ class Measurement:
             raise ValueError("Empty data_df passed to build_measurement")
         num_times = len(data_df)
         self.arr_dtype = np.float64
-        self.array = np.empty([0, num_times], dtype= self.arr_dtype)
+        self.array = np.zeros([0, num_times], dtype= self.arr_dtype)
         # Using an empty array to conserve space and not maintain huge duplicates
         self.map = {col_name: idx for idx, col_name in enumerate(data_df.columns)}
         str_bool = {col_name: isinstance(data_df.loc[0, col_name], str) \
@@ -119,7 +119,7 @@ class Measurement:
             1D array with string entries corresponding to dataset
         """
         values_int = self.array[self.map[key],:].astype(int)
-        values_str = values_int.astype(str, copy=True)
+        values_str = values_int.astype(object, copy=True)
         # True by default but making explicit for clarity
         for str_key, str_val in self.str_map[key].items():
             values_str[values_int==str_key] = str_val
