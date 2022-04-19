@@ -5,13 +5,13 @@
 __authors__ = "Ashwin Kanhere"
 __date__ = "03 Nov 2021"
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 
 
-class Measurement:
+class Measurement(ABC):
     #TODO: Add handling for datetime.datetime objects
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing
@@ -20,7 +20,7 @@ class Measurement:
     ----------
     arr_dtype : numpy.dtype
         Type of values stored in data array
-    array : numpy.ndarray
+    array : np.ndarray
         Array containing measurements, dimension M x N
     map : Dict
         Map of the form {pandas column name : array row number }
@@ -92,7 +92,7 @@ class Measurement:
 
         Returns
         -------
-        df : pandas.DataFrame
+        df : pd.DataFrame
             DataFrame with measurements, including strings as strings
         """
         df_list = []
@@ -147,7 +147,7 @@ class Measurement:
 
         Returns
         -------
-        arr_slice : numpy.ndarray
+        arr_slice : np.ndarray
             Array of measurements containing row names and time indexed
             columns
         """
@@ -173,7 +173,7 @@ class Measurement:
         key : string
             Name of row to add/update
 
-        newvalue : numpy.ndarray/list
+        newvalue : np.ndarray/list
             List or array of values to be added to measurements
         """
         #TODO: Currently breaks if you pass strings as np.ndarray
@@ -207,6 +207,20 @@ class Measurement:
                 self.str_map[key] = {}
             self.array = np.vstack((self.array, \
                         np.reshape(newvalue, [1, -1])))
+
+    def __iter__(self):
+        self.curr_col = 0
+        self.num_cols = np.shape(self.array)[1]
+        return self
+
+    def __next__(self):
+        if self.curr_col < self.num_cols:
+            #TODO: Replace 'all' with slice for all rows
+            x_curr = self['all', self.curr_col]
+            self.curr_col += 1
+            return x_curr
+        else:
+            raise StopIteration
 
     def __len__(self):
         """Return length of class

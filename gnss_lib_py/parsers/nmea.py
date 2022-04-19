@@ -7,6 +7,7 @@ __date__ = "16 Jul 2021"
 
 import pynmea2
 import numpy as np
+import calendar
 
 from gnss_lib_py.core import coordinates as coord
 

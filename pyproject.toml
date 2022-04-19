@@ -18,15 +18,17 @@ pytest = "^6.2.5"
 pylint = "^2.11.1"
 pytest-cov = "^3.0.0"
 scipy = "^1.7.3"
+jupyter = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
-Sphinx = "4.1.1"
-sphinx-rtd-theme = "0.5.2"
-sphinxcontrib-napoleon = "0.7"
+Sphinx = "^4.1.1"
+sphinx-rtd-theme = "^0.5.2"
+sphinxcontrib-napoleon = "^0.7"
 notebook = "^6.4.2"
 ipykernel = "^6.0.3"
 jupyter = "^1.0.0"
 pyproj = "^3.1.0"
+pylint-exit = "^1.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
