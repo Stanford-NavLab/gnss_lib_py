@@ -35,4 +35,4 @@ jobs:
       run: poetry install
     - name: Analysing the code with pylint
       run: |
-        poetry run pylint $(git ls-files 'gnss_lib_py/*.py')
+        poetry run pylint $(git ls-files 'gnss_lib_py/*.py') || poetry run pylint-exit --error-fail $?
