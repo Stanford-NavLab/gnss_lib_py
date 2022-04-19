@@ -59,7 +59,8 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         """Measurement model
 
         Pseudorange model adds true range and clock bias estimate:
-        :math:`\\rho = \\sqrt{(x-x_{sat})^2 + (y-y_{sat})^2 + (z-z_{sat})^2} + b`
+        :math:`\\rho = \\sqrt{(x-x_{sat})^2 + (y-y_{sat})^2 + (z-z_{sat})^2} + b`.
+        See [1]_ for more details and models.
 
         Parameters
         ----------
