@@ -14,4 +14,4 @@ echo "Cleaning up existing make"
 poetry run make clean
 echo "Building docs in html"
 poetry run make html
-
+poetry export -f requirements.txt --output requirements.txt --without-hashes
