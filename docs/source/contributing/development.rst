@@ -64,7 +64,7 @@ NAVLab GitHub Workflow
 ----------------------
 
 1. Follow the :ref:`developer install instructions<developer install>`
-to install pyenv, poetry, python dependencies, and clone the repository.
+   to install pyenv, poetry, python dependencies, and clone the repository.
 
 2. Update your local :code:`poetry` environment to include all packages
    being used by using :code:`poetry install`
