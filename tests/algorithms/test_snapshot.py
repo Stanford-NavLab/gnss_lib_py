@@ -95,12 +95,51 @@ def test_wls(set_user_states, set_sv_states, tolerance):
     gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                              keepdims = True) + rx_truth_m[3,0]
 
-    user_fix = wls(np.zeros((4,1)), pos_sv_m, gt_pr_m)
+    rx_est_m = np.zeros((4,1))
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m)
     truth_fix = rx_truth_m
 
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
                                          decimal=tolerance)
 
+def test_wls_stationary(set_user_states, set_sv_states, tolerance):
+    """Test WLS positioning against truth user states.
+
+    In these stationary tests, it is only solving for clock bias.
+
+    Parameters
+    ----------
+    set_user_states : fixture
+        Truth values for user position and clock bias
+    set_sv_states : fixture
+        Satellite position and clock biases
+    tolerance : fixture
+        Error threshold for test pass/fail
+    """
+    rx_truth_m  = set_user_states
+    pos_sv_m = set_sv_states
+
+    # Compute noise-free pseudorange measurements
+    pos_rx_m = np.tile(rx_truth_m[0:3,:].T, (pos_sv_m.shape[0], 1))
+
+    gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
+                             keepdims = True) + rx_truth_m[3,0]
+
+    # check that position doesn't change but clock bias does change
+    rx_est_m = np.zeros((4,1))
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True)
+    np.testing.assert_array_almost_equal(user_fix[:3], np.zeros((3,1)),
+                                         decimal=tolerance)
+    assert abs(user_fix[3]) >= 1E5
+
+    # check that correct clock bias is calculated
+    rx_est_m = np.zeros((4,1))
+    rx_est_m[:3] = rx_truth_m[:3]
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True)
+    truth_fix = rx_truth_m
+
+    np.testing.assert_array_almost_equal(user_fix, truth_fix,
+                                         decimal=tolerance)
 
 # @pytest.fixture(name="root_path")
 # def fixture_root_path():
@@ -168,7 +207,7 @@ def test_wls(set_user_states, set_sv_states, tolerance):
 # root_path = fixture_root_path()
 # derived_path = fixture_derived_path(root_path)
 # derived = fixture_load_derived(derived_path)
-# # solution = solve_WLS(derived)
+# # solution = solve_wls(derived)
 # # print(derived.rows)
 #
 # test_wls(fixture_set_user_states(), fixture_set_sv_states(), fixture_tolerance())

@@ -2,7 +2,7 @@
 
 """
 
-__authors__ = "Ashwin Kanhere"
+__authors__ = "Ashwin Kanhere, D. Knowles"
 __date__ = "03 Nov 2021"
 
 from abc import ABC, abstractmethod
