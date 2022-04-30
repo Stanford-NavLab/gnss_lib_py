@@ -61,9 +61,25 @@ def create_numpy_array():
     test_array = np.array([[1,2,3,4],
                             [15,16,17,18],
                             [29,30,31.5,32.3],
-                            [0.5,0.6,0.7,0.8]
+                            [0.5,0.6,0.7,0.8],
+                            [-3.0,-1.2,-100.,-2.7],
+                            [-543,-234,-986,-123],
                             ])
     return test_array
+
+
+@pytest.fixture(name="data_csv")
+def create_data_csv(csv_path):
+    """Create test fixture for Measurement from csv
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+
+    """
+
+    return Measurement(csv=csv_path)
 
 def test_init_blank():
     """Test initializing blank Measurement class
@@ -84,7 +100,7 @@ def test_init_csv(csv_path):
 
     data = Measurement(csv=csv_path)
 
-def test_init_pd(pd_df):
+def test_init_pd(pandas_df):
     """Test initializing Measurement class with pandas dataframe
 
     Parameters
@@ -94,10 +110,10 @@ def test_init_pd(pd_df):
 
     """
 
-    data = Measurement(pandas=csv_path)
+    data = Measurement(pandas=pandas_df)
 
 
-def test_init_np(np_array):
+def test_init_np(numpy_array):
     """Test initializing Measurement class with numpy array
 
     Parameters
@@ -107,7 +123,4 @@ def test_init_np(np_array):
 
     """
 
-    try:
-        data = Measurement(numpy=np_array)
-    except Exception as err:
-        assert False
+    data = Measurement(numpy=numpy_array)
