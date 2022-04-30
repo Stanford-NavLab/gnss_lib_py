@@ -5,13 +5,13 @@
 __authors__ = "Ashwin Kanhere"
 __date__ = "03 Nov 2021"
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
 
 
-class Measurement:
+class Measurement(ABC):
     #TODO: Add handling for datetime.datetime objects
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing
@@ -20,7 +20,7 @@ class Measurement:
     ----------
     arr_dtype : numpy.dtype
         Type of values stored in data array
-    array : numpy.ndarray
+    array : np.ndarray
         Array containing measurements, dimension M x N
     map : Dict
         Map of the form {pandas column name : array row number }
@@ -58,7 +58,7 @@ class Measurement:
             raise ValueError("Empty data_df passed to build_measurement")
         num_times = len(data_df)
         self.arr_dtype = np.float64
-        self.array = np.empty([0, num_times], dtype= self.arr_dtype)
+        self.array = np.zeros([0, num_times], dtype= self.arr_dtype)
         # Using an empty array to conserve space and not maintain huge duplicates
         self.map = {col_name: idx for idx, col_name in enumerate(data_df.columns)}
         str_bool = {col_name: isinstance(data_df.loc[0, col_name], str) \
@@ -92,7 +92,7 @@ class Measurement:
 
         Returns
         -------
-        df : pandas.DataFrame
+        df : pd.DataFrame
             DataFrame with measurements, including strings as strings
         """
         df_list = []
@@ -119,7 +119,7 @@ class Measurement:
             1D array with string entries corresponding to dataset
         """
         values_int = self.array[self.map[key],:].astype(int)
-        values_str = values_int.astype(str, copy=True)
+        values_str = values_int.astype(object, copy=True)
         # True by default but making explicit for clarity
         for str_key, str_val in self.str_map[key].items():
             values_str[values_int==str_key] = str_val
@@ -147,7 +147,7 @@ class Measurement:
 
         Returns
         -------
-        arr_slice : numpy.ndarray
+        arr_slice : np.ndarray
             Array of measurements containing row names and time indexed
             columns
         """
@@ -173,7 +173,7 @@ class Measurement:
         key : string
             Name of row to add/update
 
-        newvalue : numpy.ndarray/list
+        newvalue : np.ndarray/list
             List or array of values to be added to measurements
         """
         #TODO: Currently breaks if you pass strings as np.ndarray
@@ -191,13 +191,14 @@ class Measurement:
             values = newvalue
             self.map[key] = np.shape(self.array)[0]
             if isinstance(newvalue[0], str):
-                assert isinstance(newvalue, list), \
-                    "Only lists supported with strings"
+                assert isinstance(newvalue, np.ndarray), \
+                    "Only numpy arrays supported with strings"
                 #TODO: Replace this and in __init__ with private method?
-                string_vals = np.unique(newvalue[:])
+                string_vals = np.unique(newvalue)
                 val_dict = dict(enumerate(string_vals))
                 self.str_map[key] = val_dict
-                added_vals = np.empty(np.shape(newvalue), dtype=self.arr_dtype)
+                added_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+                # Set unassigned value to int not accessed by string map
                 for str_key, str_val in val_dict.items():
                     added_vals[values==str_val] = str_key
                 # Copy set to false to prevent memory overflows
@@ -206,6 +207,20 @@ class Measurement:
                 self.str_map[key] = {}
             self.array = np.vstack((self.array, \
                         np.reshape(newvalue, [1, -1])))
+
+    def __iter__(self):
+        self.curr_col = 0
+        self.num_cols = np.shape(self.array)[1]
+        return self
+
+    def __next__(self):
+        if self.curr_col < self.num_cols:
+            #TODO: Replace 'all' with slice for all rows
+            x_curr = self['all', self.curr_col]
+            self.curr_col += 1
+            return x_curr
+        else:
+            raise StopIteration
 
     def __len__(self):
         """Return length of class
