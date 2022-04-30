@@ -14,10 +14,6 @@ import pandas as pd
 
 from gnss_lib_py.parsers.measurement import Measurement
 
-instance = Measurement(csv="")
-instance = Measurement()
-instance = Measurement(numpy=np.array)
-
 @pytest.fixture(name="root_path")
 def fixture_root_path():
     """Location of measurements for unit test
@@ -68,3 +64,50 @@ def create_numpy_array():
                             [0.5,0.6,0.7,0.8]
                             ])
     return test_array
+
+def test_init_blank():
+    """Test initializing blank Measurement class
+
+    """
+
+    data = Measurement()
+
+def test_init_csv(csv_path):
+    """Test initializing Measurement class with csv
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+
+    """
+
+    data = Measurement(csv=csv_path)
+
+def test_init_pd(pd_df):
+    """Test initializing Measurement class with pandas dataframe
+
+    Parameters
+    ----------
+    pd_df : pd.DataFrame
+        Pandas DataFrame containing data
+
+    """
+
+    data = Measurement(pandas=csv_path)
+
+
+def test_init_np(np_array):
+    """Test initializing Measurement class with numpy array
+
+    Parameters
+    ----------
+    np_array : np.ndarray
+        Numpy array containing data
+
+    """
+
+    try:
+        data = Measurement(numpy=np_array)
+    except Exception as err:
+        assert False
