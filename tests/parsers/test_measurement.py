@@ -14,8 +14,14 @@ import pandas as pd
 
 from gnss_lib_py.parsers.measurement import Measurement
 
-@pytest.fixture(name="root_path")
-def fixture_root_path():
+
+@pytest.fixture(name="csv_path",
+                params=["measurement_test_simple.csv",
+                        # "measurement_test_mixed.csv",
+                        # "measurement_test_headless.csv",
+                       ],
+                )
+def fixture_csv_path(request):
     """Location of measurements for unit test
 
     Returns
@@ -28,23 +34,10 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.realpath(__file__))))
     root_path = os.path.join(root_path, 'data/unit_test/')
-    return root_path
 
+    csv_path = os.path.join(root_path, request.param)
 
-@pytest.fixture(name="csv_path")
-def fixture_derived_path(root_path):
-    """Filepath of CSV file to test measurements
-
-
-    Returns
-    -------
-    derived_path : string
-        Location for .csv file to test Measurement functionality
-
-    """
-    csv_path = os.path.join(root_path, 'measure_test.csv')
     return csv_path
-
 
 @pytest.fixture(name="pandas_df")
 def load_test_dataframe(csv_path):
@@ -68,18 +61,31 @@ def create_numpy_array():
     return test_array
 
 
-@pytest.fixture(name="data_csv")
-def create_data_csv(csv_path):
-    """Create test fixture for Measurement from csv
+# @pytest.fixture(name="data")
+# def create_data_csv(csv_path):
+#     """Create test fixture for Measurement from csv
+#
+#     Parameters
+#     ----------
+#     csv_path : string
+#         Path to csv file containing data
+#
+#     """
+#
+#     return Measurement(csv=csv_path)
+
+@pytest.fixture(name="data")
+def create_data_pd(pandas_df):
+    """Create test fixture for Measurement from pandas dataframe
 
     Parameters
     ----------
-    csv_path : string
-        Path to csv file containing data
+    pandas_df : pd.DataFrame
+        Pandas DataFrame containing data
 
     """
 
-    return Measurement(csv=csv_path)
+    return Measurement(pandas_df=pandas_df)
 
 def test_init_blank():
     """Test initializing blank Measurement class
@@ -87,6 +93,7 @@ def test_init_blank():
     """
 
     data = Measurement()
+
 
 def test_init_csv(csv_path):
     """Test initializing Measurement class with csv
@@ -98,19 +105,66 @@ def test_init_csv(csv_path):
 
     """
 
-    data = Measurement(csv=csv_path)
+    # should work when csv is passed
+    data = Measurement(csv_path=csv_path)
+
+    # raises exception if not a file path
+    with pytest.raises(OSError):
+        data = Measurement(csv_path="")
+
+    # raises exception if input int
+    with pytest.raises(TypeError):
+        data = Measurement(csv_path=1)
+
+    # raises exception if input float
+    with pytest.raises(TypeError):
+        data = Measurement(csv_path=1.2)
+
+    # raises exception if input list
+    with pytest.raises(TypeError):
+        data = Measurement(csv_path=[])
+
+    # raises exception if input numpy ndarray
+    with pytest.raises(TypeError):
+        data = Measurement(csv_path=np.array([0]))
+
+    # raises exception if input pandas dataframe
+    with pytest.raises(TypeError):
+        data = Measurement(csv_path=pd.DataFrame([0]))
+
 
 def test_init_pd(pandas_df):
     """Test initializing Measurement class with pandas dataframe
 
     Parameters
     ----------
-    pd_df : pd.DataFrame
+    pandas_df : pd.DataFrame
         Pandas DataFrame containing data
 
     """
 
-    data = Measurement(pandas=pandas_df)
+    # should work if pass in pandas dataframe
+    data = Measurement(pandas_df=pandas_df)
+
+    # raises exception if input int
+    with pytest.raises(TypeError):
+        data = Measurement(pandas_df=1)
+
+    # raises exception if input float
+    with pytest.raises(TypeError):
+        data = Measurement(pandas_df=1.2)
+
+    # raises exception if input string
+    with pytest.raises(TypeError):
+        data = Measurement(pandas_df="")
+
+    # raises exception if input list
+    with pytest.raises(TypeError):
+        data = Measurement(pandas_df=[])
+
+    # raises exception if input numpy ndarray
+    with pytest.raises(TypeError):
+        data = Measurement(pandas_df=np.array([0]))
 
 
 def test_init_np(numpy_array):
@@ -118,9 +172,46 @@ def test_init_np(numpy_array):
 
     Parameters
     ----------
-    np_array : np.ndarray
+    numpy_array : np.ndarray
         Numpy array containing data
 
     """
 
-    data = Measurement(numpy=numpy_array)
+    # should work if input numpy ndarray
+    data = Measurement(numpy_array=numpy_array)
+
+    # raises exception if input int
+    with pytest.raises(TypeError):
+        data = Measurement(numpy_array=1)
+
+    # raises exception if input float
+    with pytest.raises(TypeError):
+        data = Measurement(numpy_array=1.2)
+
+    # raises exception if input string
+    with pytest.raises(TypeError):
+        data = Measurement(numpy_array="")
+
+    # raises exception if input list
+    with pytest.raises(TypeError):
+        data = Measurement(numpy_array=[])
+
+    # raises exception if input pandas dataframe
+    with pytest.raises(TypeError):
+        data = Measurement(numpy_array=pd.DataFrame([0]))
+
+
+def test_rename(data):
+    """Test column renaming functionality.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.Measurement
+        test data
+
+    """
+    print("\n")
+    print("arr_dtype:\n",data.arr_dtype)
+    print("array:\n",data.array)
+    print("map:\n",data.map)
+    print("str_map:\n",data.str_map)

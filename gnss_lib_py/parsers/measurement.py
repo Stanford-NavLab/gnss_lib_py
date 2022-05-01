@@ -2,9 +2,10 @@
 
 """
 
-__authors__ = "Ashwin Kanhere"
+__authors__ = "Ashwin Kanhere, D. Knowles"
 __date__ = "03 Nov 2021"
 
+import os
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -12,7 +13,6 @@ import pandas as pd
 
 
 class Measurement(ABC):
-    #TODO: Add handling for datetime.datetime objects
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing
 
@@ -28,40 +28,68 @@ class Measurement(ABC):
         Map of the form {pandas column name : {array value : string}}.
         Map is of the form {pandas column name : {}} for non string rows.
     """
-    def __init__(self, input_path):
-        data_df = self.preprocess(input_path)
-        self.build_measurement(data_df)
-        self.postprocess()
+    def __init__(self, csv_path=None, pandas_df=None, numpy_array=None):
 
-    @abstractmethod
-    def preprocess(self, input_path):
-        """Load and preprocess measurements. Implemented in subclasses
-        """
-        #NOTE: Use class attributes or custom methods as parameters
-        raise NotImplementedError
+        if csv_path is not None:
+            self.from_csv_path(csv_path)
+        elif pandas_df is not None:
+            self.from_pandas_df(pandas_df)
+        elif numpy_array is not None:
+            self.from_numpy_array(numpy_array)
+        else:
+            self.build_measurement()
+
+        self.postprocess()
 
     def postprocess(self):
         """Postprocess loaded measurements. Optional in subclass
         """
         pass
 
-    def build_measurement(self, data_df):
-        """Build attributes of Measurement using pd.DataFrame
+    def build_measurement(self):
+        """Build attributes for Measurements.
+
+        """
+        self.arr_dtype = np.float64
+        self.array = np.zeros(0, dtype=self.arr_dtype)
+
+    def from_csv_path(self, csv_path):
+        """Build attributes of Measurement using csv file.
 
         Parameters
         ----------
-        data_df : pd.DataFrame of measurements
+        csv_path : string
+            Path to csv file containing data
+
         """
-        if not isinstance(data_df, pd.DataFrame):
-            raise TypeError("data_df must be pd.DataFrame")
-        if len(data_df)==0:
-            raise ValueError("Empty data_df passed to build_measurement")
-        num_times = len(data_df)
-        self.arr_dtype = np.float64
+        if not isinstance(csv_path, str):
+            raise TypeError("csv_path must be string")
+        if not os.path.exists(csv_path):
+            raise OSError("file not found")
+
+        self.build_measurement()
+
+        pandas_df = pd.read_csv(csv_path)
+        self.from_pandas_df(pandas_df)
+
+    def from_pandas_df(self, pandas_df):
+        """Build attributes of Measurement using pd.DataFrame.
+
+        Parameters
+        ----------
+        pandas_df : pd.DataFrame of measurements
+        """
+
+        if not isinstance(pandas_df, pd.DataFrame):
+            raise TypeError("pandas_df must be pd.DataFrame")
+
+        self.build_measurement()
+
+        num_times = len(pandas_df)
         self.array = np.zeros([0, num_times], dtype= self.arr_dtype)
         # Using an empty array to conserve space and not maintain huge duplicates
-        self.map = {col_name: idx for idx, col_name in enumerate(data_df.columns)}
-        str_bool = {col_name: isinstance(data_df.loc[0, col_name], str) \
+        self.map = {col_name: idx for idx, col_name in enumerate(pandas_df.columns)}
+        str_bool = {col_name: self.check_string(pandas_df[col_name]) \
                     for col_name in self.map.keys()}
         # Assuming that the data type of all objects in a single series is the same
         self.str_map = {}
@@ -69,10 +97,10 @@ class Measurement(ABC):
         for key in self.map.keys():
             # indexing by key to maintain same order as eventual map
             val = str_bool[key]
-            values = data_df.loc[:, key]
+            values = pandas_df.loc[:, key]
             new_values = np.copy(values)
             if val:
-                string_vals = np.unique(data_df.loc[:, key])
+                string_vals = np.unique(pandas_df.loc[:, key])
                 val_dict = dict(enumerate(string_vals))
                 self.str_map[key] = val_dict
 
@@ -86,6 +114,21 @@ class Measurement(ABC):
             self.array = np.vstack((self.array, new_values))
             #TODO: Use __setitem__ here for self consistency
             #TODO: Rebuild map after all additions/deletions?
+
+    def from_numpy_array(self, numpy_array):
+        """Build attributes of Measurement using np.ndarray.
+
+        Parameters
+        ----------
+        numpy_array : np.ndarray
+            Numpy array containing data
+
+        """
+
+        if not isinstance(numpy_array, np.ndarray):
+            raise TypeError("numpy_array must be np.ndarray")
+
+        self.build_measurement()
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
@@ -256,3 +299,10 @@ class Measurement(ABC):
         """
         rows = list(self.map.keys())
         return rows
+
+
+    def check_string(self, series):
+        """Check if pd.Series contains any string values.
+
+        """
+        return series.dtype == object
