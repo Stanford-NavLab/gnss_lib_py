@@ -215,3 +215,41 @@ def test_rename(data):
     print("array:\n",data.array)
     print("map:\n",data.map)
     print("str_map:\n",data.str_map)
+
+@pytest.fixture(name="string_array")
+def string_array_to_set():
+    # value1 = ['ashwin']*2
+    # value2 = ['derek']*2
+    value1 = ['ashwin']*3
+    value2 = ['derek']*3
+    value = np.concatenate((np.asarray(value1, dtype=object), np.asarray(value2, dtype=object)))
+    return value
+
+
+@pytest.fixture(name="val_array")
+def number_array_to_set():
+    # value = np.asarray([9,8.5,-15,32.33])
+    value = np.array([9,8.5,-15,32.33, 10, 20])
+    return value
+
+@pytest.mark.parametrize("data_type", ["string", "vals"])
+@pytest.mark.parametrize("size",
+                         ['1d',
+                          '2d_row',
+                          '2d_col'])
+def test_set_1d_2d(data, data_type, size, string_array, val_array):
+    if data_type=="string":
+        newvalue = string_array
+        compare_value = np.hstack((np.zeros((1,3)), np.ones((1,3))))
+    elif data_type=="vals":
+        newvalue = val_array
+        compare_value = np.reshape(newvalue, [1, len(data)])
+    if size=='1d':
+        newvalue = np.reshape(newvalue, -1)
+    elif size=='2d_row':
+        newvalue = np.reshape(newvalue, [1, -1])
+    elif size=='2d_col':
+        newvalue = np.reshape(newvalue, [-1, 1])
+    data["testing_key"] = newvalue
+    compare_value = np.reshape(compare_value, [1, len(data)])
+    np.testing.assert_equal(data["testing_key", :], compare_value)
