@@ -232,24 +232,78 @@ def number_array_to_set():
     value = np.array([9,8.5,-15,32.33, 10, 20])
     return value
 
-@pytest.mark.parametrize("data_type", ["string", "vals"])
-@pytest.mark.parametrize("size",
-                         ['1d',
-                          '2d_row',
-                          '2d_col'])
-def test_set_1d_2d(data, data_type, size, string_array, val_array):
-    if data_type=="string":
-        newvalue = string_array
-        compare_value = np.hstack((np.zeros((1,3)), np.ones((1,3))))
-    elif data_type=="vals":
-        newvalue = val_array
-        compare_value = np.reshape(newvalue, [1, len(data)])
-    if size=='1d':
-        newvalue = np.reshape(newvalue, -1)
-    elif size=='2d_row':
-        newvalue = np.reshape(newvalue, [1, -1])
-    elif size=='2d_col':
-        newvalue = np.reshape(newvalue, [-1, 1])
-    data["testing_key"] = newvalue
-    compare_value = np.reshape(compare_value, [1, len(data)])
-    np.testing.assert_equal(data["testing_key", :], compare_value)
+# @pytest.mark.parametrize("data_type", ["string", "vals"])
+# @pytest.mark.parametrize("size",
+#                          ['1d',
+#                           '2d_row',
+#                           '2d_col'])
+# def test_set_1d_2d(data, data_type, size, string_array, val_array):
+#     if data_type=="string":
+#         newvalue = string_array
+#         compare_value = np.hstack((np.zeros((1,3)), np.ones((1,3))))
+#     elif data_type=="vals":
+#         newvalue = val_array
+#         compare_value = np.reshape(newvalue, [1, len(data)])
+#     if size=='1d':
+#         newvalue = np.reshape(newvalue, -1)
+#     elif size=='2d_row':
+#         newvalue = np.reshape(newvalue, [1, -1])
+#     elif size=='2d_col':
+#         newvalue = np.reshape(newvalue, [-1, 1])
+#     data["testing_key"] = newvalue
+#     compare_value = np.reshape(compare_value, [1, len(data)])
+#     np.testing.assert_equal(data["testing_key", :], compare_value)
+
+def test_get_item(data, pandas_df):
+    names = np.reshape(np.asarray(pandas_df['names'].values, dtype=object), [1, -1])
+    integers = np.reshape(np.asarray(pandas_df['integers'].values, dtype=data.arr_dtype), [1, -1])
+    floats = np.reshape(np.asarray(pandas_df['floats'].values, dtype=data.arr_dtype), [1, -1])
+    strings = np.reshape(np.asarray(pandas_df['strings'].values, dtype=object), [1, -1])
+    print(strings)
+    print(names)
+    strings_names = [strings, names]
+    names_strings = [names, strings]
+    #Slicing only rows, with multiple rows
+    np.testing.assert_equal(data[1:3], np.vstack((integers, floats)))
+    #Slicing only rows, with single row
+    np.testing.assert_equal(data[1:2], integers)
+    #String for row look up only
+    np.testing.assert_equal(data['integers'], integers)
+    #String for row and slice for column
+    np.testing.assert_equal(data['integers', :], integers)
+    #List of strings for row look up only
+    np.testing.assert_equal(data[['integers', 'floats']], np.vstack((integers, floats)))
+    #String for row and int for column look up
+    np.testing.assert_equal(data['integers', 0], np.asarray([10.]))
+    #String for row and int for column for looking up string entries
+    np.testing.assert_equal(data['strings', 0], [np.asarray(['gps'], dtype=object)])
+    #Looking up multiple rows with string values
+    np.testing.assert_equal(data[['names', 'strings']], names_strings)
+    #Looking up multiple rows with string values and order different from original
+    np.testing.assert_equal(data[['strings', 'names']],strings_names)
+    #List of rows and slice for column
+    np.testing.assert_equal(data[['integers', 'floats'], 3:],np.vstack((integers, floats))[:, 3:])
+
+def test_get_set_item(data):
+    new_string = np.asarray(['apple', 'banana', 'cherry', 'date', 'pear', 'lime'], dtype=object)
+    #Creating new row for value assignment
+    data['new_key'] = 0
+    np.testing.assert_array_equal(data['new_key'], np.zeros([1, 6]))
+    #Creating new row for string assignment
+    data['new_str_key'] = new_string
+    print(data['new_str_key'])
+    np.testing.assert_equal(data['new_str_key'],[new_string])
+    #Assigning all values using integer
+    data['integers', :] = 0
+    np.testing.assert_equal(data['integers'], np.zeros([1, 6]))
+    #Modifying string values using row name only
+    data['names'] =  new_string
+    np.testing.assert_equal(data['names'],[new_string])
+    #Testing list of strings for rows and slice for columns
+    data[['integers', 'floats'], 1:4]=-10
+    np.testing.assert_equal(data[['integers', 'floats'], 1:4], -10*np.ones([2,3]))
+    #Testing modifying strings with some existing and some new values
+    subset_string = np.asarray(['gps', 'glonass', 'beidou'], dtype=object)
+    data['strings', 2:5] = subset_string
+    np.testing.assert_equal(data['strings', 2:5],[subset_string])
+

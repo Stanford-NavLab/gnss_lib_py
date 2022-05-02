@@ -179,6 +179,52 @@ class Measurement(ABC):
         pd_df = self.pandas_df()
         pd_df.to_csv(output_path)
 
+    def _parse_key_idx(self, key_idx):
+        if isinstance(key_idx, str):
+            rows = [self.map[key_idx]]
+            cols = slice(None, None)
+        elif isinstance(key_idx, list) and isinstance(key_idx[0], str):
+            rows = [self.map[k] for k in key_idx]
+            cols = slice(None, None)
+        elif isinstance(key_idx, slice):
+            rows = key_idx
+            cols = slice(None, None)
+        else:
+            if isinstance(key_idx[1], int):
+                cols = [key_idx[1]]
+            else:
+                cols = key_idx[1]
+
+            rows = []
+            if isinstance(key_idx[0], slice):
+                rows = key_idx[0]
+            elif isinstance(key_idx[0], int):
+                rows = [key_idx[0]]
+                # arr_slice = self.array[key_idx[0], cols]
+                # return arr_slice
+            else:
+                if not isinstance(key_idx[0],list):
+                    # print('Not a list')
+                    row_key = [key_idx[0]]
+                else:
+                    # print('already a list')
+                    row_key = key_idx[0]
+                for key in row_key:
+                    rows.append(self.map[key])
+        return rows, cols
+
+    def _get_str_rows(self, rows, cols):
+        str_bool = self.str_bool
+        if isinstance(rows, slice):
+            slice_idx = rows.indices(len(self))
+            row_list = np.arange(slice_idx[0], slice_idx[1], slice_idx[2])
+            row_str = [str_bool[row] for row in row_list]
+        else:
+            row_list = list(rows)
+            row_str = [str_bool[row] for row in rows]
+        assert np.all(row_str) or np.all(np.logical_not(row_str)), "Cannot return combination of strings and numbers"
+        return row_list, row_str
+
     def __getitem__(self, key_idx):
         """Return item indexed from class
 
@@ -194,22 +240,27 @@ class Measurement(ABC):
             Array of measurements containing row names and time indexed
             columns
         """
-        rows = []
-        cols = key_idx[1]
-        if isinstance(key_idx[0], slice):
-            arr_slice = self.array[key_idx[0], cols]
+        rows, cols = self._parse_key_idx(key_idx)
+        row_list, row_str = self._get_str_rows(rows, cols)
+        if np.all(row_str):
+            # Return sliced strings
+            arr_slice  = []
+            #TODO: Check if the entire thing can be returned as an array of objects
+            for row in row_list:
+                str_arr = self.get_strings(self.inv_map[row])
+                # print(arr_slice)
+                # print(row_str[cols])
+                arr_slice.append(str_arr[ cols])
         else:
-            if not isinstance(key_idx[0],list):
-                row_key = [key_idx[0]]
-            else:
-                row_key = key_idx[0]
-            for key in row_key:
-                rows.append(self.map[key])
+            # print(rows)
+            # print(cols)
             arr_slice = self.array[rows, cols]
         return arr_slice
 
-    def __setitem__(self, key, newvalue):
-        """Add/update rows
+    def __setitem__(self, key_idx, newvalue):
+        """Add/update rows.
+        
+        Implementation assumes that a single row is being modified at a time
 
         Parameters
         ----------
@@ -219,37 +270,81 @@ class Measurement(ABC):
         newvalue : np.ndarray/list
             List or array of values to be added to measurements
         """
-        #TODO: Currently breaks if you pass strings as np.ndarray
-        if key=='all':
-            # Check that number of rows is consistent
-            #NOTE: Might not be needed if dictionary updated here
-            assert np.shape(newvalue)[0] == self.shape[0], \
-                "Inconsistent rows between old and new array"
-            self.array = newvalue
-        elif key in self.map.keys():
-            if not isinstance(self[key, 0], type(newvalue[0])):
-                raise TypeError("Type inconsistency in __setitem__")
-            self.array[self.map[key], :] = newvalue
-        else:
-            values = newvalue
-            self.map[key] = np.shape(self.array)[0]
-            if isinstance(newvalue[0], str):
-                assert isinstance(newvalue, np.ndarray), \
-                    "Only numpy arrays supported with strings"
-                #TODO: Replace this and in __init__ with private method?
+        # print('key_idx:', key_idx)
+        if isinstance(key_idx, str) and key_idx not in self.map.keys():
+            #Creating an entire new row
+            if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
+                # Adding string values
                 string_vals = np.unique(newvalue)
-                val_dict = dict(enumerate(string_vals))
-                self.str_map[key] = val_dict
-                added_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+                str_dict = dict(enumerate(string_vals))
+                self.str_map[key_idx] = str_dict
+                str_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
                 # Set unassigned value to int not accessed by string map
-                for str_key, str_val in val_dict.items():
-                    added_vals[values==str_val] = str_key
+                for str_key, str_val in str_dict.items():
+                    str_vals[newvalue==str_val] = str_key
                 # Copy set to false to prevent memory overflows
-                newvalue = np.round(added_vals.astype(self.arr_dtype, copy=False))
+                str_vals = np.round(str_vals.astype(self.arr_dtype, copy=False))
+                self.array = np.vstack((self.array, np.reshape(str_vals, [1, -1])))
+                self.map[key_idx] = self.shape[0]-1
             else:
-                self.str_map[key] = {}
-            self.array = np.vstack((self.array, \
-                        np.reshape(newvalue, [1, -1])))
+                if not isinstance(newvalue, int):
+                    assert not isinstance(np.asarray(newvalue)[0], str), \
+                            "Please use dtype=object for string assignments"
+                # Adding numeric values
+                self.str_map[key_idx] = {}
+                self.array = np.vstack((self.array, np.empty([1, len(self)])))
+                self.array[-1, :] = newvalue
+                # self.array = np.vstack((self.array, np.reshape(newvalue, [1, -1])))
+                self.map[key_idx] = self.shape[0]-1
+        else:
+            # Updating existing rows or columns
+            rows, cols = self._parse_key_idx(key_idx)
+            row_list, row_str = self._get_str_rows(rows, cols)
+            if np.all(row_str):
+                assert isinstance(newvalue, np.ndarray) and newvalue.dtype==object, \
+                        "String assignment only supported for ndarray of type object"
+                # print('Updating string')
+                inv_map = self.inv_map
+                newvalue = np.reshape(newvalue, [-1, newvalue.shape[0]])
+                new_str_vals = np.ones_like(newvalue, dtype=self.arr_dtype)
+                for row_num, row in enumerate(row_list):
+                    # print('Assigning values to ', inv_map[row])
+                    key = inv_map[row]
+                    if key in self.map.keys():
+                        # Key already exists, update existing string value dictionary
+                        inv_str_map = {v: k for k, v in self.str_map[key].items()}
+                        newvalue_row = newvalue[row_num, :]
+                        string_vals = np.unique(newvalue_row)
+                        str_map_dict = self.str_map[key]
+                        total_str = len(self.str_map[key])
+                        # print('str_map_keys:',str_map_dict.keys())
+                        # print('inv_str_map_keys', inv_str_map.keys())
+                        for str_val in string_vals:
+                            if str_val not in inv_str_map.keys():
+                                # print('Didnt find value', str_val)
+                                # print('Assigning value', total_str)
+                                str_map_dict[total_str] = str_val
+                                new_str_vals[row_num, newvalue_row==str_val] = total_str
+                                total_str += 1
+                                # print('Adding string values', str_val)
+                            else:
+                                # print('Found value', str_val)
+                                # print('Using value', inv_str_map[str_val])
+                                new_str_vals[row_num, newvalue_row==str_val] = inv_str_map[str_val]
+                                # print('Using existing string values for ', str_val)
+                    else:
+                        raise ValueError('Setting new row and updating existing row not supported simultaneously')
+                # print('new_str_vals',new_str_vals)
+                # print('new_str_vals', new_str_vals)
+                # print('newvalue', newvalue)
+                # print('string_vals', string_vals)
+                self.array[rows, cols] = new_str_vals
+                self.str_map[key] = str_map_dict
+            else:
+                if not isinstance(newvalue, int):
+                    assert not isinstance(np.asarray(newvalue)[0], str), \
+                            "Please use dtype=object for string assignments"
+                self.array[rows, cols] = newvalue
 
     def __iter__(self):
         self.curr_col = 0
@@ -300,6 +395,16 @@ class Measurement(ABC):
         rows = list(self.map.keys())
         return rows
 
+    
+    @property
+    def str_bool(self):
+        str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map.keys()}
+        return str_bool
+
+    @property
+    def inv_map(self):
+        inv_map = {v: k for k, v in self.map.items()}
+        return inv_map
 
     def check_string(self, series):
         """Check if pd.Series contains any string values.
