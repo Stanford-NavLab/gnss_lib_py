@@ -180,6 +180,20 @@ class Measurement(ABC):
         pd_df.to_csv(output_path)
 
     def _parse_key_idx(self, key_idx):
+        """Break down input queries to relevant row and column indices
+
+        Parameters
+        ----------
+        key_idx : str/list/tuple/slice/int
+            Query for array items
+
+        Returns
+        -------
+        rows : slice/list
+            Rows to extract from the array
+        cols : slice/list
+            Columns to extract from the array
+        """
         if isinstance(key_idx, str):
             rows = [self.map[key_idx]]
             cols = slice(None, None)
@@ -200,20 +214,30 @@ class Measurement(ABC):
                 rows = key_idx[0]
             elif isinstance(key_idx[0], int):
                 rows = [key_idx[0]]
-                # arr_slice = self.array[key_idx[0], cols]
-                # return arr_slice
             else:
                 if not isinstance(key_idx[0],list):
-                    # print('Not a list')
                     row_key = [key_idx[0]]
                 else:
-                    # print('already a list')
                     row_key = key_idx[0]
                 for key in row_key:
                     rows.append(self.map[key])
         return rows, cols
 
-    def _get_str_rows(self, rows, cols):
+    def _get_str_rows(self, rows):
+        """Checks which input rows contain string elements
+
+        Parameters
+        ----------
+        rows : slice/list
+            Rows to check for string elements
+
+        Returns
+        -------
+        row_list : list
+            Input rows, strictly in list format
+        row_str : list
+            List of boolean values indicating which rows contain strings
+        """
         str_bool = self.str_bool
         if isinstance(rows, slice):
             slice_idx = rows.indices(len(self))
@@ -222,7 +246,7 @@ class Measurement(ABC):
         else:
             row_list = list(rows)
             row_str = [str_bool[row] for row in rows]
-        assert np.all(row_str) or np.all(np.logical_not(row_str)), "Cannot return combination of strings and numbers"
+        assert np.all(row_str) or np.all(np.logical_not(row_str)), "Cannot assign/return combination of strings and numbers"
         return row_list, row_str
 
     def __getitem__(self, key_idx):
@@ -241,7 +265,7 @@ class Measurement(ABC):
             columns
         """
         rows, cols = self._parse_key_idx(key_idx)
-        row_list, row_str = self._get_str_rows(rows, cols)
+        row_list, row_str = self._get_str_rows(rows)
         if np.all(row_str):
             # Return sliced strings
             arr_slice  = []
@@ -294,13 +318,13 @@ class Measurement(ABC):
                 # Adding numeric values
                 self.str_map[key_idx] = {}
                 self.array = np.vstack((self.array, np.empty([1, len(self)])))
-                self.array[-1, :] = newvalue
+                self.array[-1, :] = np.reshape(newvalue, -1)
                 # self.array = np.vstack((self.array, np.reshape(newvalue, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
         else:
             # Updating existing rows or columns
             rows, cols = self._parse_key_idx(key_idx)
-            row_list, row_str = self._get_str_rows(rows, cols)
+            row_list, row_str = self._get_str_rows(rows)
             if np.all(row_str):
                 assert isinstance(newvalue, np.ndarray) and newvalue.dtype==object, \
                         "String assignment only supported for ndarray of type object"
