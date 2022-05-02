@@ -203,6 +203,10 @@ class Measurement(ABC):
         elif isinstance(key_idx, slice):
             rows = key_idx
             cols = slice(None, None)
+        #TODO: Add int testing for just row number
+        elif isinstance(key_idx, int):
+            rows = [key_idx]
+            cols = slice(None, None)
         else:
             if isinstance(key_idx[1], int):
                 cols = [key_idx[1]]
@@ -246,7 +250,8 @@ class Measurement(ABC):
         else:
             row_list = list(rows)
             row_str = [str_bool[row] for row in rows]
-        assert np.all(row_str) or np.all(np.logical_not(row_str)), "Cannot assign/return combination of strings and numbers"
+        assert np.all(row_str) or np.all(np.logical_not(row_str)), \
+                "Cannot assign/return combination of strings and numbers"
         return row_list, row_str
 
     def __getitem__(self, key_idx):
@@ -254,9 +259,8 @@ class Measurement(ABC):
 
         Parameters
         ----------
-        key_idx : tuple
-            tuple of form (row_name, idx). Row name can be string,
-            list or 'all' for all rows
+        key_idx : str/list/tuple/slice/int
+            Query for array items
 
         Returns
         -------
@@ -269,33 +273,25 @@ class Measurement(ABC):
         if np.all(row_str):
             # Return sliced strings
             arr_slice  = []
-            #TODO: Check if the entire thing can be returned as an array of objects
             for row in row_list:
                 str_arr = self.get_strings(self.inv_map[row])
-                # print(arr_slice)
-                # print(row_str[cols])
                 arr_slice.append(str_arr[ cols])
         else:
-            # print(rows)
-            # print(cols)
             arr_slice = self.array[rows, cols]
         return arr_slice
 
     def __setitem__(self, key_idx, newvalue):
         """Add/update rows.
-        
-        Implementation assumes that a single row is being modified at a time
 
         Parameters
         ----------
-        key : string
-            Name of row to add/update
+        key_idx : str/list/tuple/slice/int
+            Query for array items to set
 
-        newvalue : np.ndarray/list
-            List or array of values to be added to measurements
+        newvalue : np.ndarray/list/int
+            Values to be added to self.array attribute
         """
         #TODO: Fix error when assigning strings with 2D arrays
-        # print('key_idx:', key_idx)
         if isinstance(key_idx, str) and key_idx not in self.map.keys():
             #Creating an entire new row
             if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
@@ -319,7 +315,6 @@ class Measurement(ABC):
                 self.str_map[key_idx] = {}
                 self.array = np.vstack((self.array, np.empty([1, len(self)])))
                 self.array[-1, :] = np.reshape(newvalue, -1)
-                # self.array = np.vstack((self.array, np.reshape(newvalue, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
         else:
             # Updating existing rows or columns
@@ -328,7 +323,6 @@ class Measurement(ABC):
             if np.all(row_str):
                 assert isinstance(newvalue, np.ndarray) and newvalue.dtype==object, \
                         "String assignment only supported for ndarray of type object"
-                # print('Updating string')
                 inv_map = self.inv_map
                 newvalue = np.reshape(newvalue, [-1, newvalue.shape[0]])
                 new_str_vals = np.ones_like(newvalue, dtype=self.arr_dtype)
@@ -342,27 +336,15 @@ class Measurement(ABC):
                         string_vals = np.unique(newvalue_row)
                         str_map_dict = self.str_map[key]
                         total_str = len(self.str_map[key])
-                        # print('str_map_keys:',str_map_dict.keys())
-                        # print('inv_str_map_keys', inv_str_map.keys())
                         for str_val in string_vals:
                             if str_val not in inv_str_map.keys():
-                                # print('Didnt find value', str_val)
-                                # print('Assigning value', total_str)
                                 str_map_dict[total_str] = str_val
                                 new_str_vals[row_num, newvalue_row==str_val] = total_str
                                 total_str += 1
-                                # print('Adding string values', str_val)
                             else:
-                                # print('Found value', str_val)
-                                # print('Using value', inv_str_map[str_val])
                                 new_str_vals[row_num, newvalue_row==str_val] = inv_str_map[str_val]
-                                # print('Using existing string values for ', str_val)
                     else:
                         raise ValueError('Setting new row and updating existing row not supported simultaneously')
-                # print('new_str_vals',new_str_vals)
-                # print('new_str_vals', new_str_vals)
-                # print('newvalue', newvalue)
-                # print('string_vals', string_vals)
                 self.array[rows, cols] = new_str_vals
                 self.str_map[key] = str_map_dict
             else:

@@ -286,7 +286,8 @@ def return_flt_int_slc(df_rows):
                         (('strings', 0), [np.asarray(['gps'], dtype=object)]),
                         (['names', 'strings'], lazy_fixture('nm_str')),
                         (['strings', 'names'], lazy_fixture('str_nm')),
-                        ((['integers', 'floats'], slice(3, None)), lazy_fixture('flt_int_slc'))
+                        ((['integers', 'floats'], slice(3, None)), lazy_fixture('flt_int_slc')),
+                        (1, lazy_fixture('integers'))
                         ])
 def test_get_item(data, index, exp_value):
     np.testing.assert_array_equal(data[index], exp_value)
@@ -318,6 +319,7 @@ def return_subsect_str_list(subset_str):
                         ('new_key_2d_col', np.ones([6,1]), np.ones([1,6])),
                         ('new_str_key', lazy_fixture('new_string'), lazy_fixture('new_str_list')),
                         ('integers', 0, np.zeros([1,6])),
+                        (1, 7, 7*np.ones([1,6])),
                         ('names', lazy_fixture('new_string'), lazy_fixture('new_str_list')),
                         ((['integers', 'floats'], slice(1, 4)), -10, -10*np.ones([2,3])),
                         (('strings', slice(2, 5)), lazy_fixture('subset_str'), lazy_fixture('subset_str_list')),
