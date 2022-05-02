@@ -255,14 +255,16 @@ def number_array_to_set():
 #     np.testing.assert_equal(data["testing_key", :], compare_value)
 
 def test_get_item(data, pandas_df):
-    names = np.reshape(np.asarray(pandas_df['names'].values, dtype=object), [1, -1])
+    names = np.asarray(pandas_df['names'].values, dtype=object)
     integers = np.reshape(np.asarray(pandas_df['integers'].values, dtype=data.arr_dtype), [1, -1])
     floats = np.reshape(np.asarray(pandas_df['floats'].values, dtype=data.arr_dtype), [1, -1])
-    strings = np.reshape(np.asarray(pandas_df['strings'].values, dtype=object), [1, -1])
-    print(strings)
-    print(names)
+    strings = np.asarray(pandas_df['strings'].values, dtype=object)
+    print('strings', strings)
+    print('names', names)
     strings_names = [strings, names]
     names_strings = [names, strings]
+    print('strings_names', strings_names)
+    print('names_strings', names_strings)
     #Slicing only rows, with multiple rows
     np.testing.assert_equal(data[1:3], np.vstack((integers, floats)))
     #Slicing only rows, with single row
@@ -306,4 +308,7 @@ def test_get_set_item(data):
     subset_string = np.asarray(['gps', 'glonass', 'beidou'], dtype=object)
     data['strings', 2:5] = subset_string
     np.testing.assert_equal(data['strings', 2:5],[subset_string])
+    #Testing same modification with 2D input instead of 1D
+    data['names', 2:5] = np.reshape(subset_string, [1, -1])
+    np.testing.assert_equal(data['names', 2:5], [subset_string])
 

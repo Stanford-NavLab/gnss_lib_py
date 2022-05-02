@@ -270,6 +270,7 @@ class Measurement(ABC):
         newvalue : np.ndarray/list
             List or array of values to be added to measurements
         """
+        #TODO: Fix error when assigning strings with 2D arrays
         # print('key_idx:', key_idx)
         if isinstance(key_idx, str) and key_idx not in self.map.keys():
             #Creating an entire new row
