@@ -177,11 +177,11 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
 
 
 @pytest.mark.parametrize('row_name, index, value',
-                        [('trace_name', 0, '2020-05-14-US-MTV-1'),
-                         ('rx_name', 1, 'Pixel4'),
+                        [('trace_name', 0, np.asarray([['2020-05-14-US-MTV-1']], dtype=object)),
+                         ('rx_name', 1, np.asarray([['Pixel4']], dtype=object)),
                          ('vy_sat_mps', 7, 411.162),
                          ('b_dot_sat_mps', 41, -0.003),
-                         ('signal_type', 6, 'GLO_G1')]
+                         ('signal_type', 6, np.asarray([['GLO_G1']], dtype=object))]
                         )
 def test_derived_value_check(derived, row_name, index, value):
     """Check AndroidDerived entries against known values using test matrix
@@ -200,12 +200,12 @@ def test_derived_value_check(derived, row_name, index, value):
     """
     # Testing stored values vs their known counterparts
     # String maps have been converted to equivalent integers
-    if isinstance(value, str):
-        value_str = [np.asarray(value, dtype=object)]
-        np.testing.assert_equal(derived[row_name, index], value_str)
-    else:
-        np.testing.assert_equal(derived[row_name, index], value)
-    # np.testing.assert_equal(derived[row_name, index], value)
+    # if isinstance(value, str):
+    #     value_str = [np.asarray(value, dtype=object)]
+    #     np.testing.assert_equal(derived[row_name, index], value_str)
+    # else:
+    #     np.testing.assert_equal(derived[row_name, index], value)
+    np.testing.assert_equal(derived[row_name, index], value)
 
 
 def test_get_and_set_num(derived):
