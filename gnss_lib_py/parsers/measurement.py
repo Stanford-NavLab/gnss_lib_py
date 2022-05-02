@@ -407,11 +407,25 @@ class Measurement(ABC):
     
     @property
     def str_bool(self):
+        """Dictionary of index : if data entry is string
+
+        Returns
+        -------
+        str_bool : Dict
+            Dictionary of whether data at row number key is string or not
+        """
         str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map.keys()}
         return str_bool
 
     @property
     def inv_map(self):
+        """Inverse dictionary map for label and row_number map
+        
+        Returns
+        -------
+        inv_map: Dict
+            Dictionary of row_number : label
+        """
         inv_map = {v: k for k, v in self.map.items()}
         return inv_map
 
