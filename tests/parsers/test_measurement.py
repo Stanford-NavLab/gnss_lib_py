@@ -217,17 +217,27 @@ def test_rename(data):
     print("map:\n",data.map)
     print("str_map:\n",data.str_map)
 
-@pytest.fixture(name="string_array")
-def string_array_to_set():
-    # value1 = ['ashwin']*2
-    # value2 = ['derek']*2
-    value1 = ['ashwin']*3
-    value2 = ['derek']*3
-    value = np.concatenate((np.asarray(value1, dtype=object), np.asarray(value2, dtype=object)))
-    return value
 
 @pytest.fixture(name="df_rows")
 def return_df_rows(pandas_df):
+    """Extract and return rows from the DataFrame for testing
+
+    Parameters
+    ----------
+    pandas_df : pd.DataFrame
+        Dataframe for testing values
+
+    Returns
+    -------
+    names : np.ndarray
+        String entries in 'names' column of the DataFrame
+    integers : np.ndarray
+        Numeric entries in 'integers' column of the DataFrame
+    floats : np.ndarray
+        Numeric entries in 'floats' column of the DataFrame
+    strings : np.ndarray
+        String entries in 'strings' column of the DataFrame
+    """
     names = np.asarray(pandas_df['names'].values, dtype=object)
     integers = np.reshape(np.asarray(pandas_df['integers'].values, dtype=np.float64), [1, -1])
     floats = np.reshape(np.asarray(pandas_df['floats'].values, dtype=np.float64), [1, -1])
@@ -237,43 +247,131 @@ def return_df_rows(pandas_df):
 
 @pytest.fixture(name="integers")
 def return_integers(df_rows):
+    """Return data corresponding to the integers label from the test data
+
+    Parameters
+    ----------
+    df_rows : list
+        List of rows from the testing data
+    
+    Returns
+    -------
+    integers : np.ndarray
+        Array of numeric entries in 'integers' label of data
+    """
     _, integers, _, _ = df_rows
     return integers
 
 @pytest.fixture(name="floats")
 def return_floats(df_rows):
+    """Return data corresponding to the floats label from the test data
+
+    Parameters
+    ----------
+    df_rows : list
+        List of rows from the testing data
+    
+    Returns
+    -------
+    floats : np.ndarray
+        Array of numeric entries in 'floats' label of data
+    """
     _, _, floats, _ = df_rows
     return floats
 
 
 @pytest.fixture(name="strings")
 def return_strings(df_rows):
+    """Return data corresponding to the strings label from the test data
+
+    Parameters
+    ----------
+    df_rows : list
+        List of rows from the testing data
+    
+    Returns
+    -------
+    strings : np.ndarray
+        Array of string entries in 'strings' label of data
+    """
     _, _, _, strings = df_rows
     return strings
 
 
 @pytest.fixture(name="int_flt")
 def return_int_flt(df_rows):
+    """Return data corresponding to the integers and floats label from the test data
+
+    Parameters
+    ----------
+    df_rows : list
+        List of rows from the testing data
+    
+    Returns
+    -------
+    int_flt : np.ndarray
+        2D array of numeric entries in 'integers' and 'floats' labels of data
+    """
     _, integers, floats, _ = df_rows
-    return np.vstack((integers, floats))
+    int_flt = np.vstack((integers, floats))
+    return int_flt
 
 
 @pytest.fixture(name="nm_str")
 def return_nm_str(df_rows):
+    """Return data corresponding to the names and strings label from the test data
+
+    Parameters
+    ----------
+    df_rows : list
+        List of rows from the testing data
+    
+    Returns
+    -------
+    nm_str : np.ndarray
+        2D array of numeric entries in 'names' and 'strings' labels of data
+    """
     names, _, _, strings = df_rows
-    return [names, strings]
+    nm_str = np.vstack((names, strings))
+    return nm_str
 
 
 @pytest.fixture(name="str_nm")
 def return_str_nm(df_rows):
+    """Return data corresponding to the strings and names label from the test data
+
+    Parameters
+    ----------
+    df_rows : list
+        List of rows from the testing data
+    
+    Returns
+    -------
+    str_nm : np.ndarray
+        2D array of numeric entries in 'strings' and 'names' labels of data
+    """
     names, _, _, strings = df_rows
-    return [strings, names]
+    str_nm = np.vstack((strings, names))
+    return str_nm
 
 
 @pytest.fixture(name="flt_int_slc")
 def return_flt_int_slc(df_rows):
+    """Return data corresponding to the names and strings label from the test data
+
+    Parameters
+    ----------
+    df_rows : list
+        List of rows from the testing data
+
+    Returns
+    -------
+    flt_int_slc : np.ndarray
+        2D array of some numeric entries in 'integers' and 'floats' labels of data
+    """
     _, integers, floats, _ = df_rows
-    return np.vstack((integers, floats))[:, 3:]
+    flt_int_slc = np.vstack((integers, floats))[:, 3:]
+    return flt_int_slc
 
 
 @pytest.mark.parametrize("index, exp_value",
@@ -283,34 +381,75 @@ def return_flt_int_slc(df_rows):
                         (('integers', slice(None, None)), lazy_fixture('integers')),
                         (['integers', 'floats'], lazy_fixture('int_flt')),
                         (('integers', 0), 10.),
-                        (('strings', 0), [np.asarray(['gps'], dtype=object)]),
+                        (('strings', 0), np.asarray([['gps']], dtype=object)),
                         (['names', 'strings'], lazy_fixture('nm_str')),
                         (['strings', 'names'], lazy_fixture('str_nm')),
                         ((['integers', 'floats'], slice(3, None)), lazy_fixture('flt_int_slc')),
                         (1, lazy_fixture('integers'))
                         ])
 def test_get_item(data, index, exp_value):
+    """Test if assigned value is same as original value given for assignment
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.Measurement
+        Data to test getting values from
+    index : slice/str/int/tuple
+        Index to query data at
+    exp_value : np.ndarray
+        Expected value at queried indices
+    """
     np.testing.assert_array_equal(data[index], exp_value)
 
 
 @pytest.fixture(name="new_string")
 def return_new_string():
+    """String to test for value assignment
+
+    Returns
+    -------
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+    """
     new_string = np.asarray(['apple', 'banana', 'cherry', 'date', 'pear', 'lime'], dtype=object)
     return new_string
 
 @pytest.fixture(name="new_str_list")
 def return_new_str_list(new_string):
-    return [new_string]
+    """String to test for value assignment
+
+    Returns
+    -------
+    new_string_2d : np.ndarray
+        String of shape [1,6], expected value after string assignment
+    """
+    new_string_2d = np.reshape(new_string, [1, -1])
+    return new_string_2d
 
 @pytest.fixture(name="subset_str")
 def return_subset_str():
+    """Subset string to test for value assignment
+
+    Returns
+    -------
+    subset_string : np.ndarray
+        String of length 6 expected value after string assignment
+    """
     subset_str = np.asarray(['gps', 'glonass', 'beidou'], dtype=object)
     return subset_str
 
 
 @pytest.fixture(name="subset_str_list")
 def return_subsect_str_list(subset_str):
-    return [subset_str]
+    """Subset string to test for value assignment
+
+    Returns
+    -------
+    subset_string_2d : np.ndarray
+        String of shape [1,3], expected value after string assignment
+    """
+    subset_str_2d = np.reshape(subset_str, [1, -1])
+    return subset_str_2d
 
 @pytest.mark.parametrize("index, new_value, exp_value",
                         [('new_key', 0, np.zeros([1,6])),
@@ -325,6 +464,19 @@ def return_subsect_str_list(subset_str):
                         (('strings', slice(2, 5)), lazy_fixture('subset_str'), lazy_fixture('subset_str_list')),
                         ])
 def test_get_set_item(data, index, new_value, exp_value):
+    """Test if assigned values match expected values on getting again
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.Measurement
+        Measurement instance for testing
+    index : slice/str/int/tuple
+        Index to query data at
+    new_value: np.ndarray/int
+        Value to assign at query index
+    exp_value : np.ndarray
+        Expected value at queried indices
+    """
     data[index] = new_value
     np.testing.assert_array_equal(data[index], exp_value)
 

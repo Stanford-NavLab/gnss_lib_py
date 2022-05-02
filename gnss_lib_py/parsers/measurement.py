@@ -6,7 +6,7 @@ __authors__ = "Ashwin Kanhere, D. Knowles"
 __date__ = "03 Nov 2021"
 
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import numpy as np
 import pandas as pd
@@ -272,10 +272,12 @@ class Measurement(ABC):
         row_list, row_str = self._get_str_rows(rows)
         if np.all(row_str):
             # Return sliced strings
-            arr_slice  = []
-            for row in row_list:
+            # arr_slice  = []
+            arr_slice = np.atleast_2d(np.empty_like(self.array[rows, cols], dtype=object))
+            for row_num, row in enumerate(row_list):
                 str_arr = self.get_strings(self.inv_map[row])
-                arr_slice.append(str_arr[ cols])
+                arr_slice[row_num, :] = str_arr[cols]
+                # arr_slice.append(str_arr[ cols])
         else:
             arr_slice = self.array[rows, cols]
         return arr_slice
