@@ -11,7 +11,7 @@ from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
 class GNSS_IMU_EKF(BaseExtendedKalmanFilter):
     """GNSS_IMU EKF implementation.
 
-    States: 2D position, 2D velocity, angular velocity and clock bias (in m).
+    States: 2D position, 2D velocity, heading angle and clock bias (in m).
     The state vector is :math:`\\bar{x} = [x,y,v_x,v_y,psi,b]^T`
     
     Attributes
@@ -40,7 +40,7 @@ class GNSS_IMU_EKF(BaseExtendedKalmanFilter):
         except KeyError:
             self.measure_type = 'pseudoranges'
 
-    def dyn_model(self, u, predict_dict=None, update_dict=None):
+    def dyn_model(self, u, predict_dict=None):
         """Non linear dynamics
         
         Parameters
@@ -55,8 +55,8 @@ class GNSS_IMU_EKF(BaseExtendedKalmanFilter):
         new_x : np.ndarray
             Propagated state
         """
-        #imu_meas = [ax,ay,wz]
-        imu_val = update_dict['imu_meas']
+        #u = [ax,ay,wz]
+        imu_val = u
         new_x = self.x
         new_x[0] += new_x[2]*self.dt
         new_x[1] += new_x[3]*self.dt
@@ -100,7 +100,7 @@ class GNSS_IMU_EKF(BaseExtendedKalmanFilter):
             raise NotImplementedError
         return z
 
-    def linearize_dynamics(self, predict_dict=None, update_dict=None):
+    def linearize_dynamics(self, u,predict_dict=None):
         """Linearization of dynamics model
 
         Parameters
@@ -114,10 +114,10 @@ class GNSS_IMU_EKF(BaseExtendedKalmanFilter):
             Linear dynamics model depending on motion_type
         """
         if self.motion_type == 'constant_velocity':
-            #imu_meas = [ax,ay,wz]
-            imu_val = update_dict['imu_meas']
+            #u = [ax,ay,wz]
+            imu_val = u
             M = -imu_val[0]*np.sin(self.x[4]) - imu_val[1]*np.cos(self.x[4])
-            N = imu_val[0]*np.cos(self.x[4]) - imu_val[1]*sin(self.x[4])
+            N = imu_val[0]*np.cos(self.x[4]) - imu_val[1]*np.sin(self.x[4])
             A = np.array([[1,0,self.dt,0,0,0],
                          [0,1,0,self.dt,0,0],
                          [0,0,1,0,M,0],
