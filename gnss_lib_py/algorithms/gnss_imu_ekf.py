@@ -1,3 +1,4 @@
+
 """Classes for GNSS_IMU-based Extended Kalman Filter implementations
 
 """
@@ -5,8 +6,10 @@
 __authors__ = "Mahesh Saboo"
 __date__ = "1 May 2022"
 
+
 import numpy as np
 from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
+
 
 class GNSS_IMU_EKF(BaseExtendedKalmanFilter):
     """GNSS_IMU EKF implementation.
@@ -123,7 +126,7 @@ class GNSS_IMU_EKF(BaseExtendedKalmanFilter):
                          [0,0,1,0,M,0],
                          [0,0,0,1,N,0],
                          [0,0,0,0,1,0],
-                         [0,0,0,0,0,1]])
+                         [0,0,0,0,0,1]],dtype=float)
         else:
             raise NotImplementedError
         return A
