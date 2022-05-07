@@ -40,6 +40,7 @@ def fixture_csv_path(request):
 
     return csv_path
 
+
 @pytest.fixture(name="pandas_df")
 def load_test_dataframe(csv_path):
     """
@@ -219,7 +220,7 @@ def test_rename(data):
 
 
 @pytest.fixture(name="df_rows")
-def return_df_rows(pandas_df):
+def fixture_df_rows(pandas_df):
     """Extract and return rows from the DataFrame for testing
 
     Parameters
@@ -246,7 +247,7 @@ def return_df_rows(pandas_df):
 
 
 @pytest.fixture(name="integers")
-def return_integers(df_rows):
+def fixture_integers(df_rows):
     """Return data corresponding to the integers label from the test data
 
     Parameters
@@ -263,7 +264,7 @@ def return_integers(df_rows):
     return integers
 
 @pytest.fixture(name="floats")
-def return_floats(df_rows):
+def fixture_floats(df_rows):
     """Return data corresponding to the floats label from the test data
 
     Parameters
@@ -281,7 +282,7 @@ def return_floats(df_rows):
 
 
 @pytest.fixture(name="strings")
-def return_strings(df_rows):
+def fixture_strings(df_rows):
     """Return data corresponding to the strings label from the test data
 
     Parameters
@@ -299,7 +300,7 @@ def return_strings(df_rows):
 
 
 @pytest.fixture(name="int_flt")
-def return_int_flt(df_rows):
+def fixture_int_flt(df_rows):
     """Return data corresponding to the integers and floats label from the test data
 
     Parameters
@@ -318,7 +319,7 @@ def return_int_flt(df_rows):
 
 
 @pytest.fixture(name="nm_str")
-def return_nm_str(df_rows):
+def fixture_nm_str(df_rows):
     """Return data corresponding to the names and strings label from the test data
 
     Parameters
@@ -337,7 +338,7 @@ def return_nm_str(df_rows):
 
 
 @pytest.fixture(name="str_nm")
-def return_str_nm(df_rows):
+def fixture_str_nm(df_rows):
     """Return data corresponding to the strings and names label from the test data
 
     Parameters
@@ -356,7 +357,7 @@ def return_str_nm(df_rows):
 
 
 @pytest.fixture(name="flt_int_slc")
-def return_flt_int_slc(df_rows):
+def fixture_flt_int_slc(df_rows):
     """Return data corresponding to the names and strings label from the test data
 
     Parameters
@@ -385,8 +386,7 @@ def return_flt_int_slc(df_rows):
                         (['names', 'strings'], lazy_fixture('nm_str')),
                         (['strings', 'names'], lazy_fixture('str_nm')),
                         ((['integers', 'floats'], slice(3, None)), lazy_fixture('flt_int_slc')),
-                        (1, lazy_fixture('integers')),
-                        (slice(None, None))
+                        (1, lazy_fixture('integers'))
                         ])
 def test_get_item(data, index, exp_value):
     """Test if assigned value is same as original value given for assignment
@@ -403,8 +403,16 @@ def test_get_item(data, index, exp_value):
     np.testing.assert_array_equal(data[index], exp_value)
 
 
+# def test_get_all_numpy(numpy_array):
+    #TODO: Replace with actual numpy initialization when done
+    # data = Measurement(numpy_array=numpy_array)
+    # np.testing.assert_array_almost_equal(data[:], numpy_array)
+    # np.testing.assert_array_almost_equal(data[:, :], numpy_array)
+
+
+
 @pytest.fixture(name="new_string")
-def return_new_string():
+def fixture_new_string():
     """String to test for value assignment
 
     Returns
@@ -415,8 +423,9 @@ def return_new_string():
     new_string = np.asarray(['apple', 'banana', 'cherry', 'date', 'pear', 'lime'], dtype=object)
     return new_string
 
+
 @pytest.fixture(name="new_str_list")
-def return_new_str_list(new_string):
+def fixture_new_str_list(new_string):
     """String to test for value assignment
 
     Returns
@@ -427,8 +436,9 @@ def return_new_str_list(new_string):
     new_string_2d = np.reshape(new_string, [1, -1])
     return new_string_2d
 
+
 @pytest.fixture(name="subset_str")
-def return_subset_str():
+def fixture_subset_str():
     """Subset string to test for value assignment
 
     Returns
@@ -441,7 +451,7 @@ def return_subset_str():
 
 
 @pytest.fixture(name="subset_str_list")
-def return_subsect_str_list(subset_str):
+def fixture_subsect_str_list(subset_str):
     """Subset string to test for value assignment
 
     Returns
@@ -451,6 +461,7 @@ def return_subsect_str_list(subset_str):
     """
     subset_str_2d = np.reshape(subset_str, [1, -1])
     return subset_str_2d
+
 
 @pytest.mark.parametrize("index, new_value, exp_value",
                         [('new_key', 0, np.zeros([1,6])),
@@ -481,3 +492,33 @@ def test_set_get_item(data, index, new_value, exp_value):
     data[index] = new_value
     np.testing.assert_array_equal(data[index], exp_value)
 
+@pytest.fixture(name='add_array')
+def fixture_add_array():
+    add_array = np.hstack((10*np.ones([6,1]), 11*np.ones([6,1])))
+    return add_array
+
+
+@pytest.fixture(name='add_df')
+def fixture_add_dataframe():
+    add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object), 'integers': np.asarray([-2., 45.]), 
+            'floats': np.asarray([1.4, 1.5869]), 'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
+    add_df = pd.DataFrame(data=add_data)
+    return add_df
+
+
+# def test_add_numpy(numpy_array, add_array):
+#     data = Measurement(numpy_array=numpy_array)
+#     data.add(numpy_array=add_array)
+#     new_col_num = np.shape(add_array)[1]
+#     np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
+
+
+def test_add_pandas_df(pandas_df, add_df):
+    data = Measurement(pandas_df=pandas_df)
+    data.add(pandas_df=add_df)
+    new_df = data.pandas_df()
+    add_row_num = add_df.shape[0]
+    # print(new_df)
+    # print(add_df)
+    # print
+    pd.testing.assert_frame_equal(new_df.iloc[-add_row_num:, :].reset_index(drop=True), add_df, check_index_type=False)

@@ -394,7 +394,7 @@ class Measurement(ABC):
         old_len = len(self)
         new_data_cols = slice(old_len, None)
         if numpy_array is not None:
-            self.array = np.hstack(self.array, np.empty_like(numpy_array), dtype=self.arr_dtype)
+            self.array = np.hstack((self.array, np.empty_like(numpy_array, dtype=self.arr_dtype)))
             self[:, new_data_cols] = numpy_array
         if csv_path is not None:
             pandas_df = pd.read_csv(csv_path)
