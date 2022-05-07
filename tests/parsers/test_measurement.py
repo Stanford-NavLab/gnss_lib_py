@@ -385,7 +385,8 @@ def return_flt_int_slc(df_rows):
                         (['names', 'strings'], lazy_fixture('nm_str')),
                         (['strings', 'names'], lazy_fixture('str_nm')),
                         ((['integers', 'floats'], slice(3, None)), lazy_fixture('flt_int_slc')),
-                        (1, lazy_fixture('integers'))
+                        (1, lazy_fixture('integers')),
+                        (slice(None, None))
                         ])
 def test_get_item(data, index, exp_value):
     """Test if assigned value is same as original value given for assignment
@@ -463,7 +464,7 @@ def return_subsect_str_list(subset_str):
                         ((['integers', 'floats'], slice(1, 4)), -10, -10*np.ones([2,3])),
                         (('strings', slice(2, 5)), lazy_fixture('subset_str'), lazy_fixture('subset_str_list')),
                         ])
-def test_get_set_item(data, index, new_value, exp_value):
+def test_set_get_item(data, index, new_value, exp_value):
     """Test if assigned values match expected values on getting again
 
     Parameters

@@ -29,7 +29,11 @@ class Measurement(ABC):
         Map is of the form {pandas column name : {}} for non string rows.
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None):
-
+        #For a Pythonic implementation, including all attributes as None in the beginning
+        self.arr_dtype = np.float32 # default value
+        self.array = None
+        self.map = {}
+        self.str_map = {}
         if csv_path is not None:
             self.from_csv_path(csv_path)
         elif pandas_df is not None:
@@ -225,6 +229,7 @@ class Measurement(ABC):
                     row_key = key_idx[0]
                 for key in row_key:
                     rows.append(self.map[key])
+        #TODO: Add out of bounds error handling
         return rows, cols
 
     def _get_str_rows(self, rows):
@@ -244,14 +249,12 @@ class Measurement(ABC):
         """
         str_bool = self.str_bool
         if isinstance(rows, slice):
-            slice_idx = rows.indices(len(self))
+            slice_idx = rows.indices(self.shape[0])
             row_list = np.arange(slice_idx[0], slice_idx[1], slice_idx[2])
             row_str = [str_bool[row] for row in row_list]
         else:
             row_list = list(rows)
             row_str = [str_bool[row] for row in rows]
-        assert np.all(row_str) or np.all(np.logical_not(row_str)), \
-                "Cannot assign/return combination of strings and numbers"
         return row_list, row_str
 
     def __getitem__(self, key_idx):
@@ -270,6 +273,8 @@ class Measurement(ABC):
         """
         rows, cols = self._parse_key_idx(key_idx)
         row_list, row_str = self._get_str_rows(rows)
+        assert np.all(row_str) or np.all(np.logical_not(row_str)), \
+                "Cannot assign/return combination of strings and numbers"
         if np.all(row_str):
             # Return sliced strings
             # arr_slice  = []
@@ -298,16 +303,9 @@ class Measurement(ABC):
             #Creating an entire new row
             if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
                 # Adding string values
-                string_vals = np.unique(newvalue)
-                str_dict = dict(enumerate(string_vals))
-                self.str_map[key_idx] = str_dict
-                str_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
-                # Set unassigned value to int not accessed by string map
-                for str_key, str_val in str_dict.items():
-                    str_vals[newvalue==str_val] = str_key
-                # Copy set to false to prevent memory overflows
-                str_vals = np.round(str_vals.astype(self.arr_dtype, copy=False))
-                self.array = np.vstack((self.array, np.reshape(str_vals, [1, -1])))
+                new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+                new_str_vals = self._str_2_val(new_str_vals, newvalue, key_idx)
+                self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
                 if not isinstance(newvalue, int):
@@ -322,6 +320,8 @@ class Measurement(ABC):
             # Updating existing rows or columns
             rows, cols = self._parse_key_idx(key_idx)
             row_list, row_str = self._get_str_rows(rows)
+            assert np.all(row_str) or np.all(np.logical_not(row_str)), \
+                "Cannot assign/return combination of strings and numbers"
             if np.all(row_str):
                 assert isinstance(newvalue, np.ndarray) and newvalue.dtype==object, \
                         "String assignment only supported for ndarray of type object"
@@ -331,29 +331,78 @@ class Measurement(ABC):
                 for row_num, row in enumerate(row_list):
                     # print('Assigning values to ', inv_map[row])
                     key = inv_map[row]
-                    if key in self.map.keys():
-                        # Key already exists, update existing string value dictionary
-                        inv_str_map = {v: k for k, v in self.str_map[key].items()}
-                        newvalue_row = newvalue[row_num, :]
-                        string_vals = np.unique(newvalue_row)
-                        str_map_dict = self.str_map[key]
-                        total_str = len(self.str_map[key])
-                        for str_val in string_vals:
-                            if str_val not in inv_str_map.keys():
-                                str_map_dict[total_str] = str_val
-                                new_str_vals[row_num, newvalue_row==str_val] = total_str
-                                total_str += 1
-                            else:
-                                new_str_vals[row_num, newvalue_row==str_val] = inv_str_map[str_val]
-                    else:
-                        raise ValueError('Setting new row and updating existing row not supported simultaneously')
+                    newvalue_row = newvalue[row_num , :]
+                    new_str_vals_row = new_str_vals[row_num, :]
+                    new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row, newvalue_row, key)
                 self.array[rows, cols] = new_str_vals
-                self.str_map[key] = str_map_dict
             else:
                 if not isinstance(newvalue, int):
                     assert not isinstance(np.asarray(newvalue)[0], str), \
                             "Please use dtype=object for string assignments"
                 self.array[rows, cols] = newvalue
+
+    def _str_2_val(self, new_str_vals, newvalue, key):
+        """Convert string valued arrays to values for storing in array
+
+        Parameters
+        ----------
+        new_str_vals : np.ndarray
+            Array of dtype=self.arr_dtype where numeric values are to be stored
+        newvalue : np.ndarray
+            Array of dtype=object, containing string values that are to be converted
+        key : string
+            Key indicating row where string to numeric conversion is required
+        """
+        if key in self.map.keys():
+            # Key already exists, update existing string value dictionary
+            inv_str_map = {v: k for k, v in self.str_map[key].items()}
+            string_vals = np.unique(newvalue)
+            str_map_dict = self.str_map[key]
+            total_str = len(self.str_map[key])
+            for str_val in string_vals:
+                if str_val not in inv_str_map.keys():
+                    str_map_dict[total_str] = str_val
+                    new_str_vals[newvalue==str_val] = total_str
+                    total_str += 1
+                else:
+                    new_str_vals[newvalue==str_val] = inv_str_map[str_val]
+            self.str_map[key] = str_map_dict
+        else:
+            string_vals = np.unique(newvalue)
+            str_dict = dict(enumerate(string_vals))
+            self.str_map[key] = str_dict
+            new_str_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+            # Set unassigned value to int not accessed by string map
+            for str_key, str_val in str_dict.items():
+                new_str_vals[newvalue==str_val] = str_key
+            # Copy set to false to prevent memory overflows
+            new_str_vals = np.round(new_str_vals.astype(self.arr_dtype, copy=False))
+        return new_str_vals
+
+    def add(self, csv_path=None, pandas_df=None, numpy_array=None):
+        """Add new timesteps to existing array
+
+        Parameters
+        ----------
+        csv_path : string
+            Path to csv file containing measurements to add
+        pandas_df : pd.DataFrame
+            DataFrame containing measurements to add
+        numpy_array : np.ndarray
+            Array containing only numeric measurements to add
+        """
+        old_len = len(self)
+        new_data_cols = slice(old_len, None)
+        if numpy_array is not None:
+            self.array = np.hstack(self.array, np.empty_like(numpy_array), dtype=self.arr_dtype)
+            self[:, new_data_cols] = numpy_array
+        if csv_path is not None:
+            pandas_df = pd.read_csv(csv_path)
+        if pandas_df is not None:
+            #TODO: Case handlign for when column name in dataframe is different?
+            self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
+            for col in pandas_df.columns:
+                self[col, new_data_cols] = np.asarray(pandas_df[col].values)
 
     def __iter__(self):
         self.curr_col = 0
