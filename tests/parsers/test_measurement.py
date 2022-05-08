@@ -263,6 +263,20 @@ def test_init_pd(pandas_df):
     with pytest.raises(TypeError):
         data = Measurement(pandas_df=np.array([0]))
 
+
+def test_init_headless(csv_headless, df_headless):
+    """Test that headless csvs and dataframes can be loaded as expected.
+
+    """
+    # headless should still work with CSVs with header=None
+    data = Measurement(csv_path=csv_headless, header=None)
+    assert data.shape == (4,6)
+
+    data = Measurement(pandas_df=df_headless)
+    assert data.shape == (4,6)
+
+
+
 def test_init_np(numpy_array):
     """Test initializing Measurement class with numpy array
 

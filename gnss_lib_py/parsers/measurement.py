@@ -91,6 +91,11 @@ class Measurement(ABC):
         if not isinstance(pandas_df, pd.DataFrame):
             raise TypeError("pandas_df must be pd.DataFrame")
 
+        if pandas_df.columns.dtype != object:
+            # default headers are Int64 type, but for the Measurement
+            # class they need to be strings
+            pandas_df.rename(str, axis="columns", inplace=True)
+
         self.build_measurement()
 
         for idx, col_name in enumerate(pandas_df.columns):
