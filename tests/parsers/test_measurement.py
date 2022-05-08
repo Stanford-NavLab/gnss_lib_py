@@ -15,14 +15,7 @@ from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers.measurement import Measurement
 
-
-@pytest.fixture(name="csv_path",
-                params=["measurement_test_simple.csv",
-                        # "measurement_test_mixed.csv",
-                        # "measurement_test_headless.csv",
-                       ],
-                )
-def fixture_csv_path(request):
+def fixture_csv_path(csv_filepath):
     """Location of measurements for unit test
 
     Returns
@@ -36,58 +29,134 @@ def fixture_csv_path(request):
                 os.path.realpath(__file__))))
     root_path = os.path.join(root_path, 'data/unit_test/')
 
-    csv_path = os.path.join(root_path, request.param)
+    csv_path = os.path.join(root_path, csv_filepath)
 
     return csv_path
 
+@pytest.fixture(name="csv_simple")
+def csv_simple():
+    """csv with simple format.
 
-@pytest.fixture(name="pandas_df")
-def load_test_dataframe(csv_path):
     """
+    return fixture_csv_path("measurement_test_simple.csv")
+
+@pytest.fixture
+def csv_headless():
+    """csv without column names.
+
     """
-    df = pd.read_csv(csv_path)
+    return fixture_csv_path("measurement_test_headless.csv")
+
+@pytest.fixture
+def csv_missing():
+    """csv with missing entries.
+
+    """
+    return fixture_csv_path("measurement_test_missing.csv")
+
+@pytest.fixture
+def csv_mixed():
+    """csv with mixed data types.
+
+    """
+    return fixture_csv_path("measurement_test_mixed.csv")
+
+@pytest.fixture
+def csv_inf():
+    """csv with infinity values in numeric columns.
+
+    """
+    return fixture_csv_path("measurement_test_inf.csv")
+
+@pytest.fixture
+def csv_nan():
+    """csv with NaN values in columns.
+
+    """
+    return fixture_csv_path("measurement_test_nan.csv")
+
+@pytest.fixture
+def csv_int_first():
+    """csv where first column are integers.
+
+    """
+    return fixture_csv_path("measurement_test_int_first.csv")
+
+def load_test_dataframe(csv_filepath, header="infer"):
+    """Create dataframe test fixture.
+
+    """
+
+    df = pd.read_csv(csv_filepath, header=header)
+
     return df
 
+@pytest.fixture
+def df_simple(csv_simple):
+    """df with simple format.
+
+    """
+    return load_test_dataframe(csv_simple)
+
+@pytest.fixture
+def df_headless(csv_headless):
+    """df without column names.
+
+    """
+    return load_test_dataframe(csv_headless,None)
+
+@pytest.fixture
+def df_missing(csv_missing):
+    """df with missing entries.
+
+    """
+    return load_test_dataframe(csv_missing)
+
+@pytest.fixture
+def df_mixed(csv_mixed):
+    """df with mixed data types.
+
+    """
+    return load_test_dataframe(csv_mixed)
+
+@pytest.fixture
+def df_inf(csv_inf):
+    """df with infinity values in numeric columns.
+
+    """
+    return load_test_dataframe(csv_inf)
+
+@pytest.fixture
+def df_nan(csv_nan):
+    """df with NaN values in columns.
+
+    """
+    return load_test_dataframe(csv_nan)
+
+@pytest.fixture
+def df_int_first(csv_int_first):
+    """df where first column are integers.
+
+    """
+    return load_test_dataframe(csv_int_first)
+
+@pytest.fixture(name="data")
+def load_test_measurement(df_simple):
+    """Creates a Measurement instance from df_simple.
+
+    """
+    return Measurement(pandas_df=df_simple)
 
 @pytest.fixture(name="numpy_array")
 def create_numpy_array():
+    """Create np.ndarray test fixture.
     """
-    """
-    test_array = np.array([[1,2,3,4],
-                            [15,16,17,18],
-                            [29,30,31.5,32.3],
-                            [0.5,0.6,0.7,0.8],
-                            [-3.0,-1.2,-100.,-2.7],
-                            [-543,-234,-986,-123],
+    test_array = np.array([[1,2,3,4,5,6],
+                            [0.5,0.6,0.7,0.8,-0.001,-0.3],
+                            [-3.0,-1.2,-100.,-2.7,-30.,-5],
+                            [-543,-234,-986,-123,843,1000],
                             ])
     return test_array
-
-
-# @pytest.fixture(name="data")
-# def create_data_csv(csv_path):
-#     """Create test fixture for Measurement from csv
-#
-#     Parameters
-#     ----------
-#     csv_path : string
-#         Path to csv file containing data
-#
-#     """
-#
-#     return Measurement(csv=csv_path)
-
-@pytest.fixture(name="data")
-def create_data_pd(pandas_df):
-    """Create test fixture for Measurement from pandas dataframe
-
-    Parameters
-    ----------
-    pandas_df : pd.DataFrame
-        Pandas DataFrame containing data
-
-    """
-
-    return Measurement(pandas_df=pandas_df)
 
 def test_init_blank():
     """Test initializing blank Measurement class
@@ -96,7 +165,18 @@ def test_init_blank():
 
     data = Measurement()
 
+    # Measurement should be empty
+    assert data.shape == (0,0)
 
+@pytest.mark.parametrize('csv_path',
+                        [
+                         lazy_fixture("csv_simple"),
+                         lazy_fixture("csv_missing"),
+                         lazy_fixture("csv_mixed"),
+                         lazy_fixture("csv_nan"),
+                         lazy_fixture("csv_inf"),
+                         lazy_fixture("csv_int_first"),
+                        ])
 def test_init_csv(csv_path):
     """Test initializing Measurement class with csv
 
@@ -109,6 +189,10 @@ def test_init_csv(csv_path):
 
     # should work when csv is passed
     data = Measurement(csv_path=csv_path)
+
+    # data should contain full csv
+    assert data.shape == (4,6)
+
 
     # raises exception if not a file path
     with pytest.raises(OSError):
@@ -134,7 +218,15 @@ def test_init_csv(csv_path):
     with pytest.raises(TypeError):
         data = Measurement(csv_path=pd.DataFrame([0]))
 
-
+@pytest.mark.parametrize('pandas_df',
+                        [
+                         lazy_fixture("df_simple"),
+                         lazy_fixture("df_missing"),
+                         lazy_fixture("df_mixed"),
+                         lazy_fixture("df_inf"),
+                         lazy_fixture("df_nan"),
+                         lazy_fixture("df_int_first"),
+                        ])
 def test_init_pd(pandas_df):
     """Test initializing Measurement class with pandas dataframe
 
@@ -147,6 +239,9 @@ def test_init_pd(pandas_df):
 
     # should work if pass in pandas dataframe
     data = Measurement(pandas_df=pandas_df)
+
+    # data should contain full pandas data
+    assert data.shape == (4,6)
 
     # raises exception if input int
     with pytest.raises(TypeError):
@@ -168,7 +263,6 @@ def test_init_pd(pandas_df):
     with pytest.raises(TypeError):
         data = Measurement(pandas_df=np.array([0]))
 
-
 def test_init_np(numpy_array):
     """Test initializing Measurement class with numpy array
 
@@ -181,6 +275,9 @@ def test_init_np(numpy_array):
 
     # should work if input numpy ndarray
     data = Measurement(numpy_array=numpy_array)
+
+    # data should contain full data
+    assert data.shape == (4,6)
 
     # raises exception if input int
     with pytest.raises(TypeError):
@@ -202,8 +299,11 @@ def test_init_np(numpy_array):
     with pytest.raises(TypeError):
         data = Measurement(numpy_array=pd.DataFrame([0]))
 
-
-def test_rename(data):
+@pytest.mark.parametrize('pandas_df',
+                        [
+                         lazy_fixture("df_simple"),
+                        ])
+def test_rename(pandas_df):
     """Test column renaming functionality.
 
     Parameters
@@ -212,15 +312,19 @@ def test_rename(data):
         test data
 
     """
+    data = Measurement(pandas_df=pandas_df)
+
     print("\n")
     print("arr_dtype:\n",data.arr_dtype)
     print("array:\n",data.array)
     print("map:\n",data.map)
     print("str_map:\n",data.str_map)
 
-
-@pytest.fixture(name="df_rows")
-def fixture_df_rows(pandas_df):
+@pytest.fixture(name="df_rows",
+                params=[
+                        lazy_fixture("df_simple")
+                ])
+def return_df_rows(request):
     """Extract and return rows from the DataFrame for testing
 
     Parameters
@@ -239,6 +343,7 @@ def fixture_df_rows(pandas_df):
     strings : np.ndarray
         String entries in 'strings' column of the DataFrame
     """
+    pandas_df = request.param
     names = np.asarray(pandas_df['names'].values, dtype=object)
     integers = np.reshape(np.asarray(pandas_df['integers'].values, dtype=np.float64), [1, -1])
     floats = np.reshape(np.asarray(pandas_df['floats'].values, dtype=np.float64), [1, -1])
@@ -254,7 +359,7 @@ def fixture_integers(df_rows):
     ----------
     df_rows : list
         List of rows from the testing data
-    
+
     Returns
     -------
     integers : np.ndarray
@@ -271,7 +376,7 @@ def fixture_floats(df_rows):
     ----------
     df_rows : list
         List of rows from the testing data
-    
+
     Returns
     -------
     floats : np.ndarray
@@ -289,7 +394,7 @@ def fixture_strings(df_rows):
     ----------
     df_rows : list
         List of rows from the testing data
-    
+
     Returns
     -------
     strings : np.ndarray
@@ -307,7 +412,7 @@ def fixture_int_flt(df_rows):
     ----------
     df_rows : list
         List of rows from the testing data
-    
+
     Returns
     -------
     int_flt : np.ndarray
@@ -326,7 +431,7 @@ def fixture_nm_str(df_rows):
     ----------
     df_rows : list
         List of rows from the testing data
-    
+
     Returns
     -------
     nm_str : np.ndarray
@@ -345,7 +450,7 @@ def fixture_str_nm(df_rows):
     ----------
     df_rows : list
         List of rows from the testing data
-    
+
     Returns
     -------
     str_nm : np.ndarray
@@ -500,7 +605,7 @@ def fixture_add_array():
 
 @pytest.fixture(name='add_df')
 def fixture_add_dataframe():
-    add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object), 'integers': np.asarray([-2., 45.]), 
+    add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object), 'integers': np.asarray([-2., 45.]),
             'floats': np.asarray([1.4, 1.5869]), 'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
     add_df = pd.DataFrame(data=add_data)
     return add_df
@@ -513,8 +618,8 @@ def fixture_add_dataframe():
 #     np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
 
 
-def test_add_pandas_df(pandas_df, add_df):
-    data = Measurement(pandas_df=pandas_df)
+def test_add_pandas_df(df_simple, add_df):
+    data = Measurement(pandas_df=df_simple)
     data.add(pandas_df=add_df)
     new_df = data.pandas_df()
     add_row_num = add_df.shape[0]

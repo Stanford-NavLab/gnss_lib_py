@@ -28,14 +28,16 @@ class Measurement(ABC):
         Map of the form {pandas column name : {array value : string}}.
         Map is of the form {pandas column name : {}} for non string rows.
     """
-    def __init__(self, csv_path=None, pandas_df=None, numpy_array=None):
+    def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
+                 header="infer"):
         #For a Pythonic implementation, including all attributes as None in the beginning
         self.arr_dtype = np.float32 # default value
         self.array = None
         self.map = {}
         self.str_map = {}
+
         if csv_path is not None:
-            self.from_csv_path(csv_path)
+            self.from_csv_path(csv_path, header)
         elif pandas_df is not None:
             self.from_pandas_df(pandas_df)
         elif numpy_array is not None:
@@ -54,16 +56,18 @@ class Measurement(ABC):
         """Build attributes for Measurements.
 
         """
-        self.arr_dtype = np.float64
-        self.array = np.zeros(0, dtype=self.arr_dtype)
+        self.array = np.zeros((0,0), dtype=self.arr_dtype)
 
-    def from_csv_path(self, csv_path):
+    def from_csv_path(self, csv_path, header="infer"):
         """Build attributes of Measurement using csv file.
 
         Parameters
         ----------
         csv_path : string
             Path to csv file containing data
+        header : string, int, or None
+            "infer" uses the first row as column names, setting to
+            None will add int names for the columns.
 
         """
         if not isinstance(csv_path, str):
@@ -73,7 +77,7 @@ class Measurement(ABC):
 
         self.build_measurement()
 
-        pandas_df = pd.read_csv(csv_path)
+        pandas_df = pd.read_csv(csv_path, header=header)
         self.from_pandas_df(pandas_df)
 
     def from_pandas_df(self, pandas_df):
@@ -89,35 +93,9 @@ class Measurement(ABC):
 
         self.build_measurement()
 
-        num_times = len(pandas_df)
-        self.array = np.zeros([0, num_times], dtype= self.arr_dtype)
-        # Using an empty array to conserve space and not maintain huge duplicates
-        self.map = {col_name: idx for idx, col_name in enumerate(pandas_df.columns)}
-        str_bool = {col_name: self.check_string(pandas_df[col_name]) \
-                    for col_name in self.map.keys()}
-        # Assuming that the data type of all objects in a single series is the same
-        self.str_map = {}
-        #TODO: See if we can avoid this loop to speed things up
-        for key in self.map.keys():
-            # indexing by key to maintain same order as eventual map
-            val = str_bool[key]
-            values = pandas_df.loc[:, key]
-            new_values = np.copy(values)
-            if val:
-                string_vals = np.unique(pandas_df.loc[:, key])
-                val_dict = dict(enumerate(string_vals))
-                self.str_map[key] = val_dict
-
-                for str_key, str_val in val_dict.items():
-                    new_values[values==str_val] = str_key
-                # Copy set to false to prevent memory overflows
-                new_values = new_values.astype(self.arr_dtype, copy=False)
-            else:
-                self.str_map[key] = {}
-            new_values = np.reshape(new_values, [1, -1])
-            self.array = np.vstack((self.array, new_values))
-            #TODO: Use __setitem__ here for self consistency
-            #TODO: Rebuild map after all additions/deletions?
+        for idx, col_name in enumerate(pandas_df.columns):
+            newvalue = pandas_df[col_name].to_numpy()
+            self.__setitem__(col_name, newvalue)
 
     def from_numpy_array(self, numpy_array):
         """Build attributes of Measurement using np.ndarray.
@@ -133,6 +111,9 @@ class Measurement(ABC):
             raise TypeError("numpy_array must be np.ndarray")
 
         self.build_measurement()
+
+        for ii in range(numpy_array.shape[0]):
+            self.__setitem__(str(ii), numpy_array[ii,:])
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
@@ -303,9 +284,15 @@ class Measurement(ABC):
             #Creating an entire new row
             if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
                 # Adding string values
+                self.fillna(newvalue)
                 new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
                 new_str_vals = self._str_2_val(new_str_vals, newvalue, key_idx)
-                self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
+                if self.array.shape == (0,0):
+                    # if empty array, start from scratch
+                    self.array = np.reshape(new_str_vals, [1, -1])
+                else:
+                    # if array is not empty, add to it
+                    self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
                 if not isinstance(newvalue, int):
@@ -313,8 +300,16 @@ class Measurement(ABC):
                             "Please use dtype=object for string assignments"
                 # Adding numeric values
                 self.str_map[key_idx] = {}
-                self.array = np.vstack((self.array, np.empty([1, len(self)])))
-                self.array[-1, :] = np.reshape(newvalue, -1)
+                if self.array.shape == (0,0):
+                    # if empty array, start from scratch
+                    self.array = np.reshape(newvalue, (1,-1))
+                    # have to explicitly convert to float in case
+                    # numbers were interpretted as integers
+                    self.array = self.array.astype(self.arr_dtype)
+                else:
+                    # if array is not empty, add to it
+                    self.array = np.vstack((self.array, np.empty([1, len(self)])))
+                    self.array[-1, :] = np.reshape(newvalue, -1)
                 self.map[key_idx] = self.shape[0]-1
         else:
             # Updating existing rows or columns
@@ -453,7 +448,7 @@ class Measurement(ABC):
         rows = list(self.map.keys())
         return rows
 
-    
+
     @property
     def str_bool(self):
         """Dictionary of index : if data entry is string
@@ -469,7 +464,7 @@ class Measurement(ABC):
     @property
     def inv_map(self):
         """Inverse dictionary map for label and row_number map
-        
+
         Returns
         -------
         inv_map: Dict
@@ -483,3 +478,16 @@ class Measurement(ABC):
 
         """
         return series.dtype == object
+
+    def fillna(self, array):
+        """Fills nan values in an array of strings.
+
+        You have to do a string comparison, so we first have to create
+        the string equivalent of the NaN to compare against.
+
+        array : np.ndarray
+            np.ndarray of strings
+
+        """
+        nan_str = np.array([np.nan]).astype(str)[0]
+        array[np.where(array.astype(str)==nan_str)] = ""

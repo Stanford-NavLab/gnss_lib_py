@@ -321,7 +321,7 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
     ephem = extract_ephem()
 
     sat_names = (meas_prev.index).tolist()
-    print(ephem.loc[sat_names,:])
+    # print(ephem.loc[sat_names,:])
 
     meas_prev_corr = measures.correct_pseudorange(
         gpstime, gpsweek, ephem.loc[sat_names,:], meas_prev['prange'], rx_ecef)
