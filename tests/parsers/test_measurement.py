@@ -263,7 +263,6 @@ def test_init_pd(pandas_df):
     with pytest.raises(TypeError):
         data = Measurement(pandas_df=np.array([0]))
 
-
 def test_init_headless(csv_headless, df_headless):
     """Test that headless csvs and dataframes can be loaded as expected.
 
@@ -275,7 +274,9 @@ def test_init_headless(csv_headless, df_headless):
     data = Measurement(pandas_df=df_headless)
     assert data.shape == (4,6)
 
-
+    # should fail if you don't add the header=None variable
+    data = Measurement(csv_path=csv_headless)
+    assert data.shape != (4,6)
 
 def test_init_np(numpy_array):
     """Test initializing Measurement class with numpy array
@@ -328,11 +329,31 @@ def test_rename(pandas_df):
     """
     data = Measurement(pandas_df=pandas_df)
 
-    print("\n")
-    print("arr_dtype:\n",data.arr_dtype)
-    print("array:\n",data.array)
-    print("map:\n",data.map)
-    print("str_map:\n",data.str_map)
+    data.rename({"names": "terms"})
+    assert "names" not in data.map.keys()
+    assert "names" not in data.str_map.keys()
+    assert "terms" in data.map.keys()
+    assert "terms" in data.str_map.keys()
+
+    data.rename({"floats": "decimals", "integers": "numbers"})
+    assert "floats" not in data.map.keys()
+    assert "floats" not in data.str_map.keys()
+    assert "integers" not in data.map.keys()
+    assert "integers" not in data.str_map.keys()
+    assert "numbers" in data.map.keys()
+    assert "numbers" in data.str_map.keys()
+    assert "decimals" in data.map.keys()
+    assert "decimals" in data.str_map.keys()
+
+    # raises exception if input is not string
+    with pytest.raises(TypeError):
+        data.rename({"names": 0})
+    with pytest.raises(TypeError):
+        data.rename({"names": 0.8})
+
+    # should raise error if key doesn't exist
+    with pytest.raises(KeyError):
+        data.rename({"food": "test"})
 
 @pytest.fixture(name="df_rows",
                 params=[

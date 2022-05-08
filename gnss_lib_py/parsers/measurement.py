@@ -496,3 +496,23 @@ class Measurement(ABC):
         """
         nan_str = np.array([np.nan]).astype(str)[0]
         array[np.where(array.astype(str)==nan_str)] = ""
+
+    def rename(self, mapper):
+        """Rename rows of Measurement class.
+
+        Column names must be strings.
+
+        mapper : dict
+            Pairs of {"old_name" : "new_name"} for each column that
+            you want to be renamed.
+
+        """
+
+        for key, value in mapper.items():
+            if not isinstance(value, str):
+                raise TypeError("Column names must be strings")
+            if key not in self.map.keys():
+                raise KeyError("'" + str(key) + "' key doesn't exist in Measurement class")
+
+            self.map[value] = self.map.pop(key)
+            self.str_map[value] = self.str_map.pop(key)
