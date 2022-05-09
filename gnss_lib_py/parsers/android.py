@@ -33,16 +33,12 @@ class AndroidDerived(Measurement):
             Loaded measurements with consistent column names
         """
 
-        # super().__init__(csv_path=input_path)
-        # self.rename(col_map)
-        # self.postprocess()
-
         pd_df = pd.read_csv(input_path)
         col_map = self._column_map()
         pd_df.rename(columns=col_map, inplace=True)
 
         super().__init__(pandas_df=pd_df)
-        # self.postprocess()
+        self.postprocess()
 
     def postprocess(self):
         """Android derived specific postprocessing for Measurement()
