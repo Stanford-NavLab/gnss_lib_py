@@ -330,20 +330,20 @@ def test_rename(pandas_df):
     data = Measurement(pandas_df=pandas_df)
 
     data.rename({"names": "terms"})
-    assert "names" not in data.map.keys()
-    assert "names" not in data.str_map.keys()
-    assert "terms" in data.map.keys()
-    assert "terms" in data.str_map.keys()
+    assert "names" not in data.map
+    assert "names" not in data.str_map
+    assert "terms" in data.map
+    assert "terms" in data.str_map
 
     data.rename({"floats": "decimals", "integers": "numbers"})
-    assert "floats" not in data.map.keys()
-    assert "floats" not in data.str_map.keys()
-    assert "integers" not in data.map.keys()
-    assert "integers" not in data.str_map.keys()
-    assert "numbers" in data.map.keys()
-    assert "numbers" in data.str_map.keys()
-    assert "decimals" in data.map.keys()
-    assert "decimals" in data.str_map.keys()
+    assert "floats" not in data.map
+    assert "floats" not in data.str_map
+    assert "integers" not in data.map
+    assert "integers" not in data.str_map
+    assert "numbers" in data.map
+    assert "numbers" in data.str_map
+    assert "decimals" in data.map
+    assert "decimals" in data.str_map
 
     # raises exception if input is not string
     with pytest.raises(TypeError):

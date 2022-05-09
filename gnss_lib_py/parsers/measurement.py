@@ -40,7 +40,7 @@ class Measurement(ABC):
         # Attributes for looping over all columns
 
         self.curr_col = 0
-        self.num_cols = np.shape(self.array)[1]
+        self.num_cols = 0
 
         if csv_path is not None:
             self.from_csv_path(csv_path, header)
