@@ -465,7 +465,10 @@ class Measurement(ABC):
 
     @property
     def str_bool(self):
-        """Dictionary of index : if data entry is string
+        """Dictionary of index : if data entry is string.
+
+        Row has string values if the string map is nonempty for a
+        given row.
 
         Returns
         -------
@@ -486,12 +489,6 @@ class Measurement(ABC):
         """
         inv_map = {v: k for k, v in self.map.items()}
         return inv_map
-
-    def check_string(self, series):
-        """Check if pd.Series contains any string values.
-
-        """
-        return series.dtype == object
 
     def fillna(self, array):
         """Fills nan values in an array of strings.
@@ -585,9 +582,8 @@ class Measurement(ABC):
             rows = []
         new_measurement = Measurement()
         inv_map = self.inv_map
-        if len(rows)!= 0:
-            if isinstance(rows[0], int):
-                rows = [inv_map[row_idx] for row_idx in rows]
+        if len(rows) != 0 and isinstance(rows[0], int):
+            rows = [inv_map[row_idx] for row_idx in rows]
         keep_rows = [row for row in self.rows if row not in rows]
         keep_cols = [col for col in range(len(self)) if col not in cols]
         for row_idx in keep_rows:
