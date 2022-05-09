@@ -1059,7 +1059,7 @@ testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtuale
 name = "pytest-lazy-fixture"
 version = "0.6.3"
 description = "It helps to use fixtures in pytest.mark.parametrize"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1552,7 +1552,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8, < 3.11"
-content-hash = "1e42941680a0b6e10c512ea259c7c43655248e0210b414092b7bd33e3ff59382"
+content-hash = "e6dfed3a144ee642300bd37eafffbc65129486d95f08fb65d60f1d6c950a3234"
 
 [metadata.files]
 alabaster = [

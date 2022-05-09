@@ -19,6 +19,7 @@ pylint = "^2.11.1"
 pytest-cov = "^3.0.0"
 scipy = "^1.7.3"
 jupyter = "^1.0.0"
+pytest-lazy-fixture = "^0.6.3"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.1.1"
@@ -29,7 +30,6 @@ ipykernel = "^6.0.3"
 jupyter = "^1.0.0"
 pyproj = "^3.1.0"
 pylint-exit = "^1.2.0"
-pytest-lazy-fixture = "^0.6.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
