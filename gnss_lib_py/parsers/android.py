@@ -19,10 +19,7 @@ class AndroidDerived(Measurement):
 
     Inherits from Measurement().
     """
-    #NOTE: Inherits __init__() and isn't defined explicitly here because
-    # no additional implementations/attributes are needed
-
-    def preprocess(self, input_path):
+    def __init__(self, input_path):
         """Android specific loading and preprocessing for Measurement()
 
         Parameters
@@ -35,10 +32,13 @@ class AndroidDerived(Measurement):
         pd_df : pd.DataFrame
             Loaded measurements with consistent column names
         """
+
         pd_df = pd.read_csv(input_path)
         col_map = self._column_map()
         pd_df.rename(columns=col_map, inplace=True)
-        return pd_df
+
+        super().__init__(pandas_df=pd_df)
+        self.postprocess()
 
     def postprocess(self):
         """Android derived specific postprocessing for Measurement()
@@ -94,7 +94,9 @@ class AndroidRawImu(Measurement):
     """
     def __init__(self, input_path, group_time=10):
         self.group_time = group_time
-        super().__init__(input_path)
+        pd_df = self.preprocess(input_path)
+        super().__init__(pandas_df=pd_df)
+
 
     def preprocess(self, input_path):
         """Read Android raw file and produce IMU dataframe objects
@@ -155,6 +157,11 @@ class AndroidRawFixes(Measurement):
 
     Inherits from Measurement().
     """
+    def __init__(self, input_path):
+        pd_df = self.preprocess(input_path)
+        super().__init__(pandas_df=pd_df)
+
+
     def preprocess(self, input_path):
         """Read Android raw file and produce location fix dataframe objects
 

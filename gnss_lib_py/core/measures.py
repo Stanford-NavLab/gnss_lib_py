@@ -340,7 +340,7 @@ def find_sat(ephem, times, gpsweek):
     sma      = sqrt_sma**2      # semi-major axis
 
     sqrt_mu_A = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
-    gpsweek_diff = np.mod(gpsweek,1024) - np.mod(ephem['GPSWeek'],1024)*604800.
+    gpsweek_diff = (np.mod(gpsweek,1024) - np.mod(ephem['GPSWeek'],1024))*604800.
 
     # if np.size(times_all)==1:
     #     times_all = times_all*np.ones(len(ephem))
