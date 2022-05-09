@@ -7,6 +7,7 @@ __date__ = "03 Nov 2021"
 
 import os
 from abc import ABC
+import copy
 
 import numpy as np
 import pandas as pd
@@ -36,6 +37,11 @@ class Measurement(ABC):
         self.map = {}
         self.str_map = {}
 
+        # Attributes for looping over all columns
+
+        self.curr_col = 0
+        self.num_cols = np.shape(self.array)[1]
+
         if csv_path is not None:
             self.from_csv_path(csv_path, header)
         elif pandas_df is not None:
@@ -50,7 +56,6 @@ class Measurement(ABC):
     def postprocess(self):
         """Postprocess loaded measurements. Optional in subclass
         """
-        pass
 
     def build_measurement(self):
         """Build attributes for Measurements.
@@ -98,7 +103,7 @@ class Measurement(ABC):
 
         self.build_measurement()
 
-        for idx, col_name in enumerate(pandas_df.columns):
+        for _, col_name in enumerate(pandas_df.columns):
             newvalue = pandas_df[col_name].to_numpy()
             self.__setitem__(col_name, newvalue)
 
@@ -117,8 +122,8 @@ class Measurement(ABC):
 
         self.build_measurement()
 
-        for ii in range(numpy_array.shape[0]):
-            self.__setitem__(str(ii), numpy_array[ii,:])
+        for row_num in range(numpy_array.shape[0]):
+            self.__setitem__(str(row_num), numpy_array[row_num,:])
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
@@ -285,6 +290,10 @@ class Measurement(ABC):
             Values to be added to self.array attribute
         """
         #TODO: Fix error when assigning strings with 2D arrays
+        if isinstance(key_idx, int) and len(self.map)<=key_idx:
+            raise KeyError('Row indices must be strings when assigning new values')
+        if isinstance(key_idx, slice) and len(self.map)==0:
+            raise KeyError('Row indices must be strings when assigning new values')
         if isinstance(key_idx, str) and key_idx not in self.map.keys():
             #Creating an entire new row
             if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
@@ -302,7 +311,7 @@ class Measurement(ABC):
             else:
                 if not isinstance(newvalue, int):
                     assert not isinstance(np.asarray(newvalue)[0], str), \
-                            "Please use dtype=object for string assignments"
+                            "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
                 # Adding numeric values
                 self.str_map[key_idx] = {}
                 if self.array.shape == (0,0):
@@ -516,3 +525,79 @@ class Measurement(ABC):
 
             self.map[value] = self.map.pop(key)
             self.str_map[value] = self.str_map.pop(key)
+
+    def copy(self, rows=None, cols=None):
+        """Return copy of Measurement keeping specified rows and columns
+
+        Parameters
+        ----------
+        rows : None/list/np.ndarray
+            Strings or integers indicating rows to keep in copy
+        cols : None/list/np.ndarray
+            Integers indicating columns to keep in copy
+
+        Returns
+        -------
+        new_measurment : gnss_lib_py.parsers.measurment.Measurment
+            Copy of original Measurement with desired rows and columns
+        """
+        new_measurement = Measurement()
+        inv_map = self.inv_map
+        if rows is None:
+            # row_indices = slice(None, None).indices(len(self.rows))
+            # rows = np.arange(row_indices[0], row_indices[1], row_indices[2])
+            rows = self.rows
+        if cols is None:
+            col_indices = slice(None, None).indices(len(self))
+            cols = np.arange(col_indices[0], col_indices[1], col_indices[2])
+        for row_idx in rows:
+            new_row = copy.deepcopy(self[row_idx, cols])
+            if isinstance(row_idx, int):
+                key = inv_map[row_idx]
+            else:
+                key = row_idx
+            new_measurement[key] = new_row
+        return new_measurement
+
+    def remove(self, rows, cols):
+        """Reset Measurement to remove specified rows and columns
+
+        Parameters
+        ----------
+        rows : None/list/np.ndarray
+            Rows to remove from Measurement
+        cols : None/list/np.ndarray
+            Columns to remove from Measurement
+
+        Returns
+        -------
+        new_measurement : gnss_lib_py.parsers.measurement.Measurement
+            Measurement instance after removing specified rows and columns
+
+        Notes
+        -----
+        This method returns the measurement with removed rows and columns,
+        while also resetting the current instance to not have specified rows
+        and columns.
+        """
+        if cols is None:
+            cols = []
+        if rows is None:
+            rows = []
+        new_measurement = Measurement()
+        inv_map = self.inv_map
+        if len(rows)!= 0:
+            if isinstance(rows[0], int):
+                rows = [inv_map[row_idx] for row_idx in rows]
+        keep_rows = [row for row in self.rows if row not in rows]
+        keep_cols = [col for col in range(len(self)) if col not in cols]
+        for row_idx in keep_rows:
+            new_row = self[row_idx, keep_cols]
+            if isinstance(row_idx, int):
+                key = inv_map[row_idx]
+            else:
+                key = row_idx
+            new_measurement[key] = new_row
+        #TODO Is this excessively contorted?
+        self.__init__(pandas_df=new_measurement.pandas_df())
+        return new_measurement

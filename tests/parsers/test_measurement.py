@@ -34,49 +34,49 @@ def fixture_csv_path(csv_filepath):
     return csv_path
 
 @pytest.fixture(name="csv_simple")
-def csv_simple():
+def fixture_csv_simple():
     """csv with simple format.
 
     """
     return fixture_csv_path("measurement_test_simple.csv")
 
-@pytest.fixture
-def csv_headless():
+@pytest.fixture(name="csv_headless")
+def fixture_csv_headless():
     """csv without column names.
 
     """
     return fixture_csv_path("measurement_test_headless.csv")
 
-@pytest.fixture
-def csv_missing():
+@pytest.fixture(name="csv_missing")
+def fixture_csv_missing():
     """csv with missing entries.
 
     """
     return fixture_csv_path("measurement_test_missing.csv")
 
-@pytest.fixture
-def csv_mixed():
+@pytest.fixture(name="csv_mixed")
+def fixture_csv_mixed():
     """csv with mixed data types.
 
     """
     return fixture_csv_path("measurement_test_mixed.csv")
 
-@pytest.fixture
-def csv_inf():
+@pytest.fixture(name="csv_inf")
+def fixture_csv_inf():
     """csv with infinity values in numeric columns.
 
     """
     return fixture_csv_path("measurement_test_inf.csv")
 
-@pytest.fixture
-def csv_nan():
+@pytest.fixture(name="csv_nan")
+def fixture_csv_nan():
     """csv with NaN values in columns.
 
     """
     return fixture_csv_path("measurement_test_nan.csv")
 
-@pytest.fixture
-def csv_int_first():
+@pytest.fixture(name="csv_int_first")
+def fixture_csv_int_first():
     """csv where first column are integers.
 
     """
@@ -91,50 +91,50 @@ def load_test_dataframe(csv_filepath, header="infer"):
 
     return df
 
-@pytest.fixture
-def df_simple(csv_simple):
+@pytest.fixture(name='df_simple')
+def fixture_df_simple(csv_simple):
     """df with simple format.
 
     """
     return load_test_dataframe(csv_simple)
 
-@pytest.fixture
-def df_headless(csv_headless):
+@pytest.fixture(name='df_headless')
+def fixture_df_headless(csv_headless):
     """df without column names.
 
     """
     return load_test_dataframe(csv_headless,None)
 
-@pytest.fixture
-def df_missing(csv_missing):
+@pytest.fixture(name='df_missing')
+def fixture_df_missing(csv_missing):
     """df with missing entries.
 
     """
     return load_test_dataframe(csv_missing)
 
-@pytest.fixture
-def df_mixed(csv_mixed):
+@pytest.fixture(name='df_mixed')
+def fixture_df_mixed(csv_mixed):
     """df with mixed data types.
 
     """
     return load_test_dataframe(csv_mixed)
 
-@pytest.fixture
-def df_inf(csv_inf):
+@pytest.fixture(name='df_inf')
+def fixture_df_inf(csv_inf):
     """df with infinity values in numeric columns.
 
     """
     return load_test_dataframe(csv_inf)
 
-@pytest.fixture
-def df_nan(csv_nan):
+@pytest.fixture(name='df_nan')
+def fixture_df_nan(csv_nan):
     """df with NaN values in columns.
 
     """
     return load_test_dataframe(csv_nan)
 
-@pytest.fixture
-def df_int_first(csv_int_first):
+@pytest.fixture(name='df_int_first')
+def fixture_df_int_first(csv_int_first):
     """df where first column are integers.
 
     """
@@ -543,11 +543,17 @@ def test_get_item(data, index, exp_value):
     np.testing.assert_array_equal(data[index], exp_value)
 
 
-# def test_get_all_numpy(numpy_array):
-    #TODO: Replace with actual numpy initialization when done
-    # data = Measurement(numpy_array=numpy_array)
-    # np.testing.assert_array_almost_equal(data[:], numpy_array)
-    # np.testing.assert_array_almost_equal(data[:, :], numpy_array)
+def test_get_all_numpy(numpy_array):
+    """Test get all method using slices for Measurement
+
+    Parameters
+    ----------
+    numpy_array : np.ndarray
+        Array to initialize Measurement
+    """
+    data = Measurement(numpy_array=numpy_array)
+    np.testing.assert_array_almost_equal(data[:], numpy_array)
+    np.testing.assert_array_almost_equal(data[:, :], numpy_array)
 
 
 
@@ -634,31 +640,158 @@ def test_set_get_item(data, index, new_value, exp_value):
 
 @pytest.fixture(name='add_array')
 def fixture_add_array():
-    add_array = np.hstack((10*np.ones([6,1]), 11*np.ones([6,1])))
+    """Array to be added as additional timesteps to Measurement from np.ndarray
+
+    Returns
+    -------
+    add_array : np.ndarray
+        Array that will be added to Measurement
+    """
+    add_array = np.hstack((10*np.ones([4,1]), 11*np.ones([4,1])))
     return add_array
 
 
 @pytest.fixture(name='add_df')
 def fixture_add_dataframe():
-    add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object), 'integers': np.asarray([-2., 45.]),
-            'floats': np.asarray([1.4, 1.5869]), 'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
+    """Pandas DataFrame to be added as additional timesteps to Measurement
+
+    Returns
+    -------
+    add_df : pd.DataFrame
+        Dataframe that will be added to Measurement
+    """
+    add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object),
+                'integers': np.asarray([-2., 45.]),
+                'floats': np.asarray([1.4, 1.5869]),
+                'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
     add_df = pd.DataFrame(data=add_data)
     return add_df
 
 
-# def test_add_numpy(numpy_array, add_array):
-#     data = Measurement(numpy_array=numpy_array)
-#     data.add(numpy_array=add_array)
-#     new_col_num = np.shape(add_array)[1]
-#     np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
+def test_add_numpy(numpy_array, add_array):
+    """Test addition of a numpy array to Measurement
+
+    Parameters
+    ----------
+    numpy_array : np.ndarray
+        Array to initialize Measurement instance with
+    add_array : np.ndarray
+        Array to add to Measurement
+    """
+    data = Measurement(numpy_array=numpy_array)
+    data.add(numpy_array=add_array)
+    new_col_num = np.shape(add_array)[1]
+    np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
 
 
 def test_add_pandas_df(df_simple, add_df):
+    """Test addition of a pd.DataFrame to Measurement
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize Measurement with
+    add_df : pd.DataFrame
+        pd.DataFrame to add to Measurement
+    """
     data = Measurement(pandas_df=df_simple)
     data.add(pandas_df=add_df)
     new_df = data.pandas_df()
     add_row_num = add_df.shape[0]
-    # print(new_df)
-    # print(add_df)
-    # print
-    pd.testing.assert_frame_equal(new_df.iloc[-add_row_num:, :].reset_index(drop=True), add_df, check_index_type=False)
+    subset_df = new_df.iloc[-add_row_num:, :].reset_index(drop=True)
+    pd.testing.assert_frame_equal(subset_df, add_df, check_index_type=False)
+
+
+@pytest.mark.parametrize("rows",
+                        [None,
+                        ['names', 'integers', 'floats', 'strings'],
+                        np.asarray(['names', 'integers', 'floats', 'strings'], dtype=object),
+                        ['names', 'integers'],
+                        np.asarray(['names', 'integers'], dtype=object),
+                        [0, 1]
+                        ])
+@pytest.mark.parametrize("cols",
+                        [None,
+                        np.arange(6),
+                        list(np.arange(6)),
+                        [0,1],
+                        np.asarray([0,1])
+                        ])
+def test_copy_measurement(data, df_simple, rows, cols):
+    """Test methods to subsets and copies of Measurement instance
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.measurement.Measurement
+        Instance of Measurement
+    df_simple : pd.DataFrame
+        Dataframe that is sliced to compare copies against
+    rows : list/np.ndarray
+        Rows to keep in copy
+    cols : list/np.ndarray
+        Columns to keep in copy
+    """
+    new_data = data.copy(rows=rows, cols=cols)
+    new_df = new_data.pandas_df().reset_index(drop=True)
+    if rows is None:
+        rows = ['names', 'integers', 'floats', 'strings']
+    if cols is None:
+        cols = np.arange(6)
+    if isinstance(rows[0], str):
+        subset_df = df_simple.loc[cols, rows]
+    else:
+        subset_df = df_simple.iloc[cols, rows]
+    subset_df = subset_df.reset_index(drop=True)
+    pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
+
+
+@pytest.mark.parametrize("rows",
+                        [None,
+                        ['names', 'integers'],
+                        np.asarray(['names', 'integers'], dtype=object),
+                        [0, 1]
+                        ])
+@pytest.mark.parametrize("cols",
+                        [None,
+                        [0,1],
+                        np.asarray([0,1])
+                        ])
+def test_remove_measurement(data, df_simple, rows, cols):
+    """Test method to remove rows and columns from measurement
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.measurement.Measurement
+        Instance of Measurement
+    df_simple : pd.DataFrame
+        Dataframe that is sliced to compare copies against
+    rows : list/np.ndarray
+        Rows to remove from Measurement
+    cols : list/np.ndarray
+        Columns to remove from Measurement
+    """
+    new_data = data.remove(rows=rows, cols=cols)
+    new_df = new_data.pandas_df().reset_index(drop=True)
+
+    inv_map = {0 : 'names',
+                1 : 'integers',
+                2 : 'floats',
+                3 : 'strings'}
+    all_rows = ['names', 'integers', 'floats', 'strings']
+    all_cols = np.arange(6)
+    if rows is None:
+        rows = []
+    if cols is None:
+        cols = []
+    if len(rows)!=0:
+        if not isinstance(rows[0], str):
+            int_rows = rows
+            rows = []
+            for row_idx in int_rows:
+                rows.append(inv_map[row_idx])
+    keep_rows = [row for row in all_rows if row not in rows]
+    keep_cols = [col for col in all_cols if col not in cols]
+    subset_df = df_simple.loc[keep_cols, keep_rows]
+
+    subset_df = subset_df.reset_index(drop=True)
+    pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
