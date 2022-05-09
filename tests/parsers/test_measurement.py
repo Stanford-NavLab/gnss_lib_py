@@ -638,6 +638,14 @@ def test_set_get_item(data, index, new_value, exp_value):
     data[index] = new_value
     np.testing.assert_array_equal(data[index], exp_value)
 
+@pytest.mark.parametrize("row_idx",
+                        [slice(7, 8),
+                        8])
+def test_wrong_init_set(data, row_idx):
+    empty_data = Measurement()
+    with pytest.raises(KeyError):
+        empty_data[row_idx] = np.zeros([1, 6])
+
 @pytest.fixture(name='add_array')
 def fixture_add_array():
     """Array to be added as additional timesteps to Measurement from np.ndarray

@@ -576,9 +576,8 @@ class Measurement(ABC):
 
         Notes
         -----
-        This method returns the measurement with removed rows and columns,
-        while also resetting the current instance to not have specified rows
-        and columns.
+        This method returns the Measurement with removed rows and columns,
+        but does not reset the current instance in place.
         """
         if cols is None:
             cols = []
@@ -593,11 +592,6 @@ class Measurement(ABC):
         keep_cols = [col for col in range(len(self)) if col not in cols]
         for row_idx in keep_rows:
             new_row = self[row_idx, keep_cols]
-            if isinstance(row_idx, int):
-                key = inv_map[row_idx]
-            else:
-                key = row_idx
+            key = row_idx
             new_measurement[key] = new_row
-        #TODO Is this excessively contorted?
-        self.__init__(pandas_df=new_measurement.pandas_df())
         return new_measurement
