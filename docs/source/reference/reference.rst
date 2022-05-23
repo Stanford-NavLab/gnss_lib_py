@@ -22,8 +22,10 @@ Details about Measurement Class
 -------------------------------
 Reasons that our Measurement Class is awesome
 
-    * Ashwin wrote it.
-
+    * if initializing with np.ndarrays, rows are each data type
+    * column names need to be strings
+    * if initializing with a csv file without headers, use
+      :code:`Measurement(csv_path = "path", header = None)`
 
 Standard Naming Conventions
 ---------------------------

@@ -12,6 +12,9 @@ dev/*
 .vscode/*
 */.vscode/
 
+#Excluding PyCharm files
+.idea/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
