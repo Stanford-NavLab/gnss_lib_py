@@ -177,11 +177,11 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
 
 
 @pytest.mark.parametrize('row_name, index, value',
-                        [('trace_name', 0, '2020-05-14-US-MTV-1'),
-                         ('rx_name', 1, 'Pixel4'),
+                        [('trace_name', 0, np.asarray([['2020-05-14-US-MTV-1']], dtype=object)),
+                         ('rx_name', 1, np.asarray([['Pixel4']], dtype=object)),
                          ('vy_sat_mps', 7, 411.162),
                          ('b_dot_sat_mps', 41, -0.003),
-                         ('signal_type', 6, 'GLO_G1')]
+                         ('signal_type', 6, np.asarray([['GLO_G1']], dtype=object))]
                         )
 def test_derived_value_check(derived, row_name, index, value):
     """Check AndroidDerived entries against known values using test matrix
@@ -200,11 +200,12 @@ def test_derived_value_check(derived, row_name, index, value):
     """
     # Testing stored values vs their known counterparts
     # String maps have been converted to equivalent integers
-    if isinstance(value, str):
-        value_str = derived.str_map[row_name][int(derived[row_name, index])]
-        assert value == value_str
-    else:
-        np.testing.assert_equal(derived[row_name, index], value)
+    # if isinstance(value, str):
+    #     value_str = [np.asarray(value, dtype=object)]
+    #     np.testing.assert_equal(derived[row_name, index], value_str)
+    # else:
+    #     np.testing.assert_equal(derived[row_name, index], value)
+    np.testing.assert_equal(derived[row_name, index], value)
 
 
 def test_get_and_set_num(derived):
@@ -239,26 +240,7 @@ def test_get_and_set_str(derived):
     value = np.concatenate((np.asarray(value1, dtype=object), np.asarray(value2, dtype=object)))
     derived[key] = value
     
-    control_arr = np.hstack((np.zeros((1, size1)), np.ones((1, size2))))
-    np.testing.assert_equal(derived[key, :], control_arr)
-
-def test_set_all(derived):
-    """Testing __setitem__ method for all rows simultaneously
-
-    Parameters
-    ----------
-    derived : pytest.fixture
-        Instance of AndroidDerived for testing
-    """
-    assign_vals = np.zeros(len(derived))
-    assign_vals[int(len(derived)/2):] = 1
-    num_ones = np.sum(assign_vals==1)
-
-    # choose_rows = [0, 2, 3, 5, 6]
-    old_vals = derived.array[:, assign_vals==1]
-    derived['all'] = derived[:, assign_vals==1]
-    np.testing.assert_equal(len(derived), num_ones)
-    np.testing.assert_equal(derived.array[:, :], old_vals)
+    np.testing.assert_equal(derived[key, :], [value])
 
 
 def test_imu_raw(android_raw_path):
