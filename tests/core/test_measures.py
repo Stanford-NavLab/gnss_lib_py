@@ -226,7 +226,6 @@ def test_find_elaz(expected_elaz, set_sat_pos, set_rx_pos):
 
     """
     calc_elaz = measures.find_elaz(set_rx_pos, set_sat_pos)
-    #print(calc_elaz)
     np.testing.assert_array_almost_equal(expected_elaz, calc_elaz)
 
 def test_measures_value_range(get_meas):
@@ -321,7 +320,6 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
     ephem = extract_ephem()
 
     sat_names = (meas_prev.index).tolist()
-    print(ephem.loc[sat_names,:])
 
     meas_prev_corr = measures.correct_pseudorange(
         gpstime, gpsweek, ephem.loc[sat_names,:], meas_prev['prange'], rx_ecef)

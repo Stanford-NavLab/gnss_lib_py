@@ -1,12 +1,19 @@
 # Project specific
 data/*
-dev/
 # Including small datasets used for unit testing Measurement objects
 !data/unit_test/
+
+# development folder
+dev/*
+!dev/.gitkeep
+
 
 #Excluding VS Code files
 .vscode/*
 */.vscode/
+
+#Excluding PyCharm files
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
