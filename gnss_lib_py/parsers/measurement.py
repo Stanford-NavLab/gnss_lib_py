@@ -6,14 +6,13 @@ __authors__ = "Ashwin Kanhere, D. Knowles"
 __date__ = "03 Nov 2021"
 
 import os
-from abc import ABC
 import copy
 
 import numpy as np
 import pandas as pd
 
 
-class Measurement(ABC):
+class Measurement(object):
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing
 
@@ -163,7 +162,7 @@ class Measurement(ABC):
             values_str[values_int==str_key] = str_val
         return values_str
 
-    def save_csv(self, output_path):
+    def save_csv(self, output_path): # pragma: no cover
         """Save measurements as csv
 
         Parameters
@@ -198,7 +197,6 @@ class Measurement(ABC):
         elif isinstance(key_idx, slice):
             rows = key_idx
             cols = slice(None, None)
-        #TODO: Add int testing for just row number
         elif isinstance(key_idx, int):
             rows = [key_idx]
             cols = slice(None, None)
@@ -220,7 +218,6 @@ class Measurement(ABC):
                     row_key = key_idx[0]
                 for key in row_key:
                     rows.append(self.map[key])
-        #TODO: Add out of bounds error handling
         return rows, cols
 
     def _get_str_rows(self, rows):
@@ -401,8 +398,12 @@ class Measurement(ABC):
             Array containing only numeric measurements to add
         """
         old_len = len(self)
+        if old_len==0: # pragma: no cover
+            raise TypeError('Cannot add time steps to empty instance')
         new_data_cols = slice(old_len, None)
         if numpy_array is not None:
+            if len(numpy_array.shape)==1:
+                    numpy_array = np.reshape(numpy_array, [1, -1])
             self.array = np.hstack((self.array, np.empty_like(numpy_array, dtype=self.arr_dtype)))
             self[:, new_data_cols] = numpy_array
         if csv_path is not None:

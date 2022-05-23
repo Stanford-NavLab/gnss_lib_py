@@ -641,7 +641,7 @@ def test_set_get_item(data, index, new_value, exp_value):
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
                         8])
-def test_wrong_init_set(data, row_idx):
+def test_wrong_init_set(row_idx):
     empty_data = Measurement()
     with pytest.raises(KeyError):
         empty_data[row_idx] = np.zeros([1, 6])
@@ -690,6 +690,14 @@ def test_add_numpy(numpy_array, add_array):
     data.add(numpy_array=add_array)
     new_col_num = np.shape(add_array)[1]
     np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
+
+
+def test_add_numpy_1d():
+    """Test addition of a 1D numpy array to Measurement with single row
+    """
+    data = Measurement(numpy_array=np.zeros([1,6]))
+    data.add(numpy_array=np.ones(8))
+    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]), np.ones([1, 8]))))
 
 
 def test_add_pandas_df(df_simple, add_df):
