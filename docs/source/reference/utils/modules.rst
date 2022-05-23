@@ -6,3 +6,4 @@ utils
 
    matrices
    sats
+   visualizations
