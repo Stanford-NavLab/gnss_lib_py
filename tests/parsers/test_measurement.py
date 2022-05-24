@@ -6,6 +6,7 @@ __authors__ = "A. Kanhere, D. Knowles"
 __date__ = "30 Apr 2022"
 
 
+import csv
 import os
 
 import pytest
@@ -698,6 +699,17 @@ def test_add_numpy_1d():
     data = Measurement(numpy_array=np.zeros([1,6]))
     data.add(numpy_array=np.ones(8))
     np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]), np.ones([1, 8]))))
+
+
+def test_add_csv(df_simple, csv_simple):
+    # Create and add to Measurement
+    data = Measurement(csv_path=csv_simple)
+    data.add(csv_path=csv_simple)
+    data_df = data.pandas_df()
+    # Set up dataframe for comparison
+    df_types = {'names': object, 'integers': np.float64, 'floats': np.float64, 'strings': object}
+    expected_df = pd.concat((df_simple, df_simple)).reset_index(drop=True).astype(df_types)
+    pd.testing.assert_frame_equal(data_df, expected_df, check_index_type=False)
 
 
 def test_add_pandas_df(df_simple, add_df):
