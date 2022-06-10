@@ -24,7 +24,7 @@ def solve_wls(measurements):
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.measurement
+    measurements : gnss_lib_py.parsers.measurement.Measurement
         Instance of the Measurement class
 
     Returns

@@ -18,7 +18,7 @@ def calc_residuals(measurements, states):
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.measurement
+    measurements : gnss_lib_py.parsers.measurement.Measurement
         Instance of the Measurement class
     states : np.ndarray
         Estimated receiver position in ECEF frame in meters and the
