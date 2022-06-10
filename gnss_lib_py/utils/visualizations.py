@@ -96,9 +96,9 @@ def plot_skyplot(measurements, states):
     signal_types = list(measurements.get_strings("signal_type"))
     sv_ids = measurements.get_strings("sv_id")
 
-    pos_sv_m = np.hstack((measurements["x_sat_m",:].reshape(-1,1),
-                          measurements["y_sat_m",:].reshape(-1,1),
-                          measurements["z_sat_m",:].reshape(-1,1)))
+    pos_sv_m = np.hstack((measurements["x_sv_m",:].reshape(-1,1),
+                          measurements["y_sv_m",:].reshape(-1,1),
+                          measurements["z_sv_m",:].reshape(-1,1)))
 
     for ii, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]

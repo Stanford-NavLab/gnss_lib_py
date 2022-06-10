@@ -32,9 +32,9 @@ def calc_residuals(measurements, states):
         # TODO: make this work across for gps_tow + gps_week
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
 
-        pos_sv_m = np.hstack((measurements["x_sat_m",idxs].reshape(-1,1),
-                              measurements["y_sat_m",idxs].reshape(-1,1),
-                              measurements["z_sat_m",idxs].reshape(-1,1)))
+        pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
+                              measurements["y_sv_m",idxs].reshape(-1,1),
+                              measurements["z_sv_m",idxs].reshape(-1,1)))
 
         num_svs = pos_sv_m.shape[0]
         if num_svs < 4:

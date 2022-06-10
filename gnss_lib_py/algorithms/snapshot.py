@@ -37,21 +37,21 @@ def solve_wls(measurements):
 
     """
 
-    if "x_sat_m" not in measurements.rows:
-        raise KeyError("x_sat_m (ECEF x position of sv) missing.")
-    if "y_sat_m" not in measurements.rows:
-        raise KeyError("y_sat_m (ECEF y position of sv) missing.")
-    if "z_sat_m" not in measurements.rows:
-        raise KeyError("z_sat_m (ECEF z position of sv) missing.")
-    if "b_sat_m" not in measurements.rows:
-        raise KeyError("b_sat_m (clock bias of sv) missing.")
+    if "x_sv_m" not in measurements.rows:
+        raise KeyError("x_sv_m (ECEF x position of sv) missing.")
+    if "y_sv_m" not in measurements.rows:
+        raise KeyError("y_sv_m (ECEF y position of sv) missing.")
+    if "z_sv_m" not in measurements.rows:
+        raise KeyError("z_sv_m (ECEF z position of sv) missing.")
+    if "b_sv_m" not in measurements.rows:
+        raise KeyError("b_sv_m (clock bias of sv) missing.")
 
     for ii, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
         # TODO: make this work across for gps_tow + gps_week
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
-        pos_sv_m = np.hstack((measurements["x_sat_m",idxs].reshape(-1,1),
-                              measurements["y_sat_m",idxs].reshape(-1,1),
-                              measurements["z_sat_m",idxs].reshape(-1,1)))
+        pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
+                              measurements["y_sv_m",idxs].reshape(-1,1),
+                              measurements["z_sv_m",idxs].reshape(-1,1)))
         corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
         position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m)
         if ii == 0:

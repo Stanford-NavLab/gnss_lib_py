@@ -59,24 +59,24 @@ Those standard names are as follows:
   * :code:`tx_sv_tow` (float) measured signal transmission time as
     sent by the space vehicle/satellite and in seconds since the start
     of the gps week.
-  * :code:`x_sat_m` : (float) satellite ECEF x position in meters at best
+  * :code:`x_sv_m` : (float) satellite ECEF x position in meters at best
     estimated true signal transmission time.
-  * :code:`y_sat_m` : (float) satellite ECEF x position in meters at best
+  * :code:`y_sv_m` : (float) satellite ECEF x position in meters at best
     estimated true signal transmission time.
-  * :code:`z_sat_m` : (float) satellite ECEF x position in meters at best
+  * :code:`z_sv_m` : (float) satellite ECEF x position in meters at best
     estimated true signal transmission time.
-  * :code:`vx_sat_mps` : (float) satellite ECEF x velocity in meters per
+  * :code:`vx_sv_mps` : (float) satellite ECEF x velocity in meters per
     second at estimated true signal transmission time.
-  * :code:`vy_sat_mps` : (float) satellite ECEF y velocity in meters per
+  * :code:`vy_sv_mps` : (float) satellite ECEF y velocity in meters per
     second at estimated true signal transmission time.
-  * :code:`vz_sat_mps` : (float) satellite ECEF z velocity in meters per
+  * :code:`vz_sv_mps` : (float) satellite ECEF z velocity in meters per
     second at estimated true signal transmission time.
-  * :code:`b_sat_m` : (float) satellite clock bias in meters.
-  * :code:`b_dot_sat_mps` : (float) satellite clock bias drift in meters
+  * :code:`b_sv_m` : (float) satellite clock bias in meters.
+  * :code:`b_dot_sv_mps` : (float) satellite clock bias drift in meters
     per second.
   * :code:`raw_pr_m` : (float) raw, uncorrected pseudorange in meters.
   * :code:`corr_pr_m` : (float) corrected pseudorange according to the
-    formula: :code:`corr_pr_m = raw_pr_m + b_sat_m - intersignal_bias_m - iono_delay_m - tropo_delay_m`
+    formula: :code:`corr_pr_m = raw_pr_m + b_sv_m - intersignal_bias_m - iono_delay_m - tropo_delay_m`
   * :code:`raw_pr_sigma_m` : (float) uncertainty of the raw, uncorrected
     pseuodrange in meters.
   * :code:`intersignal_bias_m` : (float) inter-signal range bias in
