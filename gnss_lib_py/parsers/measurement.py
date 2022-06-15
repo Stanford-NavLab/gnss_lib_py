@@ -306,7 +306,7 @@ class Measurement(object):
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
-                if not isinstance(newvalue, int):
+                if not isinstance(newvalue, int) and not isinstance(newvalue, float):
                     assert not isinstance(np.asarray(newvalue)[0], str), \
                             "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
                 # Adding numeric values
@@ -414,6 +414,119 @@ class Measurement(object):
             for col in pandas_df.columns:
                 self[col, new_data_cols] = np.asarray(pandas_df[col].values)
 
+    def where(self, key_idx, value, condition="eq"):
+        """Return Measurement where conditions are met for the given row
+
+        Parameters
+        ----------
+        key_idx : string/int
+            Key or index of the row in which conditions will be checked
+        value : float/list
+            Number (or list of two numbers for ) to compare array values against
+        condition : string
+            Condition type (greater than ("greater")/ less than ("lesser")/
+            equal to ("eq")/ greater than or equal to ("geq")/
+            lesser than or equal to ("leq") / in between ("between"))
+
+        Returns
+        -------
+        new_measurement : gnss_lib_py.parsers.measurement.Measurement
+            Measurement with columns where given condition is satisfied
+            for specified row
+        """
+        # Add a condition here instead of just comparing to a value.
+        # Do so by adding a parameter for less than inequality, equality and
+        # greater than inequality
+        new_cols = self.argwhere(key_idx, value, condition)
+        new_measurement = self.copy(cols=new_cols)
+        return new_measurement
+
+    def argwhere(self, key_idx, value, condition):
+        """Return columns where conditions are met for the given row
+
+        Parameters
+        ----------
+        key_idx : string/int
+            Key or index of the row in which conditions will be checked
+        value : float/list
+            Number (or list of two numbers for ) to compare array values against
+        condition : string
+            Condition type (greater than ("greater")/ less than ("lesser")/
+            equal to ("eq")/ greater than or equal to ("geq")/
+            lesser than or equal to ("leq") / in between ("between"))
+
+        Returns
+        -------
+        new_cols : list
+            Columns in Measurement where given condition is satisfied
+            for specified row
+        """
+        rows, _ = self._parse_key_idx(key_idx)
+        inv_map = self.inv_map
+        row_list, row_str = self._get_str_rows(rows)
+        if len(row_list)>1: #pragma : no cover
+            raise NotImplementedError("where does not currently support multiple rows")
+        row = row_list[0]
+        row_str = row_str[0]
+        if row_str:
+            # Values in row are strings
+            if condition != "eq":
+                raise ValueError("Inequality comparison not valid for strings")
+            key = inv_map[row]
+            for str_key, str_value in self.str_map[key].items():
+                if str_value==value:
+                    new_cols = np.argwhere(self.array[row, :]==str_key)
+                    break
+            # Extract columns where condition holds true and return new Measurement
+        else:
+            # Values in row are numerical
+            # Find columns where value can be found and return new Measurement
+            if condition=="eq":
+                new_cols = np.argwhere(self.array[row, :]==value)
+            elif condition == "leq":
+                new_cols = np.argwhere(self.array[row, :]<=value)
+            elif condition == "geq":
+                new_cols = np.argwhere(self.array[row, :]>=value)
+            elif condition == "greater":
+                new_cols = np.argwhere(self.array[row, :]>value)
+            elif condition == "lesser":
+                new_cols = np.argwhere(self.array[row, :]<value)
+            elif condition == "between":
+                assert len(value)==2, "Please give both lower and upper bound for between"
+                new_cols = np.argwhere(np.logical_and(self.array[row, :]>=value[0],
+                                        self.array[row, :]<= value[1]))
+            else: #pragma : no cover
+                raise ValueError("Condition not implemented")
+        new_cols = np.squeeze(new_cols)
+        return new_cols
+
+    def loop_time(self, time_row, tol_decimals=2):
+        """Generator object to loop over columns from same times
+
+        Parameters
+        ----------
+        time_row : string/int
+            Key or index of the row in which times are stored
+        tol_decimals : int
+            Decimal places after which times are considered equal
+
+        Yields
+        ------
+        delta_t : float
+            Difference between current time and previous time
+        new_measurement : gnss_lib_py.parsers.measurement.Measurement
+            Measurement with same time, upto given decimal tolerance
+        """
+        times = self[time_row]
+        times_unique = np.sort(np.unique(np.around(times, decimals=tol_decimals)))
+        for time_idx, time in enumerate(times_unique):
+            if time_idx==0:
+                delta_t = 0
+            else:
+                delta_t = times_unique[time_idx]-times_unique[time_idx-1]
+            new_measurement = self.where(time_row, [time-10**(-tol_decimals), time+10**(-tol_decimals)], condition="between")
+            yield delta_t, new_measurement
+
     def __iter__(self):
         self.curr_col = 0
         self.num_cols = np.shape(self.array)[1]
@@ -421,8 +534,7 @@ class Measurement(object):
 
     def __next__(self):
         if self.curr_col < self.num_cols:
-            #TODO: Replace 'all' with slice for all rows
-            x_curr = self['all', self.curr_col]
+            x_curr = self[:, self.curr_col]
             self.curr_col += 1
             return x_curr
         else:
@@ -492,7 +604,7 @@ class Measurement(object):
         return inv_map
 
     def fillna(self, array):
-        """Fills nan values in an array of strings.
+        """Fills nan values in an array of strings (in-place).
 
         You have to do a string comparison, so we first have to create
         the string equivalent of the NaN to compare against.
