@@ -16,6 +16,8 @@ __date__ = "25 Jan 2022"
 
 import numpy as np
 
+`from gnss_lib_py.parsers.measurement import Measurement
+
 def solve_wls(measurements):
     """Runs weighted least squares across each timestep.
 
@@ -29,11 +31,11 @@ def solve_wls(measurements):
 
     Returns
     -------
-    states : np.ndarray
+    state_estimate : gnss_lib_py.parsers.measurement.Measurement
         Estimated receiver position in ECEF frame in meters and the
-        estimated receiver clock bias also in meters in an
-        array with shape (4 x # timesteps) and the following order of
-        rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+        estimated receiver clock bias also in meters as an instance of
+        the Measurement class with shape (4 x # unique timesteps) and
+        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
 
     """
 
@@ -46,7 +48,11 @@ def solve_wls(measurements):
     if "b_sv_m" not in measurements.rows:
         raise KeyError("b_sv_m (clock bias of sv) missing.")
 
-    for ii, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
+    unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
+
+    states = np.inf*np.ones((4,len(unique_timesteps)))
+
+    for ii, timestep in enumerate(unique_timesteps):
         # TODO: make this work across for gps_tow + gps_week
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
@@ -54,12 +60,16 @@ def solve_wls(measurements):
                               measurements["z_sv_m",idxs].reshape(-1,1)))
         corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
         position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m)
-        if ii == 0:
-            states = position
-        else:
-            states = np.hstack((states,position))
 
-    return states
+        states[:,ii:ii+1] = position
+
+    state_estimate = Measurement()
+    state_estimate["x_rx_m"] = states[0,:]
+    state_estimate["y_rx_m"] = states[1,:]
+    state_estimate["z_rx_m"] = states[2,:]
+    state_estimate["b_rx_m"] = states[3,:]
+
+    return state_estimate
 
 def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
         stationary = False, tol = 1e-7, max_count = 20):

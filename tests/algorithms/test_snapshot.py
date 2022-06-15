@@ -9,7 +9,6 @@ import os
 import pytest
 
 import numpy as np
-import pandas as pd
 
 from gnss_lib_py.algorithms.snapshot import *
 from gnss_lib_py.parsers.android import AndroidDerived
@@ -141,73 +140,78 @@ def test_wls_stationary(set_user_states, set_sv_states, tolerance):
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
                                          decimal=tolerance)
 
-# @pytest.fixture(name="root_path")
-# def fixture_root_path():
-#     """Location of measurements for unit test
-#
-#     Returns
-#     -------
-#     root_path : string
-#         Folder location containing measurements
-#     """
-#     root_path = os.path.dirname(
-#                 os.path.dirname(
-#                 os.path.dirname(
-#                 os.path.realpath(__file__))))
-#     root_path = os.path.join(root_path, 'data/unit_test/')
-#     return root_path
-#
-#
-# @pytest.fixture(name="derived_path")
-# def fixture_derived_path(root_path):
-#     """Filepath of Android Derived measurements
-#
-#     Returns
-#     -------
-#     derived_path : string
-#         Location for the unit_test Android derived measurements
-#
-#     Notes
-#     -----
-#     Test data is a subset of the Android Raw Measurement Dataset,
-#     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
-#     was retrieved from
-#     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-#
-#     References
-#     ----------
-#     .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-#         "Android Raw GNSS Measurement Datasets for Precise Positioning."
-#         Proceedings of the 33rd International Technical Meeting of the
-#         Satellite Division of The Institute of Navigation (ION GNSS+
-#         2020). 2020.
-#     """
-#     derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
-#     return derived_path
-#
-#
-# @pytest.fixture(name="derived")
-# def fixture_load_derived(derived_path):
-#     """Load instance of AndroidDerived
-#
-#     Parameters
-#     ----------
-#     derived_path : pytest.fixture
-#         String with location of Android derived measurement file
-#
-#     Returns
-#     -------
-#     derived : AndroidDerived
-#         Instance of AndroidDerived for testing
-#     """
-#     derived = AndroidDerived(derived_path)
-#     return derived
-#
-#
-# root_path = fixture_root_path()
-# derived_path = fixture_derived_path(root_path)
-# derived = fixture_load_derived(derived_path)
-# # solution = solve_wls(derived)
-# # print(derived.rows)
-#
-# test_wls(fixture_set_user_states(), fixture_set_sv_states(), fixture_tolerance())
+
+@pytest.fixture(name="root_path")
+def fixture_root_path():
+    """Location of measurements for unit test
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/')
+    return root_path
+
+
+@pytest.fixture(name="derived_path")
+def fixture_derived_path(root_path):
+    """Filepath of Android Derived measurements
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset,
+    particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
+    References
+    ----------
+    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
+    return derived_path
+
+
+@pytest.fixture(name="derived")
+def fixture_load_derived(derived_path):
+    """Load instance of AndroidDerived
+
+    Parameters
+    ----------
+    derived_path : pytest.fixture
+        String with location of Android derived measurement file
+
+    Returns
+    -------
+    derived : AndroidDerived
+        Instance of AndroidDerived for testing
+    """
+    derived = AndroidDerived(derived_path)
+    return derived
+
+def test_solve_wls(derived):
+    """Test that solving for wls doesn't fail
+
+    Parameters
+    ----------
+    derived : AndroidDerived
+        Instance of AndroidDerived for testing
+
+    """
+    state_estimate = solve_wls(derived)
+
+    assert len(state_estimate) > 0
