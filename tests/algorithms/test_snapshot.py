@@ -47,6 +47,8 @@ def fixture_set_user_states():
 def fixture_set_sv_states():
     """Get position of 4 satellite in ECEF coordinates.
 
+    See reference [1]_ for details.
+
     Returns
     -------
     pos_sv_m : np.ndarray
@@ -169,14 +171,14 @@ def fixture_derived_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset,
+    Test data is a subset of the Android Raw Measurement Dataset [2]_,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
     was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
