@@ -16,7 +16,7 @@ __date__ = "25 Jan 2022"
 
 import numpy as np
 
-`from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.measurement import Measurement
 
 def solve_wls(measurements):
     """Runs weighted least squares across each timestep.
