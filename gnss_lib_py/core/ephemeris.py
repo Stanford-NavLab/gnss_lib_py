@@ -191,7 +191,9 @@ class EphemerisManager():
                         filepaths['bkg_daily_combined']))
 
         data = pd.DataFrame()
-        data = data.append(data_list, ignore_index=True)
+        for new_data in data_list:
+            data = pd.concat((data,new_data), ignore_index=True)
+
         data.reset_index(inplace=True)
         data.sort_values('time', inplace=True, ignore_index=True)
         self.data = data
