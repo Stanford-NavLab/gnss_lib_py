@@ -104,6 +104,11 @@ def test_wls(set_user_states, set_sv_states, tolerance):
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
                                          decimal=tolerance)
 
+    # should return warning if only three satellites are given
+    with pytest.raises(RuntimeError) as excinfo:
+        wls(rx_est_m, pos_sv_m[:3,:], gt_pr_m[:3,:])
+    assert "Need at least four satellites" in str(excinfo.value)
+
 @pytest.mark.parametrize('random_noise',
                          np.random.normal(0,20,size=(TEST_REPEAT_COUNT,4,1))
                         )
@@ -324,6 +329,26 @@ def test_solve_wls(derived):
     # should have the same length as the number of unique timesteps
     assert len(state_estimate) == len(np.unique(derived["millisSinceGpsEpoch",:]))
 
+    # test what happens when rows down't exist
+    derived_no_x_sv_m = derived.remove(rows="x_sv_m")
+    with pytest.raises(KeyError) as excinfo:
+        solve_wls(derived_no_x_sv_m)
+    assert "x_sv_m" in str(excinfo.value)
+
+    derived_no_y_sv_m = derived.remove(rows="y_sv_m")
+    with pytest.raises(KeyError) as excinfo:
+        solve_wls(derived_no_y_sv_m)
+    assert "y_sv_m" in str(excinfo.value)
+
+    derived_no_z_sv_m = derived.remove(rows="z_sv_m")
+    with pytest.raises(KeyError) as excinfo:
+        solve_wls(derived_no_z_sv_m)
+    assert "z_sv_m" in str(excinfo.value)
+
+    derived_no_b_sv_m = derived.remove(rows="b_sv_m")
+    with pytest.raises(KeyError) as excinfo:
+        solve_wls(derived_no_b_sv_m)
+    assert "b_sv_m" in str(excinfo.value)
 
 def test_solve_wls_weights(derived, tolerance):
     """Tests that weights are working for weighted least squares.
