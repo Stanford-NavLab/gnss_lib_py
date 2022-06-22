@@ -846,7 +846,7 @@ def test_where_numbers(csv_simple):
     Parameters
     ----------
     csv_simple : str
-        Path to csv value used to create Measurement
+        Path to csv file used to create Measurement
     """
     data = Measurement(csv_path=csv_simple)
     conditions = ["eq", "leq", "geq", "greater", "lesser", "between"]
@@ -858,3 +858,35 @@ def test_where_numbers(csv_simple):
         compare_df = data.pandas_df()
         compare_df = compare_df.iloc[pd_rows[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
+
+
+def test_time_looping(csv_simple):
+    """Testing implementation to loop over times
+
+    Parameters
+    ----------
+    csv_simple : str
+        path to csv file used to create Measurement
+    """
+    data = Measurement(csv_path=csv_simple)
+    data['times'] = np.hstack((np.zeros([1, 2]),
+                            1.0001*np.ones([1, 1]),
+                            1.0003*np.ones([1,1]),
+                            1.50004*np.ones([1, 1]),
+                            1.499999*np.ones([1,1])))
+    compare_df = data.pandas_df()
+    count = 0
+    for dt, measure in data.loop_time('times'):
+        if count == 0:
+            np.testing.assert_almost_equal(dt, 0)
+            row_num = [0,1]
+        elif count == 1:
+            np.testing.assert_almost_equal(dt, 1)
+            row_num = [2,3]
+        elif count == 2:
+            np.testing.assert_almost_equal(dt, 0.5)
+            row_num = [4,5]
+        small_df = measure.pandas_df().reset_index(drop=True)
+        expected_df = compare_df.iloc[row_num, :].reset_index(drop=True)
+        pd.testing.assert_frame_equal(small_df, expected_df, check_index_type=False)
+        count += 1
