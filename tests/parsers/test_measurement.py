@@ -826,6 +826,13 @@ def test_remove_measurement(data, df_simple, rows, cols):
 
 
 def test_where_str(csv_simple):
+    """Testing implementation of Measurement.where for string values
+
+    Parameters
+    ----------
+    csv_simple : str
+        Path to csv file used to create Measurement
+    """
     data = Measurement(csv_path=csv_simple)
     data_small = data.where('strings', 'gps')
     compare_df = data.pandas_df()
@@ -834,13 +841,20 @@ def test_where_str(csv_simple):
 
 
 def test_where_numbers(csv_simple):
+    """Testing implementation of Measurement.where for numeric values
+
+    Parameters
+    ----------
+    csv_simple : str
+        Path to csv value used to create Measurement
+    """
     data = Measurement(csv_path=csv_simple)
     conditions = ["eq", "leq", "geq", "greater", "lesser", "between"]
     values = [98, 10, 250, 67, 45, [30, 80]]
     pd_rows = [[4], [0,1], [5], [4, 5], [0, 1], [2, 3]]
-    for idx in range(len(conditions)):
+    for idx, condition in enumerate(conditions):
         print('Working on test number ', idx)
-        data_small = data.where("integers", values[idx], condition=conditions[idx])
+        data_small = data.where("integers", values[idx], condition=condition)
         compare_df = data.pandas_df()
         compare_df = compare_df.iloc[pd_rows[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
