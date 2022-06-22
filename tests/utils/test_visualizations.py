@@ -108,16 +108,21 @@ def test_plot_metrics(derived):
 
     """
 
-    # TODO: check on the visualization end if trying to plot string
+    test_rows = [
+                 "raw_pr_m",
+                 "raw_pr_sigma_m",
+                 "tropo_delay_m",
+                 ]
 
-    # for rr, row in enumerate(derived.rows):
-    #     if not derived.str_bool[rr]:
-    #         vis.plot_metric(derived,row)
-
-    vis.plot_metric(derived,"raw_pr_m")
-    vis.plot_metric(derived,"raw_pr_sigma_m")
-    vis.plot_metric(derived,"tropo_delay_m")
-
+    for rr, row in enumerate(derived.rows):
+        if not derived.str_bool[rr]:
+            if row in test_rows:
+                vis.plot_metric(derived,row)
+        else:
+            # string rows should cause a KeyError
+            with pytest.raises(KeyError) as excinfo:
+                vis.plot_metric(derived,row)
+            assert "non-numeric row" in str(excinfo.value)
 
 def test_plot_skyplot(derived, state_estimate):
     """Test for plotting skyplot.
@@ -157,4 +162,7 @@ def test_plot_residuals(derived, state_estimate):
 
     vis.plot_residuals(derived)
 
-    # TODO:  make sure residuals exist to plot
+    # should return KeyError if no residuals row
+    with pytest.raises(KeyError) as excinfo:
+        vis.plot_residuals(derived_original)
+    assert "residuals missing" in str(excinfo.value)

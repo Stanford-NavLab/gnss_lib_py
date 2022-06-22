@@ -8,7 +8,6 @@ __date__ = "27 Jan 2022"
 import os
 
 import numpy as np
-import plotly.express as px
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
@@ -16,7 +15,6 @@ from matplotlib.colors import to_rgb, ListedColormap
 
 from gnss_lib_py.core.coordinates import LocalCoord
 
-# TODO:  make into fancy class or matplotlib color to automatically loop?
 STANFORD_COLORS = [
                    "#8C1515",   # cardinal red
                    "#6FC3FF",   # light digital blue
@@ -33,10 +31,6 @@ STANFORD_COLORS = [
                    "#279989",   # palo verde
                    # "#67AFD2",   # light sky
                    # "#008566",   # digital green
-                   # "",   #
-                   # "",   #
-                   # "",   #
-                   # "",   #
                    ]
 
 def new_cmap(rgb_color):
@@ -83,6 +77,9 @@ def plot_metric(measurements, metric):
         Column name for metric to be plotted
 
     """
+
+    if len(measurements.str_map[metric]):
+        raise KeyError(metric + " is a non-numeric row, unable to plot.")
 
     root_path = os.path.dirname(
                 os.path.dirname(
@@ -261,6 +258,9 @@ def plot_residuals(measurements):
 
     """
 
+    if "residuals" not in measurements.rows:
+        raise KeyError("residuals missing, run solve_residuals().")
+
     root_path = os.path.dirname(
                 os.path.dirname(
                 os.path.dirname(
@@ -317,7 +317,7 @@ def plot_residuals(measurements):
         # close previous figure
         plt.close(fig)
 
-
+# import plotly.express as px
 # def visualize_traffic(df, center, zoom=9):
 #     fig = px.scatter_mapbox(df,
 #
