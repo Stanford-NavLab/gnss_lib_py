@@ -4,14 +4,9 @@ This module contains point solution methods for estimating position
 at a single GNSS measurement epoch. Position is solved using the
 Weighted Least Squares algorithm.
 
-Notes
------
-    Weighted Least Squares solver is not yet implemented. There is not an input
-    field for specifying weighting matrix.
-
 """
 
-__authors__ = "D. Knowles"
+__authors__ = "D. Knowles, Shubh Gupta, Bradley Collicott"
 __date__ = "25 Jan 2022"
 
 import warnings
