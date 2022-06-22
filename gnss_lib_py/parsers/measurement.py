@@ -556,7 +556,7 @@ class Measurement(ABC):
             new_measurement[key] = new_row
         return new_measurement
 
-    def remove(self, rows, cols):
+    def remove(self, rows=None, cols=None):
         """Reset Measurement to remove specified rows and columns
 
         Parameters
