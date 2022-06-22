@@ -293,7 +293,7 @@ def find_sat(ephem, times, gpsweek):
     Parameters
     ----------
     ephem : pd.DataFrame
-        DataFrame containing ephemeris parameters of satellies for which states
+        DataFrame containing ephemeris parameters of satellites for which states
         are required
     times : ndarray
         GPS time of the week at which positions are required [s]
@@ -680,7 +680,7 @@ def find_elaz(rx_pos, sv_pos):
     # Create the normalized unit vector
     p = p / (np.ones_like(p) * n.T)
 
-    # Perform the transform of the normalized psueodrange from ECEF to VEN
+    # Perform the transform of the normalized pseudorange from ECEF to VEN
     p_ven = np.dot(ecef_to_ven, p.T)
 
     # Calculate elevation and azimuth in degrees
