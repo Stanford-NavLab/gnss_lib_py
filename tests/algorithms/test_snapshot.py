@@ -6,16 +6,19 @@ __authors__ = "B. Collicott, A. Kanhere, D. Knowles"
 __date__ = "22 October 2021"
 
 import os
+import warnings
 import pytest
 
 import numpy as np
 
-from gnss_lib_py.algorithms.snapshot import *
 from gnss_lib_py.parsers.android import AndroidDerived
 from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 
 
 # Defining test fixtures
+TEST_REPEAT_COUNT = 20
+
 @pytest.fixture(name="tolerance")
 def fixture_tolerance():
     """Decimal threshold for test pass/fail criterion."""
@@ -100,6 +103,98 @@ def test_wls(set_user_states, set_sv_states, tolerance):
 
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
                                          decimal=tolerance)
+
+@pytest.mark.parametrize('random_noise',
+                         np.random.normal(0,20,size=(TEST_REPEAT_COUNT,4,1))
+                        )
+@pytest.mark.parametrize('tolerance_test',
+                        [
+                         1E10,
+                         1E2,
+                         1E1,
+                         1E0,
+                         1E-5,
+                        ])
+def test_wls_tolerance(set_user_states, set_sv_states,
+                       tolerance_test, random_noise):
+    """Test snapshot positioning against truth user states.
+
+    Parameters
+    ----------
+    set_user_states : fixture
+        Truth values for user position and clock bias
+    set_sv_states : fixture
+        Satellite position and clock biases
+    tolerance_test : float
+        Tolerance with which to end the wls solver
+    random_noise : np.ndarray
+        Noise added to ground truth pseudoranges of shape 4x1
+    """
+    rx_truth_m  = set_user_states
+    pos_sv_m = set_sv_states
+
+    # Compute noise-free pseudorange measurements
+    pos_rx_m = np.tile(rx_truth_m[0:3,:].T, (pos_sv_m.shape[0], 1))
+
+    gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
+                             keepdims = True) + rx_truth_m[3,0]
+    noisy_pr_m = gt_pr_m + random_noise
+
+    rx_est_m = np.zeros((4,1))
+    wls(rx_est_m, pos_sv_m, noisy_pr_m, tol=tolerance_test,
+                  max_count=np.inf)
+
+@pytest.mark.parametrize('random_noise',
+                         np.random.normal(0,20,size=(TEST_REPEAT_COUNT,4,1))
+                        )
+@pytest.mark.parametrize('count_test',
+                        [
+                         1,
+                         2,
+                         10,
+                         100,
+                         1000,
+                        ])
+def test_wls_max_count(set_user_states, set_sv_states, count_test,
+                       random_noise):
+    """Test snapshot positioning against truth user states.
+
+    Parameters
+    ----------
+    set_user_states : fixture
+        Truth values for user position and clock bias
+    set_sv_states : fixture
+        Satellite position and clock biases
+    count_test : int
+        Max count for wls solver
+    random_noise : np.ndarray
+        Noise added to ground truth pseudoranges of shape 4x1
+
+    """
+    rx_truth_m  = set_user_states
+    pos_sv_m = set_sv_states
+
+    # Compute noise-free pseudorange measurements
+    pos_rx_m = np.tile(rx_truth_m[0:3,:].T, (pos_sv_m.shape[0], 1))
+
+    gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
+                             keepdims = True) + rx_truth_m[3,0]
+    noisy_pr_m = gt_pr_m + random_noise
+
+    rx_est_m = np.zeros((4,1))
+
+    with warnings.catch_warnings(record=True) as warn:
+        # Cause all warnings to always be triggered.
+        warnings.simplefilter("always")
+
+        # Trigger a warning.
+        wls(rx_est_m, pos_sv_m, noisy_pr_m, tol=-np.inf,
+            max_count=count_test)
+
+        # verify RuntimeWarning
+        assert len(warn) == 1, "No warning is raised."
+        assert issubclass(warn[-1].category, RuntimeWarning)
+
 
 def test_wls_stationary(set_user_states, set_sv_states, tolerance):
     """Test WLS positioning against truth user states.
@@ -209,9 +304,136 @@ def test_solve_wls(derived):
     Parameters
     ----------
     derived : AndroidDerived
-        Instance of AndroidDerived for testing
+        Instance of AndroidDerived for testing.
 
     """
     state_estimate = solve_wls(derived)
 
-    assert len(state_estimate) > 0
+    # result should be a Measurement Class instance
+    assert isinstance(state_estimate,type(Measurement()))
+
+    # should have four rows
+    assert len(state_estimate.rows) == 4
+
+    # should have the following contents
+    assert "x_rx_m" in state_estimate.rows
+    assert "y_rx_m" in state_estimate.rows
+    assert "z_rx_m" in state_estimate.rows
+    assert "b_rx_m" in state_estimate.rows
+
+    # should have the same length as the number of unique timesteps
+    assert len(state_estimate) == len(np.unique(derived["millisSinceGpsEpoch",:]))
+
+
+def test_solve_wls_weights(derived, tolerance):
+    """Tests that weights are working for weighted least squares.
+
+    Parameters
+    ----------
+    derived : AndroidDerived
+        Instance of AndroidDerived for testing
+    tolerance : fixture
+        Error threshold for test pass/fail
+    """
+
+    state_estimate_1 = solve_wls(derived)
+    state_estimate_2 = solve_wls(derived, None)
+
+    # create new column of unity weights
+    derived["unity_weights"] = 1
+    state_estimate_3 = solve_wls(derived, "unity_weights")
+
+    # all of the above should be the same
+    np.testing.assert_array_almost_equal(state_estimate_1.array,
+                                         state_estimate_2.array,
+                                         decimal=tolerance)
+    np.testing.assert_array_almost_equal(state_estimate_1.array,
+                                         state_estimate_3.array,
+                                         decimal=tolerance)
+
+    state_estimate_4 = solve_wls(derived, "raw_pr_sigma_m")
+    with np.testing.assert_raises(AssertionError):
+        np.testing.assert_array_almost_equal(state_estimate_1.array,
+                                             state_estimate_4.array,
+                                             decimal=tolerance)
+
+    #should return error for empty string
+    with pytest.raises(TypeError):
+        solve_wls(derived, "")
+
+    # should return error for row not in Measurement instance
+    with pytest.raises(TypeError):
+        solve_wls(derived, "special_weights")
+
+@pytest.mark.parametrize('random_noise',
+                         np.random.normal(0,20,size=(TEST_REPEAT_COUNT,4,1))
+                        )
+def test_wls_weights(set_user_states, set_sv_states, tolerance,
+                     random_noise):
+    """Test snapshot positioning against truth user states.
+
+    Parameters
+    ----------
+    set_user_states : fixture
+        Truth values for user position and clock bias
+    set_sv_states : fixture
+        Satellite position and clock biases
+    tolerance : fixture
+        Error threshold for test pass/fail
+    random_noise : np.ndarray
+        Noise added to ground truth pseudoranges of shape 4x1
+    """
+    rx_truth_m  = set_user_states
+    pos_sv_m = set_sv_states
+
+    # Compute noise-free pseudorange measurements
+    pos_rx_m = np.tile(rx_truth_m[0:3,:].T, (pos_sv_m.shape[0], 1))
+
+    gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
+                             keepdims = True) + rx_truth_m[3,0]
+    noisy_pr_m = gt_pr_m + random_noise
+
+    rx_est_m = np.zeros((4,1))
+
+    # should work if None is passed
+    user_fix_1 = wls(rx_est_m, pos_sv_m, noisy_pr_m, weights=None)
+    user_fix_2 = wls(rx_est_m, pos_sv_m, noisy_pr_m,
+                     weights=np.ones((pos_sv_m.shape[0],1)))
+    # both should be unity weights and return the same result
+    np.testing.assert_array_almost_equal(user_fix_1,
+                                         user_fix_2,
+                                         decimal=tolerance)
+
+    # result should be different if different weights are used
+    user_fix_3 = wls(rx_est_m, pos_sv_m, noisy_pr_m,
+                     weights=np.arange(pos_sv_m.shape[0]).reshape(-1,1))
+    with np.testing.assert_raises(AssertionError):
+        np.testing.assert_array_almost_equal(user_fix_1,
+                                             user_fix_3,
+                                             decimal=tolerance)
+
+    # should return error for string
+    with pytest.raises(TypeError):
+        wls(rx_est_m, pos_sv_m, noisy_pr_m,
+            weights="")
+
+    # should return error even if string is in Measurement instance
+    with pytest.raises(TypeError):
+        wls(rx_est_m, pos_sv_m, noisy_pr_m,
+            weights="raw_pr_sigma_m")
+
+    # should return error even if list
+    with pytest.raises(TypeError):
+        wls(rx_est_m, pos_sv_m, noisy_pr_m,
+            weights=[1.]*pos_sv_m.shape[0])
+
+    # should return error if the weights are not right shape
+    with pytest.raises(TypeError):
+        wls(rx_est_m, pos_sv_m, noisy_pr_m,
+            weights=np.ndarray([]))
+    with pytest.raises(TypeError):
+        wls(rx_est_m, pos_sv_m, noisy_pr_m,
+            weights=np.ones((pos_sv_m.shape[0],pos_sv_m.shape[0])))
+    with pytest.raises(TypeError):
+        wls(rx_est_m, pos_sv_m, noisy_pr_m,
+            weights=np.ones(pos_sv_m.shape[0]+1,1))
