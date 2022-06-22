@@ -72,18 +72,82 @@ def new_cmap(rgb_color):
 
     return cmap
 
-def plot_skyplot(measurements, states):
+def plot_metric(measurements, metric):
     """Skyplot of data
 
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.measurement.Measurement
         Instance of the Measurement class
-    states : np.ndarray
+    metric : string
+        Column name for metric to be plotted
+
+    """
+
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+
+    data = {}
+    signal_types = measurements.get_strings("signal_type")
+    sv_ids = measurements.get_strings("sv_id")
+
+    time0 = measurements["millisSinceGpsEpoch",0]/1000.
+
+    for ii in range(measurements.shape[1]):
+        if signal_types[ii] not in data:
+            data[signal_types[ii]] = {}
+        if sv_ids[ii] not in data[signal_types[ii]]:
+            data[signal_types[ii]][sv_ids[ii]] = [[measurements["millisSinceGpsEpoch",ii]/1000. - time0],
+                                                  [measurements[metric,ii]]]
+        else:
+            data[signal_types[ii]][sv_ids[ii]][0].append(measurements["millisSinceGpsEpoch",ii]/1000. - time0)
+            data[signal_types[ii]][sv_ids[ii]][1].append(measurements[metric,ii])
+
+    ####################################################################
+    # BROKEN UP BY CONSTELLATION TYPE
+    ####################################################################
+
+    for signal_type, signal_data in data.items():
+        fig = plt.figure(figsize=(5,3))
+        ax = plt.gca()
+        plt.title(signal_type)
+
+        for sv, sv_data in signal_data.items():
+            ax.scatter(sv_data[0],sv_data[1],label=sv,s=5.)
+
+        ax = plt.gca()
+        ax.ticklabel_format(useOffset=False)
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+
+        plt.xlabel("time [s]")
+        plt.ylabel(metric)
+        plt.legend(bbox_to_anchor=(1.05, 1))
+
+        plt_file = os.path.join(root_path,"dev", metric + "-" + signal_type + ".png")
+
+        fig.savefig(plt_file,
+                dpi=300.,
+                format="png",
+                bbox_inches="tight")
+
+        # close previous figure
+        plt.close(fig)
+
+def plot_skyplot(measurements, state_estimate):
+    """Skyplot of data
+
+    Parameters
+    ----------
+    measurements : gnss_lib_py.parsers.measurement.Measurement
+        Instance of the Measurement class
+    state_estimate : gnss_lib_py.parsers.measurement.Measurement
         Estimated receiver position in ECEF frame in meters and the
-        estimated receiver clock bias also in meters in an
-        array with shape (4 x # timesteps) and the following order of
-        rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+        estimated receiver clock bias also in meters as an instance of
+        the Measurement class with shape (4 x # unique timesteps) and
+        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+
 
     """
 
@@ -110,7 +174,7 @@ def plot_skyplot(measurements, states):
                 skyplot_data[signal_types[jj]] = {}
 
             if jj == 0:
-                lc = LocalCoord.from_ecef(states[0:3,ii])
+                lc = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],ii])
             sv_ned = lc.ecef2ned(pos_sv_m[jj:jj+1,:])[0]
 
             sv_az = np.pi/2.-np.arctan2(sv_ned[0],sv_ned[1])
@@ -173,7 +237,6 @@ def plot_skyplot(measurements, states):
     ax.set_theta_direction(-1)
     ax.set_yticks(range(0, 90+10, 30))                   # Define the yticks
     ax.set_ylim(90,0)
-    # yLabel = ['90', '', '', '60', '', '', '30', '', '', '']
 
     ax.legend(bbox_to_anchor=(1.05, 1))
 
@@ -187,68 +250,6 @@ def plot_skyplot(measurements, states):
     # close previous figure
     plt.close(fig)
 
-def plot_metric(measurements, metric):
-    """Skyplot of data
-
-    Parameters
-    ----------
-    measurements : gnss_lib_py.parsers.measurement.Measurement
-        Instance of the Measurement class
-    metric : string
-        Column name for metric to be plotted
-
-    """
-
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-
-    data = {}
-    signal_types = measurements.get_strings("signal_type")
-    sv_ids = measurements.get_strings("sv_id")
-
-    time0 = measurements["millisSinceGpsEpoch",0]/1000.
-
-    for ii in range(measurements.shape[1]):
-        if signal_types[ii] not in data:
-            data[signal_types[ii]] = {}
-        if sv_ids[ii] not in data[signal_types[ii]]:
-            data[signal_types[ii]][sv_ids[ii]] = [[measurements["millisSinceGpsEpoch",ii]/1000. - time0],
-                                                  [measurements[metric,ii]]]
-        else:
-            data[signal_types[ii]][sv_ids[ii]][0].append(measurements["millisSinceGpsEpoch",ii]/1000. - time0)
-            data[signal_types[ii]][sv_ids[ii]][1].append(measurements[metric,ii])
-
-    ####################################################################
-    # BROKEN UP BY CONSTELLATION TYPE
-    ####################################################################
-
-    for signal_type, signal_data in data.items():
-        fig = plt.figure(figsize=(5,3))
-        ax = plt.gca()
-        plt.title(signal_type)
-
-        for sv, sv_data in signal_data.items():
-            ax.scatter(sv_data[0],sv_data[1],label=sv,s=5.)
-
-        ax = plt.gca()
-        ax.ticklabel_format(useOffset=False)
-        ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-
-        plt.xlabel("time [s]")
-        plt.ylabel(metric)
-        plt.legend(bbox_to_anchor=(1.05, 1))
-
-        plt_file = os.path.join(root_path,"dev", signal_type + "-" + metric + ".png")
-
-        fig.savefig(plt_file,
-                dpi=300.,
-                format="png",
-                bbox_inches="tight")
-
-        # close previous figure
-        plt.close(fig)
 
 def plot_residuals(measurements):
     """Plot residuals nicely
@@ -296,7 +297,7 @@ def plot_residuals(measurements):
             color = STANFORD_COLORS[signal_type_svs.index(sv)]
             plt.plot(sv_data[0], sv_data[1],
                     color = color,
-                    label = signal_type.split("_")[0] + " " + sv)
+                    label = signal_type.replace("_"," ") + " " + str(sv))
         ax = plt.gca()
         ax.ticklabel_format(useOffset=False)
         ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
@@ -305,7 +306,8 @@ def plot_residuals(measurements):
         plt.ylabel("residiual [m]")
         plt.legend(bbox_to_anchor=(1.05, 1))
 
-        plt_file = os.path.join(root_path,"dev", signal_type + "-residuals.png")
+        plt_file = os.path.join(root_path,"dev", "residuals-" \
+                              + signal_type + ".png")
 
         fig.savefig(plt_file,
                 dpi=300.,
@@ -316,23 +318,23 @@ def plot_residuals(measurements):
         plt.close(fig)
 
 
-def visualize_traffic(df, center, zoom=9):
-    fig = px.scatter_mapbox(df,
-
-                            # Here, plotly gets, (x,y) coordinates
-                            lat="latDeg",
-                            lon="lngDeg",
-
-                            #Here, plotly detects color of series
-                            color='Label',
-                            labels='Label',
-
-                            zoom=zoom,
-                            center=center,
-                            height=600,
-                            width=800)
-    fig.update_layout(mapbox_style='stamen-terrain')
-    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-#     fig.update_layout(title_text="Ground Truth Tracks of Android Smartphone GNSS Dataset")
-#     fig.legend()
-    fig.show()
+# def visualize_traffic(df, center, zoom=9):
+#     fig = px.scatter_mapbox(df,
+#
+#                             # Here, plotly gets, (x,y) coordinates
+#                             lat="latDeg",
+#                             lon="lngDeg",
+#
+#                             #Here, plotly detects color of series
+#                             color='Label',
+#                             labels='Label',
+#
+#                             zoom=zoom,
+#                             center=center,
+#                             height=600,
+#                             width=800)
+#     fig.update_layout(mapbox_style='stamen-terrain')
+#     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+# #     fig.update_layout(title_text="Ground Truth Tracks of Android Smartphone GNSS Dataset")
+# #     fig.legend()
+#     fig.show()
