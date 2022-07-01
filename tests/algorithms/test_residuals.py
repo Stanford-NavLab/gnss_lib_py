@@ -87,7 +87,7 @@ def test_residuals(derived):
 
     """
 
-    derived_original = derived.copy(rows=derived.rows,cols=np.arange(len(derived)))
+    derived_original = derived.copy()
 
     state_estimate = solve_wls(derived)
 

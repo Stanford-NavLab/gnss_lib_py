@@ -14,6 +14,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgb, ListedColormap
 
 from gnss_lib_py.core.coordinates import LocalCoord
+from gnss_lib_py.utils.file_operations import save_figure
 
 STANFORD_COLORS = [
                    "#8C1515",   # cardinal red
@@ -66,7 +67,7 @@ def new_cmap(rgb_color):
 
     return cmap
 
-def plot_metric(measurements, metric):
+def plot_metric(measurements, metric, save=True):
     """Skyplot of data
 
     Parameters
@@ -75,6 +76,15 @@ def plot_metric(measurements, metric):
         Instance of the Measurement class
     metric : string
         Column name for metric to be plotted
+    save : bool
+        Save figure if true, otherwise returns figure object. Defaults
+        to saving the figure in the Results folder.
+
+    Returns
+    -------
+    figs : list
+        List of matplotlib.pyplot.figure objects of residuels, returns
+        None if save set to True.
 
     """
 
@@ -85,6 +95,8 @@ def plot_metric(measurements, metric):
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
+    if not save:
+        figs = []
 
     data = {}
     signal_types = measurements.get_strings("signal_type")
@@ -122,17 +134,22 @@ def plot_metric(measurements, metric):
         plt.ylabel(metric)
         plt.legend(bbox_to_anchor=(1.05, 1))
 
-        plt_file = os.path.join(root_path,"dev", metric + "-" + signal_type + ".png")
+        if save: # pragma: no cover
+            plt_file = os.path.join(root_path,"results", metric + "-" + signal_type + ".png")
 
-        fig.savefig(plt_file,
-                dpi=300.,
-                format="png",
-                bbox_inches="tight")
+            save_figure(fig, plt_file)
 
-        # close previous figure
-        plt.close(fig)
+            # close previous figure
+            plt.close(fig)
 
-def plot_skyplot(measurements, state_estimate):
+        else:
+            figs.append(fig)
+
+    if save: # pragma: no cover
+        return None
+    return figs
+
+def plot_skyplot(measurements, state_estimate, save=True):
     """Skyplot of data
 
     Parameters
@@ -144,7 +161,14 @@ def plot_skyplot(measurements, state_estimate):
         estimated receiver clock bias also in meters as an instance of
         the Measurement class with shape (4 x # unique timesteps) and
         the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+    save : bool
+        Save figure if true, otherwise returns figure object. Defaults
+        to saving the figure in the Results folder.
 
+    Returns
+    -------
+    fig : matplotlib.pyplot.figure
+        Figure object of skyplot, returns None if save set to True.
 
     """
 
@@ -212,7 +236,8 @@ def plot_skyplot(measurements, state_estimate):
             # it takes to plot these line collections
             step = max(1,int(len(sv_data[0])/50.))
             points = np.array([sv_data[0][::step],
-                               sv_data[1][::step]]).T.reshape(-1, 1, 2)
+                               sv_data[1][::step]]).T
+            points = np.reshape(points,(-1, 1, 2))
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
             norm = plt.Normalize(0,len(segments))
             lc = LineCollection(segments, cmap=cmap, norm=norm,
@@ -237,24 +262,35 @@ def plot_skyplot(measurements, state_estimate):
 
     ax.legend(bbox_to_anchor=(1.05, 1))
 
-    plt_file = os.path.join(root_path,"dev","skyplot.png")
+    if save: # pragma: no cover
+        plt_file = os.path.join(root_path,"results","skyplot.png")
 
-    fig.savefig(plt_file,
-            dpi=300.,
-            format="png",
-            bbox_inches="tight")
+        save_figure(fig, plt_file)
 
-    # close previous figure
-    plt.close(fig)
+        # close previous figure
+        plt.close(fig)
+
+        return None
+
+    return fig
 
 
-def plot_residuals(measurements):
+def plot_residuals(measurements, save=True):
     """Plot residuals nicely
 
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.measurement.Measurement
         Instance of the Measurement class
+    save : bool
+        Save figure if true, otherwise returns figure object. Defaults
+        to saving the figure in the Results folder.
+
+    Returns
+    -------
+    figs : list
+        List of matplotlib.pyplot.figure objects of residuels, returns
+        None if save set to True.
 
     """
 
@@ -265,6 +301,8 @@ def plot_residuals(measurements):
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
+    if not save:
+        figs = []
 
     residual_data = {}
     signal_types = measurements.get_strings("signal_type")
@@ -306,16 +344,20 @@ def plot_residuals(measurements):
         plt.ylabel("residiual [m]")
         plt.legend(bbox_to_anchor=(1.05, 1))
 
-        plt_file = os.path.join(root_path,"dev", "residuals-" \
-                              + signal_type + ".png")
+        if save: # pragma: no cover
+            plt_file = os.path.join(root_path,"results", "residuals-" \
+                                  + signal_type + ".png")
 
-        fig.savefig(plt_file,
-                dpi=300.,
-                format="png",
-                bbox_inches="tight")
+            save_figure(fig, plt_file)
 
-        # close previous figure
-        plt.close(fig)
+            # close previous figure
+            plt.close(fig)
+        else:
+            figs.append(fig)
+
+    if save: # pragma: no cover
+        return None
+    return figs
 
 # import plotly.express as px
 # def visualize_traffic(df, center, zoom=9):

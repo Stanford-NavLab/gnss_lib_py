@@ -13,6 +13,7 @@ import numpy as np
 import gnss_lib_py.utils.visualizations as vis
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived
+from gnss_lib_py.utils.file_operations import close_figures
 from gnss_lib_py.algorithms.residuals import solve_residuals
 
 @pytest.fixture(name="root_path")
@@ -117,12 +118,17 @@ def test_plot_metrics(derived):
     for rr, row in enumerate(derived.rows):
         if not derived.str_bool[rr]:
             if row in test_rows:
-                vis.plot_metric(derived,row)
+                fig = vis.plot_metric(derived, row, save=False)
+                close_figures(fig)
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
-                vis.plot_metric(derived,row)
+                fig = vis.plot_metric(derived, row, save=False)
+                close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
+
+    # save figures
+    # vis.plot_metric(derived, "raw_pr_m")
 
 def test_plot_skyplot(derived, state_estimate):
     """Test for plotting skyplot.
@@ -138,7 +144,13 @@ def test_plot_skyplot(derived, state_estimate):
         the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
 
     """
-    vis.plot_skyplot(derived, state_estimate)
+
+    # don't save figures
+    fig = vis.plot_skyplot(derived, state_estimate, save=False)
+    close_figures(fig)
+
+    # save figures
+    # vis.plot_skyplot(derived, state_estimate)
 
 
 def test_plot_residuals(derived, state_estimate):
@@ -156,13 +168,18 @@ def test_plot_residuals(derived, state_estimate):
 
     """
 
-    derived_original = derived.copy(rows=derived.rows,cols=np.arange(len(derived)))
+    derived_original = derived.copy()
 
     solve_residuals(derived, state_estimate)
 
-    vis.plot_residuals(derived)
+    # don't save figures
+    figs = vis.plot_residuals(derived, save=False)
+    close_figures(figs)
+
+    # save figures
+    # vis.plot_residuals(derived)
 
     # should return KeyError if no residuals row
     with pytest.raises(KeyError) as excinfo:
-        vis.plot_residuals(derived_original)
+        vis.plot_residuals(derived_original, save=False)
     assert "residuals missing" in str(excinfo.value)
