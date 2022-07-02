@@ -13,8 +13,8 @@ from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgb, ListedColormap
 
+import gnss_lib_py.utils.file_operations as fo
 from gnss_lib_py.core.coordinates import LocalCoord
-from gnss_lib_py.utils.file_operations import save_figure
 
 STANFORD_COLORS = [
                    "#8C1515",   # cardinal red
@@ -33,6 +33,8 @@ STANFORD_COLORS = [
                    # "#67AFD2",   # light sky
                    # "#008566",   # digital green
                    ]
+
+TIMESTAMP = fo.get_timestamp()
 
 def new_cmap(rgb_color):
     """Return a new cmap from a color going to white.
@@ -67,7 +69,7 @@ def new_cmap(rgb_color):
 
     return cmap
 
-def plot_metric(measurements, metric, save=True):
+def plot_metric(measurements, metric, save=True, prefix=""):
     """Skyplot of data
 
     Parameters
@@ -79,6 +81,8 @@ def plot_metric(measurements, metric, save=True):
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.
+    prefix : string
+        File prefix to add to filename.
 
     Returns
     -------
@@ -90,12 +94,17 @@ def plot_metric(measurements, metric, save=True):
 
     if len(measurements.str_map[metric]):
         raise KeyError(metric + " is a non-numeric row, unable to plot.")
+    if not isinstance(prefix, str):
+        raise TypeError("Prefix must be a string.")
 
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    if not save:
+    if save: # pragma: no cover
+        root_path = os.path.dirname(
+                    os.path.dirname(
+                    os.path.dirname(
+                    os.path.realpath(__file__))))
+        log_path = os.path.join(root_path,"results",TIMESTAMP)
+        fo.mkdir(log_path)
+    else:
         figs = []
 
     data = {}
@@ -135,9 +144,10 @@ def plot_metric(measurements, metric, save=True):
         plt.legend(bbox_to_anchor=(1.05, 1))
 
         if save: # pragma: no cover
-            plt_file = os.path.join(root_path,"results", metric + "-" + signal_type + ".png")
+            plt_file = os.path.join(log_path, prefix + "_" + metric \
+                     + "_" + signal_type + ".png")
 
-            save_figure(fig, plt_file)
+            fo.save_figure(fig, plt_file)
 
             # close previous figure
             plt.close(fig)
@@ -149,7 +159,7 @@ def plot_metric(measurements, metric, save=True):
         return None
     return figs
 
-def plot_skyplot(measurements, state_estimate, save=True):
+def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
     """Skyplot of data
 
     Parameters
@@ -164,6 +174,8 @@ def plot_skyplot(measurements, state_estimate, save=True):
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.
+    prefix : string
+        File prefix to add to filename.
 
     Returns
     -------
@@ -172,10 +184,8 @@ def plot_skyplot(measurements, state_estimate, save=True):
 
     """
 
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
+    if not isinstance(prefix, str):
+        raise TypeError("Prefix must be a string.")
 
     skyplot_data = {}
     signal_types = list(measurements.get_strings("signal_type"))
@@ -243,7 +253,7 @@ def plot_skyplot(measurements, state_estimate, save=True):
             lc = LineCollection(segments, cmap=cmap, norm=norm,
                                 array = range(len(segments)),
                                 linewidths=(4,))
-            lin = ax.add_collection(lc)
+            ax.add_collection(lc)
             if ss == 0:
                 # ax.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
                 ax.plot(sv_data[0][-1],sv_data[1][-1],c=color,
@@ -263,9 +273,15 @@ def plot_skyplot(measurements, state_estimate, save=True):
     ax.legend(bbox_to_anchor=(1.05, 1))
 
     if save: # pragma: no cover
-        plt_file = os.path.join(root_path,"results","skyplot.png")
+        root_path = os.path.dirname(
+                    os.path.dirname(
+                    os.path.dirname(
+                    os.path.realpath(__file__))))
+        log_path = os.path.join(root_path,"results",TIMESTAMP)
+        fo.mkdir(log_path)
+        plt_file = os.path.join(log_path,prefix+"_skyplot.png")
 
-        save_figure(fig, plt_file)
+        fo.save_figure(fig, plt_file)
 
         # close previous figure
         plt.close(fig)
@@ -275,7 +291,7 @@ def plot_skyplot(measurements, state_estimate, save=True):
     return fig
 
 
-def plot_residuals(measurements, save=True):
+def plot_residuals(measurements, save=True, prefix=""):
     """Plot residuals nicely
 
     Parameters
@@ -285,6 +301,8 @@ def plot_residuals(measurements, save=True):
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.
+    prefix : string
+        File prefix to add to filename.
 
     Returns
     -------
@@ -296,12 +314,17 @@ def plot_residuals(measurements, save=True):
 
     if "residuals" not in measurements.rows:
         raise KeyError("residuals missing, run solve_residuals().")
+    if not isinstance(prefix, str):
+        raise TypeError("Prefix must be a string.")
 
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    if not save:
+    if save: # pragma: no cover
+        root_path = os.path.dirname(
+                    os.path.dirname(
+                    os.path.dirname(
+                    os.path.realpath(__file__))))
+        log_path = os.path.join(root_path,"results",TIMESTAMP)
+        fo.mkdir(log_path)
+    else:
         figs = []
 
     residual_data = {}
@@ -345,10 +368,10 @@ def plot_residuals(measurements, save=True):
         plt.legend(bbox_to_anchor=(1.05, 1))
 
         if save: # pragma: no cover
-            plt_file = os.path.join(root_path,"results", "residuals-" \
-                                  + signal_type + ".png")
+            plt_file = os.path.join(log_path, prefix + "_residuals_" \
+                     + signal_type + ".png")
 
-            save_figure(fig, plt_file)
+            fo.save_figure(fig, plt_file)
 
             # close previous figure
             plt.close(fig)

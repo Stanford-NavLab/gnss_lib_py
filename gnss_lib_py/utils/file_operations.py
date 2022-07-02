@@ -6,6 +6,7 @@ __authors__ = "D. Knowles"
 __date__ = "01 Jul 2022"
 
 import os
+import time
 
 import matplotlib.pyplot as plt
 
@@ -37,7 +38,6 @@ def save_figure(fig, filename): # pragma: no cover
         Filename for figure.
 
     """
-
     fig.savefig(filename,
                 dpi=300.,
                 format="png",
@@ -61,3 +61,16 @@ def close_figures(figs): # pragma: no cover
             plt.close(fig)
     else:
         raise TypeError("Must be either a single figure or list of figures.")
+
+def get_timestamp():
+    """Returns timestamp of the current time.
+
+    Returns
+    -------
+    timestamp : string
+        Timestamp in order of year, month, day, hour, minute, second
+        without spaces or puncuation
+
+    """
+    timestamp =  time.strftime("%Y%m%d%H%M%S")
+    return timestamp

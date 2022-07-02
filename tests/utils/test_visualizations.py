@@ -127,8 +127,9 @@ def test_plot_metrics(derived):
                 close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
-    # save figures
-    # vis.plot_metric(derived, "raw_pr_m")
+    with pytest.raises(TypeError) as excinfo:
+        vis.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
+    assert "Prefix" in str(excinfo.value)
 
 def test_plot_skyplot(derived, state_estimate):
     """Test for plotting skyplot.
@@ -149,8 +150,9 @@ def test_plot_skyplot(derived, state_estimate):
     fig = vis.plot_skyplot(derived, state_estimate, save=False)
     close_figures(fig)
 
-    # save figures
-    # vis.plot_skyplot(derived, state_estimate)
+    with pytest.raises(TypeError) as excinfo:
+        vis.plot_skyplot(derived, state_estimate, save=True, prefix=1)
+    assert "Prefix" in str(excinfo.value)
 
 
 def test_plot_residuals(derived, state_estimate):
@@ -176,10 +178,11 @@ def test_plot_residuals(derived, state_estimate):
     figs = vis.plot_residuals(derived, save=False)
     close_figures(figs)
 
-    # save figures
-    # vis.plot_residuals(derived)
-
     # should return KeyError if no residuals row
     with pytest.raises(KeyError) as excinfo:
         vis.plot_residuals(derived_original, save=False)
     assert "residuals missing" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        vis.plot_residuals(derived, save=True, prefix=1)
+    assert "Prefix" in str(excinfo.value)
