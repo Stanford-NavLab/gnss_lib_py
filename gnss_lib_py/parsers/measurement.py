@@ -637,14 +637,22 @@ class Measurement(object):
             self.str_map[value] = self.str_map.pop(key)
 
     def copy(self, rows=None, cols=None):
-        """Return copy of Measurement keeping specified rows and columns
+        """Return copy of Measurement keeping specified rows and columns.
+
+        If None is passed into either argument, all rows or cols
+        respectively are returned.
+
+        If no arguments are added .copy() returns a full copy of the
+        entire Measurement class.
 
         Parameters
         ----------
         rows : None/list/np.ndarray
-            Strings or integers indicating rows to keep in copy
+            Strings or integers indicating rows to keep in copy.
+            Defaults to None meaning all rows are copied.
         cols : None/list/np.ndarray
-            Integers indicating columns to keep in copy
+            Integers indicating columns to keep in copy. Defaults to
+            None meaning all cols are copied.
 
         Returns
         -------
