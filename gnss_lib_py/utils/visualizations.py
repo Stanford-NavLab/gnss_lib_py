@@ -70,14 +70,14 @@ def new_cmap(rgb_color):
     return cmap
 
 def plot_metric(measurements, metric, save=True, prefix=""):
-    """Skyplot of data
+    """Plot specific metric from a row of the Measurement class.
 
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.measurement.Measurement
         Instance of the Measurement class
     metric : string
-        Column name for metric to be plotted
+        Row name for metric to be plotted
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.
@@ -292,7 +292,7 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
 
 
 def plot_residuals(measurements, save=True, prefix=""):
-    """Plot residuals nicely
+    """Plot residuals.
 
     Parameters
     ----------
@@ -381,25 +381,3 @@ def plot_residuals(measurements, save=True, prefix=""):
     if save: # pragma: no cover
         return None
     return figs
-
-# import plotly.express as px
-# def visualize_traffic(df, center, zoom=9):
-#     fig = px.scatter_mapbox(df,
-#
-#                             # Here, plotly gets, (x,y) coordinates
-#                             lat="latDeg",
-#                             lon="lngDeg",
-#
-#                             #Here, plotly detects color of series
-#                             color='Label',
-#                             labels='Label',
-#
-#                             zoom=zoom,
-#                             center=center,
-#                             height=600,
-#                             width=800)
-#     fig.update_layout(mapbox_style='stamen-terrain')
-#     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-# #     fig.update_layout(title_text="Ground Truth Tracks of Android Smartphone GNSS Dataset")
-# #     fig.legend()
-#     fig.show()

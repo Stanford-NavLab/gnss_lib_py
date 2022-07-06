@@ -1,4 +1,4 @@
-"""Tests for residuals
+"""Tests for visualizations.
 
 """
 
@@ -80,7 +80,7 @@ def fixture_load_derived(derived_path):
 
 @pytest.fixture(name="state_estimate")
 def fixture_solve_wls(derived):
-    """Load instance of AndroidDerived
+    """Fixture of WLS state estimate.
 
     Parameters
     ----------

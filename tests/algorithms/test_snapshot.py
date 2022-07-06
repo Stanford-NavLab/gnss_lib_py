@@ -201,10 +201,10 @@ def test_wls_max_count(set_user_states, set_sv_states, count_test,
         assert issubclass(warn[-1].category, RuntimeWarning)
 
 
-def test_wls_stationary(set_user_states, set_sv_states, tolerance):
+def test_wls_only_bias(set_user_states, set_sv_states, tolerance):
     """Test WLS positioning against truth user states.
 
-    In these stationary tests, it is only solving for clock bias.
+    In these only_bias tests, it is only solving for clock bias.
 
     Parameters
     ----------

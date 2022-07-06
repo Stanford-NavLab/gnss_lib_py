@@ -29,7 +29,7 @@ def solve_residuals(measurements, state_estimate):
     """
 
 
-    residuals = np.inf*np.ones((1,len(measurements)))
+    residuals = np.nan*np.ones((1,len(measurements)))
 
     unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
     for ii, timestep in enumerate(unique_timesteps):
@@ -48,10 +48,11 @@ def solve_residuals(measurements, state_estimate):
         pos_rx_m = np.tile(rx_pos.T, (num_svs, 1))
 
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
-                                 keepdims = True)
+                                 keepdims = True) \
+                + state_estimate["b_rx_m",ii]
 
         # calculate residual
-        residuals_epoch = corr_pr_m - gt_pr_m - state_estimate["b_rx_m",ii]
+        residuals_epoch = corr_pr_m - gt_pr_m
 
         residuals[:,idxs] = residuals_epoch.T
 
