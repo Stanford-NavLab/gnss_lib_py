@@ -42,6 +42,9 @@ Those standard names are as follows:
     maintains a helpful reference calendar.
   * :code:`gps_tow` : (float) time of receiving signal as measured by
     the receiver in seconds since start of GPS week (Sunday at )
+  * :code:`unix_time_millis` : (int) milliseconds that have elapsed
+    since January 1, 1970 at midnight (midnight UTC) and not counting
+    leapseconds.
   * :code:`gnss_id` : (int) GNSS identification number using
     the following mapping
 
