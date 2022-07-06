@@ -59,12 +59,12 @@ def new_cmap(rgb_color):
     https://matplotlib.org/3.1.0/tutorials/colors/colormap-manipulation.html
 
     """
-    N = 256
-    vals = np.ones((N, 4))
+    num_vals = 256
+    vals = np.ones((num_vals, 4))
 
-    vals[:, 0] = np.linspace(1., rgb_color[0], N)
-    vals[:, 1] = np.linspace(1., rgb_color[1], N)
-    vals[:, 2] = np.linspace(1., rgb_color[2], N)
+    vals[:, 0] = np.linspace(1., rgb_color[0], num_vals)
+    vals[:, 1] = np.linspace(1., rgb_color[1], num_vals)
+    vals[:, 2] = np.linspace(1., rgb_color[2], num_vals)
     cmap = ListedColormap(vals)
 
     return cmap
@@ -113,15 +113,15 @@ def plot_metric(measurements, metric, save=True, prefix=""):
 
     time0 = measurements["millisSinceGpsEpoch",0]/1000.
 
-    for ii in range(measurements.shape[1]):
-        if signal_types[ii] not in data:
-            data[signal_types[ii]] = {}
-        if sv_ids[ii] not in data[signal_types[ii]]:
-            data[signal_types[ii]][sv_ids[ii]] = [[measurements["millisSinceGpsEpoch",ii]/1000. - time0],
-                                                  [measurements[metric,ii]]]
+    for m_idx in range(measurements.shape[1]):
+        if signal_types[m_idx] not in data:
+            data[signal_types[m_idx]] = {}
+        if sv_ids[m_idx] not in data[signal_types[m_idx]]:
+            data[signal_types[m_idx]][sv_ids[m_idx]] = [[measurements["millisSinceGpsEpoch",m_idx]/1000. - time0],
+                                                  [measurements[metric,m_idx]]]
         else:
-            data[signal_types[ii]][sv_ids[ii]][0].append(measurements["millisSinceGpsEpoch",ii]/1000. - time0)
-            data[signal_types[ii]][sv_ids[ii]][1].append(measurements[metric,ii])
+            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(measurements["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            data[signal_types[m_idx]][sv_ids[m_idx]][1].append(measurements[metric,m_idx])
 
     ####################################################################
     # BROKEN UP BY CONSTELLATION TYPE
@@ -129,15 +129,15 @@ def plot_metric(measurements, metric, save=True, prefix=""):
 
     for signal_type, signal_data in data.items():
         fig = plt.figure(figsize=(5,3))
-        ax = plt.gca()
+        axes = plt.gca()
         plt.title(signal_type)
 
-        for sv, sv_data in signal_data.items():
-            ax.scatter(sv_data[0],sv_data[1],label=sv,s=5.)
+        for sv_name, sv_data in signal_data.items():
+            axes.scatter(sv_data[0],sv_data[1],label=sv_name,s=5.)
 
-        ax = plt.gca()
-        ax.ticklabel_format(useOffset=False)
-        ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+        axes = plt.gca()
+        axes.ticklabel_format(useOffset=False)
+        axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 
         plt.xlabel("time [s]")
         plt.ylabel(metric)
@@ -195,28 +195,28 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
                           measurements["y_sv_m",:].reshape(-1,1),
                           measurements["z_sv_m",:].reshape(-1,1)))
 
-    for ii, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
+    for t_idx, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
-        for jj in idxs:
+        for m_idx in idxs:
 
-            if signal_types[jj] not in skyplot_data:
-                if signal_types[jj] == "GPS_L5" or signal_types[jj] == "GAL_E5A":
+            if signal_types[m_idx] not in skyplot_data:
+                if signal_types[m_idx] == "GPS_L5" or signal_types[m_idx] == "GAL_E5A":
                     continue
-                skyplot_data[signal_types[jj]] = {}
+                skyplot_data[signal_types[m_idx]] = {}
 
-            if jj == 0:
-                lc = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],ii])
-            sv_ned = lc.ecef2ned(pos_sv_m[jj:jj+1,:])[0]
+            if m_idx == 0:
+                local_coord = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
+            sv_ned = local_coord.ecef2ned(pos_sv_m[m_idx:m_idx+1,:])[0]
 
             sv_az = np.pi/2.-np.arctan2(sv_ned[0],sv_ned[1])
-            xy = np.sqrt(sv_ned[0]**2+sv_ned[1]**2)
-            sv_el = np.degrees(np.arctan2(-sv_ned[2],xy))
+            xy_dist = np.sqrt(sv_ned[0]**2+sv_ned[1]**2)
+            sv_el = np.degrees(np.arctan2(-sv_ned[2],xy_dist))
 
-            if sv_ids[jj] not in skyplot_data[signal_types[jj]]:
-                skyplot_data[signal_types[jj]][sv_ids[jj]] = [[sv_az],[sv_el]]
+            if sv_ids[m_idx] not in skyplot_data[signal_types[m_idx]]:
+                skyplot_data[signal_types[m_idx]][sv_ids[m_idx]] = [[sv_az],[sv_el]]
             else:
-                skyplot_data[signal_types[jj]][sv_ids[jj]][0].append(sv_az)
-                skyplot_data[signal_types[jj]][sv_ids[jj]][1].append(sv_el)
+                skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(sv_az)
+                skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(sv_el)
 
     ####################################################################
     # BROKEN UP BY CONSTELLATION TYPE
@@ -224,11 +224,11 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
 
 
     fig = plt.figure(figsize=(5,5))
-    ax = fig.add_subplot(111, projection='polar')
-    cc = 0
+    axes = fig.add_subplot(111, projection='polar')
+    c_idx = 0
     for signal_type, signal_data in skyplot_data.items():
-        ss = 0
-        color = "C" + str(cc % 10)
+        s_idx = 0
+        color = "C" + str(c_idx % 10)
         if signal_type == "GPS_L1":
             color = to_rgb(STANFORD_COLORS[signal_types.index("GPS_L1")])
             cmap = new_cmap(color)
@@ -241,7 +241,7 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
             color = to_rgb(STANFORD_COLORS[signal_types.index("GLO_G1")])
             cmap = new_cmap(color)
             marker = "P"
-        for sv, sv_data in signal_data.items():
+        for _, sv_data in signal_data.items():
             # only plot ~ 50 points for each sat to decrease time
             # it takes to plot these line collections
             step = max(1,int(len(sv_data[0])/50.))
@@ -250,27 +250,27 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
             points = np.reshape(points,(-1, 1, 2))
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
             norm = plt.Normalize(0,len(segments))
-            lc = LineCollection(segments, cmap=cmap, norm=norm,
+            local_coord = LineCollection(segments, cmap=cmap, norm=norm,
                                 array = range(len(segments)),
                                 linewidths=(4,))
-            ax.add_collection(lc)
-            if ss == 0:
-                # ax.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
-                ax.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+            axes.add_collection(local_coord)
+            if s_idx == 0:
+                # axes.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
+                axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
                         marker=marker, markersize=12,
                         label=signal_type.replace("_"," "))
             else:
-                ax.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+                axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
                         marker=marker, markersize=12)
-            ss += 1
-        cc += 1
+            s_idx += 1
+        c_idx += 1
 
-    ax.set_theta_zero_location('N')
-    ax.set_theta_direction(-1)
-    ax.set_yticks(range(0, 90+10, 30))                   # Define the yticks
-    ax.set_ylim(90,0)
+    axes.set_theta_zero_location('N')
+    axes.set_theta_direction(-1)
+    axes.set_yticks(range(0, 90+10, 30))                   # Define the yticks
+    axes.set_ylim(90,0)
 
-    ax.legend(bbox_to_anchor=(1.05, 1))
+    axes.legend(bbox_to_anchor=(1.05, 1))
 
     if save: # pragma: no cover
         root_path = os.path.dirname(
@@ -333,15 +333,15 @@ def plot_residuals(measurements, save=True, prefix=""):
 
     time0 = measurements["millisSinceGpsEpoch",0]/1000.
 
-    for ii in range(measurements.shape[1]):
-        if signal_types[ii] not in residual_data:
-            residual_data[signal_types[ii]] = {}
-        if sv_ids[ii] not in residual_data[signal_types[ii]]:
-            residual_data[signal_types[ii]][sv_ids[ii]] = [[measurements["millisSinceGpsEpoch",ii]/1000. - time0],
-                        [measurements["residuals",ii]]]
+    for m_idx in range(measurements.shape[1]):
+        if signal_types[m_idx] not in residual_data:
+            residual_data[signal_types[m_idx]] = {}
+        if sv_ids[m_idx] not in residual_data[signal_types[m_idx]]:
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[measurements["millisSinceGpsEpoch",m_idx]/1000. - time0],
+                        [measurements["residuals",m_idx]]]
         else:
-            residual_data[signal_types[ii]][sv_ids[ii]][0].append(measurements["millisSinceGpsEpoch",ii]/1000. - time0)
-            residual_data[signal_types[ii]][sv_ids[ii]][1].append(measurements["residuals",ii])
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(measurements["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(measurements["residuals",m_idx])
 
     ####################################################################
     # BROKEN UP BY CONSTELLATION TYPE
@@ -354,14 +354,14 @@ def plot_residuals(measurements, save=True, prefix=""):
         plt.title(signal_type.replace("_"," "))
         signal_type_svs = list(signal_residuals.keys())
 
-        for sv, sv_data in signal_residuals.items():
-            color = STANFORD_COLORS[signal_type_svs.index(sv)]
+        for sv_name, sv_data in signal_residuals.items():
+            color = STANFORD_COLORS[signal_type_svs.index(sv_name)]
             plt.plot(sv_data[0], sv_data[1],
                     color = color,
-                    label = signal_type.replace("_"," ") + " " + str(sv))
-        ax = plt.gca()
-        ax.ticklabel_format(useOffset=False)
-        ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+                    label = signal_type.replace("_"," ") + " " + str(sv_name))
+        axes = plt.gca()
+        axes.ticklabel_format(useOffset=False)
+        axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
         plt.ylim(-100.,100.)
         plt.xlabel("time [s]")
         plt.ylabel("residiual [m]")

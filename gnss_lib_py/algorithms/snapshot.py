@@ -64,7 +64,7 @@ def solve_wls(measurements, weight_type = None,
 
     states = np.nan*np.ones((4,len(unique_timesteps)))
 
-    for ii, timestep in enumerate(unique_timesteps):
+    for t_idx, timestep in enumerate(unique_timesteps):
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
                               measurements["y_sv_m",idxs].reshape(-1,1),
@@ -82,7 +82,7 @@ def solve_wls(measurements, weight_type = None,
         position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m, weights,
                        only_bias, tol, max_count)
 
-        states[:,ii:ii+1] = position
+        states[:,t_idx:t_idx+1] = position
 
     state_estimate = Measurement()
     state_estimate["x_rx_m"] = states[0,:]

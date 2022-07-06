@@ -5,13 +5,7 @@
 __authors__ = "D. Knowles"
 __date__ = "25 Jan 2022"
 
-import os
-
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
-
-from gnss_lib_py.core.coordinates import LocalCoord
 
 def solve_residuals(measurements, state_estimate):
     """Calculates residuals
@@ -32,7 +26,7 @@ def solve_residuals(measurements, state_estimate):
     residuals = np.nan*np.ones((1,len(measurements)))
 
     unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
-    for ii, timestep in enumerate(unique_timesteps):
+    for t_idx, timestep in enumerate(unique_timesteps):
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
 
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
@@ -44,12 +38,12 @@ def solve_residuals(measurements, state_estimate):
         corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
 
 
-        rx_pos = state_estimate[["x_rx_m","y_rx_m","z_rx_m"],ii:ii+1]
+        rx_pos = state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx:t_idx+1]
         pos_rx_m = np.tile(rx_pos.T, (num_svs, 1))
 
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                                  keepdims = True) \
-                + state_estimate["b_rx_m",ii]
+                + state_estimate["b_rx_m",t_idx]
 
         # calculate residual
         residuals_epoch = corr_pr_m - gt_pr_m

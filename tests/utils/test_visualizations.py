@@ -115,8 +115,8 @@ def test_plot_metrics(derived):
                  "tropo_delay_m",
                  ]
 
-    for rr, row in enumerate(derived.rows):
-        if not derived.str_bool[rr]:
+    for r_idx, row in enumerate(derived.rows):
+        if not derived.str_bool[r_idx]:
             if row in test_rows:
                 fig = vis.plot_metric(derived, row, save=False)
                 close_figures(fig)
