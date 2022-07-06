@@ -131,8 +131,8 @@ class BaseExtendedKalmanFilter(BaseFilter):
 
 
 class BaseKalmanFilter(BaseExtendedKalmanFilter):
-    """General Kalman Filter implementation. Implementated as special 
-    case of BaseExtendedKalmanFilter with linear dynamics and measurement 
+    """General Kalman Filter implementation. Implementated as special
+    case of BaseExtendedKalmanFilter with linear dynamics and measurement
     model
     """
 
@@ -156,7 +156,7 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
         return new_x
 
     def measure_model(self, update_dict=None):
-        """Linear measurment model
+        """Linear measurement model
 
         Parameters
         ----------
@@ -250,7 +250,7 @@ class BaseUnscentedKalmanFilter(BaseFilter):
             Additional parameters needed to implement update step
         """
         assert check_col_vect(z, np.size(z)), "Measurements are not a column vector"
-        N = self.x_dim  
+        N = self.x_dim
         N_sig = self.N_sig
 
         y_t_tm = np.zeros((np.shape(self.R)[0], N_sig))

@@ -535,7 +535,7 @@ class Measurement(ABC):
 
         Returns
         -------
-        new_measurment : gnss_lib_py.parsers.measurment.Measurment
+        new_measurement : gnss_lib_py.parsers.measurement.Measurement
             Copy of original Measurement with desired rows and columns
         """
         new_measurement = Measurement()
