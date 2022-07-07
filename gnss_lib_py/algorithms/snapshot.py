@@ -170,8 +170,8 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
 
 
         pr_delta = corr_pr_m - gt_r_m - rx_est_m[3,0]
-        pos_x_delta = np.linalg.pinv(weight_matrix @ geometry_matrix) \
-                    @ weight_matrix @ pr_delta
+        pos_x_delta = np.linalg.pinv(geometry_matrix.T @ weight_matrix @ geometry_matrix) \
+                    @ geometry_matrix.T @ weight_matrix @ pr_delta
 
         if only_bias:
             rx_est_m[3,0] += pos_x_delta[0,0]
