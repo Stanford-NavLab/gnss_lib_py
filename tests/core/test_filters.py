@@ -26,7 +26,7 @@ class MSD_EKF(BaseKalmanFilter):
         Damping coeeficient of system
     """
 
-    # TODO: Define the state space, measurment space etc. here
+    # TODO: Define the state space, measurement space etc. here
     def __init__(self, init_dict, params_dict):
         self.k = params_dict['k']
         self.m = params_dict['m']
@@ -96,7 +96,7 @@ class MSD_UKF(BaseUnscentedKalmanFilter):
         Damping coefficient of system
     """
 
-    # TODO: Define the state space, measurment space etc. here
+    # TODO: Define the state space, measurement space etc. here
     def __init__(self, init_dict, params_dict):
         self.k = params_dict['k']
         self.m = params_dict['m']

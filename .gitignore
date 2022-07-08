@@ -7,6 +7,9 @@ data/*
 dev/*
 !dev/.gitkeep
 
+# development folder
+results/*
+!results/.gitkeep
 
 #Excluding VS Code files
 .vscode/*

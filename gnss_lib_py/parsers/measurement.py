@@ -535,7 +535,7 @@ class Measurement(ABC):
 
         Returns
         -------
-        new_measurment : gnss_lib_py.parsers.measurment.Measurment
+        new_measurement : gnss_lib_py.parsers.measurement.Measurement
             Copy of original Measurement with desired rows and columns
         """
         new_measurement = Measurement()
@@ -556,7 +556,7 @@ class Measurement(ABC):
             new_measurement[key] = new_row
         return new_measurement
 
-    def remove(self, rows, cols):
+    def remove(self, rows=None, cols=None):
         """Reset Measurement to remove specified rows and columns
 
         Parameters

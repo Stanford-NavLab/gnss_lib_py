@@ -135,7 +135,7 @@ class AndroidRawImu(Measurement):
         gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'], inplace=True)
         measurements = pd.concat([accel, gyro], axis=1)
         #NOTE: Assuming pandas index corresponds to measurements order
-        #NOTE: Override times of gyro measurments with corresponding
+        #NOTE: Override times of gyro measurements with corresponding
         # accel times
         measurements.rename(columns=self._column_map(), inplace=True)
         return measurements

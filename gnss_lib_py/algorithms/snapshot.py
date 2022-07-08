@@ -4,30 +4,42 @@ This module contains point solution methods for estimating position
 at a single GNSS measurement epoch. Position is solved using the
 Weighted Least Squares algorithm.
 
-Notes
------
-    Weighted Least Squares solver is not yet implemented. There is not an input
-    field for specifying weighting matrix.
-
 """
 
-__authors__ = "D. Knowles"
+__authors__ = "D. Knowles, Shubh Gupta, Bradley Collicott"
 __date__ = "25 Jan 2022"
+
+import warnings
 
 import numpy as np
 
 from gnss_lib_py.parsers.measurement import Measurement
 
-def solve_wls(measurements):
+def solve_wls(measurements, weight_type = None,
+              only_bias = False, tol = 1e-7, max_count = 20):
     """Runs weighted least squares across each timestep.
 
     Runs weighted least squares across each timestep and adds a new
-    columns for the receiver's position and clock bias
+    row for the receiver's position and clock bias.
+
+    The option for only_bias allows the user to only calculate the clock
+    bias if the receiver position is already known. Only the bias term
+    in rx_est_m will be updated if only_bias is set to True.
 
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.measurement.Measurement
         Instance of the Measurement class
+    weight_type : string
+        Must either be None or the name of a row in measurements
+    only_bias : bool
+        If True, then only the receiver clock bias is estimated.
+        Otherwise, both position and clock bias are estimated.
+    tol : float
+        Tolerance used for the convergence check.
+    max_count : int
+        Number of maximum iterations before process is aborted and
+        solution returned.
 
     Returns
     -------
@@ -50,18 +62,27 @@ def solve_wls(measurements):
 
     unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
 
-    states = np.inf*np.ones((4,len(unique_timesteps)))
+    states = np.nan*np.ones((4,len(unique_timesteps)))
 
-    for ii, timestep in enumerate(unique_timesteps):
-        # TODO: make this work across for gps_tow + gps_week
+    for t_idx, timestep in enumerate(unique_timesteps):
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
                               measurements["y_sv_m",idxs].reshape(-1,1),
                               measurements["z_sv_m",idxs].reshape(-1,1)))
         corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
-        position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m)
+        if weight_type is not None:
+            if isinstance(weight_type,str) and weight_type in measurements.rows:
+                weights = measurements[weight_type, idxs].reshape(-1,1)
+            else:
+                raise TypeError("WLS weights must be None or row"\
+                                +" in Measurement")
+        else:
+            weights = None
 
-        states[:,ii:ii+1] = position
+        position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m, weights,
+                       only_bias, tol, max_count)
+
+        states[:,t_idx:t_idx+1] = position
 
     state_estimate = Measurement()
     state_estimate["x_rx_m"] = states[0,:]
@@ -72,8 +93,12 @@ def solve_wls(measurements):
     return state_estimate
 
 def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
-        stationary = False, tol = 1e-7, max_count = 20):
-    """Weighted least squares solver for GNSS measurements
+        only_bias = False, tol = 1e-7, max_count = 20):
+    """Weighted least squares solver for GNSS measurements.
+
+    The option for only_bias allows the user to only calculate the clock
+    bias if the receiver position is already known. Only the bias term
+    in rx_est_m will be updated if only_bias is set to True.
 
     Parameters
     ----------
@@ -88,7 +113,10 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
     corr_pr_m : np.ndarray
         Corrected pseudoranges for all satellites with shape of
         [# svs x 1]
-    stationary : bool
+    weights : np.array
+        Weights as an array of shape [# svs x 1] where the column
+        is in the same order as pos_sv_m and corr_pr_m
+    only_bias : bool
         If True, then only the receiver clock bias is estimated.
         Otherwise, both position and clock bias are estimated.
     tol : float
@@ -107,38 +135,45 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
 
     """
 
+    rx_est_m = rx_est_m.copy() # don't change referenced value
+
     count = 0
     num_svs = pos_sv_m.shape[0]
     if num_svs < 4:
         raise RuntimeError("Need at least four satellites for WLS.")
     pos_x_delta = np.inf*np.ones((4,1))
 
-    while np.max(pos_x_delta) > tol:
+    # load weights
+    if weights is None:
+        weight_matrix = np.eye(num_svs)
+    elif isinstance(weights, np.ndarray):
+        if weights.ndim != 0 and weights.size == num_svs:
+            weight_matrix = np.eye(num_svs)*weights
+        else:
+            raise TypeError("WLS weights must be the same length"\
+                            + " as number of satellites.")
+    else:
+        raise TypeError("WLS weights must be None or np.ndarray.")
+
+    while np.linalg.norm(pos_x_delta) > tol:
         pos_rx_m = np.tile(rx_est_m[0:3,:].T, (num_svs, 1))
 
-        gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
+        gt_r_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                                  keepdims = True)
 
-        if stationary:
+        if only_bias:
             geometry_matrix = np.ones((num_svs,1))
         else:
             geometry_matrix = np.ones((num_svs,4))
             geometry_matrix[:,:3] = np.divide(pos_rx_m - pos_sv_m,
-                                              gt_pr_m.reshape(-1,1))
+                                              gt_r_m.reshape(-1,1))
 
-        if weights is None:
-            weight_matrix = np.eye(num_svs)
-        elif isinstance(weights,list):
-            raise NotImplementedError("weights not yet implemented in wls")
-        else:
-            raise TypeError("Weights must be None or list")
 
-        pr_delta = corr_pr_m - gt_pr_m - rx_est_m[3,0]
+        pr_delta = corr_pr_m - gt_r_m - rx_est_m[3,0]
+        pos_x_delta = np.linalg.pinv(geometry_matrix.T @ weight_matrix @ geometry_matrix) \
+                    @ geometry_matrix.T @ weight_matrix @ pr_delta
 
-        pos_x_delta = np.linalg.pinv(weight_matrix @ geometry_matrix) \
-                    @ weight_matrix @ pr_delta
-
-        if stationary:
+        if only_bias:
             rx_est_m[3,0] += pos_x_delta[0,0]
         else:
             rx_est_m += pos_x_delta
@@ -146,6 +181,7 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
         count += 1
 
         if count >= max_count:
-            raise RuntimeWarning("Newton Raphson did not converge.")
+            warnings.warn("Newton Raphson did not converge.", RuntimeWarning)
+            break
 
     return rx_est_m

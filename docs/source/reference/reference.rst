@@ -33,8 +33,7 @@ Standard Naming Conventions
 In large part our conventions follow from `Google's naming pattern <https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data>`_
 
 
-Those standard names are as follows:
-
+GNSS measurement naming conventions are as follows:
   * :code:`trace_name` : (string) name for the trace
   * :code:`rx_name` : (string) name for the receiver device
   * :code:`gps_week` : (int) GPS weeks since the start of the GPS epoch
@@ -42,6 +41,9 @@ Those standard names are as follows:
     maintains a helpful reference calendar.
   * :code:`gps_tow` : (float) time of receiving signal as measured by
     the receiver in seconds since start of GPS week (Sunday at )
+  * :code:`unix_time_millis` : (int) milliseconds that have elapsed
+    since January 1, 1970 at midnight (midnight UTC) and not counting
+    leapseconds.
   * :code:`gnss_id` : (int) GNSS identification number using
     the following mapping
 
@@ -61,9 +63,9 @@ Those standard names are as follows:
     of the gps week.
   * :code:`x_sv_m` : (float) satellite ECEF x position in meters at best
     estimated true signal transmission time.
-  * :code:`y_sv_m` : (float) satellite ECEF x position in meters at best
+  * :code:`y_sv_m` : (float) satellite ECEF y position in meters at best
     estimated true signal transmission time.
-  * :code:`z_sv_m` : (float) satellite ECEF x position in meters at best
+  * :code:`z_sv_m` : (float) satellite ECEF z position in meters at best
     estimated true signal transmission time.
   * :code:`vx_sv_mps` : (float) satellite ECEF x velocity in meters per
     second at estimated true signal transmission time.
@@ -88,6 +90,15 @@ Those standard names are as follows:
     meters.
   * :code:`accumulated_delta_range_sigma_m` : uncertainty in the
     accumulated delta range in meters.
+
+State estimate naming conventions are as follows:
+  * :code:`unix_time_millis` : (int) milliseconds that have elapsed
+    since January 1, 1970 at midnight (midnight UTC) and not counting
+    leapseconds.
+  * :code:`x_rx_m` : (float) receiver ECEF x position in meters.
+  * :code:`y_rx_m` : (float) receiver ECEF y position in meters.
+  * :code:`z_rx_m` : (float) receiver ECEF z position in meters.
+  * :code:`b_rx_m` : (float) receiver clock bias in meters.
 
 GPS Time Conversions
 --------------------

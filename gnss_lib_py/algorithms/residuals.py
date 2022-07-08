@@ -5,31 +5,28 @@
 __authors__ = "D. Knowles"
 __date__ = "25 Jan 2022"
 
-import os
-
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
 
-from gnss_lib_py.core.coordinates import LocalCoord
-
-def calc_residuals(measurements, states):
+def solve_residuals(measurements, state_estimate):
     """Calculates residuals
 
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.measurement.Measurement
         Instance of the Measurement class
-    states : np.ndarray
+    state_estimate : gnss_lib_py.parsers.measurement.Measurement
         Estimated receiver position in ECEF frame in meters and the
-        estimated receiver clock bias also in meters in an
-        array with shape (4 x # timesteps) and the following order of
-        rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+        estimated receiver clock bias also in meters as an instance of
+        the Measurement class with shape (4 x # unique timesteps) and
+        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
 
     """
 
-    for ii, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
-        # TODO: make this work across for gps_tow + gps_week
+
+    residuals = np.nan*np.ones((1,len(measurements)))
+
+    unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
+    for t_idx, timestep in enumerate(unique_timesteps):
         idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
 
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
@@ -37,23 +34,21 @@ def calc_residuals(measurements, states):
                               measurements["z_sv_m",idxs].reshape(-1,1)))
 
         num_svs = pos_sv_m.shape[0]
-        if num_svs < 4:
-            raise RuntimeError("Need at least four satellites for WLS.")
 
         corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
 
-        pos_rx_m = np.tile(states[0:3,ii:ii+1].T, (num_svs, 1))
+
+        rx_pos = state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx:t_idx+1]
+        pos_rx_m = np.tile(rx_pos.T, (num_svs, 1))
 
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
-                                 keepdims = True)
+                                 keepdims = True) \
+                + state_estimate["b_rx_m",t_idx]
 
         # calculate residual
-        residuals_epoch = corr_pr_m - gt_pr_m - states[3,ii]
+        residuals_epoch = corr_pr_m - gt_pr_m
 
-        if ii == 0:
-            residuals = residuals_epoch
-        else:
-            residuals = np.vstack((residuals,residuals_epoch))
+        residuals[:,idxs] = residuals_epoch.T
 
     # add measurements to measurement class
     measurements["residuals"] = residuals
