@@ -64,7 +64,7 @@ NAVLab GitHub Workflow
 ----------------------
 
 1. Follow the :ref:`developer install instructions<developer install>`
-to install pyenv, poetry, python dependencies, and clone the repository.
+   to install pyenv, poetry, python dependencies, and clone the repository.
 
 2. Update your local :code:`poetry` environment to include all packages
    being used by using :code:`poetry install`
@@ -98,10 +98,10 @@ to install pyenv, poetry, python dependencies, and clone the repository.
    See the :ref:`Coverage Report<coverage>` section for more details.
 
 8. When you're ready to commit changes follow the steps below to
-minimize unnecessary merging. This is especially important if multiple
-people are working on the same branch. If you pull new changes, then
-repeat the tests above to double check that everything is still working
-as expected.
+   minimize unnecessary merging. This is especially important if
+   multiple people are working on the same branch. If you pull new
+   changes, then repeat the tests above to double check that everything
+   is still working as expected.
 
     .. code-block:: bash
 
@@ -113,8 +113,8 @@ as expected.
         git push origin your-name/name-of-your-bugfix-or-feature
 
 9. Submit a pull request through the GitHub website and request as a
-step in the pull request that either Ashwin or Derek review your
-code.
+   step in the pull request that either Ashwin or Derek review your
+   code.
 
 Pull Request Review Workflow
 ----------------------------
