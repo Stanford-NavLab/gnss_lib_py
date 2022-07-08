@@ -4,16 +4,13 @@ Tutorials
 =========
 
 
-How to Load Android Derived Dataset
------------------------------------
+Simple Example of Entire Pipeline
+---------------------------------
+Tutorial
 
-This example shows how to quickly load in a Android derived dataset
-file into the :code:`gnss_lib_py` framework.
-
-.. code-block:: python
-
-    from gnss_lib_py.parsers.android import AndroidDerived
-    derived = AndroidDerived(derived_dataset_path)
+How to Use Existing Measurement Class
+-------------------------------------
+Tutorial!
 
 How to Create a New Measurement Child Class
 -------------------------------------------
@@ -29,8 +26,8 @@ make use of the added functionality.
 
 1. Create preprocess.
 
-2. Create postprocess. Must be defined for a valid child class. Use 
-   :code:`pass` inside the function definition if not performing any 
+2. Create postprocess. Must be defined for a valid child class. Use
+   :code:`pass` inside the function definition if not performing any
    operations.
 
 3. Create a new :code:`_column_map()` function that translates the
@@ -83,18 +80,38 @@ Your finished class might look something like:
         """
         col_map = {'millisSinceGpsEpoch' : 'toeMillis',
                 'svid' : 'PRN',
-                'xSatPosM' : 'x_sat_m',
-                'ySatPosM' : 'y_sat_m',
-                'zSatPosM' : 'z_sat_m',
-                'xSatVelMps' : 'vx_sat_mps',
-                'ySatVelMps' : 'vy_sat_mps',
-                'zSatVelMps' : 'vz_sat_mps',
-                'satClkBiasM' : 'b_sat_m',
-                'satClkDriftMps' : 'b_dot_sat_mps',
+                'xSatPosM' : 'x_sv_m',
+                'ySatPosM' : 'y_sv_m',
+                'zSatPosM' : 'z_sv_m',
+                'xSatVelMps' : 'vx_sv_mps',
+                'ySatVelMps' : 'vy_sv_mps',
+                'zSatVelMps' : 'vz_sv_mps',
+                'satClkBiasM' : 'b_sv_m',
+                'satClkDriftMps' : 'b_dot_sv_mps',
                 }
         return col_map
 
 
+How to Load Datasets / Data
+---------------------------
+
+Android Derived Dataset
+
+This example shows how to quickly load in a Android derived dataset
+file into the :code:`gnss_lib_py` framework.
+
+.. code-block:: python
+
+    from gnss_lib_py.parsers.android import AndroidDerived
+    derived = AndroidDerived(derived_dataset_path)
+
+How to Use Algorithms
+---------------------
+Tutorial
+
+Calculating Result Metrics
+--------------------------
+Tutorial
 
 Visualize your Data
 -------------------

@@ -50,11 +50,11 @@ class AndroidDerived(Measurement):
         retrieved on 12 January, 2022
         """
         pr_corrected = self['raw_pr_m', :] \
-                     + self['b_sat_m', :] \
+                     + self['b_sv_m', :] \
                      - self['intersignal_bias_m', :] \
                      - self['tropo_delay_m', :] \
                      - self['iono_delay_m', :]
-        self['pseudo'] = pr_corrected
+        self['corr_pr_m'] = pr_corrected
 
     @staticmethod
     def _column_map():
@@ -70,14 +70,14 @@ class AndroidDerived(Measurement):
                    'constellationType' : 'gnss_id',
                    'svid' : 'sv_id',
                    'signalType' : 'signal_type',
-                   'xSatPosM' : 'x_sat_m',
-                   'ySatPosM' : 'y_sat_m',
-                   'zSatPosM' : 'z_sat_m',
-                   'xSatVelMps' : 'vx_sat_mps',
-                   'ySatVelMps' : 'vy_sat_mps',
-                   'zSatVelMps' : 'vz_sat_mps',
-                   'satClkBiasM' : 'b_sat_m',
-                   'satClkDriftMps' : 'b_dot_sat_mps',
+                   'xSatPosM' : 'x_sv_m',
+                   'ySatPosM' : 'y_sv_m',
+                   'zSatPosM' : 'z_sv_m',
+                   'xSatVelMps' : 'vx_sv_mps',
+                   'ySatVelMps' : 'vy_sv_mps',
+                   'zSatVelMps' : 'vz_sv_mps',
+                   'satClkBiasM' : 'b_sv_m',
+                   'satClkDriftMps' : 'b_dot_sv_mps',
                    'rawPrM' : 'raw_pr_m',
                    'rawPrUncM' : 'raw_pr_sigma_m',
                    'isrbM' : 'intersignal_bias_m',
@@ -135,7 +135,7 @@ class AndroidRawImu(Measurement):
         gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'], inplace=True)
         measurements = pd.concat([accel, gyro], axis=1)
         #NOTE: Assuming pandas index corresponds to measurements order
-        #NOTE: Override times of gyro measurments with corresponding
+        #NOTE: Override times of gyro measurements with corresponding
         # accel times
         measurements.rename(columns=self._column_map(), inplace=True)
         return measurements

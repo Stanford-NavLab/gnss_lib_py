@@ -40,7 +40,7 @@ class NMEA():
     def ecef_gt_w_time(self, date):
         """Get ECEF ground truth as well as measurement timesself.
 
-        Measurment times are returned in UTC secondsself.
+        Measurement times are returned in UTC secondsself.
 
         Parameters
         ----------
