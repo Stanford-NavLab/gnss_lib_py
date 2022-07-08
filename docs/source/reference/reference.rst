@@ -130,6 +130,19 @@ documentation below.
      parsers/modules
      utils/modules
 
+Testing References
+--------------------------------
+All tests and test cases are fully documented in the linked
+documentation below.
+
+  .. toctree::
+     :maxdepth: 2
+
+     test_algorithms/modules
+     test_core/modules
+     test_parsers/modules
+     test_utils/modules
+
 
 Additional Indices
 ------------------
