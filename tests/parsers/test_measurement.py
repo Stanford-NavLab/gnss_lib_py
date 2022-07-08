@@ -323,7 +323,7 @@ def test_rename(pandas_df):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.Measurement
+    data : gnss_lib_py.parsers.measurement.Measurement
         test data
 
     """
@@ -533,7 +533,7 @@ def test_get_item(data, index, exp_value):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.Measurement
+    data : gnss_lib_py.parsers.measurement.Measurement
         Data to test getting values from
     index : slice/str/int/tuple
         Index to query data at
@@ -626,7 +626,7 @@ def test_set_get_item(data, index, new_value, exp_value):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.Measurement
+    data : gnss_lib_py.parsers.measurement.Measurement
         Measurement instance for testing
     index : slice/str/int/tuple
         Index to query data at

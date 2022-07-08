@@ -18,20 +18,20 @@ class PreciseNav(object):
     """Class that contain satellite data.
 
     """
-    def __init__(self, date, sat_position):
+    def __init__(self, date, sv_position):
         """Initialize PreciseNav class.
 
         Parameters
         ----------
         date : datetime object
             ???.
-        sat_position : tuple
+        sv_position : tuple
             ??? contains (x, y, z, t).
 
         """
         self.date = date
         self.tow = datetime2tow(date,False)[1]
-        self.xyzt = np.array(list(map(float, sat_position)))  # [km, km, km, mcs]
+        self.xyzt = np.array(list(map(float, sv_position)))  # [km, km, km, mcs]
 
     def eph2pos(self):
         """Conversion from km to m ???
