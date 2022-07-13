@@ -10,8 +10,10 @@ import csv
 
 import numpy as np
 import pandas as pd
+from datetime import datetime, timedelta, timezone
 
 from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.core.ephemeris import datetime2tow
 
 
 class AndroidDerived(Measurement):
@@ -56,6 +58,21 @@ class AndroidDerived(Measurement):
                      - self['iono_delay_m', :]
         self['corr_pr_m'] = pr_corrected
 
+        times = [datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=tx*1e-3) \
+                         for tx in self['millisSinceGpsEpoch',:][0]]
+        extract_gps_time = np.transpose([list(datetime2tow(tt)) for tt in times])
+        self['gps_week'] = extract_gps_time[0]
+        self['gps_tow'] = extract_gps_time[1]
+
+        sat_times = [datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=tx*1e-9) \
+                         for tx in self['receivedSvTimeInGpsNanos',:][0]]
+        sat_extract_gps_time = np.transpose([list(datetime2tow(tt)) for tt in sat_times])
+        print(sat_extract_gps_time[0])
+        if np.array_equal(extract_gps_time[0], sat_extract_gps_time[0]):
+            self['tx_sv_tow'] = sat_extract_gps_time[1]
+        else: 
+            print('GPS weeks do not match!')
+        
     @staticmethod
     def _column_map():
         """Map of column names from loaded to gnss_lib_py standard

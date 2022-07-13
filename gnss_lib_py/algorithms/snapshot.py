@@ -16,7 +16,7 @@ import numpy as np
 from gnss_lib_py.parsers.measurement import Measurement
 
 def solve_wls(measurements, weight_type = None,
-              only_bias = False, tol = 1e-7, max_count = 20):
+              only_bias = False, tol = 1e-7, max_count = 20, const=None, meas=None, freq=None):
     """Runs weighted least squares across each timestep.
 
     Runs weighted least squares across each timestep and adds a new
@@ -65,11 +65,26 @@ def solve_wls(measurements, weight_type = None,
     states = np.nan*np.ones((4,len(unique_timesteps)))
 
     for t_idx, timestep in enumerate(unique_timesteps):
-        idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
+        if const=='GPS' and freq=='GPS_L1': 
+            idxs = np.where((measurements["millisSinceGpsEpoch",:] == timestep) & \
+                            (measurements["gnss_id",:] == 1) & \
+                            (measurements["signal_type",:] == 'GPS_L1'))[1] 
+            #TODO: correct GNSS id tag: talk to ashwin/derek
+        else:
+            idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
+            
+        if meas=='DGNSS':
+            corr_pr_m = measurements["raw_pr_m",idxs].reshape(-1,1) + \
+                        measurements["delta_pr_m",idxs].reshape(-1,1)
+        elif meas=='RAW':
+            corr_pr_m = measurements["raw_pr_m",idxs].reshape(-1,1)
+        else:
+            corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
+            
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
                               measurements["y_sv_m",idxs].reshape(-1,1),
                               measurements["z_sv_m",idxs].reshape(-1,1)))
-        corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
+        
         if weight_type is not None:
             if isinstance(weight_type,str) and weight_type in measurements.rows:
                 weights = measurements[weight_type, idxs].reshape(-1,1)
