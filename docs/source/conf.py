@@ -81,6 +81,13 @@ html_static_path = []
 
 html_theme_options = {
     "style_nav_header_background" : "#8C1515",
+    # "display_version" : True,
+    "collapse_navigation" : False,
+    # "sticky_navigation" : False,
+    # "navigation_depth" : 4,
+    "includehidden" : True,
+    # "titles_only" : True,
+
 
 }
 

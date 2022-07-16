@@ -1,16 +1,9 @@
-.. _tutorials:
-
-Tutorials
-=========
+.. _tutorials_parsers:
 
 
-Simple Example of Entire Pipeline
----------------------------------
-Tutorial
+Description of general parser tutorials
 
-How to Use Existing Measurement Class
--------------------------------------
-Tutorial!
+
 
 How to Create a New Measurement Child Class
 -------------------------------------------
@@ -104,16 +97,3 @@ file into the :code:`gnss_lib_py` framework.
 
     from gnss_lib_py.parsers.android import AndroidDerived
     derived = AndroidDerived(derived_dataset_path)
-
-How to Use Algorithms
----------------------
-Tutorial
-
-Calculating Result Metrics
---------------------------
-Tutorial
-
-Visualize your Data
--------------------
-
-Examples of how to visualize data.
