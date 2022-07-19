@@ -16,6 +16,10 @@ prototype, implement, and visualize GNSS algorithms.
 algorithms can be easily exchanged for each other and extendable in
 facilitating user-specific extensions of existing implementations.
 
+.. image:: img/skyplot.png
+  :width: 400
+  :alt: skyplot of GNSS movement over time
+
 The data parers in the :code:`parsers` directory allow for loading
 GNSS data from the following sources into the
 :code:`gnss_lib_py`'s unifying :code:`Measurement` class:
@@ -23,7 +27,7 @@ GNSS data from the following sources into the
     * rinex
     * nmea
     * sp3
-    * `Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
+    * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
 
 The following algorithms are implemented in the :code:`algorithms`
 directory and work by passing in a :code:`Measurement` class.

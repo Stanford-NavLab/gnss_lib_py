@@ -91,7 +91,7 @@ html_theme_options = {
 
 }
 
-html_logo = "nav_lab_logo.png"
+html_logo = "img/nav_lab_logo.png"
 
 # document __init__ methods
 autoclass_content = 'both'
