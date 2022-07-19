@@ -8,6 +8,8 @@ __date__ = "27 Jan 2022"
 import os
 
 import numpy as np
+import matplotlib as mpl
+from cycler import cycler
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
@@ -33,6 +35,10 @@ STANFORD_COLORS = [
                    # "#67AFD2",   # light sky
                    # "#008566",   # digital green
                    ]
+MARKERS = ["o","*","P","v","s","^","p","<","h",">","H","X","D"]
+
+mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
+                                + cycler(marker=MARKERS))
 
 TIMESTAMP = fo.get_timestamp()
 
@@ -187,6 +193,8 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
 
+    local_coord = None
+
     skyplot_data = {}
     signal_types = list(measurements.get_strings("signal_type"))
     sv_ids = measurements.get_strings("sv_id")
@@ -200,11 +208,11 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
         for m_idx in idxs:
 
             if signal_types[m_idx] not in skyplot_data:
-                if signal_types[m_idx] == "GPS_L5" or signal_types[m_idx] == "GAL_E5A":
+                if "5" in signal_types[m_idx]:
                     continue
                 skyplot_data[signal_types[m_idx]] = {}
 
-            if m_idx == 0:
+            if local_coord is None:
                 local_coord = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
             sv_ned = local_coord.ecef2ned(pos_sv_m[m_idx:m_idx+1,:])[0]
 
@@ -228,19 +236,9 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
     c_idx = 0
     for signal_type, signal_data in skyplot_data.items():
         s_idx = 0
-        color = "C" + str(c_idx % 10)
-        if signal_type == "GPS_L1":
-            color = to_rgb(STANFORD_COLORS[signal_types.index("GPS_L1")])
-            cmap = new_cmap(color)
-            marker = "o"
-        elif signal_type == "GAL_E1":
-            color = to_rgb(STANFORD_COLORS[signal_types.index("GAL_E1")])
-            cmap = new_cmap(color)
-            marker = "*"
-        elif signal_type == "GLO_G1":
-            color = to_rgb(STANFORD_COLORS[signal_types.index("GLO_G1")])
-            cmap = new_cmap(color)
-            marker = "P"
+        color = "C" + str(c_idx % len(STANFORD_COLORS))
+        cmap = new_cmap(to_rgb(color))
+        marker = MARKERS[c_idx % len(MARKERS)]
         for _, sv_data in signal_data.items():
             # only plot ~ 50 points for each sat to decrease time
             # it takes to plot these line collections
@@ -257,11 +255,11 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
             if s_idx == 0:
                 # axes.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
                 axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-                        marker=marker, markersize=12,
+                        marker=marker, markersize=8,
                         label=signal_type.replace("_"," "))
             else:
                 axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-                        marker=marker, markersize=12)
+                        marker=marker, markersize=8)
             s_idx += 1
         c_idx += 1
 
