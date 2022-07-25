@@ -289,6 +289,109 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
     return fig
 
 
+def plot_skyplot_from_status(status, save=True, prefix=""):
+    """Skyplot of data
+
+    Parameters
+    ----------
+    status :
+    save : bool
+        Save figure if true, otherwise returns figure object. Defaults
+        to saving the figure in the Results folder.
+    prefix : string
+        File prefix to add to filename.
+
+    Returns
+    -------
+    fig : matplotlib.pyplot.figure
+        Figure object of skyplot, returns None if save set to True.
+
+    """
+
+    if not isinstance(prefix, str):
+        raise TypeError("Prefix must be a string.")
+
+    skyplot_data = {}
+
+    for m_idx, row in status.iterrows():
+
+        if row["ConstellationType"] not in skyplot_data:
+            # if "5" in signal_types[m_idx]:
+            #     continue
+            skyplot_data[row["ConstellationType"]] = {}
+
+        sv_az = np.radians(row["AzimuthDegrees"])
+        sv_el = row["ElevationDegrees"]
+
+        if row["Svid"] not in skyplot_data[row["ConstellationType"]]:
+            skyplot_data[row["ConstellationType"]][row["Svid"]] = [[sv_az],[sv_el]]
+        else:
+            skyplot_data[row["ConstellationType"]][row["Svid"]][0].append(sv_az)
+            skyplot_data[row["ConstellationType"]][row["Svid"]][1].append(sv_el)
+
+    ####################################################################
+    # BROKEN UP BY CONSTELLATION TYPE
+    ####################################################################
+
+
+    fig = plt.figure(figsize=(5,5))
+    axes = fig.add_subplot(111, projection='polar')
+    c_idx = 0
+    for signal_type, signal_data in skyplot_data.items():
+        s_idx = 0
+        color = "C" + str(c_idx % len(STANFORD_COLORS))
+        cmap = new_cmap(to_rgb(color))
+        marker = MARKERS[c_idx % len(MARKERS)]
+        for _, sv_data in signal_data.items():
+            # only plot ~ 50 points for each sat to decrease time
+            # it takes to plot these line collections
+            step = max(1,int(len(sv_data[0])/50.))
+            points = np.array([sv_data[0][::step],
+                               sv_data[1][::step]]).T
+            points = np.reshape(points,(-1, 1, 2))
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            norm = plt.Normalize(0,len(segments))
+            local_coord = LineCollection(segments, cmap=cmap, norm=norm,
+                                array = range(len(segments)),
+                                linewidths=(4,))
+            axes.add_collection(local_coord)
+            if s_idx == 0:
+                # axes.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
+                axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+                        marker=marker, markersize=8,
+                        label=signal_type)
+            else:
+                axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+                        marker=marker, markersize=8)
+            s_idx += 1
+        c_idx += 1
+
+    axes.set_theta_zero_location('N')
+    axes.set_theta_direction(-1)
+    axes.set_yticks(range(0, 90+10, 30))                   # Define the yticks
+    axes.set_ylim(90,0)
+
+    axes.legend(bbox_to_anchor=(1.05, 1))
+
+    if save: # pragma: no cover
+        root_path = os.path.dirname(
+                    os.path.dirname(
+                    os.path.dirname(
+                    os.path.realpath(__file__))))
+        log_path = os.path.join(root_path,"results",TIMESTAMP)
+        fo.mkdir(log_path)
+        plt_file = os.path.join(log_path,prefix+"_skyplot.png")
+
+        fo.save_figure(fig, plt_file)
+
+        # close previous figure
+        plt.close(fig)
+
+        return None
+
+    return fig
+
+
 def plot_residuals(measurements, save=True, prefix=""):
     """Plot residuals.
 
