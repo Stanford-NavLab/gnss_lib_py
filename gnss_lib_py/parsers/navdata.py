@@ -49,7 +49,7 @@ class NavData(ABC):
         elif numpy_array is not None:
             self.from_numpy_array(numpy_array)
         else:
-            self.build_measurement()
+            self.build_navdata()
 
         self.postprocess()
 
@@ -57,7 +57,7 @@ class NavData(ABC):
         """Postprocess loaded measurements. Optional in subclass
         """
 
-    def build_measurement(self):
+    def build_navdata(self):
         """Build attributes for NavDatas.
 
         """
@@ -80,7 +80,7 @@ class NavData(ABC):
         if not os.path.exists(csv_path):
             raise OSError("file not found")
 
-        self.build_measurement()
+        self.build_navdata()
 
         pandas_df = pd.read_csv(csv_path, header=header)
         self.from_pandas_df(pandas_df)
@@ -101,7 +101,7 @@ class NavData(ABC):
             # class they need to be strings
             pandas_df.rename(str, axis="columns", inplace=True)
 
-        self.build_measurement()
+        self.build_navdata()
 
         for _, col_name in enumerate(pandas_df.columns):
             newvalue = pandas_df[col_name].to_numpy()
@@ -120,7 +120,7 @@ class NavData(ABC):
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
 
-        self.build_measurement()
+        self.build_navdata()
 
         for row_num in range(numpy_array.shape[0]):
             self.__setitem__(str(row_num), numpy_array[row_num,:])
