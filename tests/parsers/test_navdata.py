@@ -38,49 +38,49 @@ def fixture_csv_simple():
     """csv with simple format.
 
     """
-    return fixture_csv_path("measurement_test_simple.csv")
+    return fixture_csv_path("navdata_test_simple.csv")
 
 @pytest.fixture(name="csv_headless")
 def fixture_csv_headless():
     """csv without column names.
 
     """
-    return fixture_csv_path("measurement_test_headless.csv")
+    return fixture_csv_path("navdata_test_headless.csv")
 
 @pytest.fixture(name="csv_missing")
 def fixture_csv_missing():
     """csv with missing entries.
 
     """
-    return fixture_csv_path("measurement_test_missing.csv")
+    return fixture_csv_path("navdata_test_missing.csv")
 
 @pytest.fixture(name="csv_mixed")
 def fixture_csv_mixed():
     """csv with mixed data types.
 
     """
-    return fixture_csv_path("measurement_test_mixed.csv")
+    return fixture_csv_path("navdata_test_mixed.csv")
 
 @pytest.fixture(name="csv_inf")
 def fixture_csv_inf():
     """csv with infinity values in numeric columns.
 
     """
-    return fixture_csv_path("measurement_test_inf.csv")
+    return fixture_csv_path("navdata_test_inf.csv")
 
 @pytest.fixture(name="csv_nan")
 def fixture_csv_nan():
     """csv with NaN values in columns.
 
     """
-    return fixture_csv_path("measurement_test_nan.csv")
+    return fixture_csv_path("navdata_test_nan.csv")
 
 @pytest.fixture(name="csv_int_first")
 def fixture_csv_int_first():
     """csv where first column are integers.
 
     """
-    return fixture_csv_path("measurement_test_int_first.csv")
+    return fixture_csv_path("navdata_test_int_first.csv")
 
 def load_test_dataframe(csv_filepath, header="infer"):
     """Create dataframe test fixture.
@@ -141,7 +141,7 @@ def fixture_df_int_first(csv_int_first):
     return load_test_dataframe(csv_int_first)
 
 @pytest.fixture(name="data")
-def load_test_measurement(df_simple):
+def load_test_navdata(df_simple):
     """Creates a NavData instance from df_simple.
 
     """

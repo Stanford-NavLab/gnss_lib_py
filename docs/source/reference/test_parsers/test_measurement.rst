@@ -1,7 +1,7 @@
 test\_measurement module
 ========================
 
-.. automodule:: test_measurement
+.. automodule:: test_navdata
    :members:
    :undoc-members:
    :show-inheritance:

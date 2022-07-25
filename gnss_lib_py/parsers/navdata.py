@@ -14,7 +14,7 @@ import pandas as pd
 
 
 class NavData(ABC):
-    """gnss_lib_py specific class for handling measurements.
+    """gnss_lib_py specific class for handling data.
     Uses numpy for speed combined with pandas like intuitive indexing
 
     Attributes
@@ -22,7 +22,7 @@ class NavData(ABC):
     arr_dtype : numpy.dtype
         Type of values stored in data array
     array : np.ndarray
-        Array containing measurements, dimension M x N
+        Array containing data, dimension M x N
     map : Dict
         Map of the form {pandas column name : array row number }
     str_map : Dict
@@ -54,7 +54,7 @@ class NavData(ABC):
         self.postprocess()
 
     def postprocess(self):
-        """Postprocess loaded measurements. Optional in subclass
+        """Postprocess loaded data. Optional in subclass
         """
 
     def build_navdata(self):
@@ -90,7 +90,7 @@ class NavData(ABC):
 
         Parameters
         ----------
-        pandas_df : pd.DataFrame of measurements
+        pandas_df : pd.DataFrame of data
         """
 
         if not isinstance(pandas_df, pd.DataFrame):
@@ -131,7 +131,7 @@ class NavData(ABC):
         Returns
         -------
         df : pd.DataFrame
-            DataFrame with measurements, including strings as strings
+            DataFrame with data, including strings as strings
         """
         df_list = []
         for key, value in self.str_map.items():
@@ -164,7 +164,7 @@ class NavData(ABC):
         return values_str
 
     def save_csv(self, output_path):
-        """Save measurements as csv
+        """Save data as csv
 
         Parameters
         ----------
@@ -259,7 +259,7 @@ class NavData(ABC):
         Returns
         -------
         arr_slice : np.ndarray
-            Array of measurements containing row names and time indexed
+            Array of data containing row names and time indexed
             columns
         """
         rows, cols = self._parse_key_idx(key_idx)
@@ -394,11 +394,11 @@ class NavData(ABC):
         Parameters
         ----------
         csv_path : string
-            Path to csv file containing measurements to add
+            Path to csv file containing data to add
         pandas_df : pd.DataFrame
-            DataFrame containing measurements to add
+            DataFrame containing data to add
         numpy_array : np.ndarray
-            Array containing only numeric measurements to add
+            Array containing only numeric data to add
         """
         old_len = len(self)
         new_data_cols = slice(old_len, None)
@@ -433,7 +433,7 @@ class NavData(ABC):
         Returns
         -------
         length : int
-            Number of time steps in measurement
+            Number of time steps in NavData
         """
         length = np.shape(self.array)[1]
         return length
@@ -457,7 +457,7 @@ class NavData(ABC):
         Returns
         -------
         rows : list
-            List of row names in measurements
+            List of row names in NavData
         """
         rows = list(self.map.keys())
         return rows
@@ -535,10 +535,10 @@ class NavData(ABC):
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.navdata.NavData
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
             Copy of original NavData with desired rows and columns
         """
-        new_measurement = NavData()
+        new_navdata = NavData()
         inv_map = self.inv_map
         if rows is None:
             # row_indices = slice(None, None).indices(len(self.rows))
@@ -553,8 +553,8 @@ class NavData(ABC):
                 key = inv_map[row_idx]
             else:
                 key = row_idx
-            new_measurement[key] = new_row
-        return new_measurement
+            new_navdata[key] = new_row
+        return new_navdata
 
     def remove(self, rows=None, cols=None):
         """Reset NavData to remove specified rows and columns
@@ -568,7 +568,7 @@ class NavData(ABC):
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.navdata.NavData
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
             NavData instance after removing specified rows and columns
 
         Notes
@@ -580,7 +580,7 @@ class NavData(ABC):
             cols = []
         if rows is None:
             rows = []
-        new_measurement = NavData()
+        new_navdata = NavData()
         inv_map = self.inv_map
         if len(rows) != 0 and isinstance(rows[0], int):
             rows = [inv_map[row_idx] for row_idx in rows]
@@ -589,5 +589,5 @@ class NavData(ABC):
         for row_idx in keep_rows:
             new_row = self[row_idx, keep_cols]
             key = row_idx
-            new_measurement[key] = new_row
-        return new_measurement
+            new_navdata[key] = new_row
+        return new_navdata

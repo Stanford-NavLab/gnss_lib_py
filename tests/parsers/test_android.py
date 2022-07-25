@@ -267,7 +267,7 @@ def test_fix_raw(android_raw_path):
     isinstance(test_fix, NavData)
 
 
-def test_measurement_type(derived):
+def test_navdata_type(derived):
     """Test that all subclasses inherit from NavData
 
     Parameters

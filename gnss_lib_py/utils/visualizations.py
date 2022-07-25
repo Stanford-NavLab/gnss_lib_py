@@ -69,12 +69,12 @@ def new_cmap(rgb_color):
 
     return cmap
 
-def plot_metric(measurements, metric, save=True, prefix=""):
+def plot_metric(navdata, metric, save=True, prefix=""):
     """Plot specific metric from a row of the NavData class.
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class
     metric : string
         Row name for metric to be plotted
@@ -92,7 +92,7 @@ def plot_metric(measurements, metric, save=True, prefix=""):
 
     """
 
-    if len(measurements.str_map[metric]):
+    if len(navdata.str_map[metric]):
         raise KeyError(metric + " is a non-numeric row, unable to plot.")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
@@ -108,20 +108,20 @@ def plot_metric(measurements, metric, save=True, prefix=""):
         figs = []
 
     data = {}
-    signal_types = measurements.get_strings("signal_type")
-    sv_ids = measurements.get_strings("sv_id")
+    signal_types = navdata.get_strings("signal_type")
+    sv_ids = navdata.get_strings("sv_id")
 
-    time0 = measurements["millisSinceGpsEpoch",0]/1000.
+    time0 = navdata["millisSinceGpsEpoch",0]/1000.
 
-    for m_idx in range(measurements.shape[1]):
+    for m_idx in range(navdata.shape[1]):
         if signal_types[m_idx] not in data:
             data[signal_types[m_idx]] = {}
         if sv_ids[m_idx] not in data[signal_types[m_idx]]:
-            data[signal_types[m_idx]][sv_ids[m_idx]] = [[measurements["millisSinceGpsEpoch",m_idx]/1000. - time0],
-                                                  [measurements[metric,m_idx]]]
+            data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["millisSinceGpsEpoch",m_idx]/1000. - time0],
+                                                  [navdata[metric,m_idx]]]
         else:
-            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(measurements["millisSinceGpsEpoch",m_idx]/1000. - time0)
-            data[signal_types[m_idx]][sv_ids[m_idx]][1].append(measurements[metric,m_idx])
+            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata[metric,m_idx])
 
     ####################################################################
     # BROKEN UP BY CONSTELLATION TYPE
@@ -159,12 +159,12 @@ def plot_metric(measurements, metric, save=True, prefix=""):
         return None
     return figs
 
-def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
+def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
     """Skyplot of data
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class
     state_estimate : gnss_lib_py.parsers.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
@@ -188,15 +188,15 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
         raise TypeError("Prefix must be a string.")
 
     skyplot_data = {}
-    signal_types = list(measurements.get_strings("signal_type"))
-    sv_ids = measurements.get_strings("sv_id")
+    signal_types = list(navdata.get_strings("signal_type"))
+    sv_ids = navdata.get_strings("sv_id")
 
-    pos_sv_m = np.hstack((measurements["x_sv_m",:].reshape(-1,1),
-                          measurements["y_sv_m",:].reshape(-1,1),
-                          measurements["z_sv_m",:].reshape(-1,1)))
+    pos_sv_m = np.hstack((navdata["x_sv_m",:].reshape(-1,1),
+                          navdata["y_sv_m",:].reshape(-1,1),
+                          navdata["z_sv_m",:].reshape(-1,1)))
 
-    for t_idx, timestep in enumerate(np.unique(measurements["millisSinceGpsEpoch",:])):
-        idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
+    for t_idx, timestep in enumerate(np.unique(navdata["millisSinceGpsEpoch",:])):
+        idxs = np.where(navdata["millisSinceGpsEpoch",:] == timestep)[1]
         for m_idx in idxs:
 
             if signal_types[m_idx] not in skyplot_data:
@@ -291,12 +291,12 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
     return fig
 
 
-def plot_residuals(measurements, save=True, prefix=""):
+def plot_residuals(navdata, save=True, prefix=""):
     """Plot residuals.
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
@@ -312,7 +312,7 @@ def plot_residuals(measurements, save=True, prefix=""):
 
     """
 
-    if "residuals" not in measurements.rows:
+    if "residuals" not in navdata.rows:
         raise KeyError("residuals missing, run solve_residuals().")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
@@ -328,20 +328,20 @@ def plot_residuals(measurements, save=True, prefix=""):
         figs = []
 
     residual_data = {}
-    signal_types = measurements.get_strings("signal_type")
-    sv_ids = measurements.get_strings("sv_id")
+    signal_types = navdata.get_strings("signal_type")
+    sv_ids = navdata.get_strings("sv_id")
 
-    time0 = measurements["millisSinceGpsEpoch",0]/1000.
+    time0 = navdata["millisSinceGpsEpoch",0]/1000.
 
-    for m_idx in range(measurements.shape[1]):
+    for m_idx in range(navdata.shape[1]):
         if signal_types[m_idx] not in residual_data:
             residual_data[signal_types[m_idx]] = {}
         if sv_ids[m_idx] not in residual_data[signal_types[m_idx]]:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[measurements["millisSinceGpsEpoch",m_idx]/1000. - time0],
-                        [measurements["residuals",m_idx]]]
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["millisSinceGpsEpoch",m_idx]/1000. - time0],
+                        [navdata["residuals",m_idx]]]
         else:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(measurements["millisSinceGpsEpoch",m_idx]/1000. - time0)
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(measurements["residuals",m_idx])
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata["residuals",m_idx])
 
     ####################################################################
     # BROKEN UP BY CONSTELLATION TYPE
