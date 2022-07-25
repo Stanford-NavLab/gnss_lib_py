@@ -16,7 +16,7 @@ import pandas as pd
 from gnss_lib_py.utils.coordinates import geodetic2ecef
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils import measures
-from gnss_lib_py.utils.ephemeris import datetime2tow
+from gnss_lib_py.utils.ephemeris import datetime_to_tow
 from gnss_lib_py.utils.ephemeris import EphemerisManager
 
 
@@ -67,7 +67,7 @@ def simulate_test_measures(delta_time=0):
 
     """
     gpsweek = 2105
-    _, gpstime = datetime2tow(timestamp())
+    _, gpstime = datetime_to_tow(timestamp())
 
     #NOTE: Calling measures to generate measurements to test measures?
     measurement, sv_posvel = measures.simulate_measures(
@@ -313,7 +313,7 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
     meas_new , _  = get_meas_dt
 
     gpsweek = 2105
-    _, gpstime = datetime2tow(timestamp())
+    _, gpstime = datetime_to_tow(timestamp())
 
     rx_ecef = np.reshape(set_rx_ecef(), [-1, 3])
 

@@ -321,7 +321,7 @@ class EphemerisManager():
 
     @staticmethod
     def calculate_toc(timestamp):
-        """I think this is equivalent of datetime2tow()
+        """I think this is equivalent of datetime_to_tow()
         #TODO: See if this function is needed or can be deleted
         """
         pass

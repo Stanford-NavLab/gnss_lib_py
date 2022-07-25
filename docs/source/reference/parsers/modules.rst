@@ -5,7 +5,7 @@ parsers
    :maxdepth: 4
 
    android
-   measurement
+   navdata
    nmea
    rinex
    sp3
