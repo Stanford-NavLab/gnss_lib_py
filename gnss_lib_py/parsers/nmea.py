@@ -9,7 +9,7 @@ import pynmea2
 import numpy as np
 import calendar
 
-from gnss_lib_py.core import coordinates as coord
+from gnss_lib_py.utils import coordinates as coord
 
 class NMEA():
     """Class used to parse through NMEA files

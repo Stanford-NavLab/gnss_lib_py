@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 from numpy.random import default_rng
 
-from gnss_lib_py.core.filters import BaseKalmanFilter
-from gnss_lib_py.core.filters import BaseUnscentedKalmanFilter
+from gnss_lib_py.utils.filters import BaseKalmanFilter
+from gnss_lib_py.utils.filters import BaseUnscentedKalmanFilter
 
 
 class MSD_EKF(BaseKalmanFilter):

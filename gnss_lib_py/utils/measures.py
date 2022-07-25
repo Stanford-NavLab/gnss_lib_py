@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 
-import gnss_lib_py.core.constants as consts
-from gnss_lib_py.core.coordinates import ecef2geodetic
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.coordinates import ecef2geodetic
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
 

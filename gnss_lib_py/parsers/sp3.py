@@ -11,8 +11,8 @@ from collections import defaultdict
 import numpy as np
 from scipy import interpolate
 
-import gnss_lib_py.core.constants as consts
-from gnss_lib_py.core.ephemeris import datetime2tow
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.ephemeris import datetime2tow
 
 class PreciseNav(object):
     """Class that contain satellite data.

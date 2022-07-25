@@ -7,7 +7,7 @@ __date__ = "25 Januray 2020"
 
 import numpy as np
 
-from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
+from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
 
 class GNSSEKF(BaseExtendedKalmanFilter):
     """GNSS-only EKF implementation.

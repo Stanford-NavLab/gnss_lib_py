@@ -14,7 +14,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgb, ListedColormap
 
 import gnss_lib_py.utils.file_operations as fo
-from gnss_lib_py.core.coordinates import LocalCoord
+from gnss_lib_py.utils.coordinates import LocalCoord
 
 STANFORD_COLORS = [
                    "#8C1515",   # cardinal red

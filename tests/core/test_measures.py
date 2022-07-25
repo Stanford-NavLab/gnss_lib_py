@@ -13,11 +13,11 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.core.coordinates import geodetic2ecef
-import gnss_lib_py.core.constants as consts
-from gnss_lib_py.core import measures
-from gnss_lib_py.core.ephemeris import datetime2tow
-from gnss_lib_py.core.ephemeris import EphemerisManager
+from gnss_lib_py.utils.coordinates import geodetic2ecef
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils import measures
+from gnss_lib_py.utils.ephemeris import datetime2tow
+from gnss_lib_py.utils.ephemeris import EphemerisManager
 
 
 
