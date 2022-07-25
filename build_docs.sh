@@ -4,16 +4,12 @@ cd docs
 echo "Rebuilding References"
 rm -rv ./source/reference/algorithms/*
 poetry run sphinx-apidoc -f -M -o ./source/reference/algorithms/ ./../gnss_lib_py/algorithms/
-rm -rv ./source/reference/core/*
-poetry run sphinx-apidoc -f -M -o ./source/reference/core/ ./../gnss_lib_py/core/
 rm -rv ./source/reference/parsers/*
 poetry run sphinx-apidoc -f -M -o ./source/reference/parsers/ ./../gnss_lib_py/parsers/
 rm -rv ./source/reference/utils/*
 poetry run sphinx-apidoc -f -M -o ./source/reference/utils/ ./../gnss_lib_py/utils/
 rm -rv ./source/reference/test_algorithms/*
 poetry run sphinx-apidoc -f -M -o ./source/reference/test_algorithms/ ./../tests/algorithms/
-rm -rv ./source/reference/test_core/*
-poetry run sphinx-apidoc -f -M -o ./source/reference/test_core/ ./../tests/core/
 rm -rv ./source/reference/test_parsers/*
 poetry run sphinx-apidoc -f -M -o ./source/reference/test_parsers/ ./../tests/parsers/
 rm -rv ./source/reference/test_utils/*

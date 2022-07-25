@@ -126,7 +126,6 @@ documentation below.
      :maxdepth: 2
 
      algorithms/modules
-     core/modules
      parsers/modules
      utils/modules
 
@@ -139,7 +138,6 @@ documentation below.
      :maxdepth: 2
 
      test_algorithms/modules
-     test_core/modules
      test_parsers/modules
      test_utils/modules
 
