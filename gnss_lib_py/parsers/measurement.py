@@ -464,7 +464,7 @@ class Measurement(object):
         rows, _ = self._parse_key_idx(key_idx)
         inv_map = self.inv_map
         row_list, row_str = self._get_str_rows(rows)
-        if len(row_list)>1: #pragma : no cover
+        if len(row_list)>1:
             raise NotImplementedError("where does not currently support multiple rows")
         row = row_list[0]
         row_str = row_str[0]
@@ -495,7 +495,7 @@ class Measurement(object):
                 assert len(value)==2, "Please give both lower and upper bound for between"
                 new_cols = np.argwhere(np.logical_and(self.array[row, :]>=value[0],
                                         self.array[row, :]<= value[1]))
-            else: #pragma : no cover
+            else:
                 raise ValueError("Condition not implemented")
         new_cols = np.squeeze(new_cols)
         return new_cols
@@ -528,17 +528,30 @@ class Measurement(object):
             yield delta_t, new_measurement
 
     def __iter__(self):
+        """Initialize iterator over Measurement (iterates over all columns)
+
+        Returns
+        -------
+        self: gnss_lib_py.parsers.Measurement
+            Instantiation of Measurement class with iteration initialized
+        """
         self.curr_col = 0
         self.num_cols = np.shape(self.array)[1]
         return self
 
     def __next__(self):
-        if self.curr_col < self.num_cols:
-            x_curr = self[:, self.curr_col]
-            self.curr_col += 1
-            return x_curr
-        else:
+        """Method to get next item when iterating over Measurement class
+
+        Returns
+        -------
+        x_curr : gnss_lib_py.parsers.Measurement
+            Current column (based on iteration count)
+        """
+        if self.curr_col >= self.num_cols:
             raise StopIteration
+        x_curr = self.copy(rows=None, cols=self.curr_col)
+        self.curr_col += 1
+        return x_curr
 
     def __len__(self):
         """Return length of class

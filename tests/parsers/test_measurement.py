@@ -853,11 +853,31 @@ def test_where_numbers(csv_simple):
     values = [98, 10, 250, 67, 45, [30, 80]]
     pd_rows = [[4], [0,1], [5], [4, 5], [0, 1], [2, 3]]
     for idx, condition in enumerate(conditions):
-        print('Working on test number ', idx)
         data_small = data.where("integers", values[idx], condition=condition)
         compare_df = data.pandas_df()
         compare_df = compare_df.iloc[pd_rows[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
+
+
+def test_where_errors(csv_simple):
+    """Testing error cases for Measurement.where
+
+    Parameters
+    ----------
+    csv_simple : str
+        Path to csv file used to create Measurement
+    """
+    data = Measurement(csv_path=csv_simple)
+    # Test where with multiple rows
+    with pytest.raises(NotImplementedError):
+        _ = data.where(["integers", "floats"], 10, condition="leq")
+    # Test non-equality condition with strings
+    with pytest.raises(ValueError):
+        _ = data.where("names", "ab", condition="leq")
+    with pytest.raises(ValueError):
+        _ = data.where("integers", 10, condition="eq_sqrt")
+
+    # Test condition that is not defined
 
 
 def test_time_looping(csv_simple):
@@ -876,17 +896,35 @@ def test_time_looping(csv_simple):
                             1.499999*np.ones([1,1])))
     compare_df = data.pandas_df()
     count = 0
-    for dt, measure in data.loop_time('times'):
+    for delta_t, measure in data.loop_time('times'):
         if count == 0:
-            np.testing.assert_almost_equal(dt, 0)
+            np.testing.assert_almost_equal(delta_t, 0)
             row_num = [0,1]
         elif count == 1:
-            np.testing.assert_almost_equal(dt, 1)
+            np.testing.assert_almost_equal(delta_t, 1)
             row_num = [2,3]
         elif count == 2:
-            np.testing.assert_almost_equal(dt, 0.5)
+            np.testing.assert_almost_equal(delta_t, 0.5)
             row_num = [4,5]
         small_df = measure.pandas_df().reset_index(drop=True)
         expected_df = compare_df.iloc[row_num, :].reset_index(drop=True)
         pd.testing.assert_frame_equal(small_df, expected_df, check_index_type=False)
         count += 1
+
+
+def test_col_looping(csv_simple):
+    """Testing implementation to loop over columns in Measurement
+
+    Parameters
+    ----------
+    csv_simple : str
+        path to csv file used to create Measurement
+    """
+    data = Measurement(csv_path=csv_simple)
+    compare_df = data.pandas_df()
+    for idx, col in enumerate(data):
+        col_df = col.pandas_df().reset_index(drop=True)
+        expected_df = compare_df.iloc[[idx], :].reset_index(drop=True)
+        print(col_df)
+        print(expected_df)
+        pd.testing.assert_frame_equal(col_df, expected_df, check_index_type=False)
