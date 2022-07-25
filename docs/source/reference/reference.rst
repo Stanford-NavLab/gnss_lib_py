@@ -11,12 +11,10 @@ Please choose the most appropriate location based on the descriptions
 below for new features or functionality.
 
     * :code:`algorithms` : This directory contains localization algorithms.
-    * :code:`core` : This directory contains functionality that is commonly used
-      to deal with GNSS measurements.
     * :code:`parsers` : This directory contains functions to read and process various
       GNSS data/file types.
-    * :code:`utils` : This directory contains visualization functions and other
-      code that is non-critical to the most common GNSS use cases.
+    * :code:`utils` : This directory contains functionality that is
+      commonly used to deal with GNSS measurements.
 
 Details about Measurement Class
 -------------------------------

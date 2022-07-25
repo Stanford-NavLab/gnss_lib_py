@@ -45,7 +45,7 @@ Standard GitHub Workflow
 
    .. code-block:: bash
 
-      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
       poetry run coverage report
 
    See the :ref:`Coverage Report<coverage>` section for more details.
@@ -92,7 +92,7 @@ NAVLab GitHub Workflow
 
    .. code-block:: bash
 
-      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
       poetry run coverage report
 
    See the :ref:`Coverage Report<coverage>` section for more details.
@@ -154,7 +154,7 @@ Pull Request Review Workflow
 
    .. code-block:: bash
 
-      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
       poetry run coverage report
 
    See the :ref:`Coverage Report<coverage>` section for more details.
