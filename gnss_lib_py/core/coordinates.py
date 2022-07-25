@@ -67,7 +67,7 @@ def geodetic2ecef(geodetic, radians=False):
         lat = ratio*geodetic[:,0]
         lon = ratio*geodetic[:,1]
         alt = geodetic[:,2]
-    else:
+    else:  # pragma: no cover
         raise ValueError('geodetic is incorrect shape ', geodetic.shape,
                         ' should be (N,3) or (3,N)')
     xi = np.sqrt(1 - consts.E1SQ * np.sin(lat)**2)
@@ -107,7 +107,7 @@ def ecef2geodetic(ecef, radians=False):
         x_ecef, y_ecef, z_ecef = ecef[0, :], ecef[1, :], ecef[2, :]
     elif input_shape[1]==3:
         x_ecef, y_ecef, z_ecef = ecef[:, 0], ecef[:, 1], ecef[:, 2]
-    else:
+    else:  # pragma: no cover
         raise ValueError('Input ECEF vector has incorrect shape ', ecef.shape,
                         ' should be (N,3) or (3,N)')
     ratio = 1.0 if radians else (180.0 / np.pi)
@@ -163,7 +163,7 @@ class LocalCoord(object):
         elif init_geodetic.shape[1]==3:
             lat = (np.pi/180.)*init_geodetic[0, 0]
             lon = (np.pi/180.)*init_geodetic[0, 1]
-        else:
+        else:  # pragma: no cover
             raise ValueError('init_geodetic has incorrect size', len(init_geodetic),
                             ' must be of size 3')
         self.ned2ecef_matrix = np.array([[-np.sin(lat)*np.cos(lon), -np.sin(lon), -np.cos(lat)*np.cos(lon)],
