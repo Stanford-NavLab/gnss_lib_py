@@ -19,7 +19,7 @@ import pandas as pd
 
 import gnss_lib_py.utils.constants as consts
 
-def datetime2tow(t, convert_gps=True):
+def datetime_to_tow(t, convert_gps=True):
     """Convert Python datetime object to GPS Week and time of week.
 
     Parameters

@@ -265,7 +265,7 @@ def test_sv_velocity(get_meas, get_meas_dt):
     get_meas : fixture
         Measurements simulated at the base timestamp
     get_meas_dt : fixture
-        Measurements simated at the base timestamp + T
+        Measurements simulated at the base timestamp + T
 
     """
     _, sv_posvel_prev = get_meas
@@ -305,7 +305,7 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
     get_meas : fixture
         Measurements simulated at the base timestamp
     get_meas_dt : fixture
-        Measurements simated at the base timestamp + T
+        Measurements simulated at the base timestamp + T
 
     """
     #TODO: Alternatively check ranges of corrections/against true values

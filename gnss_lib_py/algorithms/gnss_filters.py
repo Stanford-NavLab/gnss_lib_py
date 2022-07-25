@@ -22,7 +22,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
     motion_type : string
         Type of motion (stationary or constant velocity)
     measure_type : string
-        Measurement types (pseudoranges)
+        NavData types (pseudoranges)
     """
     def __init__(self, init_dict, params_dict):
         super().__init__(init_dict, params_dict)

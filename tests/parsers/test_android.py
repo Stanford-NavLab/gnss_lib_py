@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 from gnss_lib_py.parsers.android import AndroidDerived, AndroidRawFixes, AndroidRawImu
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import make_csv
 
 
@@ -252,7 +252,7 @@ def test_imu_raw(android_raw_path):
         Path to Android Raw measurements text log file
     """
     test_imu = AndroidRawImu(android_raw_path)
-    isinstance(test_imu, Measurement)
+    isinstance(test_imu, NavData)
 
 
 def test_fix_raw(android_raw_path):
@@ -264,18 +264,18 @@ def test_fix_raw(android_raw_path):
         Path to Android Raw measurements text log file
     """
     test_fix = AndroidRawFixes(android_raw_path)
-    isinstance(test_fix, Measurement)
+    isinstance(test_fix, NavData)
 
 
 def test_measurement_type(derived):
-    """Test that all subclasses inherit from Measurement
+    """Test that all subclasses inherit from NavData
 
     Parameters
     ----------
     derived : pytest.fixture
         Instance of AndroidDerived for testing
     """
-    isinstance(derived, Measurement)
+    isinstance(derived, NavData)
     isinstance(derived, AndroidDerived)
 
 

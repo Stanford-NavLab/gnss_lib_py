@@ -12,7 +12,7 @@ import numpy as np
 
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.residuals import solve_residuals
 
 @pytest.fixture(name="root_path")
@@ -93,8 +93,8 @@ def test_residuals(derived):
 
     solve_residuals(derived, state_estimate)
 
-    # result should still be a Measurement Class instance
-    assert isinstance(derived,type(Measurement()))
+    # result should still be a NavData Class instance
+    assert isinstance(derived,type(NavData()))
 
     # derived should have one more row but same number of cols
     assert len(derived.rows) == len(derived_original.rows) + 1

@@ -13,7 +13,7 @@ import warnings
 
 import numpy as np
 
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 
 def solve_wls(measurements, weight_type = None,
               only_bias = False, tol = 1e-7, max_count = 20):
@@ -28,8 +28,8 @@ def solve_wls(measurements, weight_type = None,
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.measurement.Measurement
-        Instance of the Measurement class
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class
     weight_type : string
         Must either be None or the name of a row in measurements
     only_bias : bool
@@ -43,10 +43,10 @@ def solve_wls(measurements, weight_type = None,
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.measurement.Measurement
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of
-        the Measurement class with shape (4 x # unique timesteps) and
+        the NavData class with shape (4 x # unique timesteps) and
         the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
 
     """
@@ -75,7 +75,7 @@ def solve_wls(measurements, weight_type = None,
                 weights = measurements[weight_type, idxs].reshape(-1,1)
             else:
                 raise TypeError("WLS weights must be None or row"\
-                                +" in Measurement")
+                                +" in NavData")
         else:
             weights = None
 
@@ -84,7 +84,7 @@ def solve_wls(measurements, weight_type = None,
 
         states[:,t_idx:t_idx+1] = position
 
-    state_estimate = Measurement()
+    state_estimate = NavData()
     state_estimate["x_rx_m"] = states[0,:]
     state_estimate["y_rx_m"] = states[1,:]
     state_estimate["z_rx_m"] = states[2,:]

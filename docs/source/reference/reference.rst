@@ -16,14 +16,14 @@ below for new features or functionality.
     * :code:`utils` : This directory contains functionality that is
       commonly used to deal with GNSS measurements.
 
-Details about Measurement Class
+Details about NavData Class
 -------------------------------
-Reasons that our Measurement Class is awesome
+Reasons that our NavData Class is awesome
 
     * if initializing with np.ndarrays, rows are each data type
     * column names need to be strings
     * if initializing with a csv file without headers, use
-      :code:`Measurement(csv_path = "path", header = None)`
+      :code:`NavData(csv_path = "path", header = None)`
 
 Standard Naming Conventions
 ---------------------------

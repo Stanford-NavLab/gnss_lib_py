@@ -70,12 +70,12 @@ def new_cmap(rgb_color):
     return cmap
 
 def plot_metric(measurements, metric, save=True, prefix=""):
-    """Plot specific metric from a row of the Measurement class.
+    """Plot specific metric from a row of the NavData class.
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.measurement.Measurement
-        Instance of the Measurement class
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class
     metric : string
         Row name for metric to be plotted
     save : bool
@@ -164,12 +164,12 @@ def plot_skyplot(measurements, state_estimate, save=True, prefix=""):
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.measurement.Measurement
-        Instance of the Measurement class
-    state_estimate : gnss_lib_py.parsers.measurement.Measurement
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of
-        the Measurement class with shape (4 x # unique timesteps) and
+        the NavData class with shape (4 x # unique timesteps) and
         the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
@@ -296,8 +296,8 @@ def plot_residuals(measurements, save=True, prefix=""):
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.measurement.Measurement
-        Instance of the Measurement class
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.

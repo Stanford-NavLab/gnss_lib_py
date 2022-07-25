@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 
-class Measurement(ABC):
+class NavData(ABC):
     """gnss_lib_py specific class for handling measurements.
     Uses numpy for speed combined with pandas like intuitive indexing
 
@@ -58,13 +58,13 @@ class Measurement(ABC):
         """
 
     def build_measurement(self):
-        """Build attributes for Measurements.
+        """Build attributes for NavDatas.
 
         """
         self.array = np.zeros((0,0), dtype=self.arr_dtype)
 
     def from_csv_path(self, csv_path, header="infer"):
-        """Build attributes of Measurement using csv file.
+        """Build attributes of NavData using csv file.
 
         Parameters
         ----------
@@ -86,7 +86,7 @@ class Measurement(ABC):
         self.from_pandas_df(pandas_df)
 
     def from_pandas_df(self, pandas_df):
-        """Build attributes of Measurement using pd.DataFrame.
+        """Build attributes of NavData using pd.DataFrame.
 
         Parameters
         ----------
@@ -97,7 +97,7 @@ class Measurement(ABC):
             raise TypeError("pandas_df must be pd.DataFrame")
 
         if pandas_df.columns.dtype != object:
-            # default headers are Int64 type, but for the Measurement
+            # default headers are Int64 type, but for the NavData
             # class they need to be strings
             pandas_df.rename(str, axis="columns", inplace=True)
 
@@ -108,7 +108,7 @@ class Measurement(ABC):
             self.__setitem__(col_name, newvalue)
 
     def from_numpy_array(self, numpy_array):
-        """Build attributes of Measurement using np.ndarray.
+        """Build attributes of NavData using np.ndarray.
 
         Parameters
         ----------
@@ -504,7 +504,7 @@ class Measurement(ABC):
         array[np.where(array.astype(str)==nan_str)] = ""
 
     def rename(self, mapper):
-        """Rename rows of Measurement class.
+        """Rename rows of NavData class.
 
         Column names must be strings.
 
@@ -518,13 +518,13 @@ class Measurement(ABC):
             if not isinstance(value, str):
                 raise TypeError("Column names must be strings")
             if key not in self.map.keys():
-                raise KeyError("'" + str(key) + "' key doesn't exist in Measurement class")
+                raise KeyError("'" + str(key) + "' key doesn't exist in NavData class")
 
             self.map[value] = self.map.pop(key)
             self.str_map[value] = self.str_map.pop(key)
 
     def copy(self, rows=None, cols=None):
-        """Return copy of Measurement keeping specified rows and columns
+        """Return copy of NavData keeping specified rows and columns
 
         Parameters
         ----------
@@ -535,10 +535,10 @@ class Measurement(ABC):
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Copy of original Measurement with desired rows and columns
+        new_measurement : gnss_lib_py.parsers.navdata.NavData
+            Copy of original NavData with desired rows and columns
         """
-        new_measurement = Measurement()
+        new_measurement = NavData()
         inv_map = self.inv_map
         if rows is None:
             # row_indices = slice(None, None).indices(len(self.rows))
@@ -557,30 +557,30 @@ class Measurement(ABC):
         return new_measurement
 
     def remove(self, rows=None, cols=None):
-        """Reset Measurement to remove specified rows and columns
+        """Reset NavData to remove specified rows and columns
 
         Parameters
         ----------
         rows : None/list/np.ndarray
-            Rows to remove from Measurement
+            Rows to remove from NavData
         cols : None/list/np.ndarray
-            Columns to remove from Measurement
+            Columns to remove from NavData
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Measurement instance after removing specified rows and columns
+        new_measurement : gnss_lib_py.parsers.navdata.NavData
+            NavData instance after removing specified rows and columns
 
         Notes
         -----
-        This method returns the Measurement with removed rows and columns,
+        This method returns the NavData with removed rows and columns,
         but does not reset the current instance in place.
         """
         if cols is None:
             cols = []
         if rows is None:
             rows = []
-        new_measurement = Measurement()
+        new_measurement = NavData()
         inv_map = self.inv_map
         if len(rows) != 0 and isinstance(rows[0], int):
             rows = [inv_map[row_idx] for row_idx in rows]
