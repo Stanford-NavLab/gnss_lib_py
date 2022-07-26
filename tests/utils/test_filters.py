@@ -9,11 +9,11 @@ import numpy as np
 import pytest
 from numpy.random import default_rng
 
-from gnss_lib_py.core.filters import BaseKalmanFilter
-from gnss_lib_py.core.filters import BaseUnscentedKalmanFilter
+from gnss_lib_py.utils.filters import BaseKalmanFilter
+from gnss_lib_py.utils.filters import BaseUnscentedKalmanFilter
 
 
-class MSD_EKF(BaseKalmanFilter):
+class MsdEkf(BaseKalmanFilter):
     """Mass spring damper system for testing EKF implementation
 
     Attributes
@@ -26,7 +26,7 @@ class MSD_EKF(BaseKalmanFilter):
         Damping coeeficient of system
     """
 
-    # TODO: Define the state space, measurment space etc. here
+    # TODO: Define the state space, measurement space etc. here
     def __init__(self, init_dict, params_dict):
         self.k = params_dict['k']
         self.m = params_dict['m']
@@ -96,7 +96,7 @@ class MSD_UKF(BaseUnscentedKalmanFilter):
         Damping coefficient of system
     """
 
-    # TODO: Define the state space, measurment space etc. here
+    # TODO: Define the state space, measurement space etc. here
     def __init__(self, init_dict, params_dict):
         self.k = params_dict['k']
         self.m = params_dict['m']
@@ -265,7 +265,7 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
     q : float
         Process noise covariance values on diagonal term
     r : float
-        Measurement noise covariance values on diagonal term
+        NavData noise covariance values on diagonal term
     filter_type : string
         Type of filter to test, currently ekf
 
@@ -281,7 +281,7 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
     if filter_type == 'ekf':
         init_dict['Q'] = q * np.eye(init_dict['x_dim'])
         init_dict['R'] = r * np.eye(1)
-        msd_filter = MSD_EKF(init_dict, params_dict)
+        msd_filter = MsdEkf(init_dict, params_dict)
     elif filter_type == 'ukf':
         init_dict['Q'] = q * np.eye(init_dict['x_dim'])
         init_dict['R'] = r * np.eye(1)

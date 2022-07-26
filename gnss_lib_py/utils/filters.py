@@ -9,7 +9,37 @@ import numpy as np
 from scipy.linalg import sqrtm
 from abc import ABC, abstractmethod
 
-from gnss_lib_py.utils.matrices import check_col_vect, check_square_mat
+
+def check_col_vect(vect, dim):
+    """Boolean for whether input vector is column shaped or not
+
+    Parameters
+    ----------
+    vect : np.ndarray
+        Input vector
+    dim : int
+        Number of row elements in column vector
+    """
+    check = False
+    if np.shape(vect)[0] == dim and np.shape(vect)[1] == 1:
+        check = True
+    return check
+
+
+def check_square_mat(mat, dim):
+    """Boolean for whether input matrices are square or not
+
+    Parameters
+    ----------
+    vect : np.ndarray
+        Input matrix
+    dim : int
+        Number of elements for row and column = N for N x N
+    """
+    check = False
+    if np.shape(mat)[0] == dim and np.shape(mat)[1] == dim:
+        check = True
+    return check
 
 
 class BaseFilter(ABC):
@@ -131,8 +161,8 @@ class BaseExtendedKalmanFilter(BaseFilter):
 
 
 class BaseKalmanFilter(BaseExtendedKalmanFilter):
-    """General Kalman Filter implementation. Implementated as special 
-    case of BaseExtendedKalmanFilter with linear dynamics and measurement 
+    """General Kalman Filter implementation. Implementated as special
+    case of BaseExtendedKalmanFilter with linear dynamics and measurement
     model
     """
 
@@ -156,7 +186,7 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
         return new_x
 
     def measure_model(self, update_dict=None):
-        """Linear measurment model
+        """Linear measurement model
 
         Parameters
         ----------
@@ -250,7 +280,7 @@ class BaseUnscentedKalmanFilter(BaseFilter):
             Additional parameters needed to implement update step
         """
         assert check_col_vect(z, np.size(z)), "Measurements are not a column vector"
-        N = self.x_dim  
+        N = self.x_dim
         N_sig = self.N_sig
 
         y_t_tm = np.zeros((np.shape(self.R)[0], N_sig))

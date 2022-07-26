@@ -36,7 +36,7 @@ please head over the :ref:`contributing page<contributing>`.
 Reference
 +++++++++
 References on the package contents, explanation of the benefits of our
-custom measurement class, and function-level documentation can all be
+custom NavData class, and function-level documentation can all be
 found on our :ref:`reference section<reference>`.
 
 Troubleshooting

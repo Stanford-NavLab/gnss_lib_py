@@ -7,14 +7,14 @@ __date__ = "25 Januray 2020"
 
 import numpy as np
 
-from gnss_lib_py.core.filters import BaseExtendedKalmanFilter
+from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
 
 class GNSSEKF(BaseExtendedKalmanFilter):
     """GNSS-only EKF implementation.
 
     States: 3D position, 3D velocity and clock bias (in m).
     The state vector is :math:`\\bar{x} = [x, y, z, v_x, v_y, v_y, b]^T`
-    
+
     Attributes
     ----------
     dt : float
@@ -22,7 +22,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
     motion_type : string
         Type of motion (stationary or constant velocity)
     measure_type : string
-        Measurement types (pseudoranges)
+        NavData types (pseudoranges)
     """
     def __init__(self, init_dict, params_dict):
         super().__init__(init_dict, params_dict)
@@ -38,7 +38,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
 
     def dyn_model(self, u, predict_dict=None):
         """Non linear dynamics
-        
+
         Parameters
         ----------
         u : np.ndarray
@@ -59,7 +59,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         """Measurement model
 
         Pseudorange model adds true range and clock bias estimate:
-        :math:`\\rho = \\sqrt{(x-x_{sat})^2 + (y-y_{sat})^2 + (z-z_{sat})^2} + b`.
+        :math:`\\rho = \\sqrt{(x-x_{sv})^2 + (y-y_{sv})^2 + (z-z_{sv})^2} + b`.
         See [1]_ for more details and models.
 
         Parameters
@@ -81,8 +81,8 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         """
         if self.measure_type=='pseudorange':
             sv_pos = update_dict['sv_pos']
-            pseudo = np.sqrt((self.x[0] - sv_pos[0, :])**2 
-                            + (self.x[1] - sv_pos[1, :])**2 
+            pseudo = np.sqrt((self.x[0] - sv_pos[0, :])**2
+                            + (self.x[1] - sv_pos[1, :])**2
                             + (self.x[2] - sv_pos[2, :])**2) \
                             + self.x[6]
             z = np.reshape(pseudo, [-1, 1])

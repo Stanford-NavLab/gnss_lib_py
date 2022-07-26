@@ -4,6 +4,6 @@ algorithms
 .. toctree::
    :maxdepth: 4
 
-   gnss_filters
-   residuals
-   snapshot
+   test_gnss_ekf
+   test_residuals
+   test_snapshot

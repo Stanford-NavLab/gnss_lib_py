@@ -11,27 +11,27 @@ from collections import defaultdict
 import numpy as np
 from scipy import interpolate
 
-import gnss_lib_py.core.constants as consts
-from gnss_lib_py.core.ephemeris import datetime2tow
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.timing import datetime_to_tow
 
 class PreciseNav(object):
     """Class that contain satellite data.
 
     """
-    def __init__(self, date, sat_position):
+    def __init__(self, date, sv_position):
         """Initialize PreciseNav class.
 
         Parameters
         ----------
         date : datetime object
             ???.
-        sat_position : tuple
+        sv_position : tuple
             ??? contains (x, y, z, t).
 
         """
         self.date = date
-        self.tow = datetime2tow(date,False)[1]
-        self.xyzt = np.array(list(map(float, sat_position)))  # [km, km, km, mcs]
+        self.tow = datetime_to_tow(date,False)[1]
+        self.xyzt = np.array(list(map(float, sv_position)))  # [km, km, km, mcs]
 
     def eph2pos(self):
         """Conversion from km to m ???

@@ -1,11 +1,11 @@
 """Constants for GPS navigation and coordinate transforms.
 
-Based on ECE 456 implementation [1]_.
+Based on the UIUC ECE 456 implementation [1]_.
 
 References
 ----------
-.. [1] Makela, Jonathan, ECE 456, Global Nav Satellite Systems, 
-   Fall 2017. University of Illinois Urbana-Champaign. Coding Assignments.
+.. [1] Makela, Jonathan, ECE 456, Global Nav Satellite Systems,
+   Fall 2017. University of Illinois Urbana-Champaign. Coding Assignments.
 
 """
 

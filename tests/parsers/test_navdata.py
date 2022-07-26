@@ -1,4 +1,4 @@
-"""Tests for Measurement class.
+"""Tests for NavData class.
 
 """
 
@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from pytest_lazyfixture import lazy_fixture
 
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 
 def fixture_csv_path(csv_filepath):
     """Location of measurements for unit test
@@ -39,49 +39,49 @@ def fixture_csv_simple():
     """csv with simple format.
 
     """
-    return fixture_csv_path("measurement_test_simple.csv")
+    return fixture_csv_path("navdata_test_simple.csv")
 
 @pytest.fixture(name="csv_headless")
 def fixture_csv_headless():
     """csv without column names.
 
     """
-    return fixture_csv_path("measurement_test_headless.csv")
+    return fixture_csv_path("navdata_test_headless.csv")
 
 @pytest.fixture(name="csv_missing")
 def fixture_csv_missing():
     """csv with missing entries.
 
     """
-    return fixture_csv_path("measurement_test_missing.csv")
+    return fixture_csv_path("navdata_test_missing.csv")
 
 @pytest.fixture(name="csv_mixed")
 def fixture_csv_mixed():
     """csv with mixed data types.
 
     """
-    return fixture_csv_path("measurement_test_mixed.csv")
+    return fixture_csv_path("navdata_test_mixed.csv")
 
 @pytest.fixture(name="csv_inf")
 def fixture_csv_inf():
     """csv with infinity values in numeric columns.
 
     """
-    return fixture_csv_path("measurement_test_inf.csv")
+    return fixture_csv_path("navdata_test_inf.csv")
 
 @pytest.fixture(name="csv_nan")
 def fixture_csv_nan():
     """csv with NaN values in columns.
 
     """
-    return fixture_csv_path("measurement_test_nan.csv")
+    return fixture_csv_path("navdata_test_nan.csv")
 
 @pytest.fixture(name="csv_int_first")
 def fixture_csv_int_first():
     """csv where first column are integers.
 
     """
-    return fixture_csv_path("measurement_test_int_first.csv")
+    return fixture_csv_path("navdata_test_int_first.csv")
 
 def load_test_dataframe(csv_filepath, header="infer"):
     """Create dataframe test fixture.
@@ -142,11 +142,11 @@ def fixture_df_int_first(csv_int_first):
     return load_test_dataframe(csv_int_first)
 
 @pytest.fixture(name="data")
-def load_test_measurement(df_simple):
-    """Creates a Measurement instance from df_simple.
+def load_test_navdata(df_simple):
+    """Creates a NavData instance from df_simple.
 
     """
-    return Measurement(pandas_df=df_simple)
+    return NavData(pandas_df=df_simple)
 
 @pytest.fixture(name="numpy_array")
 def create_numpy_array():
@@ -160,13 +160,13 @@ def create_numpy_array():
     return test_array
 
 def test_init_blank():
-    """Test initializing blank Measurement class
+    """Test initializing blank NavData class
 
     """
 
-    data = Measurement()
+    data = NavData()
 
-    # Measurement should be empty
+    # NavData should be empty
     assert data.shape == (0,0)
 
 @pytest.mark.parametrize('csv_path',
@@ -179,7 +179,7 @@ def test_init_blank():
                          lazy_fixture("csv_int_first"),
                         ])
 def test_init_csv(csv_path):
-    """Test initializing Measurement class with csv
+    """Test initializing NavData class with csv
 
     Parameters
     ----------
@@ -189,7 +189,7 @@ def test_init_csv(csv_path):
     """
 
     # should work when csv is passed
-    data = Measurement(csv_path=csv_path)
+    data = NavData(csv_path=csv_path)
 
     # data should contain full csv
     assert data.shape == (4,6)
@@ -197,27 +197,27 @@ def test_init_csv(csv_path):
 
     # raises exception if not a file path
     with pytest.raises(OSError):
-        data = Measurement(csv_path="")
+        data = NavData(csv_path="")
 
     # raises exception if input int
     with pytest.raises(TypeError):
-        data = Measurement(csv_path=1)
+        data = NavData(csv_path=1)
 
     # raises exception if input float
     with pytest.raises(TypeError):
-        data = Measurement(csv_path=1.2)
+        data = NavData(csv_path=1.2)
 
     # raises exception if input list
     with pytest.raises(TypeError):
-        data = Measurement(csv_path=[])
+        data = NavData(csv_path=[])
 
     # raises exception if input numpy ndarray
     with pytest.raises(TypeError):
-        data = Measurement(csv_path=np.array([0]))
+        data = NavData(csv_path=np.array([0]))
 
     # raises exception if input pandas dataframe
     with pytest.raises(TypeError):
-        data = Measurement(csv_path=pd.DataFrame([0]))
+        data = NavData(csv_path=pd.DataFrame([0]))
 
 @pytest.mark.parametrize('pandas_df',
                         [
@@ -229,7 +229,7 @@ def test_init_csv(csv_path):
                          lazy_fixture("df_int_first"),
                         ])
 def test_init_pd(pandas_df):
-    """Test initializing Measurement class with pandas dataframe
+    """Test initializing NavData class with pandas dataframe
 
     Parameters
     ----------
@@ -239,48 +239,48 @@ def test_init_pd(pandas_df):
     """
 
     # should work if pass in pandas dataframe
-    data = Measurement(pandas_df=pandas_df)
+    data = NavData(pandas_df=pandas_df)
 
     # data should contain full pandas data
     assert data.shape == (4,6)
 
     # raises exception if input int
     with pytest.raises(TypeError):
-        data = Measurement(pandas_df=1)
+        data = NavData(pandas_df=1)
 
     # raises exception if input float
     with pytest.raises(TypeError):
-        data = Measurement(pandas_df=1.2)
+        data = NavData(pandas_df=1.2)
 
     # raises exception if input string
     with pytest.raises(TypeError):
-        data = Measurement(pandas_df="")
+        data = NavData(pandas_df="")
 
     # raises exception if input list
     with pytest.raises(TypeError):
-        data = Measurement(pandas_df=[])
+        data = NavData(pandas_df=[])
 
     # raises exception if input numpy ndarray
     with pytest.raises(TypeError):
-        data = Measurement(pandas_df=np.array([0]))
+        data = NavData(pandas_df=np.array([0]))
 
 def test_init_headless(csv_headless, df_headless):
     """Test that headless csvs and dataframes can be loaded as expected.
 
     """
     # headless should still work with CSVs with header=None
-    data = Measurement(csv_path=csv_headless, header=None)
+    data = NavData(csv_path=csv_headless, header=None)
     assert data.shape == (4,6)
 
-    data = Measurement(pandas_df=df_headless)
+    data = NavData(pandas_df=df_headless)
     assert data.shape == (4,6)
 
     # should fail if you don't add the header=None variable
-    data = Measurement(csv_path=csv_headless)
+    data = NavData(csv_path=csv_headless)
     assert data.shape != (4,6)
 
 def test_init_np(numpy_array):
-    """Test initializing Measurement class with numpy array
+    """Test initializing NavData class with numpy array
 
     Parameters
     ----------
@@ -290,30 +290,30 @@ def test_init_np(numpy_array):
     """
 
     # should work if input numpy ndarray
-    data = Measurement(numpy_array=numpy_array)
+    data = NavData(numpy_array=numpy_array)
 
     # data should contain full data
     assert data.shape == (4,6)
 
     # raises exception if input int
     with pytest.raises(TypeError):
-        data = Measurement(numpy_array=1)
+        data = NavData(numpy_array=1)
 
     # raises exception if input float
     with pytest.raises(TypeError):
-        data = Measurement(numpy_array=1.2)
+        data = NavData(numpy_array=1.2)
 
     # raises exception if input string
     with pytest.raises(TypeError):
-        data = Measurement(numpy_array="")
+        data = NavData(numpy_array="")
 
     # raises exception if input list
     with pytest.raises(TypeError):
-        data = Measurement(numpy_array=[])
+        data = NavData(numpy_array=[])
 
     # raises exception if input pandas dataframe
     with pytest.raises(TypeError):
-        data = Measurement(numpy_array=pd.DataFrame([0]))
+        data = NavData(numpy_array=pd.DataFrame([0]))
 
 @pytest.mark.parametrize('pandas_df',
                         [
@@ -324,11 +324,11 @@ def test_rename(pandas_df):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.Measurement
+    data : gnss_lib_py.parsers.navdata.NavData
         test data
 
     """
-    data = Measurement(pandas_df=pandas_df)
+    data = NavData(pandas_df=pandas_df)
 
     data.rename({"names": "terms"})
     assert "names" not in data.map
@@ -534,7 +534,7 @@ def test_get_item(data, index, exp_value):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.Measurement
+    data : gnss_lib_py.parsers.navdata.NavData
         Data to test getting values from
     index : slice/str/int/tuple
         Index to query data at
@@ -545,14 +545,14 @@ def test_get_item(data, index, exp_value):
 
 
 def test_get_all_numpy(numpy_array):
-    """Test get all method using slices for Measurement
+    """Test get all method using slices for NavData
 
     Parameters
     ----------
     numpy_array : np.ndarray
-        Array to initialize Measurement
+        Array to initialize NavData
     """
-    data = Measurement(numpy_array=numpy_array)
+    data = NavData(numpy_array=numpy_array)
     np.testing.assert_array_almost_equal(data[:], numpy_array)
     np.testing.assert_array_almost_equal(data[:, :], numpy_array)
 
@@ -627,8 +627,8 @@ def test_set_get_item(data, index, new_value, exp_value):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.Measurement
-        Measurement instance for testing
+    data : gnss_lib_py.parsers.navdata.NavData
+        NavData instance for testing
     index : slice/str/int/tuple
         Index to query data at
     new_value: np.ndarray/int
@@ -642,19 +642,19 @@ def test_set_get_item(data, index, new_value, exp_value):
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
                         8])
-def test_wrong_init_set(row_idx):
-    empty_data = Measurement()
+def test_wrong_init_set(data, row_idx):
+    empty_data = NavData()
     with pytest.raises(KeyError):
         empty_data[row_idx] = np.zeros([1, 6])
 
 @pytest.fixture(name='add_array')
 def fixture_add_array():
-    """Array to be added as additional timesteps to Measurement from np.ndarray
+    """Array to be added as additional timesteps to NavData from np.ndarray
 
     Returns
     -------
     add_array : np.ndarray
-        Array that will be added to Measurement
+        Array that will be added to NavData
     """
     add_array = np.hstack((10*np.ones([4,1]), 11*np.ones([4,1])))
     return add_array
@@ -662,12 +662,12 @@ def fixture_add_array():
 
 @pytest.fixture(name='add_df')
 def fixture_add_dataframe():
-    """Pandas DataFrame to be added as additional timesteps to Measurement
+    """Pandas DataFrame to be added as additional timesteps to NavData
 
     Returns
     -------
     add_df : pd.DataFrame
-        Dataframe that will be added to Measurement
+        Dataframe that will be added to NavData
     """
     add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object),
                 'integers': np.asarray([-2., 45.]),
@@ -678,16 +678,16 @@ def fixture_add_dataframe():
 
 
 def test_add_numpy(numpy_array, add_array):
-    """Test addition of a numpy array to Measurement
+    """Test addition of a numpy array to NavData
 
     Parameters
     ----------
     numpy_array : np.ndarray
-        Array to initialize Measurement instance with
+        Array with which NavData instance is initialized
     add_array : np.ndarray
-        Array to add to Measurement
+        Array to add to NavData
     """
-    data = Measurement(numpy_array=numpy_array)
+    data = NavData(numpy_array=numpy_array)
     data.add(numpy_array=add_array)
     new_col_num = np.shape(add_array)[1]
     np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
@@ -713,16 +713,16 @@ def test_add_csv(df_simple, csv_simple):
 
 
 def test_add_pandas_df(df_simple, add_df):
-    """Test addition of a pd.DataFrame to Measurement
+    """Test addition of a pd.DataFrame to NavData
 
     Parameters
     ----------
     df_simple : pd.DataFrame
-        pd.DataFrame to initialize Measurement with
+        pd.DataFrame to initialize NavData with
     add_df : pd.DataFrame
-        pd.DataFrame to add to Measurement
+        pd.DataFrame to add to NavData
     """
-    data = Measurement(pandas_df=df_simple)
+    data = NavData(pandas_df=df_simple)
     data.add(pandas_df=add_df)
     new_df = data.pandas_df()
     add_row_num = add_df.shape[0]
@@ -746,12 +746,12 @@ def test_add_pandas_df(df_simple, add_df):
                         np.asarray([0,1])
                         ])
 def test_copy_measurement(data, df_simple, rows, cols):
-    """Test methods to subsets and copies of Measurement instance
+    """Test methods to subsets and copies of NavData instance
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.measurement.Measurement
-        Instance of Measurement
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
     df_simple : pd.DataFrame
         Dataframe that is sliced to compare copies against
     rows : list/np.ndarray
@@ -789,14 +789,14 @@ def test_remove_measurement(data, df_simple, rows, cols):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.measurement.Measurement
-        Instance of Measurement
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
     df_simple : pd.DataFrame
         Dataframe that is sliced to compare copies against
     rows : list/np.ndarray
-        Rows to remove from Measurement
+        Rows to remove from NavData
     cols : list/np.ndarray
-        Columns to remove from Measurement
+        Columns to remove from NavData
     """
     new_data = data.remove(rows=rows, cols=cols)
     new_df = new_data.pandas_df().reset_index(drop=True)

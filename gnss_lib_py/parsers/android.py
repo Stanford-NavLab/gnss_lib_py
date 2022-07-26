@@ -11,16 +11,16 @@ import csv
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 
 
-class AndroidDerived(Measurement):
+class AndroidDerived(NavData):
     """Class handling derived measurements from Android dataset.
 
-    Inherits from Measurement().
+    Inherits from NavData().
     """
     def __init__(self, input_path):
-        """Android specific loading and preprocessing for Measurement()
+        """Android specific loading and preprocessing
 
         Parameters
         ----------
@@ -41,7 +41,7 @@ class AndroidDerived(Measurement):
         self.postprocess()
 
     def postprocess(self):
-        """Android derived specific postprocessing for Measurement()
+        """Android derived specific postprocessing
 
         Notes
         -----
@@ -50,11 +50,11 @@ class AndroidDerived(Measurement):
         retrieved on 12 January, 2022
         """
         pr_corrected = self['raw_pr_m', :] \
-                     + self['b_sat_m', :] \
+                     + self['b_sv_m', :] \
                      - self['intersignal_bias_m', :] \
                      - self['tropo_delay_m', :] \
                      - self['iono_delay_m', :]
-        self['pseudo'] = pr_corrected
+        self['corr_pr_m'] = pr_corrected
 
     @staticmethod
     def _column_map():
@@ -70,14 +70,14 @@ class AndroidDerived(Measurement):
                    'constellationType' : 'gnss_id',
                    'svid' : 'sv_id',
                    'signalType' : 'signal_type',
-                   'xSatPosM' : 'x_sat_m',
-                   'ySatPosM' : 'y_sat_m',
-                   'zSatPosM' : 'z_sat_m',
-                   'xSatVelMps' : 'vx_sat_mps',
-                   'ySatVelMps' : 'vy_sat_mps',
-                   'zSatVelMps' : 'vz_sat_mps',
-                   'satClkBiasM' : 'b_sat_m',
-                   'satClkDriftMps' : 'b_dot_sat_mps',
+                   'xSatPosM' : 'x_sv_m',
+                   'ySatPosM' : 'y_sv_m',
+                   'zSatPosM' : 'z_sv_m',
+                   'xSatVelMps' : 'vx_sv_mps',
+                   'ySatVelMps' : 'vy_sv_mps',
+                   'zSatVelMps' : 'vz_sv_mps',
+                   'satClkBiasM' : 'b_sv_m',
+                   'satClkDriftMps' : 'b_dot_sv_mps',
                    'rawPrM' : 'raw_pr_m',
                    'rawPrUncM' : 'raw_pr_sigma_m',
                    'isrbM' : 'intersignal_bias_m',
@@ -87,10 +87,10 @@ class AndroidDerived(Measurement):
         return col_map
 
 
-class AndroidRawImu(Measurement):
+class AndroidRawImu(NavData):
     """Class handling IMU measurements from raw Android dataset.
 
-    Inherits from Measurement().
+    Inherits from NavData().
     """
     def __init__(self, input_path, group_time=10):
         self.group_time = group_time
@@ -135,7 +135,7 @@ class AndroidRawImu(Measurement):
         gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'], inplace=True)
         measurements = pd.concat([accel, gyro], axis=1)
         #NOTE: Assuming pandas index corresponds to measurements order
-        #NOTE: Override times of gyro measurments with corresponding
+        #NOTE: Override times of gyro measurements with corresponding
         # accel times
         measurements.rename(columns=self._column_map(), inplace=True)
         return measurements
@@ -152,10 +152,10 @@ class AndroidRawImu(Measurement):
         return col_map
 
 
-class AndroidRawFixes(Measurement):
+class AndroidRawFixes(NavData):
     """Class handling location fix measurements from raw Android dataset.
 
-    Inherits from Measurement().
+    Inherits from NavData().
     """
     def __init__(self, input_path):
         pd_df = self.preprocess(input_path)

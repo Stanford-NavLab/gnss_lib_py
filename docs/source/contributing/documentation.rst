@@ -94,7 +94,7 @@ author and date inclusions
    import numpy as np # a blank line and then third-party imports
    import scipy as sp
 
-   import core.constants as consts # a blank line then gnss_lib_py imports
+   import gnss_lib_py.utils.constants as consts # a blank line then gnss_lib_py imports
 
 Citations
 ---------

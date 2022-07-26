@@ -1,12 +1,15 @@
 # Project specific
 data/*
-# Including small datasets used for unit testing Measurement objects
+# Including small datasets used for unit testing NavData objects
 !data/unit_test/
 
 # development folder
 dev/*
 !dev/.gitkeep
 
+# development folder
+results/*
+!results/.gitkeep
 
 #Excluding VS Code files
 .vscode/*

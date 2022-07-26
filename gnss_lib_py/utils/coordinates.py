@@ -32,7 +32,7 @@ __date__ = "20 July 2021"
 
 import numpy as np
 
-import gnss_lib_py.core.constants as consts
+import gnss_lib_py.utils.constants as consts
 
 def geodetic2ecef(geodetic, radians=False):
     """LLA to ECEF conversion.

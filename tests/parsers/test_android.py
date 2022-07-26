@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 from gnss_lib_py.parsers.android import AndroidDerived, AndroidRawFixes, AndroidRawImu
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import make_csv
 
 
@@ -44,7 +44,7 @@ def fixture_derived_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset,
+    Test data is a subset of the Android Raw Measurement Dataset [1]_,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
     was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
@@ -72,14 +72,14 @@ def fixture_raw_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset,
+    Test data is a subset of the Android Raw Measurement Dataset [2]_,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
     was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -121,14 +121,14 @@ def fixture_inverse_col_map():
                        'gnss_id' : 'constellationType',
                        'sv_id' : 'svid',
                        'signal_type' : 'signalType',
-                       'x_sat_m' : 'xSatPosM',
-                       'y_sat_m' : 'ySatPosM',
-                       'z_sat_m' : 'zSatPosM',
-                       'vx_sat_mps' : 'xSatVelMps',
-                       'vy_sat_mps' : 'ySatVelMps',
-                       'vz_sat_mps' : 'zSatVelMps',
-                       'b_sat_m' : 'satClkBiasM',
-                       'b_dot_sat_mps' : 'satClkDriftMps',
+                       'x_sv_m' : 'xSatPosM',
+                       'y_sv_m' : 'ySatPosM',
+                       'z_sv_m' : 'zSatPosM',
+                       'vx_sv_mps' : 'xSatVelMps',
+                       'vy_sv_mps' : 'ySatVelMps',
+                       'vz_sv_mps' : 'zSatVelMps',
+                       'b_sv_m' : 'satClkBiasM',
+                       'b_dot_sv_mps' : 'satClkDriftMps',
                        'raw_pr_m' : 'rawPrM',
                        'raw_pr_sigma_m' : 'rawPrUncM',
                        'intersignal_bias_m' : 'isrbM',
@@ -172,15 +172,15 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
     # Also tests if strings are being converted back correctly
     measure_df = derived.pandas_df()
     measure_df.rename(columns=derived_col_map, inplace=True)
-    measure_df = measure_df.drop(columns='pseudo')
+    measure_df = measure_df.drop(columns='corr_pr_m')
     pd.testing.assert_frame_equal(pd_df, measure_df, check_dtype=False)
 
 
 @pytest.mark.parametrize('row_name, index, value',
                         [('trace_name', 0, np.asarray([['2020-05-14-US-MTV-1']], dtype=object)),
                          ('rx_name', 1, np.asarray([['Pixel4']], dtype=object)),
-                         ('vy_sat_mps', 7, 411.162),
-                         ('b_dot_sat_mps', 41, -0.003),
+                         ('vy_sv_mps', 7, 411.162),
+                         ('b_dot_sv_mps', 41, -0.003),
                          ('signal_type', 6, np.asarray([['GLO_G1']], dtype=object))]
                         )
 def test_derived_value_check(derived, row_name, index, value):
@@ -239,7 +239,7 @@ def test_get_and_set_str(derived):
     value2 = ['derek']*size2
     value = np.concatenate((np.asarray(value1, dtype=object), np.asarray(value2, dtype=object)))
     derived[key] = value
-    
+
     np.testing.assert_equal(derived[key, :], [value])
 
 
@@ -252,7 +252,7 @@ def test_imu_raw(android_raw_path):
         Path to Android Raw measurements text log file
     """
     test_imu = AndroidRawImu(android_raw_path)
-    isinstance(test_imu, Measurement)
+    isinstance(test_imu, NavData)
 
 
 def test_fix_raw(android_raw_path):
@@ -264,18 +264,18 @@ def test_fix_raw(android_raw_path):
         Path to Android Raw measurements text log file
     """
     test_fix = AndroidRawFixes(android_raw_path)
-    isinstance(test_fix, Measurement)
+    isinstance(test_fix, NavData)
 
 
-def test_measurement_type(derived):
-    """Test that all subclasses inherit from Measurement
+def test_navdata_type(derived):
+    """Test that all subclasses inherit from NavData
 
     Parameters
     ----------
     derived : pytest.fixture
         Instance of AndroidDerived for testing
     """
-    isinstance(derived, Measurement)
+    isinstance(derived, NavData)
     isinstance(derived, AndroidDerived)
 
 
