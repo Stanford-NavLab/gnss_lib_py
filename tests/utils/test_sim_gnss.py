@@ -1,4 +1,4 @@
-"""Tests for measures.
+"""Tests for simulating GNSS measurements.
 
 """
 
@@ -15,9 +15,9 @@ import pandas as pd
 
 from gnss_lib_py.utils.coordinates import geodetic2ecef
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils import measures
-from gnss_lib_py.utils.ephemeris import datetime_to_tow
-from gnss_lib_py.utils.ephemeris import EphemerisManager
+from gnss_lib_py.utils import sim_gnss
+from gnss_lib_py.utils.timing import datetime_to_tow
+from gnss_lib_py.parsers.ephemeris import EphemerisManager
 
 
 
@@ -70,7 +70,7 @@ def simulate_test_measures(delta_time=0):
     _, gpstime = datetime_to_tow(timestamp())
 
     #NOTE: Calling measures to generate measurements to test measures?
-    measurement, sv_posvel = measures.simulate_measures(
+    measurement, sv_posvel = sim_gnss.simulate_measures(
         gpsweek, gpstime + delta_time, extract_ephem(), set_rx_ecef(),
         0., 0., np.zeros([3, 1]))
 
@@ -205,7 +205,7 @@ def test_extract_xyz(set_xyz):
         index = sv_names,
         columns = ['times', 'x', 'y', 'z', 'vx', 'vy', 'vz']
     )
-    prns, test_pos, test_vel = measures._extract_pos_vel_arr(test_posvel)
+    prns, test_pos, test_vel = sim_gnss._extract_pos_vel_arr(test_posvel)
 
     np.testing.assert_array_equal(test_pos, pos_array)
     np.testing.assert_array_equal(test_vel, vel_array)
@@ -225,7 +225,7 @@ def test_find_elaz(expected_elaz, set_sv_pos, set_rx_pos):
         Receiver position setter
 
     """
-    calc_elaz = measures.find_elaz(set_rx_pos, set_sv_pos)
+    calc_elaz = sim_gnss.find_elaz(set_rx_pos, set_sv_pos)
     np.testing.assert_array_almost_equal(expected_elaz, calc_elaz)
 
 def test_measures_value_range(get_meas):
@@ -321,10 +321,10 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
 
     sv_names = (meas_prev.index).tolist()
 
-    meas_prev_corr = measures.correct_pseudorange(
+    meas_prev_corr = sim_gnss.correct_pseudorange(
         gpstime, gpsweek, ephem.loc[sv_names,:], meas_prev['prange'], rx_ecef)
 
-    meas_new_corr  = measures.correct_pseudorange(
+    meas_new_corr  = sim_gnss.correct_pseudorange(
         gpstime+T, gpsweek, ephem.loc[sv_names,:], meas_new['prange'], rx_ecef)
 
     diff_prev = meas_prev_corr - meas_prev['prange']

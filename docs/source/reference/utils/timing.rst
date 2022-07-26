@@ -1,7 +1,7 @@
-sats module
-===========
+timing module
+=============
 
-.. automodule:: sats
+.. automodule:: timing
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,5 +1,5 @@
-test\_measurement module
-========================
+test\_navdata module
+====================
 
 .. automodule:: test_navdata
    :members:

@@ -5,6 +5,7 @@ parsers
    :maxdepth: 4
 
    android
+   ephemeris
    navdata
    nmea
    rinex

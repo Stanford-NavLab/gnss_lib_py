@@ -6,10 +6,8 @@ utils
 
    constants
    coordinates
-   ephemeris
    file_operations
    filters
-   matrices
-   measures
-   sats
+   sim_gnss
+   timing
    visualizations
