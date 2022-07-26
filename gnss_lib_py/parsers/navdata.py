@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 
-class NavData(ABC):
+class NavData():
     """gnss_lib_py specific class for handling data.
     Uses numpy for speed combined with pandas like intuitive indexing
 

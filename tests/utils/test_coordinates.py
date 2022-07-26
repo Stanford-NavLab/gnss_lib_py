@@ -8,7 +8,7 @@ __date__ = "21 Jun 2022"
 import numpy as np
 import pytest
 
-from gnss_lib_py.core.coordinates import geodetic2ecef, ecef2geodetic, LocalCoord
+from gnss_lib_py.utils.coordinates import geodetic2ecef, ecef2geodetic, LocalCoord
 
 
 @pytest.fixture(name="local_ecef")
@@ -48,7 +48,7 @@ def fixture_local_reference(local_lla):
 
     Returns
     -------
-    local_frame : gnss_lib_py.core.coordinates.LocalCoord
+    local_frame : gnss_lib_py.utils.coordinates.LocalCoord
         NED local frame of reference with given LLA as origin
     """
     local_frame = LocalCoord.from_geodetic(local_lla)
@@ -133,7 +133,7 @@ def test_ned_conversions(local_frame, ned, exp_ecef):
 
     Parameters
     ----------
-    local_frame : gnss_lib_py.core.coordinates.LocalCoord
+    local_frame : gnss_lib_py.utils.coordinates.LocalCoord
         NED local frame of reference initialized for local_lla position
     ned : np.ndarray
         Input NED coordinates
@@ -162,7 +162,7 @@ def test_ned_vector_conversions(local_frame, nedv, exp_ecefv):
 
     Parameters
     ----------
-    local_frame : gnss_lib_py.core.coordinates.LocalCoord
+    local_frame : gnss_lib_py.utils.coordinates.LocalCoord
         NED local frame of reference initialized for local_lla position
     nedv : np.ndarray
         Input NED vector values
@@ -184,7 +184,7 @@ def test_geodetic2ned(local_frame):
 
     Parameters
     ----------
-    local_frame : gnss_lib_py.core.coordinates.LocalCoord
+    local_frame : gnss_lib_py.utils.coordinates.LocalCoord
         NED frame of reference initialized at local_lla
     """
     lla = np.array([[38], [-122], [0]])
