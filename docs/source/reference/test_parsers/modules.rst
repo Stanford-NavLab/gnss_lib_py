@@ -5,4 +5,4 @@ parsers
    :maxdepth: 4
 
    test_android
-   test_measurement
+   test_navdata

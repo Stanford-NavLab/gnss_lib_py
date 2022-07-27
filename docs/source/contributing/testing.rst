@@ -52,7 +52,7 @@ reports can be generated locally with the following commands:
 
 .. code-block:: bash
 
-   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/core --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
    poetry run coverage report
 
 The total percentage of code covered (bottom right percentage) is the

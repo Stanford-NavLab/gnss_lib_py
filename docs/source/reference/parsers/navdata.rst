@@ -1,7 +1,7 @@
-sats module
-===========
+navdata module
+==============
 
-.. automodule:: sats
+.. automodule:: navdata
    :members:
    :undoc-members:
    :show-inheritance:
