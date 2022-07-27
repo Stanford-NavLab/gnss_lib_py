@@ -7,7 +7,7 @@ __date__ = "01 Jul 2022"
 
 import gnss_lib_py.utils.file_operations as fo
 
-# test_mkdir
+# test_make_dir
 # test save_figure
 # test close_figures
 
