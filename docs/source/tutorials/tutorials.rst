@@ -17,7 +17,7 @@ with only three function calls.
 
     data_path = "/google-decimeter-2021/train/2021-01-05-US-SVL-1/Pixel4XL/Pixel4XL_derived.csv"
 
-    # convert data to Measurement class
+    # convert data to NavData child class
     derived_data = AndroidDerived(data_path)
 
     # calculate Weighted Least Squares position estimate
@@ -32,12 +32,12 @@ with only three function calls.
 
 
 
-Measurement Tutorials
+NavData Tutorials
 ---------------------
 
 Our unifying class.
 
-TODO: simple example showing the speed up of the measurement class
+TODO: simple example showing the speed up of the NavData class
 and intuitive adding data to it.
 
 .. code-block:: python
@@ -46,12 +46,12 @@ and intuitive adding data to it.
 
     navdata = NavData()
 
-More information on the Measurement class can be found.
+More information on the NavData class can be found.
 
 .. toctree::
    :maxdepth: 1
 
-   tutorials_measurement_notebook
+   tutorials_navdata_notebook
 
 Parser Tutorials
 ----------------

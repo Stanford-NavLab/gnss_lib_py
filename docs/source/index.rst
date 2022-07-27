@@ -22,12 +22,12 @@ facilitating user-specific extensions of existing implementations.
 
 The data parers in the :code:`parsers` directory allow for loading
 GNSS data from the following sources into the
-:code:`gnss_lib_py`'s unifying :code:`Measurement` class:
+:code:`gnss_lib_py`'s unifying :code:`NavData` class:
 
     * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
 
 The following algorithms are implemented in the :code:`algorithms`
-directory and work by passing in a :code:`Measurement` class.
+directory and work by passing in a :code:`NavData` class.
 
     * Weighted Least Squares
     * Calculating pseudorange residuals
@@ -36,9 +36,9 @@ The following data visualization tools are available in the
 :code:`utils` directory:
 
     * Skyplot: showing the movement of GNSS satellites during the
-      elapsed time of the provided :code:`Measurement` class.
+      elapsed time of the provided :code:`NavData` class.
     * Metric plotting: allows you to plot a specific array of data
-      from the :code:`Measurement` class
+      from the :code:`NavData` class
     * Residual plotting: specifically optimized for plotting residuals.
 
 Installation
