@@ -51,7 +51,6 @@ More information on the Measurement class can be found.
 .. toctree::
    :maxdepth: 1
 
-   tutorials_measurement
    tutorials_measurement_notebook
 
 Parser Tutorials
