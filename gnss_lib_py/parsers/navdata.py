@@ -415,7 +415,7 @@ class NavData():
                 self[col, new_data_cols] = np.asarray(pandas_df[col].values)
 
     def where(self, key_idx, value, condition="eq"):
-        """Return Measurement where conditions are met for the given row
+        """Return NavData where conditions are met for the given row
 
         Parameters
         ----------
@@ -430,16 +430,16 @@ class NavData():
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Measurement with columns where given condition is satisfied
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            NavData with columns where given condition is satisfied
             for specified row
         """
         # Add a condition here instead of just comparing to a value.
         # Do so by adding a parameter for less than inequality, equality and
         # greater than inequality
         new_cols = self.argwhere(key_idx, value, condition)
-        new_measurement = self.copy(cols=new_cols)
-        return new_measurement
+        new_navdata = self.copy(cols=new_cols)
+        return new_navdata
 
     def argwhere(self, key_idx, value, condition):
         """Return columns where conditions are met for the given row
@@ -458,7 +458,7 @@ class NavData():
         Returns
         -------
         new_cols : list
-            Columns in Measurement where given condition is satisfied
+            Columns in NavData where given condition is satisfied
             for specified row
         """
         rows, _ = self._parse_key_idx(key_idx)
@@ -477,10 +477,10 @@ class NavData():
                 if str_value==value:
                     new_cols = np.argwhere(self.array[row, :]==str_key)
                     break
-            # Extract columns where condition holds true and return new Measurement
+            # Extract columns where condition holds true and return new NavData
         else:
             # Values in row are numerical
-            # Find columns where value can be found and return new Measurement
+            # Find columns where value can be found and return new NavData
             if condition=="eq":
                 new_cols = np.argwhere(self.array[row, :]==value)
             elif condition == "leq":
@@ -514,8 +514,8 @@ class NavData():
         ------
         delta_t : float
             Difference between current time and previous time
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Measurement with same time, upto given decimal tolerance
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            NavData with same time, upto given decimal tolerance
         """
         times = self[time_row]
         times_unique = np.sort(np.unique(np.around(times, decimals=tol_decimals)))
@@ -524,27 +524,27 @@ class NavData():
                 delta_t = 0
             else:
                 delta_t = times_unique[time_idx]-times_unique[time_idx-1]
-            new_measurement = self.where(time_row, [time-10**(-tol_decimals), time+10**(-tol_decimals)], condition="between")
-            yield delta_t, new_measurement
+            new_navdata = self.where(time_row, [time-10**(-tol_decimals), time+10**(-tol_decimals)], condition="between")
+            yield delta_t, new_navdata
 
     def __iter__(self):
-        """Initialize iterator over Measurement (iterates over all columns)
+        """Initialize iterator over NavData (iterates over all columns)
 
         Returns
         -------
-        self: gnss_lib_py.parsers.Measurement
-            Instantiation of Measurement class with iteration initialized
+        self: gnss_lib_py.parsers.NavData
+            Instantiation of NavData class with iteration initialized
         """
         self.curr_col = 0
         self.num_cols = np.shape(self.array)[1]
         return self
 
     def __next__(self):
-        """Method to get next item when iterating over Measurement class
+        """Method to get next item when iterating over NavData class
 
         Returns
         -------
-        x_curr : gnss_lib_py.parsers.Measurement
+        x_curr : gnss_lib_py.parsers.NavData
             Current column (based on iteration count)
         """
         if self.curr_col >= self.num_cols:
@@ -656,7 +656,7 @@ class NavData():
         respectively are returned.
 
         If no arguments are added .copy() returns a full copy of the
-        entire Measurement class.
+        entire NavData class.
 
         Parameters
         ----------
