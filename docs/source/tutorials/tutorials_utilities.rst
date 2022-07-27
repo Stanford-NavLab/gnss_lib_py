@@ -4,8 +4,10 @@
 Specific utility tutorials
 
 
-Visualization
--------------
+Visualize your Data
+-------------------
+
+Examples of how to visualize data.
 
 
 Timing

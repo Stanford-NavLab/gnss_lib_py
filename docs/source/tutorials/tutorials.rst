@@ -30,15 +30,21 @@ with only three function calls.
   :width: 400
   :alt: skyplot of GNSS movement over time
 
-Unifying Measurement Class
---------------------------
-
-TODO: simple example showing the speed up of the measurement class
-and intuitive adding data to it.
 
 
 Measurement Tutorials
 ---------------------
+
+Our unifying class.
+
+TODO: simple example showing the speed up of the measurement class
+and intuitive adding data to it.
+
+.. code-block:: python
+
+    from gnss_lib_py.parsers.navdata import NavData
+    
+    navdata = NavData()
 
 More information on the Measurement class can be found.
 
@@ -75,22 +81,5 @@ TODO: copy and paste from intro page
 
 .. toctree::
    :maxdepth: 1
-   :hidden:
 
    tutorials_utilities
-
-
-
-
-How to Use Algorithms
----------------------
-Tutorial
-
-Calculating Result Metrics
---------------------------
-Tutorial
-
-Visualize your Data
--------------------
-
-Examples of how to visualize data.

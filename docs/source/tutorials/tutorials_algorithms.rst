@@ -8,8 +8,5 @@ WLS
 ---
 
 
-EKF
----
-
 Residuals
 ---------

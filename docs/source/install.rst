@@ -3,47 +3,55 @@
 Install
 =======
 
+System Requirements
+-------------------
+
 Our code has been written in and tested on the following systems:
 
-- Ubuntu 18
+- Ubuntu 18, 20
 - Ubuntu 20
 - Ubuntu 20 on WSL2
 
 Standard Installation
 ---------------------
 
-Clone the GitHub repository:
+1. Clone the GitHub repository:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
+      git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
 
-Install dependencies with pip:
+2. Install dependencies with pip:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    pip3 install -r requirements.txt
+       pip3 install -r requirements.txt
 
-Update pip version. For Linux:
+3. Update pip version.
 
-.. code-block:: bash
-   
-   pip install -U pip
+   a. For Linux:
 
-For Windows: 
+      .. code-block:: bash
 
-.. code-block:: bash
-   
-   python -m pip install -U pip
+         pip install -U pip
 
-Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+   b. For Windows:
 
-.. code-block:: bash
-   
-   pip install -e .
+      .. code-block:: bash
 
-Verify installation by running :code:`pytest`
+          python -m pip install -U pip
 
+4. Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+
+   .. code-block:: bash
+
+      pip install -e .
+
+5. Verify installation by running :code:`pytest`
+
+   .. code-block:: bash
+
+      pytest
 
 .. _developer install:
 

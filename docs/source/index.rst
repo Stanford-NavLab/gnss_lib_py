@@ -24,16 +24,12 @@ The data parers in the :code:`parsers` directory allow for loading
 GNSS data from the following sources into the
 :code:`gnss_lib_py`'s unifying :code:`Measurement` class:
 
-    * rinex
-    * nmea
-    * sp3
     * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
 
 The following algorithms are implemented in the :code:`algorithms`
 directory and work by passing in a :code:`Measurement` class.
 
     * Weighted Least Squares
-    * Extended Kalman Filter using only GNSS measurements
     * Calculating pseudorange residuals
 
 The following data visualization tools are available in the
@@ -86,7 +82,7 @@ this project in your own work please cite the following:
     url = "https://github.com/Stanford-NavLab/gnss_lib_py",
     }
 
-Additionaly, we would like to thank `all contributors <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.sh>`__ to this project.
+Additionaly, we would like to thank `all contributors <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__ to this project.
 
 
 .. toctree::
