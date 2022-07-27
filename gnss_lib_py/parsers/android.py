@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 from gnss_lib_py.parsers.measurement import Measurement
 from gnss_lib_py.core.ephemeris import datetime2tow
+from gnss_lib_py.core.coordinates import geodetic2ecef
 
 
 class AndroidDerived(Measurement):
@@ -103,6 +104,51 @@ class AndroidDerived(Measurement):
                    }
         return col_map
 
+class AndroidGroundTruth(Measurement):
+    """Class handling derived measurements from Android dataset.
+
+    Inherits from Measurement().
+    """
+    def __init__(self, input_path):
+        """Android specific loading and preprocessing for Measurement()
+
+        Parameters
+        ----------
+        input_path : string
+            Path to measurement csv file
+
+        Returns
+        -------
+        pd_df : pd.DataFrame
+            Loaded measurements with consistent column names
+        """
+
+        pd_df = pd.read_csv(input_path)
+        super().__init__(pandas_df=pd_df)
+
+        self.postprocess()
+
+    def postprocess(self):
+        """Android derived specific postprocessing for Measurement()
+
+        Notes
+        -----
+        Adds corrected pseudoranges to measurements. Corrections
+        implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+        retrieved on 12 January, 2022
+        """
+        times = [datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=tx*1e-3) \
+                         for tx in self['millisSinceGpsEpoch',:][0]]
+        extract_gps_time = np.transpose([list(datetime2tow(tt)) for tt in times])
+        self['gps_week'] = extract_gps_time[0]
+        self['gps_tow'] = extract_gps_time[1]
+
+        gt_LLA = np.transpose(np.vstack([self['latDeg'], self['lngDeg'], self['heightAboveWgs84EllipsoidM']]))        
+        gt_ECEF = geodetic2ecef(gt_LLA)
+        self["x_gt_m"] = gt_ECEF[:,0]
+        self["y_gt_m"] = gt_ECEF[:,1]
+        self["z_gt_m"] = gt_ECEF[:,2]
+        
 
 class AndroidRawImu(Measurement):
     """Class handling IMU measurements from raw Android dataset.

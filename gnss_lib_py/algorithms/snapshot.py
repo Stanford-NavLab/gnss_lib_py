@@ -60,27 +60,29 @@ def solve_wls(measurements, weight_type = None,
     if "b_sv_m" not in measurements.rows:
         raise KeyError("b_sv_m (clock bias of sv) missing.")
 
-    unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
+    unique_timesteps = np.unique(measurements["gps_tow",:])
 
     states = np.nan*np.ones((4,len(unique_timesteps)))
 
     for t_idx, timestep in enumerate(unique_timesteps):
         if const=='GPS' and freq=='GPS_L1': 
-            idxs = np.where((measurements["millisSinceGpsEpoch",:] == timestep) & \
+            idxs = np.where((measurements["gps_tow",:] == timestep) & \
                             (measurements["gnss_id",:] == 1) & \
                             (measurements["signal_type",:] == 'GPS_L1'))[1] 
             #TODO: correct GNSS id tag: talk to ashwin/derek
         else:
-            idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
+            idxs = np.where(measurements["gps_tow",:] == timestep)[1]
             
         if meas=='DGNSS':
             corr_pr_m = measurements["raw_pr_m",idxs].reshape(-1,1) + \
                         measurements["delta_pr_m",idxs].reshape(-1,1)
+#             print(corr_pr_m - measurements["corr_pr_m", idxs].reshape(-1,1))
         elif meas=='RAW':
-            corr_pr_m = measurements["raw_pr_m",idxs].reshape(-1,1)
+            corr_pr_m = measurements["raw_pr_m",idxs].reshape(-1,1) + \
+                        measurements['b_sv_m',idxs].reshape(-1,1)                     
         else:
             corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
-            
+        
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
                               measurements["y_sv_m",idxs].reshape(-1,1),
                               measurements["z_sv_m",idxs].reshape(-1,1)))
@@ -100,6 +102,7 @@ def solve_wls(measurements, weight_type = None,
         states[:,t_idx:t_idx+1] = position
 
     state_estimate = Measurement()
+    state_estimate["gps_tow"] = unique_timesteps
     state_estimate["x_rx_m"] = states[0,:]
     state_estimate["y_rx_m"] = states[1,:]
     state_estimate["z_rx_m"] = states[2,:]
