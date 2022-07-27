@@ -694,16 +694,16 @@ def test_add_numpy(numpy_array, add_array):
 
 
 def test_add_numpy_1d():
-    """Test addition of a 1D numpy array to Measurement with single row
+    """Test addition of a 1D numpy array to NavData with single row
     """
-    data = Measurement(numpy_array=np.zeros([1,6]))
+    data = NavData(numpy_array=np.zeros([1,6]))
     data.add(numpy_array=np.ones(8))
     np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]), np.ones([1, 8]))))
 
 
 def test_add_csv(df_simple, csv_simple):
-    # Create and add to Measurement
-    data = Measurement(csv_path=csv_simple)
+    # Create and add to NavData
+    data = NavData(csv_path=csv_simple)
     data.add(csv_path=csv_simple)
     data_df = data.pandas_df()
     # Set up dataframe for comparison
@@ -745,7 +745,7 @@ def test_add_pandas_df(df_simple, add_df):
                         [0,1],
                         np.asarray([0,1])
                         ])
-def test_copy_measurement(data, df_simple, rows, cols):
+def test_copy_navdata(data, df_simple, rows, cols):
     """Test methods to subsets and copies of NavData instance
 
     Parameters
@@ -784,8 +784,8 @@ def test_copy_measurement(data, df_simple, rows, cols):
                         [0,1],
                         np.asarray([0,1])
                         ])
-def test_remove_measurement(data, df_simple, rows, cols):
-    """Test method to remove rows and columns from measurement
+def test_remove_navdata(data, df_simple, rows, cols):
+    """Test method to remove rows and columns from navdata
 
     Parameters
     ----------
@@ -826,14 +826,14 @@ def test_remove_measurement(data, df_simple, rows, cols):
 
 
 def test_where_str(csv_simple):
-    """Testing implementation of Measurement.where for string values
+    """Testing implementation of NavData.where for string values
 
     Parameters
     ----------
     csv_simple : str
-        Path to csv file used to create Measurement
+        Path to csv file used to create NavData
     """
-    data = Measurement(csv_path=csv_simple)
+    data = NavData(csv_path=csv_simple)
     data_small = data.where('strings', 'gps')
     compare_df = data.pandas_df()
     compare_df = compare_df[compare_df['strings']=="gps"].reset_index(drop=True)
@@ -841,14 +841,14 @@ def test_where_str(csv_simple):
 
 
 def test_where_numbers(csv_simple):
-    """Testing implementation of Measurement.where for numeric values
+    """Testing implementation of NavData.where for numeric values
 
     Parameters
     ----------
     csv_simple : str
-        Path to csv file used to create Measurement
+        Path to csv file used to create NavData
     """
-    data = Measurement(csv_path=csv_simple)
+    data = NavData(csv_path=csv_simple)
     conditions = ["eq", "leq", "geq", "greater", "lesser", "between"]
     values = [98, 10, 250, 67, 45, [30, 80]]
     pd_rows = [[4], [0,1], [5], [4, 5], [0, 1], [2, 3]]
@@ -860,14 +860,14 @@ def test_where_numbers(csv_simple):
 
 
 def test_where_errors(csv_simple):
-    """Testing error cases for Measurement.where
+    """Testing error cases for NavData.where
 
     Parameters
     ----------
     csv_simple : str
-        Path to csv file used to create Measurement
+        Path to csv file used to create NavData
     """
-    data = Measurement(csv_path=csv_simple)
+    data = NavData(csv_path=csv_simple)
     # Test where with multiple rows
     with pytest.raises(NotImplementedError):
         _ = data.where(["integers", "floats"], 10, condition="leq")
@@ -886,9 +886,9 @@ def test_time_looping(csv_simple):
     Parameters
     ----------
     csv_simple : str
-        path to csv file used to create Measurement
+        path to csv file used to create NavData
     """
-    data = Measurement(csv_path=csv_simple)
+    data = NavData(csv_path=csv_simple)
     data['times'] = np.hstack((np.zeros([1, 2]),
                             1.0001*np.ones([1, 1]),
                             1.0003*np.ones([1,1]),
@@ -913,14 +913,14 @@ def test_time_looping(csv_simple):
 
 
 def test_col_looping(csv_simple):
-    """Testing implementation to loop over columns in Measurement
+    """Testing implementation to loop over columns in NavData
 
     Parameters
     ----------
     csv_simple : str
-        path to csv file used to create Measurement
+        path to csv file used to create NavData
     """
-    data = Measurement(csv_path=csv_simple)
+    data = NavData(csv_path=csv_simple)
     compare_df = data.pandas_df()
     for idx, col in enumerate(data):
         col_df = col.pandas_df().reset_index(drop=True)
