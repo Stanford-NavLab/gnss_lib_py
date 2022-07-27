@@ -11,21 +11,20 @@ Please choose the most appropriate location based on the descriptions
 below for new features or functionality.
 
     * :code:`algorithms` : This directory contains localization algorithms.
-    * :code:`core` : This directory contains functionality that is commonly used
-      to deal with GNSS measurements.
     * :code:`parsers` : This directory contains functions to read and process various
       GNSS data/file types.
-    * :code:`utils` : This directory contains visualization functions and other
-      code that is non-critical to the most common GNSS use cases.
+    * :code:`utils` : This directory contains utilities used to handle
+      GNSS measurements, time conversions, visualizatoins, satellite
+      simulation, file operations, etc.
 
-Details about Measurement Class
+Details about NavData Class
 -------------------------------
-Reasons that our Measurement Class is awesome
+Reasons that our NavData Class is awesome
 
     * if initializing with np.ndarrays, rows are each data type
     * column names need to be strings
     * if initializing with a csv file without headers, use
-      :code:`Measurement(csv_path = "path", header = None)`
+      :code:`NavData(csv_path = "path", header = None)`
 
 Standard Naming Conventions
 ---------------------------
@@ -126,7 +125,6 @@ documentation below.
      :maxdepth: 2
 
      algorithms/modules
-     core/modules
      parsers/modules
      utils/modules
 
@@ -139,7 +137,6 @@ documentation below.
      :maxdepth: 2
 
      test_algorithms/modules
-     test_core/modules
      test_parsers/modules
      test_utils/modules
 

@@ -1,7 +1,7 @@
-test\_measurement module
+time\_conversions module
 ========================
 
-.. automodule:: test_measurement
+.. automodule:: time_conversions
    :members:
    :undoc-members:
    :show-inheritance:

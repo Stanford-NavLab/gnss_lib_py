@@ -11,16 +11,16 @@ import csv
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 
 
-class AndroidDerived(Measurement):
+class AndroidDerived(NavData):
     """Class handling derived measurements from Android dataset.
 
-    Inherits from Measurement().
+    Inherits from NavData().
     """
     def __init__(self, input_path):
-        """Android specific loading and preprocessing for Measurement()
+        """Android specific loading and preprocessing
 
         Parameters
         ----------
@@ -41,7 +41,7 @@ class AndroidDerived(Measurement):
         self.postprocess()
 
     def postprocess(self):
-        """Android derived specific postprocessing for Measurement()
+        """Android derived specific postprocessing
 
         Notes
         -----
@@ -87,10 +87,10 @@ class AndroidDerived(Measurement):
         return col_map
 
 
-class AndroidRawImu(Measurement):
+class AndroidRawImu(NavData):
     """Class handling IMU measurements from raw Android dataset.
 
-    Inherits from Measurement().
+    Inherits from NavData().
     """
     def __init__(self, input_path, group_time=10):
         self.group_time = group_time
@@ -152,10 +152,10 @@ class AndroidRawImu(Measurement):
         return col_map
 
 
-class AndroidRawFixes(Measurement):
+class AndroidRawFixes(NavData):
     """Class handling location fix measurements from raw Android dataset.
 
-    Inherits from Measurement().
+    Inherits from NavData().
     """
     def __init__(self, input_path):
         pd_df = self.preprocess(input_path)

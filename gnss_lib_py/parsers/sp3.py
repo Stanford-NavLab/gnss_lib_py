@@ -11,8 +11,8 @@ from collections import defaultdict
 import numpy as np
 from scipy import interpolate
 
-import gnss_lib_py.core.constants as consts
-from gnss_lib_py.core.ephemeris import datetime2tow
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.time_conversions import datetime_to_tow
 
 class PreciseNav(object):
     """Class that contain satellite data.
@@ -30,7 +30,7 @@ class PreciseNav(object):
 
         """
         self.date = date
-        self.tow = datetime2tow(date,False)[1]
+        self.tow = datetime_to_tow(date,False)[1]
         self.xyzt = np.array(list(map(float, sv_position)))  # [km, km, km, mcs]
 
     def eph2pos(self):

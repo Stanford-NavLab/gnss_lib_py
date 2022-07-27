@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 
 
-class Measurement(ABC):
-    """gnss_lib_py specific class for handling measurements.
+class NavData(ABC):
+    """gnss_lib_py specific class for handling data.
     Uses numpy for speed combined with pandas like intuitive indexing
 
     Attributes
@@ -22,7 +22,7 @@ class Measurement(ABC):
     arr_dtype : numpy.dtype
         Type of values stored in data array
     array : np.ndarray
-        Array containing measurements, dimension M x N
+        Array containing data, dimension M x N
     map : Dict
         Map of the form {pandas column name : array row number }
     str_map : Dict
@@ -49,22 +49,22 @@ class Measurement(ABC):
         elif numpy_array is not None:
             self.from_numpy_array(numpy_array)
         else:
-            self.build_measurement()
+            self.build_navdata()
 
         self.postprocess()
 
     def postprocess(self):
-        """Postprocess loaded measurements. Optional in subclass
+        """Postprocess loaded data. Optional in subclass
         """
 
-    def build_measurement(self):
-        """Build attributes for Measurements.
+    def build_navdata(self):
+        """Build attributes for NavData.
 
         """
         self.array = np.zeros((0,0), dtype=self.arr_dtype)
 
     def from_csv_path(self, csv_path, header="infer"):
-        """Build attributes of Measurement using csv file.
+        """Build attributes of NavData using csv file.
 
         Parameters
         ----------
@@ -80,35 +80,35 @@ class Measurement(ABC):
         if not os.path.exists(csv_path):
             raise OSError("file not found")
 
-        self.build_measurement()
+        self.build_navdata()
 
         pandas_df = pd.read_csv(csv_path, header=header)
         self.from_pandas_df(pandas_df)
 
     def from_pandas_df(self, pandas_df):
-        """Build attributes of Measurement using pd.DataFrame.
+        """Build attributes of NavData using pd.DataFrame.
 
         Parameters
         ----------
-        pandas_df : pd.DataFrame of measurements
+        pandas_df : pd.DataFrame of data
         """
 
         if not isinstance(pandas_df, pd.DataFrame):
             raise TypeError("pandas_df must be pd.DataFrame")
 
         if pandas_df.columns.dtype != object:
-            # default headers are Int64 type, but for the Measurement
+            # default headers are Int64 type, but for the NavData
             # class they need to be strings
             pandas_df.rename(str, axis="columns", inplace=True)
 
-        self.build_measurement()
+        self.build_navdata()
 
         for _, col_name in enumerate(pandas_df.columns):
             newvalue = pandas_df[col_name].to_numpy()
             self.__setitem__(col_name, newvalue)
 
     def from_numpy_array(self, numpy_array):
-        """Build attributes of Measurement using np.ndarray.
+        """Build attributes of NavData using np.ndarray.
 
         Parameters
         ----------
@@ -120,7 +120,7 @@ class Measurement(ABC):
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
 
-        self.build_measurement()
+        self.build_navdata()
 
         for row_num in range(numpy_array.shape[0]):
             self.__setitem__(str(row_num), numpy_array[row_num,:])
@@ -131,7 +131,7 @@ class Measurement(ABC):
         Returns
         -------
         df : pd.DataFrame
-            DataFrame with measurements, including strings as strings
+            DataFrame with data, including strings as strings
         """
         df_list = []
         for key, value in self.str_map.items():
@@ -164,7 +164,7 @@ class Measurement(ABC):
         return values_str
 
     def save_csv(self, output_path):
-        """Save measurements as csv
+        """Save data as csv
 
         Parameters
         ----------
@@ -259,7 +259,7 @@ class Measurement(ABC):
         Returns
         -------
         arr_slice : np.ndarray
-            Array of measurements containing row names and time indexed
+            Array of data containing row names and time indexed
             columns
         """
         rows, cols = self._parse_key_idx(key_idx)
@@ -394,11 +394,11 @@ class Measurement(ABC):
         Parameters
         ----------
         csv_path : string
-            Path to csv file containing measurements to add
+            Path to csv file containing data to add
         pandas_df : pd.DataFrame
-            DataFrame containing measurements to add
+            DataFrame containing data to add
         numpy_array : np.ndarray
-            Array containing only numeric measurements to add
+            Array containing only numeric data to add
         """
         old_len = len(self)
         new_data_cols = slice(old_len, None)
@@ -433,7 +433,7 @@ class Measurement(ABC):
         Returns
         -------
         length : int
-            Number of time steps in measurement
+            Number of time steps in NavData
         """
         length = np.shape(self.array)[1]
         return length
@@ -457,7 +457,7 @@ class Measurement(ABC):
         Returns
         -------
         rows : list
-            List of row names in measurements
+            List of row names in NavData
         """
         rows = list(self.map.keys())
         return rows
@@ -504,7 +504,7 @@ class Measurement(ABC):
         array[np.where(array.astype(str)==nan_str)] = ""
 
     def rename(self, mapper):
-        """Rename rows of Measurement class.
+        """Rename rows of NavData class.
 
         Column names must be strings.
 
@@ -518,13 +518,13 @@ class Measurement(ABC):
             if not isinstance(value, str):
                 raise TypeError("Column names must be strings")
             if key not in self.map.keys():
-                raise KeyError("'" + str(key) + "' key doesn't exist in Measurement class")
+                raise KeyError("'" + str(key) + "' key doesn't exist in NavData class")
 
             self.map[value] = self.map.pop(key)
             self.str_map[value] = self.str_map.pop(key)
 
     def copy(self, rows=None, cols=None):
-        """Return copy of Measurement keeping specified rows and columns
+        """Return copy of NavData keeping specified rows and columns
 
         Parameters
         ----------
@@ -535,10 +535,10 @@ class Measurement(ABC):
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Copy of original Measurement with desired rows and columns
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            Copy of original NavData with desired rows and columns
         """
-        new_measurement = Measurement()
+        new_navdata = NavData()
         inv_map = self.inv_map
         if rows is None:
             # row_indices = slice(None, None).indices(len(self.rows))
@@ -553,34 +553,34 @@ class Measurement(ABC):
                 key = inv_map[row_idx]
             else:
                 key = row_idx
-            new_measurement[key] = new_row
-        return new_measurement
+            new_navdata[key] = new_row
+        return new_navdata
 
     def remove(self, rows=None, cols=None):
-        """Reset Measurement to remove specified rows and columns
+        """Reset NavData to remove specified rows and columns
 
         Parameters
         ----------
         rows : None/list/np.ndarray
-            Rows to remove from Measurement
+            Rows to remove from NavData
         cols : None/list/np.ndarray
-            Columns to remove from Measurement
+            Columns to remove from NavData
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Measurement instance after removing specified rows and columns
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            NavData instance after removing specified rows and columns
 
         Notes
         -----
-        This method returns the Measurement with removed rows and columns,
+        This method returns the NavData with removed rows and columns,
         but does not reset the current instance in place.
         """
         if cols is None:
             cols = []
         if rows is None:
             rows = []
-        new_measurement = Measurement()
+        new_navdata = NavData()
         inv_map = self.inv_map
         if len(rows) != 0 and isinstance(rows[0], int):
             rows = [inv_map[row_idx] for row_idx in rows]
@@ -589,5 +589,5 @@ class Measurement(ABC):
         for row_idx in keep_rows:
             new_row = self[row_idx, keep_cols]
             key = row_idx
-            new_measurement[key] = new_row
-        return new_measurement
+            new_navdata[key] = new_row
+        return new_navdata

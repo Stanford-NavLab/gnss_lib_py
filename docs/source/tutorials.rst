@@ -8,18 +8,18 @@ Simple Example of Entire Pipeline
 ---------------------------------
 Tutorial
 
-How to Use Existing Measurement Class
+How to Use Existing NavData Class
 -------------------------------------
 Tutorial!
 
-How to Create a New Measurement Child Class
+How to Create a New NavData Child Class
 -------------------------------------------
 The modular and versatile functionality of this :code:`gnss_lib_py`
-repository is enabled by loading all measurement data types into a
-custom Python `Measurement class <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/parsers/measurement.py>`__.
+repository is enabled by loading all data types into a
+custom Python `NavData class <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/parsers/measurement.py>`__.
 If your measurements use a file type not already supported in the list
 on our :ref:`main page<mainpage>`, then you will need to create a new
-child Measurement Python class. This tutorial will guide you on how to
+child NavData Python class. This tutorial will guide you on how to
 set up your custom Python class. Once complete, please feel free to
 submit a pull request to our GitHub repository so other users can also
 make use of the added functionality.
@@ -37,11 +37,11 @@ Your finished class might look something like:
 
 .. code-block:: python
 
-    from gnss_lib_py.parsers.measurement import Measurement
+    from gnss_lib_py.parsers.navdata import NavData
 
-    class NewMeasurementType(Measurement):
-    """Class handling derived measurements from Android dataset.
-    Inherits from Measurement().
+    class NewNavDataType(NavData):
+    """Class handling derived data from custom dataset.
+    Inherits from NavData().
     """
     #NOTE: Inherits __init__() and isn't defined explicitly here because
     # no additional implementations/attributes are needed
@@ -52,11 +52,11 @@ Your finished class might look something like:
         Parameters
         ----------
         input_path : string
-            Path to measurement csv file
+            Path to data csv file
         Returns
         -------
         pd_df : pd.DataFrame
-            Loaded measurements with consistent column names
+            Loaded data with consistent column names
         """
         pd_df = pd.read_csv(input_path)
         col_map = self._column_map()
