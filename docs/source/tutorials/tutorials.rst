@@ -43,7 +43,7 @@ and intuitive adding data to it.
 .. code-block:: python
 
     from gnss_lib_py.parsers.navdata import NavData
-    
+
     navdata = NavData()
 
 More information on the Measurement class can be found.
@@ -52,6 +52,7 @@ More information on the Measurement class can be found.
    :maxdepth: 1
 
    tutorials_measurement
+   tutorials_measurement_notebook
 
 Parser Tutorials
 ----------------

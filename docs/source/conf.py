@@ -42,7 +42,15 @@ author = 'Ashwin Kanhere, Derek Knowles'
 extensions = [
                 'sphinx.ext.autodoc',
                 'sphinx.ext.napoleon',
+                'nbsphinx',
+                'nbsphinx_link',
 ]
+
+# Specify which files are source files for Sphinx
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # napoleon settings
 napoleon_numpy_docstring = True
@@ -53,7 +61,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
 # autodocs settings to include private members
 autodoc_default_options = {
