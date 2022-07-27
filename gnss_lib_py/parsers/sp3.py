@@ -12,7 +12,7 @@ import numpy as np
 from scipy import interpolate
 
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils.timing import datetime_to_tow
+from gnss_lib_py.utils.time_conversions import datetime_to_tow
 
 class PreciseNav(object):
     """Class that contain satellite data.

@@ -18,27 +18,6 @@ from gnss_lib_py.utils.coordinates import ecef2geodetic
 # processing the measurements
 
 
-def points_in_circum(r, n=100):
-    """Generate uniformly spaced points in a circle
-
-    Parameters
-    ----------
-    r : float
-        Radius of circle
-
-    n : int
-        Number of points to be generated
-
-    Returns
-    -------
-    pts : np.ndarray
-        Generated points
-    """
-    pts = np.array([[np.cos(2*np.pi/n*x)*r,
-                    np.sin(2*np.pi/n*x)*r] for x in range(0, n+1)])
-    return pts
-
-
 def sats_from_el_az(elaz_deg):
     """Generate NED satellite positions at given elevation and azimuth.
 
