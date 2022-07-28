@@ -13,30 +13,9 @@ import pandas as pd
 from numpy.random import default_rng
 
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils.coordinates import ecef2geodetic
+from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
-
-
-def points_in_circum(r, n=100):
-    """Generate uniformly spaced points in a circle
-
-    Parameters
-    ----------
-    r : float
-        Radius of circle
-
-    n : int
-        Number of points to be generated
-
-    Returns
-    -------
-    pts : np.ndarray
-        Generated points
-    """
-    pts = np.array([[np.cos(2*np.pi/n*x)*r,
-                    np.sin(2*np.pi/n*x)*r] for x in range(0, n+1)])
-    return pts
 
 
 def sats_from_el_az(elaz_deg):
@@ -647,7 +626,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     el_r  = np.deg2rad(el_az[:,0])
 
     # Calculate the WGS-84 latitude/longitude of the receiver
-    rx_lla = ecef2geodetic(rx_ecef)
+    rx_lla = ecef_to_geodetic(rx_ecef)
     height = rx_lla[:,2]
 
     # Force height to be positive
@@ -701,7 +680,7 @@ def find_elaz(rx_pos, sv_pos):
         sv_pos = np.reshape(sv_pos,(1,3))
 
     # Convert the receiver location to WGS84
-    rx_lla = ecef2geodetic(rx_pos)
+    rx_lla = ecef_to_geodetic(rx_pos)
     assert np.shape(rx_lla)==(1,3)
 
     # Create variables with the latitude and longitude in radians

@@ -103,7 +103,7 @@ def plot_metric(navdata, metric, save=True, prefix=""):
                     os.path.dirname(
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.mkdir(log_path)
+        fo.make_dir(log_path)
     else:
         figs = []
 
@@ -206,7 +206,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
 
             if m_idx == 0:
                 local_coord = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
-            sv_ned = local_coord.ecef2ned(pos_sv_m[m_idx:m_idx+1,:])[0]
+            sv_ned = local_coord.ecef_to_ned(pos_sv_m[m_idx:m_idx+1,:])[0]
 
             sv_az = np.pi/2.-np.arctan2(sv_ned[0],sv_ned[1])
             xy_dist = np.sqrt(sv_ned[0]**2+sv_ned[1]**2)
@@ -278,7 +278,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
                     os.path.dirname(
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.mkdir(log_path)
+        fo.make_dir(log_path)
         plt_file = os.path.join(log_path,prefix+"_skyplot.png")
 
         fo.save_figure(fig, plt_file)
@@ -323,7 +323,7 @@ def plot_residuals(navdata, save=True, prefix=""):
                     os.path.dirname(
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.mkdir(log_path)
+        fo.make_dir(log_path)
     else:
         figs = []
 

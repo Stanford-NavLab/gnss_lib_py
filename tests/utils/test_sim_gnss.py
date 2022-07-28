@@ -13,11 +13,11 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.utils.coordinates import geodetic2ecef
-import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils import sim_gnss
-from gnss_lib_py.utils.timing import datetime_to_tow
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.parsers.ephemeris import EphemerisManager
+from gnss_lib_py.utils.time_conversions import datetime_to_tow
 
 
 
@@ -39,7 +39,7 @@ def ephem_man():
 def set_rx_ecef():
     """Set receiver positon in Earth-Centered, Earth-Fixed coordinates."""
     rx_lla  = np.reshape([37.427112, -122.1764146, 16], [1, 3])
-    rx_ecef = np.reshape(geodetic2ecef(rx_lla), [3, 1])
+    rx_ecef = np.reshape(geodetic_to_ecef(rx_lla), [3, 1])
     return rx_ecef
 
 def extract_ephem():
