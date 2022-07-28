@@ -30,7 +30,8 @@ class NavData():
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
                  header="infer"):
-        #For a Pythonic implementation, including all attributes as None in the beginning
+        # For a Pythonic implementation,
+        # including all attributes as None in the beginning
         self.arr_dtype = np.float32 # default value
         self.array = None
         self.map = {}
@@ -296,7 +297,8 @@ class NavData():
             if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
                 # Adding string values
                 self.fillna(newvalue)
-                new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+                new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue),
+                                    dtype=self.arr_dtype)
                 new_str_vals = self._str_2_val(new_str_vals, newvalue, key_idx)
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
@@ -339,7 +341,8 @@ class NavData():
                     key = inv_map[row]
                     newvalue_row = newvalue[row_num , :]
                     new_str_vals_row = new_str_vals[row_num, :]
-                    new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row, newvalue_row, key)
+                    new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row,
+                                                    newvalue_row, key)
                 self.array[rows, cols] = new_str_vals
             else:
                 if not isinstance(newvalue, int):
@@ -353,11 +356,14 @@ class NavData():
         Parameters
         ----------
         new_str_vals : np.ndarray
-            Array of dtype=self.arr_dtype where numeric values are to be stored
+            Array of dtype=self.arr_dtype where numeric values are to be
+            stored
         newvalue : np.ndarray
-            Array of dtype=object, containing string values that are to be converted
+            Array of dtype=object, containing string values that are to
+            be converted
         key : string
-            Key indicating row where string to numeric conversion is required
+            Key indicating row where string to numeric conversion is
+            required
         """
         if key in self.map.keys():
             # Key already exists, update existing string value dictionary
@@ -377,12 +383,14 @@ class NavData():
             string_vals = np.unique(newvalue)
             str_dict = dict(enumerate(string_vals))
             self.str_map[key] = str_dict
-            new_str_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+            new_str_vals = len(string_vals)*np.ones(np.shape(newvalue),
+                                                   dtype=self.arr_dtype)
             # Set unassigned value to int not accessed by string map
             for str_key, str_val in str_dict.items():
                 new_str_vals[newvalue==str_val] = str_key
             # Copy set to false to prevent memory overflows
-            new_str_vals = np.round(new_str_vals.astype(self.arr_dtype, copy=False))
+            new_str_vals = np.round(new_str_vals.astype(self.arr_dtype,
+                                                        copy=False))
         return new_str_vals
 
     def add(self, csv_path=None, pandas_df=None, numpy_array=None):
@@ -430,11 +438,13 @@ class NavData():
         key_idx : string/int
             Key or index of the row in which conditions will be checked
         value : float/list
-            Number (or list of two numbers for ) to compare array values against
+            Number (or list of two numbers for ) to compare array values
+            against
         condition : string
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
-            lesser than or equal to ("leq") / in between ("between"))
+            lesser than or equal to ("leq") / in between ("between")
+            inclusive of the provided limits
 
         Returns
         -------
@@ -473,7 +483,8 @@ class NavData():
         inv_map = self.inv_map
         row_list, row_str = self._get_str_rows(rows)
         if len(row_list)>1:
-            raise NotImplementedError("where does not currently support multiple rows")
+            error_msg = "where does not currently support multiple rows"
+            raise NotImplementedError(error_msg)
         row = row_list[0]
         row_str = row_str[0]
         if row_str:
@@ -526,13 +537,16 @@ class NavData():
             NavData with same time, upto given decimal tolerance
         """
         times = self[time_row]
-        times_unique = np.sort(np.unique(np.around(times, decimals=tol_decimals)))
+        times_unique = np.sort(np.unique(np.around(times,
+                                         decimals=tol_decimals)))
         for time_idx, time in enumerate(times_unique):
             if time_idx==0:
                 delta_t = 0
             else:
                 delta_t = times_unique[time_idx]-times_unique[time_idx-1]
-            new_navdata = self.where(time_row, [time-10**(-tol_decimals), time+10**(-tol_decimals)], condition="between")
+            new_navdata = self.where(time_row, [time-10**(-tol_decimals),
+                                                time+10**(-tol_decimals)],
+                                                condition="between")
             yield delta_t, new_navdata
 
     def __iter__(self):
@@ -652,7 +666,8 @@ class NavData():
             if not isinstance(value, str):
                 raise TypeError("Column names must be strings")
             if key not in self.map.keys():
-                raise KeyError("'" + str(key) + "' key doesn't exist in NavData class")
+                raise KeyError("'" + str(key) \
+                               + "' key doesn't exist in NavData class")
 
             self.map[value] = self.map.pop(key)
             self.str_map[value] = self.str_map.pop(key)

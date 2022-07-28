@@ -6,7 +6,6 @@ __authors__ = "A. Kanhere, D. Knowles"
 __date__ = "30 Apr 2022"
 
 
-import csv
 import os
 
 import pytest
@@ -381,8 +380,10 @@ def return_df_rows(request):
     """
     pandas_df = request.param
     names = np.asarray(pandas_df['names'].values, dtype=object)
-    integers = np.reshape(np.asarray(pandas_df['integers'].values, dtype=np.float64), [1, -1])
-    floats = np.reshape(np.asarray(pandas_df['floats'].values, dtype=np.float64), [1, -1])
+    integers = np.reshape(np.asarray(pandas_df['integers'].values,
+                                     dtype=np.float64), [1, -1])
+    floats = np.reshape(np.asarray(pandas_df['floats'].values,
+                                   dtype=np.float64), [1, -1])
     strings = np.asarray(pandas_df['strings'].values, dtype=object)
     return [names, integers, floats, strings]
 
@@ -442,7 +443,9 @@ def fixture_strings(df_rows):
 
 @pytest.fixture(name="int_flt")
 def fixture_int_flt(df_rows):
-    """Return data corresponding to the integers and floats label from the test data
+    """Return data corresponding to the integers and floats.
+
+    Labeled from the test data.
 
     Parameters
     ----------
@@ -520,13 +523,15 @@ def fixture_flt_int_slc(df_rows):
                         [(slice(1, 3, 1), lazy_fixture('int_flt')),
                         (slice(1, 2, 1), lazy_fixture('integers')),
                         ('integers', lazy_fixture('integers')),
-                        (('integers', slice(None, None)), lazy_fixture('integers')),
+                        (('integers', slice(None, None)),
+                          lazy_fixture('integers')),
                         (['integers', 'floats'], lazy_fixture('int_flt')),
                         (('integers', 0), 10.),
                         (('strings', 0), np.asarray([['gps']], dtype=object)),
                         (['names', 'strings'], lazy_fixture('nm_str')),
                         (['strings', 'names'], lazy_fixture('str_nm')),
-                        ((['integers', 'floats'], slice(3, None)), lazy_fixture('flt_int_slc')),
+                        ((['integers', 'floats'], slice(3, None)),
+                           lazy_fixture('flt_int_slc')),
                         (1, lazy_fixture('integers'))
                         ])
 def test_get_item(data, index, exp_value):
@@ -567,7 +572,8 @@ def fixture_new_string():
     new_string : np.ndarray
         String of length 6 to test string assignment
     """
-    new_string = np.asarray(['apple', 'banana', 'cherry', 'date', 'pear', 'lime'], dtype=object)
+    new_string = np.asarray(['apple', 'banana', 'cherry',
+                             'date', 'pear', 'lime'], dtype=object)
     return new_string
 
 
@@ -615,12 +621,17 @@ def fixture_subsect_str_list(subset_str):
                         ('new_key_1d', np.ones(6), np.ones([1,6])),
                         ('new_key_2d_row', np.ones([1,6]), np.ones([1,6])),
                         ('new_key_2d_col', np.ones([6,1]), np.ones([1,6])),
-                        ('new_str_key', lazy_fixture('new_string'), lazy_fixture('new_str_list')),
+                        ('new_str_key', lazy_fixture('new_string'),
+                         lazy_fixture('new_str_list')),
                         ('integers', 0, np.zeros([1,6])),
                         (1, 7, 7*np.ones([1,6])),
-                        ('names', lazy_fixture('new_string'), lazy_fixture('new_str_list')),
-                        ((['integers', 'floats'], slice(1, 4)), -10, -10*np.ones([2,3])),
-                        (('strings', slice(2, 5)), lazy_fixture('subset_str'), lazy_fixture('subset_str_list')),
+                        ('names', lazy_fixture('new_string'),
+                         lazy_fixture('new_str_list')),
+                        ((['integers', 'floats'], slice(1, 4)), -10,
+                         -10*np.ones([2,3])),
+                        (('strings', slice(2, 5)),
+                         lazy_fixture('subset_str'),
+                         lazy_fixture('subset_str_list')),
                         ])
 def test_set_get_item(data, index, new_value, exp_value):
     """Test if assigned values match expected values on getting again
@@ -649,7 +660,7 @@ def test_wrong_init_set(data, row_idx):
 
 @pytest.fixture(name='add_array')
 def fixture_add_array():
-    """Array to be added as additional timesteps to NavData from np.ndarray
+    """Array added as additional timesteps to NavData from np.ndarray
 
     Returns
     -------
@@ -698,7 +709,8 @@ def test_add_numpy_1d():
     """
     data = NavData(numpy_array=np.zeros([1,6]))
     data.add(numpy_array=np.ones(8))
-    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]), np.ones([1, 8]))))
+    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]),
+                                  np.ones([1, 8]))))
 
     # test adding to empty NavData
     data_empty = NavData()
@@ -711,9 +723,12 @@ def test_add_csv(df_simple, csv_simple):
     data.add(csv_path=csv_simple)
     data_df = data.pandas_df()
     # Set up dataframe for comparison
-    df_types = {'names': object, 'integers': np.float64, 'floats': np.float64, 'strings': object}
-    expected_df = pd.concat((df_simple, df_simple)).reset_index(drop=True).astype(df_types)
-    pd.testing.assert_frame_equal(data_df, expected_df, check_index_type=False)
+    df_types = {'names': object, 'integers': np.float64,
+                'floats': np.float64, 'strings': object}
+    expected_df = pd.concat((df_simple,df_simple)).reset_index(drop=True)
+    expected_df = expected_df.astype(df_types)
+    pd.testing.assert_frame_equal(data_df, expected_df,
+                                  check_index_type=False)
 
     # test adding to empty NavData
     data_empty = NavData()
@@ -737,7 +752,8 @@ def test_add_pandas_df(df_simple, add_df):
     new_df = data.pandas_df()
     add_row_num = add_df.shape[0]
     subset_df = new_df.iloc[-add_row_num:, :].reset_index(drop=True)
-    pd.testing.assert_frame_equal(subset_df, add_df, check_index_type=False)
+    pd.testing.assert_frame_equal(subset_df, add_df,
+                                  check_index_type=False)
 
     # test adding to empty NavData
     data_empty = NavData()
@@ -748,7 +764,8 @@ def test_add_pandas_df(df_simple, add_df):
 @pytest.mark.parametrize("rows",
                         [None,
                         ['names', 'integers', 'floats', 'strings'],
-                        np.asarray(['names', 'integers', 'floats', 'strings'], dtype=object),
+                        np.asarray(['names', 'integers', 'floats',
+                                    'strings'], dtype=object),
                         ['names', 'integers'],
                         np.asarray(['names', 'integers'], dtype=object),
                         [0, 1]
@@ -923,7 +940,8 @@ def test_time_looping(csv_simple):
             row_num = [4,5]
         small_df = measure.pandas_df().reset_index(drop=True)
         expected_df = compare_df.iloc[row_num, :].reset_index(drop=True)
-        pd.testing.assert_frame_equal(small_df, expected_df, check_index_type=False)
+        pd.testing.assert_frame_equal(small_df, expected_df,
+                                      check_index_type=False)
         count += 1
 
 
@@ -942,4 +960,5 @@ def test_col_looping(csv_simple):
         expected_df = compare_df.iloc[[idx], :].reset_index(drop=True)
         print(col_df)
         print(expected_df)
-        pd.testing.assert_frame_equal(col_df, expected_df, check_index_type=False)
+        pd.testing.assert_frame_equal(col_df, expected_df,
+                                      check_index_type=False)

@@ -55,12 +55,16 @@ def fixture_local_reference(local_lla):
     return local_frame
 
 @pytest.mark.parametrize("lla, exp_ecef",
-                        [(np.array([[37.427112], [-122.1764146], [16]]), np.array([[-2700628], [-4292443], [3855152]])),
-                        (np.array([[51.4934], [0], [0]]), np.array([[3979223], [0], [4967905]])),
-                        (np.array([[0], [0], [0]]), np.array([[6378137],[0], [0]])),
-                        (np.array([[0], [-122.1764146], [0]]), np.array([[-3396535], [-5398534], [0]]))
+                        [(np.array([[37.427112], [-122.1764146], [16]]),
+                          np.array([[-2700628], [-4292443], [3855152]])),
+                         (np.array([[51.4934], [0], [0]]),
+                          np.array([[3979223], [0], [4967905]])),
+                        (np.array([[0], [0], [0]]),
+                         np.array([[6378137],[0], [0]])),
+                        (np.array([[0], [-122.1764146], [0]]),
+                         np.array([[-3396535], [-5398534], [0]]))
                         ])
-def test_geodetic2ecef(lla, exp_ecef):
+def test_geodetic_to_ecef(lla, exp_ecef):
     """Test LLA (in WGS-84 reference ellipsoid) to ECEF conversion
 
     Parameters
@@ -78,10 +82,14 @@ def test_geodetic2ecef(lla, exp_ecef):
     np.testing.assert_array_almost_equal(lla, lla_back, decimal=2)
 
 @pytest.mark.parametrize("ecef, exp_lla",
-                        [(np.array([[100], [100], [6356752.31424518]]), np.array([[89.9987], [45], [0]])),
-                        (np.array([[-2700628.97971166], [-4292443.61165747], [3855152.80233124]]), np.array([[37.4271], [-122.1764], [16]])),
-                        (np.array([[6378137], [0], [0]]), np.array([[0], [0], [0]])),
-                        (np.array([[0], [6378137], [0]]), np.array([[0], [90], [0]]))
+                        [(np.array([[100], [100], [6356752.31424518]]),
+                          np.array([[89.9987], [45], [0]])),
+                        (np.array([[-2700628.97971166], [-4292443.61165747], [3855152.80233124]]),
+                         np.array([[37.4271], [-122.1764], [16]])),
+                        (np.array([[6378137], [0], [0]]),
+                         np.array([[0], [0], [0]])),
+                        (np.array([[0], [6378137], [0]]),
+                         np.array([[0], [90], [0]]))
                         ])
 def test_ecef2geodetic(ecef, exp_lla):
     """Test ECEF to LLA (in WGS-84 reference ellipsoid) conversion
@@ -122,11 +130,16 @@ def test_local_frame(local_ecef, local_lla):
                                         local_frame_lla_t.ned_to_ecef_matrix)
 
 @pytest.mark.parametrize("ned, exp_ecef",
-                        [(np.array([[100], [0], [0]]), np.array([[-2700596], [-4292392], [3855232]])),
-                        (np.array([[0], [100], [0]]), np.array([[-2700544], [-4292496], [3855152]])),
-                        (np.array([[0], [0], [100]]), np.array([[-2700586], [-4292376], [3855092]])),
-                        (np.array([[0], [0], [0]]), np.array([[-2700628], [-4292443], [3855152]])),
-                        (np.array([[100], [100], [100]]), np.array([[-2700469], [-4292378], [3855171]]))
+                        [(np.array([[100], [0], [0]]),
+                          np.array([[-2700596], [-4292392], [3855232]])),
+                        (np.array([[0], [100], [0]]),
+                         np.array([[-2700544], [-4292496], [3855152]])),
+                        (np.array([[0], [0], [100]]),
+                         np.array([[-2700586], [-4292376], [3855092]])),
+                        (np.array([[0], [0], [0]]),
+                         np.array([[-2700628], [-4292443], [3855152]])),
+                        (np.array([[100], [100], [100]]),
+                         np.array([[-2700469], [-4292378], [3855171]]))
                         ])
 def test_ned_conversions(local_frame, ned, exp_ecef):
     """Test NED to ECEF position conversions (and ECEF to NED for same values)
@@ -151,11 +164,16 @@ def test_ned_conversions(local_frame, ned, exp_ecef):
 
 
 @pytest.mark.parametrize("nedv, exp_ecefv",
-                        [(np.array([[100], [0], [0]]), np.array([[32.36], [51.44], [79.41]])),
-                        (np.array([[0], [100], [0]]), np.array([[84.64], [-53.25], [0]])),
-                        (np.array([[0], [0], [100]]), np.array([[42.28], [67.21], [-60.77]])),
-                        (np.array([[0], [0], [0]]), np.array([[0], [0], [0]])),
-                        (np.array([[100], [100], [100]]), np.array([[159.29], [65.40], [18.63]]))
+                        [(np.array([[100], [0], [0]]),
+                          np.array([[32.36], [51.44], [79.41]])),
+                        (np.array([[0], [100], [0]]),
+                         np.array([[84.64], [-53.25], [0]])),
+                        (np.array([[0], [0], [100]]),
+                         np.array([[42.28], [67.21], [-60.77]])),
+                        (np.array([[0], [0], [0]]),
+                         np.array([[0], [0], [0]])),
+                        (np.array([[100], [100], [100]]),
+                         np.array([[159.29], [65.40], [18.63]]))
                         ])
 def test_ned_vector_conversions(local_frame, nedv, exp_ecefv):
     """Test NED to ECEF conversions for vectors (and ECEF to NED for same values)
@@ -197,10 +215,3 @@ def test_geodetic_to_ned(local_frame):
     lla_back_t = local_frame.ned_to_geodetic(ned.T)
     np.testing.assert_array_almost_equal(lla_back, lla, decimal=0)
     np.testing.assert_array_almost_equal(lla_back, lla_back_t.T)
-
-
-
-
-
-
-
