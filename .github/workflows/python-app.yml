@@ -52,7 +52,7 @@ jobs:
       run: sudo apt install pandoc
     - name: Install pandoc for Windows
       if: matrix.os == 'windows-latest'
-      run: choco install pandoc
+      run: choco install pandoc --no-progress
     - name: Install pandoc for MacOS
       if: matrix.os == 'macos-latest'
       run: brew install pandoc
