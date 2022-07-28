@@ -8,42 +8,15 @@ gnss_lib_py
 
 .. _mainpage:
 
-:code:`gnss_lib_py` is a modular tool for parsing, analyzing, and
-visualizing Global Navigation Satellite Systems (GNSS) data.
-It also provides an intuitive framework allowing users to quickly
-prototype, implement, and visualize GNSS algorithms.
-:code:`gnss_lib_py` is modular in the sense that multiple types of
-algorithms can be easily exchanged for each other and extendable in
-facilitating user-specific extensions of existing implementations.
+This project is a modular tool for parsing, analyzing, and visualizing
+Global Navigation Satellite Systems (GNSS) data.
 
-.. image:: img/skyplot.png
-  :width: 400
-  :alt: skyplot of GNSS movement over time
-
-The data parers in the :code:`parsers` directory allow for loading
-GNSS data from the following sources into the
-:code:`gnss_lib_py`'s unifying :code:`Measurement` class:
+This project allows you to load GNSS data from the following file types:
 
     * rinex
     * nmea
     * sp3
-    * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
-
-The following algorithms are implemented in the :code:`algorithms`
-directory and work by passing in a :code:`Measurement` class.
-
-    * Weighted Least Squares
-    * Extended Kalman Filter using only GNSS measurements
-    * Calculating pseudorange residuals
-
-The following data visualization tools are available in the
-:code:`utils` directory:
-
-    * Skyplot: showing the movement of GNSS satellites during the
-      elapsed time of the provided :code:`Measurement` class.
-    * Metric plotting: allows you to plot a specific array of data
-      from the :code:`Measurement` class
-    * Residual plotting: specifically optimized for plotting residuals.
+    * `Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
 
 Installation
 ++++++++++++
@@ -78,10 +51,10 @@ this project in your own work please cite the following:
 
 .. code-block:: bash
 
-    @misc{knowles_2022
-    author = "Derek Knowles, Ashwin Kanhere and Grace Gao",
-    title = "A Modular and Extendable GNSS Python Library",
-    institution = "Stanford University",
+    @misc{kanhere_2022
+    author = "A. Kanhere and D. Knowles",
+    title = "gnss_lib_py",
+    institution = "Stanford University"
     year = "2022 [Online]",
     url = "https://github.com/Stanford-NavLab/gnss_lib_py",
     }
@@ -94,7 +67,7 @@ Additionaly, we would like to thank `all contributors <https://github.com/Stanfo
    :hidden:
 
    install
-   tutorials/tutorials.rst
-   reference/reference.rst
+   tutorials
    contributing/contributing.rst
+   reference/reference.rst
    troubleshooting

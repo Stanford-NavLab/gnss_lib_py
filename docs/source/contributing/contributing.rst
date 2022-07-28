@@ -50,7 +50,7 @@ guide on how to write and build documentation.
    development
    testing
    documentation
-   :maxdepth: 2
+   :maxdepth: 1
 
 Note
 ----
