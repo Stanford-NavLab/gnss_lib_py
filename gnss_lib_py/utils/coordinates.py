@@ -34,7 +34,9 @@ import numpy as np
 
 import gnss_lib_py.utils.constants as consts
 
-def geodetic2ecef(geodetic, radians=False):
+EPSILON = 1e-7
+
+def geodetic_to_ecef(geodetic, radians=False):
     """LLA to ECEF conversion.
 
     Parameters
@@ -55,26 +57,33 @@ def geodetic2ecef(geodetic, radians=False):
 
     """
 
+    ratio = 1.0 if radians else (np.pi / 180.0)
     geodetic = np.array(geodetic)
     input_shape = geodetic.shape
     geodetic = np.atleast_2d(geodetic)
-
-    ratio = 1.0 if radians else (np.pi / 180.0)
-    lat = ratio*geodetic[:,0]
-    lon = ratio*geodetic[:,1]
-    alt = geodetic[:,2]
-
+    if input_shape[0]==3:
+        lat = ratio*geodetic[0,:]
+        lon = ratio*geodetic[1,:]
+        alt = geodetic[2,:]
+    elif input_shape[1]==3:
+        lat = ratio*geodetic[:,0]
+        lon = ratio*geodetic[:,1]
+        alt = geodetic[:,2]
+    else:  # pragma: no cover
+        raise ValueError('geodetic is incorrect shape ', geodetic.shape,
+                        ' should be (N,3) or (3,N)')
     xi = np.sqrt(1 - consts.E1SQ * np.sin(lat)**2)
     x = (consts.A / xi + alt) * np.cos(lat) * np.cos(lon)
     y = (consts.A / xi + alt) * np.cos(lat) * np.sin(lon)
     z = (consts.A / xi * (1 - consts.E1SQ) + alt) * np.sin(lat)
     ecef = np.array([x, y, z]).T
-    ecef = np.reshape(ecef, input_shape)
+    if input_shape[0]==3:
+        ecef = ecef.T
     return ecef
 
 
-def ecef2geodetic(ecef, radians=False):
-    """ECEF to LLA conversion using Ferrari's method
+def ecef_to_geodetic(ecef, radians=False):
+    """ECEF to LLA conversion using Ferrari's method.
 
     Parameters
     ----------
@@ -94,36 +103,41 @@ def ecef2geodetic(ecef, radians=False):
 
     """
 
-    ecef = np.atleast_1d(ecef)
-    input_shape = ecef.shape
     ecef = np.atleast_2d(ecef)
-    x, y, z = ecef[:, 0], ecef[:, 1], ecef[:, 2]
-
+    ecef = ecef.astype(np.float64)
+    input_shape = ecef.shape
+    if input_shape[0]==3:
+        x_ecef, y_ecef, z_ecef = ecef[0, :], ecef[1, :], ecef[2, :]
+    elif input_shape[1]==3:
+        x_ecef, y_ecef, z_ecef = ecef[:, 0], ecef[:, 1], ecef[:, 2]
+    else:  # pragma: no cover
+        raise ValueError('Input ECEF vector has incorrect shape ', ecef.shape,
+                        ' should be (N,3) or (3,N)')
     ratio = 1.0 if radians else (180.0 / np.pi)
 
     # Convert from ECEF to geodetic using Ferrari's methods
     # https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#Ferrari.27s_solution
-    r = np.sqrt(x * x + y * y)
+    r = np.sqrt(x_ecef * x_ecef + y_ecef * y_ecef)
     E1SQ = consts.A * consts.A - consts.B * consts.B
-    F = 54 * consts.B * consts.B * z * z
-    G = r * r + (1 - consts.E1SQ) * z * z - consts.E1SQ * E1SQ
+    F = 54 * consts.B * consts.B * z_ecef * z_ecef
+    G = r * r + (1 - consts.E1SQ) * z_ecef * z_ecef - consts.E1SQ * E1SQ
     C = (consts.E1SQ * consts.E1SQ * F * r * r) / (pow(G, 3))
-    S = np.cbrt(1 + C + np.sqrt(C * C + 2 * C))
+    S = np.cbrt(1 + C + np.sqrt(C * C + 2 * C + EPSILON))
     P = F / (3 * pow((S + 1 / S + 1), 2) * G * G)
     Q = np.sqrt(1 + 2 * consts.E1SQ * consts.E1SQ * P)
     r_0 =  -(P * consts.E1SQ * r) / (1 + Q) + np.sqrt(0.5 * consts.A * consts.A*(1 + 1.0 / Q) - \
-          P * (1 - consts.E1SQ) * z * z / (Q * (1 + Q)) - 0.5 * P * r * r)
-    U = np.sqrt(pow((r - consts.E1SQ * r_0), 2) + z * z)
-    V = np.sqrt(pow((r - consts.E1SQ * r_0), 2) + (1 - consts.E1SQ) * z * z)
-    Z_0 = consts.B * consts.B * z / (consts.A * V)
-    h = U * (1 - consts.B * consts.B / (consts.A * V))
-    lat = ratio*np.arctan((z + consts.E2SQ * Z_0) / r)
-    lon = ratio*np.arctan2(y, x)
-
+          P * (1 - consts.E1SQ) * z_ecef * z_ecef / (Q * (1 + Q)) - 0.5 * P * r * r)
+    U = np.sqrt(pow((r - consts.E1SQ * r_0), 2) + z_ecef * z_ecef)
+    V = np.sqrt(pow((r - consts.E1SQ * r_0), 2) + (1 - consts.E1SQ) * z_ecef * z_ecef)
+    Z_0 = consts.B * consts.B * z_ecef / (consts.A * V)
+    h = U * (1 - consts.B * consts.B / ((consts.A * V)))
+    lat = ratio*np.arctan((z_ecef + consts.E2SQ * Z_0) / (r))
+    lon = ratio*np.arctan2(y_ecef, x_ecef)
     # stack the new columns and return to the original shape
     geodetic = np.column_stack((lat, lon, h))
-    geodetic = np.reshape(geodetic, input_shape)
-    return geodetic.reshape(input_shape)
+    if input_shape[0]==3:
+        geodetic = np.row_stack((lat, lon, h))
+    return geodetic
 
 class LocalCoord(object):
     """Class for conversions to NED (North-East-Down).
@@ -132,9 +146,9 @@ class LocalCoord(object):
     ----------
     init_ecef : np.ndarray
         ECEF of origin of NED.
-    ned2ecef_matrix : np.ndarray
+    ned_to_ecef_matrix : np.ndarray
         Rotation matrix to convert from NED to ECEF.
-    ecef2ned_matrix : np.ndarray
+    ecef_to_ned_matrix : np.ndarray
         Rotation matrix to convert from ECEF to NED.
 
     Notes
@@ -144,13 +158,20 @@ class LocalCoord(object):
     """
 
     def __init__(self, init_geodetic, init_ecef):
-        #TODO: Add documentation for the __init__
         self.init_ecef = init_ecef
-        lat, lon, _ = (np.pi/180)*np.array(init_geodetic)
-        self.ned2ecef_matrix = np.array([[-np.sin(lat)*np.cos(lon), -np.sin(lon), -np.cos(lat)*np.cos(lon)],
-                                         [-np.sin(lat)*np.sin(lon), np.cos(lon), -np.cos(lat)*np.sin(lon)],
-                                         [np.cos(lat), 0, -np.sin(lat)]])
-        self.ecef2ned_matrix = self.ned2ecef_matrix.T
+        if init_geodetic.shape[0]==3:
+            lat = (np.pi/180.)*init_geodetic[0, 0]
+            lon = (np.pi/180.)*init_geodetic[1, 0]
+        elif init_geodetic.shape[1]==3:
+            lat = (np.pi/180.)*init_geodetic[0, 0]
+            lon = (np.pi/180.)*init_geodetic[0, 1]
+        else:  # pragma: no cover
+            raise ValueError('init_geodetic has incorrect size', len(init_geodetic),
+                            ' must be of size 3')
+        self.ned_to_ecef_matrix = np.array([[-np.sin(lat)*np.cos(lon), -np.sin(lon), -np.cos(lat)*np.cos(lon)],
+                                            [-np.sin(lat)*np.sin(lon), np.cos(lon), -np.cos(lat)*np.sin(lon)],
+                                            [np.cos(lat), 0, -np.sin(lat)]])
+        self.ecef_to_ned_matrix = self.ned_to_ecef_matrix.T
 
     @classmethod
     def from_geodetic(cls, init_geodetic):
@@ -172,7 +193,7 @@ class LocalCoord(object):
 
         """
 
-        init_ecef = geodetic2ecef(init_geodetic)
+        init_ecef = geodetic_to_ecef(init_geodetic)
         local_coord = LocalCoord(init_geodetic, init_ecef)
         return local_coord
 
@@ -196,11 +217,11 @@ class LocalCoord(object):
 
         """
 
-        init_geodetic = ecef2geodetic(init_ecef)
+        init_geodetic = ecef_to_geodetic(init_ecef)
         local_coord = LocalCoord(init_geodetic, init_ecef)
         return local_coord
 
-    def ecef2ned(self, ecef):
+    def ecef_to_ned(self, ecef):
         """Convert ECEF position vectors to NED position vectors.
 
         Parameters
@@ -223,13 +244,13 @@ class LocalCoord(object):
         # Convert to column vectors for calculation before returning in the same shape as the input
         input_shape = ecef.shape
         if input_shape[0] == 3:
-            ned =  np.matmul(self.ecef2ned_matrix, (ecef - np.reshape(self.init_ecef, [3, -1])))
+            ned =  np.matmul(self.ecef_to_ned_matrix, (ecef - np.reshape(self.init_ecef, [3, -1])))
         elif input_shape[1]==3:
-            ned = np.matmul(self.ecef2ned_matrix, (ecef.T - np.reshape(self.init_ecef, [3, -1])))
-        ned = np.reshape(ned, input_shape)
+            ned = np.matmul(self.ecef_to_ned_matrix, (ecef.T - np.reshape(self.init_ecef, [3, -1])))
+            ned = np.transpose(ned)
         return ned
 
-    def ecef2nedv(self, ecef):
+    def ecef_to_nedv(self, ecef):
         """Convert ECEF free vectors to NED free vectors.
 
         Parameters
@@ -252,13 +273,13 @@ class LocalCoord(object):
         # Convert to column vectors for calculation before returning in the same shape as the input
         input_shape = ecef.shape
         if input_shape[0] == 3:
-            ned =  np.matmul(self.ecef2ned_matrix, ecef)
+            ned =  np.matmul(self.ecef_to_ned_matrix, ecef)
         elif input_shape[1]==3:
-            ned = np.matmul(self.ecef2ned_matrix, ecef.T)
-        ned = np.reshape(ned, input_shape)
+            ned = np.matmul(self.ecef_to_ned_matrix, ecef.T)
+            ned = ned.T
         return ned
 
-    def ned2ecef(self, ned):
+    def ned_to_ecef(self, ned):
         """Convert NED position vectors to ECEF position vectors.
 
         Parameters
@@ -281,13 +302,13 @@ class LocalCoord(object):
         # Convert to column vectors for calculation before returning in the same shape as the input
         input_shape = ned.shape
         if input_shape[0] == 3:
-            ecef =  np.matmul(self.ned2ecef_matrix, ned) + np.reshape(self.init_ecef, [3, -1])
-            return ecef
+            ecef =  np.matmul(self.ned_to_ecef_matrix, ned) + np.reshape(self.init_ecef, [3, -1])
         elif input_shape[1]==3:
-            ecef = np.matmul(self.ned2ecef_matrix, ned.T) + np.reshape(self.init_ecef, [3, -1])
-            return ecef.T
+            ecef = np.matmul(self.ned_to_ecef_matrix, ned.T) + np.reshape(self.init_ecef, [3, -1])
+            ecef = ecef.T
+        return ecef
 
-    def ned2ecefv(self, ned):
+    def ned_to_ecefv(self, ned):
         """Convert NED free vectors to ECEF free vectors.
 
         Parameters
@@ -310,13 +331,13 @@ class LocalCoord(object):
         # Convert to column vectors for calculation before returning in the same shape as the input
         input_shape = ned.shape
         if input_shape[0] == 3:
-            ecef =  np.matmul(self.ned2ecef_matrix, ned)
-            return ecef
+            ecef =  np.matmul(self.ned_to_ecef_matrix, ned)
         elif input_shape[1]==3:
-            ecef = np.matmul(self.ned2ecef_matrix, ned.T)
-            return ecef.T
+            ecef = np.matmul(self.ned_to_ecef_matrix, ned.T)
+            ecef = ecef.T
+        return ecef
 
-    def geodetic2ned(self, geodetic):
+    def geodetic_to_ned(self, geodetic):
         """Convert geodetic position vectors to NED position vectors.
 
         Parameters
@@ -335,11 +356,11 @@ class LocalCoord(object):
 
         """
 
-        ecef = geodetic2ecef(geodetic)
-        ned = self.ecef2ned(ecef)
+        ecef = geodetic_to_ecef(geodetic)
+        ned = self.ecef_to_ned(ecef)
         return ned
 
-    def ned2geodetic(self, ned):
+    def ned_to_geodetic(self, ned):
         """Convert geodetic position vectors to NED position vectors.
 
         Parameters
@@ -358,6 +379,6 @@ class LocalCoord(object):
 
         """
 
-        ecef = self.ned2ecef(ned)
-        geodetic = ecef2geodetic(ecef)
+        ecef = self.ned_to_ecef(ned)
+        geodetic = ecef_to_geodetic(ecef)
         return geodetic

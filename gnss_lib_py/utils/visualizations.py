@@ -206,7 +206,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
 
             if m_idx == 0:
                 local_coord = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
-            sv_ned = local_coord.ecef2ned(pos_sv_m[m_idx:m_idx+1,:])[0]
+            sv_ned = local_coord.ecef_to_ned(pos_sv_m[m_idx:m_idx+1,:])[0]
 
             sv_az = np.pi/2.-np.arctan2(sv_ned[0],sv_ned[1])
             xy_dist = np.sqrt(sv_ned[0]**2+sv_ned[1]**2)

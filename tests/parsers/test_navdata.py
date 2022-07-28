@@ -380,8 +380,10 @@ def return_df_rows(request):
     """
     pandas_df = request.param
     names = np.asarray(pandas_df['names'].values, dtype=object)
-    integers = np.reshape(np.asarray(pandas_df['integers'].values, dtype=np.float64), [1, -1])
-    floats = np.reshape(np.asarray(pandas_df['floats'].values, dtype=np.float64), [1, -1])
+    integers = np.reshape(np.asarray(pandas_df['integers'].values,
+                                     dtype=np.float64), [1, -1])
+    floats = np.reshape(np.asarray(pandas_df['floats'].values,
+                                   dtype=np.float64), [1, -1])
     strings = np.asarray(pandas_df['strings'].values, dtype=object)
     return [names, integers, floats, strings]
 
@@ -441,7 +443,9 @@ def fixture_strings(df_rows):
 
 @pytest.fixture(name="int_flt")
 def fixture_int_flt(df_rows):
-    """Return data corresponding to the integers and floats label from the test data
+    """Return data corresponding to the integers and floats.
+
+    Labeled from the test data.
 
     Parameters
     ----------
@@ -519,13 +523,15 @@ def fixture_flt_int_slc(df_rows):
                         [(slice(1, 3, 1), lazy_fixture('int_flt')),
                         (slice(1, 2, 1), lazy_fixture('integers')),
                         ('integers', lazy_fixture('integers')),
-                        (('integers', slice(None, None)), lazy_fixture('integers')),
+                        (('integers', slice(None, None)),
+                          lazy_fixture('integers')),
                         (['integers', 'floats'], lazy_fixture('int_flt')),
                         (('integers', 0), 10.),
                         (('strings', 0), np.asarray([['gps']], dtype=object)),
                         (['names', 'strings'], lazy_fixture('nm_str')),
                         (['strings', 'names'], lazy_fixture('str_nm')),
-                        ((['integers', 'floats'], slice(3, None)), lazy_fixture('flt_int_slc')),
+                        ((['integers', 'floats'], slice(3, None)),
+                           lazy_fixture('flt_int_slc')),
                         (1, lazy_fixture('integers'))
                         ])
 def test_get_item(data, index, exp_value):
@@ -566,7 +572,8 @@ def fixture_new_string():
     new_string : np.ndarray
         String of length 6 to test string assignment
     """
-    new_string = np.asarray(['apple', 'banana', 'cherry', 'date', 'pear', 'lime'], dtype=object)
+    new_string = np.asarray(['apple', 'banana', 'cherry',
+                             'date', 'pear', 'lime'], dtype=object)
     return new_string
 
 
@@ -614,12 +621,17 @@ def fixture_subsect_str_list(subset_str):
                         ('new_key_1d', np.ones(6), np.ones([1,6])),
                         ('new_key_2d_row', np.ones([1,6]), np.ones([1,6])),
                         ('new_key_2d_col', np.ones([6,1]), np.ones([1,6])),
-                        ('new_str_key', lazy_fixture('new_string'), lazy_fixture('new_str_list')),
+                        ('new_str_key', lazy_fixture('new_string'),
+                         lazy_fixture('new_str_list')),
                         ('integers', 0, np.zeros([1,6])),
                         (1, 7, 7*np.ones([1,6])),
-                        ('names', lazy_fixture('new_string'), lazy_fixture('new_str_list')),
-                        ((['integers', 'floats'], slice(1, 4)), -10, -10*np.ones([2,3])),
-                        (('strings', slice(2, 5)), lazy_fixture('subset_str'), lazy_fixture('subset_str_list')),
+                        ('names', lazy_fixture('new_string'),
+                         lazy_fixture('new_str_list')),
+                        ((['integers', 'floats'], slice(1, 4)), -10,
+                         -10*np.ones([2,3])),
+                        (('strings', slice(2, 5)),
+                         lazy_fixture('subset_str'),
+                         lazy_fixture('subset_str_list')),
                         ])
 def test_set_get_item(data, index, new_value, exp_value):
     """Test if assigned values match expected values on getting again
@@ -648,7 +660,7 @@ def test_wrong_init_set(data, row_idx):
 
 @pytest.fixture(name='add_array')
 def fixture_add_array():
-    """Array to be added as additional timesteps to NavData from np.ndarray
+    """Array added as additional timesteps to NavData from np.ndarray
 
     Returns
     -------
@@ -692,6 +704,39 @@ def test_add_numpy(numpy_array, add_array):
     np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
 
 
+def test_add_numpy_1d():
+    """Test addition of a 1D numpy array to NavData with single row
+    """
+    data = NavData(numpy_array=np.zeros([1,6]))
+    data.add(numpy_array=np.ones(8))
+    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]),
+                                  np.ones([1, 8]))))
+
+    # test adding to empty NavData
+    data_empty = NavData()
+    data_empty.add(numpy_array=np.ones((8,8)))
+    np.testing.assert_array_equal(data_empty[:,:],np.ones((8,8)))
+
+def test_add_csv(df_simple, csv_simple):
+    # Create and add to NavData
+    data = NavData(csv_path=csv_simple)
+    data.add(csv_path=csv_simple)
+    data_df = data.pandas_df()
+    # Set up dataframe for comparison
+    df_types = {'names': object, 'integers': np.float64,
+                'floats': np.float64, 'strings': object}
+    expected_df = pd.concat((df_simple,df_simple)).reset_index(drop=True)
+    expected_df = expected_df.astype(df_types)
+    pd.testing.assert_frame_equal(data_df, expected_df,
+                                  check_index_type=False)
+
+    # test adding to empty NavData
+    data_empty = NavData()
+    data_empty.add(csv_path=csv_simple)
+    pd.testing.assert_frame_equal(data_empty.pandas_df(),
+                                  df_simple.astype(df_types),
+                                  check_index_type=False)
+
 def test_add_pandas_df(df_simple, add_df):
     """Test addition of a pd.DataFrame to NavData
 
@@ -707,13 +752,20 @@ def test_add_pandas_df(df_simple, add_df):
     new_df = data.pandas_df()
     add_row_num = add_df.shape[0]
     subset_df = new_df.iloc[-add_row_num:, :].reset_index(drop=True)
-    pd.testing.assert_frame_equal(subset_df, add_df, check_index_type=False)
+    pd.testing.assert_frame_equal(subset_df, add_df,
+                                  check_index_type=False)
 
+    # test adding to empty NavData
+    data_empty = NavData()
+    data_empty.add(pandas_df=add_df)
+    pd.testing.assert_frame_equal(add_df, data_empty.pandas_df(),
+                                  check_index_type=False)
 
 @pytest.mark.parametrize("rows",
                         [None,
                         ['names', 'integers', 'floats', 'strings'],
-                        np.asarray(['names', 'integers', 'floats', 'strings'], dtype=object),
+                        np.asarray(['names', 'integers', 'floats',
+                                    'strings'], dtype=object),
                         ['names', 'integers'],
                         np.asarray(['names', 'integers'], dtype=object),
                         [0, 1]
@@ -725,7 +777,7 @@ def test_add_pandas_df(df_simple, add_df):
                         [0,1],
                         np.asarray([0,1])
                         ])
-def test_copy_measurement(data, df_simple, rows, cols):
+def test_copy_navdata(data, df_simple, rows, cols):
     """Test methods to subsets and copies of NavData instance
 
     Parameters
@@ -764,8 +816,8 @@ def test_copy_measurement(data, df_simple, rows, cols):
                         [0,1],
                         np.asarray([0,1])
                         ])
-def test_remove_measurement(data, df_simple, rows, cols):
-    """Test method to remove rows and columns from measurement
+def test_remove_navdata(data, df_simple, rows, cols):
+    """Test method to remove rows and columns from navdata
 
     Parameters
     ----------
@@ -803,3 +855,110 @@ def test_remove_measurement(data, df_simple, rows, cols):
 
     subset_df = subset_df.reset_index(drop=True)
     pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
+
+
+def test_where_str(csv_simple):
+    """Testing implementation of NavData.where for string values
+
+    Parameters
+    ----------
+    csv_simple : str
+        Path to csv file used to create NavData
+    """
+    data = NavData(csv_path=csv_simple)
+    data_small = data.where('strings', 'gps')
+    compare_df = data.pandas_df()
+    compare_df = compare_df[compare_df['strings']=="gps"].reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
+
+
+def test_where_numbers(csv_simple):
+    """Testing implementation of NavData.where for numeric values
+
+    Parameters
+    ----------
+    csv_simple : str
+        Path to csv file used to create NavData
+    """
+    data = NavData(csv_path=csv_simple)
+    conditions = ["eq", "leq", "geq", "greater", "lesser", "between"]
+    values = [98, 10, 250, 67, 45, [30, 80]]
+    pd_rows = [[4], [0,1], [5], [4, 5], [0, 1], [2, 3]]
+    for idx, condition in enumerate(conditions):
+        data_small = data.where("integers", values[idx], condition=condition)
+        compare_df = data.pandas_df()
+        compare_df = compare_df.iloc[pd_rows[idx], :].reset_index(drop=True)
+        pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
+
+
+def test_where_errors(csv_simple):
+    """Testing error cases for NavData.where
+
+    Parameters
+    ----------
+    csv_simple : str
+        Path to csv file used to create NavData
+    """
+    data = NavData(csv_path=csv_simple)
+    # Test where with multiple rows
+    with pytest.raises(NotImplementedError):
+        _ = data.where(["integers", "floats"], 10, condition="leq")
+    # Test non-equality condition with strings
+    with pytest.raises(ValueError):
+        _ = data.where("names", "ab", condition="leq")
+    with pytest.raises(ValueError):
+        _ = data.where("integers", 10, condition="eq_sqrt")
+
+    # Test condition that is not defined
+
+
+def test_time_looping(csv_simple):
+    """Testing implementation to loop over times
+
+    Parameters
+    ----------
+    csv_simple : str
+        path to csv file used to create NavData
+    """
+    data = NavData(csv_path=csv_simple)
+    data['times'] = np.hstack((np.zeros([1, 2]),
+                            1.0001*np.ones([1, 1]),
+                            1.0003*np.ones([1,1]),
+                            1.50004*np.ones([1, 1]),
+                            1.499999*np.ones([1,1])))
+    compare_df = data.pandas_df()
+    count = 0
+    for delta_t, measure in data.loop_time('times'):
+        if count == 0:
+            np.testing.assert_almost_equal(delta_t, 0)
+            row_num = [0,1]
+        elif count == 1:
+            np.testing.assert_almost_equal(delta_t, 1)
+            row_num = [2,3]
+        elif count == 2:
+            np.testing.assert_almost_equal(delta_t, 0.5)
+            row_num = [4,5]
+        small_df = measure.pandas_df().reset_index(drop=True)
+        expected_df = compare_df.iloc[row_num, :].reset_index(drop=True)
+        pd.testing.assert_frame_equal(small_df, expected_df,
+                                      check_index_type=False)
+        count += 1
+
+
+def test_col_looping(csv_simple):
+    """Testing implementation to loop over columns in NavData
+
+    Parameters
+    ----------
+    csv_simple : str
+        path to csv file used to create NavData
+    """
+    data = NavData(csv_path=csv_simple)
+    compare_df = data.pandas_df()
+    for idx, col in enumerate(data):
+        col_df = col.pandas_df().reset_index(drop=True)
+        expected_df = compare_df.iloc[[idx], :].reset_index(drop=True)
+        print(col_df)
+        print(expected_df)
+        pd.testing.assert_frame_equal(col_df, expected_df,
+                                      check_index_type=False)

@@ -73,7 +73,7 @@ class NMEA():
                    + msg.timestamp.microsecond*1e-6)
             times.append(date_ts + day_ts)
 
-        ecef = coord.geodetic2ecef(geo_ls)
+        ecef = coord.geodetic_to_ecef(geo_ls)
         times = np.array(times)
         geo_ls = np.array(geo_ls)
 
@@ -106,4 +106,4 @@ class NMEA():
             Returns ECEF coordinates of ground truth????
 
         """
-        return coord.geodetic2ecef(self.lla_gt())
+        return coord.geodetic_to_ecef(self.lla_gt())
