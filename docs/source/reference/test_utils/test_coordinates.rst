@@ -1,7 +1,7 @@
-test\_measurement module
+test\_coordinates module
 ========================
 
-.. automodule:: test_measurement
+.. automodule:: test_coordinates
    :members:
    :undoc-members:
    :show-inheritance:

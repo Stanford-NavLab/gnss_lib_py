@@ -9,7 +9,7 @@ import pynmea2
 import numpy as np
 import calendar
 
-from gnss_lib_py.core import coordinates as coord
+from gnss_lib_py.utils import coordinates as coord
 
 class NMEA():
     """Class used to parse through NMEA files
@@ -40,7 +40,7 @@ class NMEA():
     def ecef_gt_w_time(self, date):
         """Get ECEF ground truth as well as measurement timesself.
 
-        Measurement times are returned in UTC secondsself.
+        NavData times are returned in UTC secondsself.
 
         Parameters
         ----------
@@ -73,7 +73,7 @@ class NMEA():
                    + msg.timestamp.microsecond*1e-6)
             times.append(date_ts + day_ts)
 
-        ecef = coord.geodetic2ecef(geo_ls)
+        ecef = coord.geodetic_to_ecef(geo_ls)
         times = np.array(times)
         geo_ls = np.array(geo_ls)
 
@@ -106,4 +106,4 @@ class NMEA():
             Returns ECEF coordinates of ground truth????
 
         """
-        return coord.geodetic2ecef(self.lla_gt())
+        return coord.geodetic_to_ecef(self.lla_gt())

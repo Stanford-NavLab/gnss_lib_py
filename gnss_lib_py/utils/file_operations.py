@@ -10,7 +10,7 @@ import time
 
 import matplotlib.pyplot as plt
 
-def mkdir(directory): # pragma: no cover
+def make_dir(directory): # pragma: no cover
     """Create a file directory if it doesn't yet exist.
 
     Parameters

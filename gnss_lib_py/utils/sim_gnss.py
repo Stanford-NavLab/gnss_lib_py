@@ -12,10 +12,38 @@ import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 
-import gnss_lib_py.core.constants as consts
-from gnss_lib_py.core.coordinates import ecef2geodetic
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
+
+
+def sats_from_el_az(elaz_deg):
+    """Generate NED satellite positions at given elevation and azimuth.
+
+    Given elevation and azimuth angles are with respect to the receiver.
+    Generated satellites are in the NED frame of reference with the receiver
+    position as the origin.
+
+    Parameters
+    ----------
+    elaz_deg : np.ndarray
+        Nx2 array of elevation and azimuth angles [degrees]
+
+    Returns
+    -------
+    sats_ned : np.ndarray
+        Nx3 satellite NED positions, simulated at a distance of 20,200 km
+    """
+    assert np.shape(elaz_deg)[1] == 2, "elaz_deg should be a Nx2 array"
+    el = np.deg2rad(elaz_deg[:, 0])
+    az = np.deg2rad(elaz_deg[:,1])
+    unit_vect = np.zeros([3, np.shape(elaz_deg)[0]])
+    unit_vect[0, :] = np.sin(az)*np.cos(el)
+    unit_vect[1, :] = np.cos(az)*np.cos(el)
+    unit_vect[2, :] = np.sin(el)
+    sats_ned = np.transpose(20200000*unit_vect)
+    return sats_ned
 
 
 def _extract_pos_vel_arr(sv_posvel):
@@ -598,7 +626,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     el_r  = np.deg2rad(el_az[:,0])
 
     # Calculate the WGS-84 latitude/longitude of the receiver
-    rx_lla = ecef2geodetic(rx_ecef)
+    rx_lla = ecef_to_geodetic(rx_ecef)
     height = rx_lla[:,2]
 
     # Force height to be positive
@@ -652,7 +680,7 @@ def find_elaz(rx_pos, sv_pos):
         sv_pos = np.reshape(sv_pos,(1,3))
 
     # Convert the receiver location to WGS84
-    rx_lla = ecef2geodetic(rx_pos)
+    rx_lla = ecef_to_geodetic(rx_pos)
     assert np.shape(rx_lla)==(1,3)
 
     # Create variables with the latitude and longitude in radians

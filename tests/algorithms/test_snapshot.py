@@ -12,7 +12,7 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.parsers.android import AndroidDerived
-from gnss_lib_py.parsers.measurement import Measurement
+from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 
 
@@ -316,8 +316,8 @@ def test_solve_wls(derived):
     """
     state_estimate = solve_wls(derived)
 
-    # result should be a Measurement Class instance
-    assert isinstance(state_estimate,type(Measurement()))
+    # result should be a NavData Class instance
+    assert isinstance(state_estimate,type(NavData()))
 
     # should have four rows
     assert len(state_estimate.rows) == 4
@@ -388,7 +388,7 @@ def test_solve_wls_weights(derived, tolerance):
     with pytest.raises(TypeError):
         solve_wls(derived, "")
 
-    # should return error for row not in Measurement instance
+    # should return error for row not in NavData instance
     with pytest.raises(TypeError):
         solve_wls(derived, "special_weights")
 
@@ -444,7 +444,7 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
         wls(rx_est_m, pos_sv_m, noisy_pr_m,
             weights="")
 
-    # should return error even if string is in Measurement instance
+    # should return error even if string is in NavData instance
     with pytest.raises(TypeError):
         wls(rx_est_m, pos_sv_m, noisy_pr_m,
             weights="raw_pr_sigma_m")

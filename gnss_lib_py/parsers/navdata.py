@@ -6,15 +6,14 @@ __authors__ = "Ashwin Kanhere, D. Knowles"
 __date__ = "03 Nov 2021"
 
 import os
-from abc import ABC
 import copy
 
 import numpy as np
 import pandas as pd
 
 
-class Measurement(ABC):
-    """gnss_lib_py specific class for handling measurements.
+class NavData():
+    """gnss_lib_py specific class for handling data.
     Uses numpy for speed combined with pandas like intuitive indexing
 
     Attributes
@@ -22,7 +21,7 @@ class Measurement(ABC):
     arr_dtype : numpy.dtype
         Type of values stored in data array
     array : np.ndarray
-        Array containing measurements, dimension M x N
+        Array containing data, dimension M x N
     map : Dict
         Map of the form {pandas column name : array row number }
     str_map : Dict
@@ -31,7 +30,8 @@ class Measurement(ABC):
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
                  header="infer"):
-        #For a Pythonic implementation, including all attributes as None in the beginning
+        # For a Pythonic implementation,
+        # including all attributes as None in the beginning
         self.arr_dtype = np.float32 # default value
         self.array = None
         self.map = {}
@@ -49,22 +49,22 @@ class Measurement(ABC):
         elif numpy_array is not None:
             self.from_numpy_array(numpy_array)
         else:
-            self.build_measurement()
+            self.build_navdata()
 
         self.postprocess()
 
     def postprocess(self):
-        """Postprocess loaded measurements. Optional in subclass
+        """Postprocess loaded data. Optional in subclass
         """
 
-    def build_measurement(self):
-        """Build attributes for Measurements.
+    def build_navdata(self):
+        """Build attributes for NavData.
 
         """
         self.array = np.zeros((0,0), dtype=self.arr_dtype)
 
     def from_csv_path(self, csv_path, header="infer"):
-        """Build attributes of Measurement using csv file.
+        """Build attributes of NavData using csv file.
 
         Parameters
         ----------
@@ -80,35 +80,35 @@ class Measurement(ABC):
         if not os.path.exists(csv_path):
             raise OSError("file not found")
 
-        self.build_measurement()
+        self.build_navdata()
 
         pandas_df = pd.read_csv(csv_path, header=header)
         self.from_pandas_df(pandas_df)
 
     def from_pandas_df(self, pandas_df):
-        """Build attributes of Measurement using pd.DataFrame.
+        """Build attributes of NavData using pd.DataFrame.
 
         Parameters
         ----------
-        pandas_df : pd.DataFrame of measurements
+        pandas_df : pd.DataFrame of data
         """
 
         if not isinstance(pandas_df, pd.DataFrame):
             raise TypeError("pandas_df must be pd.DataFrame")
 
         if pandas_df.columns.dtype != object:
-            # default headers are Int64 type, but for the Measurement
+            # default headers are Int64 type, but for the NavData
             # class they need to be strings
             pandas_df.rename(str, axis="columns", inplace=True)
 
-        self.build_measurement()
+        self.build_navdata()
 
         for _, col_name in enumerate(pandas_df.columns):
             newvalue = pandas_df[col_name].to_numpy()
             self.__setitem__(col_name, newvalue)
 
     def from_numpy_array(self, numpy_array):
-        """Build attributes of Measurement using np.ndarray.
+        """Build attributes of NavData using np.ndarray.
 
         Parameters
         ----------
@@ -120,7 +120,7 @@ class Measurement(ABC):
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
 
-        self.build_measurement()
+        self.build_navdata()
 
         for row_num in range(numpy_array.shape[0]):
             self.__setitem__(str(row_num), numpy_array[row_num,:])
@@ -131,7 +131,7 @@ class Measurement(ABC):
         Returns
         -------
         df : pd.DataFrame
-            DataFrame with measurements, including strings as strings
+            DataFrame with data, including strings as strings
         """
         df_list = []
         for key, value in self.str_map.items():
@@ -163,8 +163,8 @@ class Measurement(ABC):
             values_str[values_int==str_key] = str_val
         return values_str
 
-    def save_csv(self, output_path):
-        """Save measurements as csv
+    def save_csv(self, output_path="navdata.csv"): #pragma: no cover
+        """Save data as csv
 
         Parameters
         ----------
@@ -198,7 +198,6 @@ class Measurement(ABC):
         elif isinstance(key_idx, slice):
             rows = key_idx
             cols = slice(None, None)
-        #TODO: Add int testing for just row number
         elif isinstance(key_idx, int):
             rows = [key_idx]
             cols = slice(None, None)
@@ -220,7 +219,6 @@ class Measurement(ABC):
                     row_key = key_idx[0]
                 for key in row_key:
                     rows.append(self.map[key])
-        #TODO: Add out of bounds error handling
         return rows, cols
 
     def _get_str_rows(self, rows):
@@ -259,7 +257,7 @@ class Measurement(ABC):
         Returns
         -------
         arr_slice : np.ndarray
-            Array of measurements containing row names and time indexed
+            Array of data containing row names and time indexed
             columns
         """
         rows, cols = self._parse_key_idx(key_idx)
@@ -299,7 +297,8 @@ class Measurement(ABC):
             if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
                 # Adding string values
                 self.fillna(newvalue)
-                new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+                new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue),
+                                    dtype=self.arr_dtype)
                 new_str_vals = self._str_2_val(new_str_vals, newvalue, key_idx)
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
@@ -309,7 +308,7 @@ class Measurement(ABC):
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
-                if not isinstance(newvalue, int):
+                if not isinstance(newvalue, int) and not isinstance(newvalue, float):
                     assert not isinstance(np.asarray(newvalue)[0], str), \
                             "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
                 # Adding numeric values
@@ -342,7 +341,8 @@ class Measurement(ABC):
                     key = inv_map[row]
                     newvalue_row = newvalue[row_num , :]
                     new_str_vals_row = new_str_vals[row_num, :]
-                    new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row, newvalue_row, key)
+                    new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row,
+                                                    newvalue_row, key)
                 self.array[rows, cols] = new_str_vals
             else:
                 if not isinstance(newvalue, int):
@@ -356,11 +356,14 @@ class Measurement(ABC):
         Parameters
         ----------
         new_str_vals : np.ndarray
-            Array of dtype=self.arr_dtype where numeric values are to be stored
+            Array of dtype=self.arr_dtype where numeric values are to be
+            stored
         newvalue : np.ndarray
-            Array of dtype=object, containing string values that are to be converted
+            Array of dtype=object, containing string values that are to
+            be converted
         key : string
-            Key indicating row where string to numeric conversion is required
+            Key indicating row where string to numeric conversion is
+            required
         """
         if key in self.map.keys():
             # Key already exists, update existing string value dictionary
@@ -380,12 +383,14 @@ class Measurement(ABC):
             string_vals = np.unique(newvalue)
             str_dict = dict(enumerate(string_vals))
             self.str_map[key] = str_dict
-            new_str_vals = len(string_vals)*np.ones(np.shape(newvalue), dtype=self.arr_dtype)
+            new_str_vals = len(string_vals)*np.ones(np.shape(newvalue),
+                                                   dtype=self.arr_dtype)
             # Set unassigned value to int not accessed by string map
             for str_key, str_val in str_dict.items():
                 new_str_vals[newvalue==str_val] = str_key
             # Copy set to false to prevent memory overflows
-            new_str_vals = np.round(new_str_vals.astype(self.arr_dtype, copy=False))
+            new_str_vals = np.round(new_str_vals.astype(self.arr_dtype,
+                                                        copy=False))
         return new_str_vals
 
     def add(self, csv_path=None, pandas_df=None, numpy_array=None):
@@ -394,38 +399,181 @@ class Measurement(ABC):
         Parameters
         ----------
         csv_path : string
-            Path to csv file containing measurements to add
+            Path to csv file containing data to add
         pandas_df : pd.DataFrame
-            DataFrame containing measurements to add
+            DataFrame containing data to add
         numpy_array : np.ndarray
-            Array containing only numeric measurements to add
+            Array containing only numeric data to add
         """
         old_len = len(self)
         new_data_cols = slice(old_len, None)
         if numpy_array is not None:
-            self.array = np.hstack((self.array, np.empty_like(numpy_array, dtype=self.arr_dtype)))
-            self[:, new_data_cols] = numpy_array
+            if old_len == 0:
+                self.from_numpy_array(numpy_array)
+            else:
+                if len(numpy_array.shape)==1:
+                    numpy_array = np.reshape(numpy_array, [1, -1])
+                self.array = np.hstack((self.array, np.empty_like(numpy_array,
+                                        dtype=self.arr_dtype)))
+                self[:, new_data_cols] = numpy_array
         if csv_path is not None:
-            pandas_df = pd.read_csv(csv_path)
+            if old_len == 0:
+                self.from_csv_path(csv_path)
+            else:
+                pandas_df = pd.read_csv(csv_path)
         if pandas_df is not None:
-            #TODO: Case handlign for when column name in dataframe is different?
-            self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
-            for col in pandas_df.columns:
-                self[col, new_data_cols] = np.asarray(pandas_df[col].values)
+            if old_len == 0:
+                self.from_pandas_df(pandas_df)
+            else:
+                #TODO: Case handling for when column name in dataframe is different?
+                self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
+                for col in pandas_df.columns:
+                    self[col, new_data_cols] = np.asarray(pandas_df[col].values)
+
+    def where(self, key_idx, value, condition="eq"):
+        """Return NavData where conditions are met for the given row
+
+        Parameters
+        ----------
+        key_idx : string/int
+            Key or index of the row in which conditions will be checked
+        value : float/list
+            Number (or list of two numbers for ) to compare array values
+            against
+        condition : string
+            Condition type (greater than ("greater")/ less than ("lesser")/
+            equal to ("eq")/ greater than or equal to ("geq")/
+            lesser than or equal to ("leq") / in between ("between")
+            inclusive of the provided limits
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            NavData with columns where given condition is satisfied
+            for specified row
+        """
+        # Add a condition here instead of just comparing to a value.
+        # Do so by adding a parameter for less than inequality, equality and
+        # greater than inequality
+        new_cols = self.argwhere(key_idx, value, condition)
+        new_navdata = self.copy(cols=new_cols)
+        return new_navdata
+
+    def argwhere(self, key_idx, value, condition):
+        """Return columns where conditions are met for the given row
+
+        Parameters
+        ----------
+        key_idx : string/int
+            Key or index of the row in which conditions will be checked
+        value : float/list
+            Number (or list of two numbers for ) to compare array values against
+        condition : string
+            Condition type (greater than ("greater")/ less than ("lesser")/
+            equal to ("eq")/ greater than or equal to ("geq")/
+            lesser than or equal to ("leq") / in between ("between"))
+
+        Returns
+        -------
+        new_cols : list
+            Columns in NavData where given condition is satisfied
+            for specified row
+        """
+        rows, _ = self._parse_key_idx(key_idx)
+        inv_map = self.inv_map
+        row_list, row_str = self._get_str_rows(rows)
+        if len(row_list)>1:
+            error_msg = "where does not currently support multiple rows"
+            raise NotImplementedError(error_msg)
+        row = row_list[0]
+        row_str = row_str[0]
+        if row_str:
+            # Values in row are strings
+            if condition != "eq":
+                raise ValueError("Inequality comparison not valid for strings")
+            key = inv_map[row]
+            for str_key, str_value in self.str_map[key].items():
+                if str_value==value:
+                    new_cols = np.argwhere(self.array[row, :]==str_key)
+                    break
+            # Extract columns where condition holds true and return new NavData
+        else:
+            # Values in row are numerical
+            # Find columns where value can be found and return new NavData
+            if condition=="eq":
+                new_cols = np.argwhere(self.array[row, :]==value)
+            elif condition == "leq":
+                new_cols = np.argwhere(self.array[row, :]<=value)
+            elif condition == "geq":
+                new_cols = np.argwhere(self.array[row, :]>=value)
+            elif condition == "greater":
+                new_cols = np.argwhere(self.array[row, :]>value)
+            elif condition == "lesser":
+                new_cols = np.argwhere(self.array[row, :]<value)
+            elif condition == "between":
+                assert len(value)==2, "Please give both lower and upper bound for between"
+                new_cols = np.argwhere(np.logical_and(self.array[row, :]>=value[0],
+                                        self.array[row, :]<= value[1]))
+            else:
+                raise ValueError("Condition not implemented")
+        new_cols = np.squeeze(new_cols)
+        return new_cols
+
+    def loop_time(self, time_row, tol_decimals=2):
+        """Generator object to loop over columns from same times
+
+        Parameters
+        ----------
+        time_row : string/int
+            Key or index of the row in which times are stored
+        tol_decimals : int
+            Decimal places after which times are considered equal
+
+        Yields
+        ------
+        delta_t : float
+            Difference between current time and previous time
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            NavData with same time, upto given decimal tolerance
+        """
+        times = self[time_row]
+        times_unique = np.sort(np.unique(np.around(times,
+                                         decimals=tol_decimals)))
+        for time_idx, time in enumerate(times_unique):
+            if time_idx==0:
+                delta_t = 0
+            else:
+                delta_t = times_unique[time_idx]-times_unique[time_idx-1]
+            new_navdata = self.where(time_row, [time-10**(-tol_decimals),
+                                                time+10**(-tol_decimals)],
+                                                condition="between")
+            yield delta_t, new_navdata
 
     def __iter__(self):
+        """Initialize iterator over NavData (iterates over all columns)
+
+        Returns
+        -------
+        self: gnss_lib_py.parsers.NavData
+            Instantiation of NavData class with iteration initialized
+        """
         self.curr_col = 0
         self.num_cols = np.shape(self.array)[1]
         return self
 
     def __next__(self):
-        if self.curr_col < self.num_cols:
-            #TODO: Replace 'all' with slice for all rows
-            x_curr = self['all', self.curr_col]
-            self.curr_col += 1
-            return x_curr
-        else:
+        """Method to get next item when iterating over NavData class
+
+        Returns
+        -------
+        x_curr : gnss_lib_py.parsers.NavData
+            Current column (based on iteration count)
+        """
+        if self.curr_col >= self.num_cols:
             raise StopIteration
+        x_curr = self.copy(rows=None, cols=self.curr_col)
+        self.curr_col += 1
+        return x_curr
 
     def __len__(self):
         """Return length of class
@@ -433,7 +581,7 @@ class Measurement(ABC):
         Returns
         -------
         length : int
-            Number of time steps in measurement
+            Number of time steps in NavData
         """
         length = np.shape(self.array)[1]
         return length
@@ -457,7 +605,7 @@ class Measurement(ABC):
         Returns
         -------
         rows : list
-            List of row names in measurements
+            List of row names in NavData
         """
         rows = list(self.map.keys())
         return rows
@@ -491,7 +639,7 @@ class Measurement(ABC):
         return inv_map
 
     def fillna(self, array):
-        """Fills nan values in an array of strings.
+        """Fills nan values in an array of strings (in-place).
 
         You have to do a string comparison, so we first have to create
         the string equivalent of the NaN to compare against.
@@ -504,7 +652,7 @@ class Measurement(ABC):
         array[np.where(array.astype(str)==nan_str)] = ""
 
     def rename(self, mapper):
-        """Rename rows of Measurement class.
+        """Rename rows of NavData class.
 
         Column names must be strings.
 
@@ -518,27 +666,36 @@ class Measurement(ABC):
             if not isinstance(value, str):
                 raise TypeError("Column names must be strings")
             if key not in self.map.keys():
-                raise KeyError("'" + str(key) + "' key doesn't exist in Measurement class")
+                raise KeyError("'" + str(key) \
+                               + "' key doesn't exist in NavData class")
 
             self.map[value] = self.map.pop(key)
             self.str_map[value] = self.str_map.pop(key)
 
     def copy(self, rows=None, cols=None):
-        """Return copy of Measurement keeping specified rows and columns
+        """Return copy of NavData keeping specified rows and columns
+
+        If None is passed into either argument, all rows or cols
+        respectively are returned.
+
+        If no arguments are added .copy() returns a full copy of the
+        entire NavData class.
 
         Parameters
         ----------
         rows : None/list/np.ndarray
-            Strings or integers indicating rows to keep in copy
+            Strings or integers indicating rows to keep in copy.
+            Defaults to None meaning all rows are copied.
         cols : None/list/np.ndarray
-            Integers indicating columns to keep in copy
+            Integers indicating columns to keep in copy. Defaults to
+            None meaning all cols are copied.
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Copy of original Measurement with desired rows and columns
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            Copy of original NavData with desired rows and columns
         """
-        new_measurement = Measurement()
+        new_navdata = NavData()
         inv_map = self.inv_map
         if rows is None:
             # row_indices = slice(None, None).indices(len(self.rows))
@@ -553,34 +710,34 @@ class Measurement(ABC):
                 key = inv_map[row_idx]
             else:
                 key = row_idx
-            new_measurement[key] = new_row
-        return new_measurement
+            new_navdata[key] = new_row
+        return new_navdata
 
     def remove(self, rows=None, cols=None):
-        """Reset Measurement to remove specified rows and columns
+        """Reset NavData to remove specified rows and columns
 
         Parameters
         ----------
         rows : None/list/np.ndarray
-            Rows to remove from Measurement
+            Rows to remove from NavData
         cols : None/list/np.ndarray
-            Columns to remove from Measurement
+            Columns to remove from NavData
 
         Returns
         -------
-        new_measurement : gnss_lib_py.parsers.measurement.Measurement
-            Measurement instance after removing specified rows and columns
+        new_navdata : gnss_lib_py.parsers.navdata.NavData
+            NavData instance after removing specified rows and columns
 
         Notes
         -----
-        This method returns the Measurement with removed rows and columns,
+        This method returns the NavData with removed rows and columns,
         but does not reset the current instance in place.
         """
         if cols is None:
             cols = []
         if rows is None:
             rows = []
-        new_measurement = Measurement()
+        new_navdata = NavData()
         inv_map = self.inv_map
         if len(rows) != 0 and isinstance(rows[0], int):
             rows = [inv_map[row_idx] for row_idx in rows]
@@ -589,5 +746,5 @@ class Measurement(ABC):
         for row_idx in keep_rows:
             new_row = self[row_idx, keep_cols]
             key = row_idx
-            new_measurement[key] = new_row
-        return new_measurement
+            new_navdata[key] = new_row
+        return new_navdata
