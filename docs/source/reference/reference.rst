@@ -13,8 +13,9 @@ below for new features or functionality.
     * :code:`algorithms` : This directory contains localization algorithms.
     * :code:`parsers` : This directory contains functions to read and process various
       GNSS data/file types.
-    * :code:`utils` : This directory contains functionality that is
-      commonly used to deal with GNSS measurements.
+    * :code:`utils` : This directory contains utilities used to handle
+      GNSS measurements, time conversions, visualizatoins, satellite
+      simulation, file operations, etc.
 
 Details about NavData Class
 -------------------------------

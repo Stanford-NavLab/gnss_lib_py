@@ -103,7 +103,7 @@ def plot_metric(navdata, metric, save=True, prefix=""):
                     os.path.dirname(
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.mkdir(log_path)
+        fo.make_dir(log_path)
     else:
         figs = []
 
@@ -278,7 +278,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
                     os.path.dirname(
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.mkdir(log_path)
+        fo.make_dir(log_path)
         plt_file = os.path.join(log_path,prefix+"_skyplot.png")
 
         fo.save_figure(fig, plt_file)
@@ -323,7 +323,7 @@ def plot_residuals(navdata, save=True, prefix=""):
                     os.path.dirname(
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.mkdir(log_path)
+        fo.make_dir(log_path)
     else:
         figs = []
 

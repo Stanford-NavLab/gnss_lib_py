@@ -57,7 +57,7 @@ class NavData():
         """
 
     def build_navdata(self):
-        """Build attributes for NavDatas.
+        """Build attributes for NavData.
 
         """
         self.array = np.zeros((0,0), dtype=self.arr_dtype)
