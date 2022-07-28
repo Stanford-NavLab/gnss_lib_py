@@ -116,7 +116,7 @@ def ecef_to_geodetic(ecef, radians=False):
 
     # Convert from ECEF to geodetic using Ferrari's methods
     # https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#Ferrari.27s_solution
-    r = np.sqrt(x_ecef * x_ecef + y_ecef * y_ecef)
+    r = np.sqrt(x_ecef * x_ecef + y_ecef * y_ecef + EPSILON)
     E1SQ = consts.A * consts.A - consts.B * consts.B
     F = 54 * consts.B * consts.B * z_ecef * z_ecef
     G = r * r + (1 - consts.E1SQ) * z_ecef * z_ecef - consts.E1SQ * E1SQ
