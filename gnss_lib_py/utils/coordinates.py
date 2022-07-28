@@ -83,7 +83,7 @@ def geodetic_to_ecef(geodetic, radians=False):
 
 
 def ecef_to_geodetic(ecef, radians=False):
-    """ECEF to LLA conversion using Ferrari's method
+    """ECEF to LLA conversion using Ferrari's method.
 
     Parameters
     ----------
@@ -120,8 +120,8 @@ def ecef_to_geodetic(ecef, radians=False):
     E1SQ = consts.A * consts.A - consts.B * consts.B
     F = 54 * consts.B * consts.B * z_ecef * z_ecef
     G = r * r + (1 - consts.E1SQ) * z_ecef * z_ecef - consts.E1SQ * E1SQ
-    C = (consts.E1SQ * consts.E1SQ * F * r * r) / (pow(G, 3)) + EPSILON
-    S = np.cbrt(1 + C + np.sqrt(C * C + 2 * C))
+    C = (consts.E1SQ * consts.E1SQ * F * r * r) / (pow(G, 3) + EPSILON)
+    S = np.cbrt(1 + C + np.sqrt(C * C + 2 * C + EPSILON))
     P = F / (3 * pow((S + 1 / S + 1), 2) * G * G)
     Q = np.sqrt(1 + 2 * consts.E1SQ * consts.E1SQ * P)
     r_0 =  -(P * consts.E1SQ * r) / (1 + Q) + np.sqrt(0.5 * consts.A * consts.A*(1 + 1.0 / Q) - \
@@ -169,8 +169,8 @@ class LocalCoord(object):
             raise ValueError('init_geodetic has incorrect size', len(init_geodetic),
                             ' must be of size 3')
         self.ned_to_ecef_matrix = np.array([[-np.sin(lat)*np.cos(lon), -np.sin(lon), -np.cos(lat)*np.cos(lon)],
-                                         [-np.sin(lat)*np.sin(lon), np.cos(lon), -np.cos(lat)*np.sin(lon)],
-                                         [np.cos(lat), 0, -np.sin(lat)]])
+                                            [-np.sin(lat)*np.sin(lon), np.cos(lon), -np.cos(lat)*np.sin(lon)],
+                                            [np.cos(lat), 0, -np.sin(lat)]])
         self.ecef_to_ned_matrix = self.ned_to_ecef_matrix.T
 
     @classmethod
