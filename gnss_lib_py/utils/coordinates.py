@@ -104,6 +104,7 @@ def ecef_to_geodetic(ecef, radians=False):
     """
 
     ecef = np.atleast_2d(ecef)
+    ecef = ecef.astype(np.float64)
     input_shape = ecef.shape
     if input_shape[0]==3:
         x_ecef, y_ecef, z_ecef = ecef[0, :], ecef[1, :], ecef[2, :]
@@ -116,11 +117,11 @@ def ecef_to_geodetic(ecef, radians=False):
 
     # Convert from ECEF to geodetic using Ferrari's methods
     # https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#Ferrari.27s_solution
-    r = np.sqrt(x_ecef * x_ecef + y_ecef * y_ecef + EPSILON)
+    r = np.sqrt(x_ecef * x_ecef + y_ecef * y_ecef)
     E1SQ = consts.A * consts.A - consts.B * consts.B
     F = 54 * consts.B * consts.B * z_ecef * z_ecef
     G = r * r + (1 - consts.E1SQ) * z_ecef * z_ecef - consts.E1SQ * E1SQ
-    C = (consts.E1SQ * consts.E1SQ * F * r * r) / (pow(G, 3) + EPSILON)
+    C = (consts.E1SQ * consts.E1SQ * F * r * r) / (pow(G, 3))
     S = np.cbrt(1 + C + np.sqrt(C * C + 2 * C + EPSILON))
     P = F / (3 * pow((S + 1 / S + 1), 2) * G * G)
     Q = np.sqrt(1 + 2 * consts.E1SQ * consts.E1SQ * P)
@@ -129,10 +130,9 @@ def ecef_to_geodetic(ecef, radians=False):
     U = np.sqrt(pow((r - consts.E1SQ * r_0), 2) + z_ecef * z_ecef)
     V = np.sqrt(pow((r - consts.E1SQ * r_0), 2) + (1 - consts.E1SQ) * z_ecef * z_ecef)
     Z_0 = consts.B * consts.B * z_ecef / (consts.A * V)
-    h = U * (1 - consts.B * consts.B / ((consts.A * V) + EPSILON))
-    lat = ratio*np.arctan((z_ecef + consts.E2SQ * Z_0) / (r + EPSILON))
-    lon = ratio*np.arctan2(y_ecef, x_ecef + EPSILON)
-
+    h = U * (1 - consts.B * consts.B / ((consts.A * V)))
+    lat = ratio*np.arctan((z_ecef + consts.E2SQ * Z_0) / (r))
+    lon = ratio*np.arctan2(y_ecef, x_ecef)
     # stack the new columns and return to the original shape
     geodetic = np.column_stack((lat, lon, h))
     if input_shape[0]==3:
