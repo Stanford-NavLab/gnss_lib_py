@@ -700,6 +700,10 @@ def test_add_numpy_1d():
     data.add(numpy_array=np.ones(8))
     np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]), np.ones([1, 8]))))
 
+    # test adding to empty NavData
+    data_empty = NavData()
+    data_empty.add(numpy_array=np.ones((8,8)))
+    np.testing.assert_array_equal(data_empty[:,:],np.ones((8,8)))
 
 def test_add_csv(df_simple, csv_simple):
     # Create and add to NavData
@@ -711,6 +715,12 @@ def test_add_csv(df_simple, csv_simple):
     expected_df = pd.concat((df_simple, df_simple)).reset_index(drop=True).astype(df_types)
     pd.testing.assert_frame_equal(data_df, expected_df, check_index_type=False)
 
+    # test adding to empty NavData
+    data_empty = NavData()
+    data_empty.add(csv_path=csv_simple)
+    pd.testing.assert_frame_equal(data_empty.pandas_df(),
+                                  df_simple.astype(df_types),
+                                  check_index_type=False)
 
 def test_add_pandas_df(df_simple, add_df):
     """Test addition of a pd.DataFrame to NavData
@@ -729,6 +739,11 @@ def test_add_pandas_df(df_simple, add_df):
     subset_df = new_df.iloc[-add_row_num:, :].reset_index(drop=True)
     pd.testing.assert_frame_equal(subset_df, add_df, check_index_type=False)
 
+    # test adding to empty NavData
+    data_empty = NavData()
+    data_empty.add(pandas_df=add_df)
+    pd.testing.assert_frame_equal(add_df, data_empty.pandas_df(),
+                                  check_index_type=False)
 
 @pytest.mark.parametrize("rows",
                         [None,

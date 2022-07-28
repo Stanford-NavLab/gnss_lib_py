@@ -162,7 +162,7 @@ class NavData():
             values_str[values_int==str_key] = str_val
         return values_str
 
-    def save_csv(self, output_path):
+    def save_csv(self, output_path="navdata.csv"): #pragma: no cover
         """Save data as csv
 
         Parameters
@@ -398,21 +398,29 @@ class NavData():
             Array containing only numeric data to add
         """
         old_len = len(self)
-        if old_len==0: # pragma: no cover
-            raise TypeError('Cannot add time steps to empty instance')
         new_data_cols = slice(old_len, None)
         if numpy_array is not None:
-            if len(numpy_array.shape)==1:
+            if old_len == 0:
+                self.from_numpy_array(numpy_array)
+            else:
+                if len(numpy_array.shape)==1:
                     numpy_array = np.reshape(numpy_array, [1, -1])
-            self.array = np.hstack((self.array, np.empty_like(numpy_array, dtype=self.arr_dtype)))
-            self[:, new_data_cols] = numpy_array
+                self.array = np.hstack((self.array, np.empty_like(numpy_array,
+                                        dtype=self.arr_dtype)))
+                self[:, new_data_cols] = numpy_array
         if csv_path is not None:
-            pandas_df = pd.read_csv(csv_path)
+            if old_len == 0:
+                self.from_csv_path(csv_path)
+            else:
+                pandas_df = pd.read_csv(csv_path)
         if pandas_df is not None:
-            #TODO: Case handlign for when column name in dataframe is different?
-            self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
-            for col in pandas_df.columns:
-                self[col, new_data_cols] = np.asarray(pandas_df[col].values)
+            if old_len == 0:
+                self.from_pandas_df(pandas_df)
+            else:
+                #TODO: Case handling for when column name in dataframe is different?
+                self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
+                for col in pandas_df.columns:
+                    self[col, new_data_cols] = np.asarray(pandas_df[col].values)
 
     def where(self, key_idx, value, condition="eq"):
         """Return NavData where conditions are met for the given row
