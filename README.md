@@ -23,7 +23,7 @@ The modularity of `gnss_lib_py` is made possibly by the unifying
 `NavData` class, which contains methods to add, remove and modify
 numeric and string data consistently.
 We provide standard row names for `NavData` elements on the
-:ref:`reference page<reference>`.
+[reference page](gnss_lib_py.readthedocs.io/reference).
 These names ensure cross compatability between different datasets and
 algorithms.
 
@@ -88,7 +88,7 @@ In the directory organization above:
         * Residual plotting: specifically optimized for plotting residuals.
 
 
-Installation
+Installation[reference section](gnss_lib_py.readthedocs.io/reference)
 ------------
 For directions on how to install the `gnss_lib_py` project, please
 see the [install instructions](gnss_lib_py.readthedocs.io/install).
