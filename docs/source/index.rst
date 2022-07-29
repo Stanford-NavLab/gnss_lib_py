@@ -35,6 +35,8 @@ algorithms.
 Code Organization
 -----------------
 
+.. _organization:
+
 :code:`gnss_lib_py` is organized as:
 
 .. code-block:: bash
@@ -65,17 +67,21 @@ Code Organization
 
 In the directory organization above:
 
-  * The following algorithms are implemented in the :code:`algorithms`
-    directory and work by passing in a :code:`NavData` class.
+  * The :code:`algorithms` directory contains localization algorithms that
+    work by passing in a :code:`NavData` class. Currently, the following
+    algorithms are implemented in the :code:`algorithms`:
 
       * Weighted Least Squares
       * Calculating pseudorange residuals
   * The data parers in the :code:`parsers` directory allow for loading
-    GNSS data from the following sources into the
-    :code:`gnss_lib_py`'s unifying :code:`NavData` class:
+    GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class.
+    Currently, the following datasets and types are supported:
 
       * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
-  * The following data visualization tools are available in the
+  * The :code:`utils` directory contains utilities used to handle
+      GNSS measurements, time conversions, visualizations, satellite
+      simulation, file operations, etc.
+  * Currently, the following data visualization tools are available in the
     :code:`utils` directory:
 
         * Skyplot: showing the movement of GNSS satellites during the

@@ -8,17 +8,35 @@ Package Architecture
 
 The gnss_lib_py package is broadly divided into the following sections.
 Please choose the most appropriate location based on the descriptions
-below for new features or functionality.
+below when adding new features or functionality.
 
     * :code:`algorithms` : This directory contains localization algorithms.
     * :code:`parsers` : This directory contains functions to read and process various
       GNSS data/file types.
     * :code:`utils` : This directory contains utilities used to handle
-      GNSS measurements, time conversions, visualizatoins, satellite
+      GNSS measurements, time conversions, visualizations, satellite
       simulation, file operations, etc.
 
+More information about currently available methods and the folder
+organization can be found in the `organization subsection <organization>`.
+
 Details about NavData Class
--------------------------------
+---------------------------
+
+We use a custom class :code:`NavData` in :code:`gnss_lib_py` for storing
+measurements and state estimates.
+Along with the standard naming convention for measurements and
+state estimates, the :code:`NavData` class provides modularity between
+different datasets, algorithms and functions for visualization and metric
+calculation.
+
+Using our custom :Code:`NavData` class has the following advantages:
+
+  * Our implementation uses string labels to intuitively access and set
+    values in the underlying array. Eg. :code:`data['row_name'] = row_values`
+  * Our implementation uses :code:`np.ndarray` as the underlying data
+    data storage object
+  * 
 Reasons that our NavData Class is awesome
 
     * if initializing with np.ndarrays, rows are each data type
