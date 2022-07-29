@@ -1,22 +1,28 @@
 .. _documentation:
 
-Documentation
-=============
+Documentation and Style Guide
+=============================
 
 We use `numpy docstrings
 <https://numpydoc.readthedocs.io/en/latest/format.html>`__
 for all documentation within this package. You can see some example
 numpy docstrings `here <https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html#example-numpy>`__.
-In addition to class and function docstrings, any section of code that
-whose function is not blatantly obvious, should be independently
+In addition to class and function docstrings, any code
+whose behaviour or purpose is not obvious, should be independently
 commented.
+
+Additional documentation guidelines
+-----------------------------------
+
+Referring textbooks or papers
++++++++++++++++++++++++++++++
 
 To reference textbooks/papers in the docstrings, create a new section
 titled References and include the reference as shown below in the
 docstring. (Remove the block comment flag when inserting in already
 written docstrings)
 
-.. code-block :: python
+.. code-block:: python
 
     """
     References
@@ -29,7 +35,8 @@ written docstrings)
     """
 
 Parameter/Return Types
-----------------------
+++++++++++++++++++++++
+
 Following the numpy docstring formatting, the type of all parameters and
 returns should be indicated. Common parameter/return types include the
 following:
@@ -43,14 +50,15 @@ following:
       single axis arrays should be rows and time should be across
       the columns
     * :code:`pd.DataFrame`
+    * :code:`gnss_lib_py.parsers.NavData`
 
 PEP 8 Style Guide
 -----------------
 We also follow the `PEP 8 Python Style Guide
-<https://www.python.org/dev/peps/pep-0008/>`__. Highlights from PEP 8
-include:
+<https://www.python.org/dev/peps/pep-0008/>`__.
+Highlights from PEP 8 include:
 
-    * Classes names should be in CamelCase
+    * Class names should be in CamelCase
     * Function names should be in snake_case (lowercase with words
       separated by underscores)
     * Variable names are also in snake_case (lowercase with words
@@ -100,13 +108,11 @@ Citations
 ---------
 Citations should be added on a function by function basis.
 
-TODO: ADD GUIDE FOR HOW TO CITE BASED ON AMOUNT OF CHANGED CODE FROM
-SOURCE
+If a function is built on the implementation from another repository,
+include the license and attribution as required by the original author.
 
-Miscellaneous Notes
--------------------
-    * MATLAB is correctly written with all capital letters.
-    * GitHub is correctly written with the G & H capitalized.
+Miscellaneous Style Notes
+-------------------------
     * Vectors (lists, np.ndarrays, etc.) for a single time instance
       should be column vectors.
     * Collections of vectors should be 2D structures with each column
@@ -139,15 +145,17 @@ Building Documentation
 If you changed any directory names in the repository:
 
     * update :code:`docs/conf.py` to reflect correct directory names
-    * update the helper tool :code:`/build_docs.sh`
+    * update the helper tool :code:`build_docs.sh`
     * search the entire package files to check that all references to the
       directory have been changed
 
-If you changed python dependencies:
+If you wish to add python dependencies:
 
     * add the new dependency to the poetry dependency list with
       :code:`poetry add package=version` or if the dependency is a
       development tool :code:`poetry add --dev package=version`
+
+If you wish to remove python dependencies, use :code:`poetry remove package`.
 
 After the above, you can run the helper tool from the main directory
 that will automatically rebuild references and build a local HTML copy
@@ -158,4 +166,4 @@ of the documentation:
        ./build_docs.sh
 
 After building the html, you can open :code:`docs/build/html/index.html` in
-a browser to inspect your local copy.
+a browser to view your local copy.

@@ -110,4 +110,11 @@ following commands:
 The total percentage of code covered (bottom right percentage) is the
 main number of priority.
 
-To generate the coverage report and view as a webpage
+To generate the coverage report and view as a webpage, use the following
+command:
+
+.. code-block:: bash
+
+   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=html
+
+The generated coverage report can be accessed from the directory :code:`htmlcov/`
