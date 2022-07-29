@@ -110,7 +110,7 @@ def plot_metric(navdata, *args, save=True, prefix=""):
 
     if len(navdata.str_map[y_metric]):
         raise KeyError(y_metric + " is a non-numeric row, unable to plot.")
-    if x_metric is not None and len(navdata.str_map[y_metric]):
+    if x_metric is not None and len(navdata.str_map[x_metric]):
         raise KeyError(x_metric + " is a non-numeric row, unable to plot.")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
@@ -461,9 +461,7 @@ def plot_residuals(navdata, save=True, prefix=""):
         signal_type_svs = list(signal_residuals.keys())
 
         for sv_name, sv_data in signal_residuals.items():
-            color = STANFORD_COLORS[signal_type_svs.index(sv_name)]
             plt.plot(sv_data[0], sv_data[1],
-                     color = color,
                      label = signal_type.replace("_"," ") + " " + str(sv_name))
         axes = plt.gca()
         axes.ticklabel_format(useOffset=False)

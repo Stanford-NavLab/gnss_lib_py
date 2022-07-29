@@ -139,6 +139,9 @@ def test_plot_metrics(derived):
             with pytest.raises(KeyError) as excinfo:
                 fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
                 close_figures(fig)
+            with pytest.raises(KeyError) as excinfo:
+                fig = viz.plot_metric(derived, row, "raw_pr_m", save=False)
+                close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
