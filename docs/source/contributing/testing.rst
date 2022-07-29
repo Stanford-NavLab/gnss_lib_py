@@ -98,8 +98,9 @@ Coverage Reports
 In general, you should not submit new functionality without also
 providing corresponding tests for the code.
 Visual testing coverage
-reports can be found at the top of the GitHub repository. Similar
-reports can be generated locally with the following commands:
+reports can be found at the top of the GitHub repository.
+Similar reports can be generated locally, in terminal, with the
+following commands:
 
 .. code-block:: bash
 
@@ -108,3 +109,5 @@ reports can be generated locally with the following commands:
 
 The total percentage of code covered (bottom right percentage) is the
 main number of priority.
+
+To generate the coverage report and view as a webpage
