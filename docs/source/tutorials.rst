@@ -1,8 +1,12 @@
-.. _tutorials_parsers:
+.. _tutorials:
+
+Tutorials
+=========
 
 
-Description of general parser tutorials
-
+Simple Example of Entire Pipeline
+---------------------------------
+Tutorial
 
 How to Use Existing NavData Class
 -------------------------------------
@@ -100,3 +104,16 @@ file into the :code:`gnss_lib_py` framework.
 
     from gnss_lib_py.parsers.android import AndroidDerived
     derived = AndroidDerived(derived_dataset_path)
+
+How to Use Algorithms
+---------------------
+Tutorial
+
+Calculating Result Metrics
+--------------------------
+Tutorial
+
+Visualize your Data
+-------------------
+
+Examples of how to visualize data.

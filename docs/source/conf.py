@@ -103,7 +103,5 @@ html_theme_options = {
 
 }
 
-
-
 # document __init__ methods
 autoclass_content = 'both'

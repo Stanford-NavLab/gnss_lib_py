@@ -8,6 +8,8 @@ __date__ = "27 Jan 2022"
 import os
 
 import numpy as np
+import matplotlib as mpl
+from cycler import cycler
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
@@ -33,6 +35,10 @@ STANFORD_COLORS = [
                    # "#67AFD2",   # light sky
                    # "#008566",   # digital green
                    ]
+MARKERS = ["o","*","P","v","s","^","p","<","h",">","H","X","D"]
+
+mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
+                                + cycler(marker=MARKERS))
 
 TIMESTAMP = fo.get_timestamp()
 
@@ -69,7 +75,97 @@ def new_cmap(rgb_color):
 
     return cmap
 
-def plot_metric(navdata, metric, save=True, prefix=""):
+
+def plot_metric(navdata, *args, save=True, prefix=""):
+    """Plot specific metric from a row of the NavData class.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class
+    *args : tuple
+        Tuple of row names that are to be plotted. If one is given, that
+        value is plotted on the y-axis. If two values are given, the
+        first is plotted on the x-axis and the second on the y-axis.
+    save : bool
+        Save figure if true, otherwise returns figure object. Defaults
+        to saving the figure in the Results folder.
+    prefix : string
+        File prefix to add to filename.
+
+    Returns
+    -------
+    figs : list
+        List of matplotlib.pyplot.figure objects of residuels, returns
+        None if save set to True.
+
+    """
+    if len(args)==1:
+        x_metric = None
+        y_metric = args[0]
+    elif len(args)==2:
+        x_metric = args[0]
+        y_metric = args[1]
+    else:
+        raise ValueError("Cannot plot more than 1 pair of x-y values")
+
+    if len(navdata.str_map[y_metric]):
+        raise KeyError(y_metric + " is a non-numeric row, unable to plot.")
+    if x_metric is not None and len(navdata.str_map[y_metric]):
+        raise KeyError(x_metric + " is a non-numeric row, unable to plot.")
+    if not isinstance(prefix, str):
+        raise TypeError("Prefix must be a string.")
+
+    if save: # pragma: no cover
+        root_path = os.path.dirname(
+                    os.path.dirname(
+                    os.path.dirname(
+                    os.path.realpath(__file__))))
+        log_path = os.path.join(root_path,"results",TIMESTAMP)
+        fo.make_dir(log_path)
+    else:
+        figs = []
+
+    fig = plt.figure(figsize=(5,3))
+    axes = plt.gca()
+
+    if x_metric is None:
+        plt_title = y_metric
+        plt.title(plt_title)
+        data = navdata[y_metric]
+        axes.scatter(range(data.shape[1]),data,s=5.)
+        plt.xlabel("index")
+        plt.ylabel(y_metric)
+    else:
+        plt_title = x_metric + " vs. " + y_metric
+        plt.title(plt_title)
+        axes.scatter(navdata[x_metric],navdata[y_metric],s=5.)
+        plt.xlabel(x_metric)
+        plt.ylabel(y_metric)
+
+    axes.ticklabel_format(useOffset=False)
+
+
+    if save: # pragma: no cover
+        if prefix != "" and not prefix.endswith('_'):
+            prefix += "_"
+        plt_file = os.path.join(log_path,
+                      prefix + plt_title.replace(" vs. ","_")  + ".png")
+
+        fo.save_figure(fig, plt_file)
+
+        # close previous figure
+        plt.close(fig)
+
+    else:
+        figs.append(fig)
+
+    if save: # pragma: no cover
+        return None
+    return figs
+
+
+def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
     """Plot specific metric from a row of the NavData class.
 
     Parameters
@@ -96,6 +192,14 @@ def plot_metric(navdata, metric, save=True, prefix=""):
         raise KeyError(metric + " is a non-numeric row, unable to plot.")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
+    if "signal_type" not in navdata.rows:
+        raise KeyError("signal_type missing," \
+                     + " try using" \
+                     + " plot_metric() function call instead")
+    if "sv_id" not in navdata.rows:
+        raise KeyError("sv_id missing," \
+                     + " try using" \
+                     + " plot_metric() function call instead")
 
     if save: # pragma: no cover
         root_path = os.path.dirname(
@@ -108,6 +212,7 @@ def plot_metric(navdata, metric, save=True, prefix=""):
         figs = []
 
     data = {}
+
     signal_types = navdata.get_strings("signal_type")
     sv_ids = navdata.get_strings("sv_id")
 
@@ -135,7 +240,6 @@ def plot_metric(navdata, metric, save=True, prefix=""):
         for sv_name, sv_data in signal_data.items():
             axes.scatter(sv_data[0],sv_data[1],label=sv_name,s=5.)
 
-        axes = plt.gca()
         axes.ticklabel_format(useOffset=False)
         axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 
@@ -144,7 +248,9 @@ def plot_metric(navdata, metric, save=True, prefix=""):
         plt.legend(bbox_to_anchor=(1.05, 1))
 
         if save: # pragma: no cover
-            plt_file = os.path.join(log_path, prefix + "_" + metric \
+            if prefix != "" and not prefix.endswith('_'):
+                prefix += "_"
+            plt_file = os.path.join(log_path, prefix + metric \
                      + "_" + signal_type + ".png")
 
             fo.save_figure(fig, plt_file)
@@ -186,6 +292,11 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
 
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
+    if "signal_type" not in navdata.rows:
+        raise KeyError("signal_type missing")
+    if "sv_id" not in navdata.rows:
+        raise KeyError("sv_id missing")
+    local_coord = None
 
     skyplot_data = {}
     signal_types = list(navdata.get_strings("signal_type"))
@@ -200,11 +311,11 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
         for m_idx in idxs:
 
             if signal_types[m_idx] not in skyplot_data:
-                if signal_types[m_idx] == "GPS_L5" or signal_types[m_idx] == "GAL_E5A":
+                if "5" in signal_types[m_idx]:
                     continue
                 skyplot_data[signal_types[m_idx]] = {}
 
-            if m_idx == 0:
+            if local_coord is None:
                 local_coord = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
             sv_ned = local_coord.ecef_to_ned(pos_sv_m[m_idx:m_idx+1,:])[0]
 
@@ -228,19 +339,9 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
     c_idx = 0
     for signal_type, signal_data in skyplot_data.items():
         s_idx = 0
-        color = "C" + str(c_idx % 10)
-        if signal_type == "GPS_L1":
-            color = to_rgb(STANFORD_COLORS[signal_types.index("GPS_L1")])
-            cmap = new_cmap(color)
-            marker = "o"
-        elif signal_type == "GAL_E1":
-            color = to_rgb(STANFORD_COLORS[signal_types.index("GAL_E1")])
-            cmap = new_cmap(color)
-            marker = "*"
-        elif signal_type == "GLO_G1":
-            color = to_rgb(STANFORD_COLORS[signal_types.index("GLO_G1")])
-            cmap = new_cmap(color)
-            marker = "P"
+        color = "C" + str(c_idx % len(STANFORD_COLORS))
+        cmap = new_cmap(to_rgb(color))
+        marker = MARKERS[c_idx % len(MARKERS)]
         for _, sv_data in signal_data.items():
             # only plot ~ 50 points for each sat to decrease time
             # it takes to plot these line collections
@@ -255,19 +356,20 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
                                 linewidths=(4,))
             axes.add_collection(local_coord)
             if s_idx == 0:
-                # axes.plot(sv_data[0],sv_data[1],c=color,label=signal_type)
                 axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-                        marker=marker, markersize=12,
+                        marker=marker, markersize=8,
                         label=signal_type.replace("_"," "))
             else:
                 axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-                        marker=marker, markersize=12)
+                        marker=marker, markersize=8)
+            # axes.text(sv_data[0][-1], sv_data[1][-1], sv_name)
+
             s_idx += 1
         c_idx += 1
 
     axes.set_theta_zero_location('N')
     axes.set_theta_direction(-1)
-    axes.set_yticks(range(0, 90+10, 30))                   # Define the yticks
+    axes.set_yticks(range(0, 90+10, 30))    # Define the yticks
     axes.set_ylim(90,0)
 
     axes.legend(bbox_to_anchor=(1.05, 1))
@@ -279,7 +381,9 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
         fo.make_dir(log_path)
-        plt_file = os.path.join(log_path,prefix+"_skyplot.png")
+        if prefix != "" and not prefix.endswith('_'):
+            prefix += "_"
+        plt_file = os.path.join(log_path, prefix + "skyplot.png")
 
         fo.save_figure(fig, plt_file)
 
@@ -316,7 +420,10 @@ def plot_residuals(navdata, save=True, prefix=""):
         raise KeyError("residuals missing, run solve_residuals().")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-
+    if "signal_type" not in navdata.rows:
+        raise KeyError("signal_type missing")
+    if "sv_id" not in navdata.rows:
+        raise KeyError("sv_id missing")
     if save: # pragma: no cover
         root_path = os.path.dirname(
                     os.path.dirname(
@@ -368,7 +475,9 @@ def plot_residuals(navdata, save=True, prefix=""):
         plt.legend(bbox_to_anchor=(1.05, 1))
 
         if save: # pragma: no cover
-            plt_file = os.path.join(log_path, prefix + "_residuals_" \
+            if prefix != "" and not prefix.endswith('_'):
+                prefix += "_"
+            plt_file = os.path.join(log_path, prefix + "residuals_" \
                      + signal_type + ".png")
 
             fo.save_figure(fig, plt_file)

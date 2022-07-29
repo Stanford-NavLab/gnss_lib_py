@@ -8,9 +8,7 @@ __date__ = "22 Jun 2022"
 import os
 import pytest
 
-import numpy as np
-
-import gnss_lib_py.utils.visualizations as vis
+import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived
 from gnss_lib_py.utils.file_operations import close_figures
@@ -118,18 +116,83 @@ def test_plot_metrics(derived):
     for r_idx, row in enumerate(derived.rows):
         if not derived.str_bool[r_idx]:
             if row in test_rows:
-                fig = vis.plot_metric(derived, row, save=False)
+                fig = viz.plot_metric(derived, row, save=False)
                 close_figures(fig)
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
-                fig = vis.plot_metric(derived, row, save=False)
+                fig = viz.plot_metric(derived, row, save=False)
                 close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
-        vis.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
+        viz.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
+
+    for r_idx, row in enumerate(derived.rows):
+        if not derived.str_bool[r_idx]:
+            if row in test_rows:
+                fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
+                close_figures(fig)
+        else:
+            # string rows should cause a KeyError
+            with pytest.raises(KeyError) as excinfo:
+                fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
+                close_figures(fig)
+            assert "non-numeric row" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
+    assert "Prefix" in str(excinfo.value)
+
+    with pytest.raises(ValueError) as excinfo:
+        viz.plot_metric(derived, 'raw_pr_m', row, row, save=False)
+
+def test_plot_metrics_by_constellation(derived):
+    """Test for plotting metrics.
+
+    Parameters
+    ----------
+    derived : AndroidDerived
+        Instance of AndroidDerived for testing.
+
+    """
+
+    test_rows = [
+                 "raw_pr_m",
+                 "raw_pr_sigma_m",
+                 "tropo_delay_m",
+                 ]
+
+    for r_idx, row in enumerate(derived.rows):
+        if not derived.str_bool[r_idx]:
+            if row in test_rows:
+                fig = viz.plot_metric_by_constellation(derived, row, save=False)
+                close_figures(fig)
+        else:
+            # string rows should cause a KeyError
+            with pytest.raises(KeyError) as excinfo:
+                fig = viz.plot_metric_by_constellation(derived, row, save=False)
+                close_figures(fig)
+            assert "non-numeric row" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_metric_by_constellation(derived, "raw_pr_m", save=True,
+                                         prefix=1)
+    assert "Prefix" in str(excinfo.value)
+
+    derived_no_sv_id = derived.remove(rows="sv_id")
+    with pytest.raises(KeyError) as excinfo:
+        viz.plot_metric_by_constellation(derived_no_sv_id, "raw_pr_m",
+                                         save=False)
+    assert "sv_id" in str(excinfo.value)
+
+    derived_no_signal_type = derived.remove(rows="signal_type")
+    with pytest.raises(KeyError) as excinfo:
+        viz.plot_metric_by_constellation(derived_no_signal_type,
+                                         "raw_pr_m", save=False)
+    assert "signal_type" in str(excinfo.value)
+
 
 def test_plot_skyplot(derived, state_estimate):
     """Test for plotting skyplot.
@@ -147,13 +210,22 @@ def test_plot_skyplot(derived, state_estimate):
     """
 
     # don't save figures
-    fig = vis.plot_skyplot(derived, state_estimate, save=False)
+    fig = viz.plot_skyplot(derived, state_estimate, save=False)
     close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
-        vis.plot_skyplot(derived, state_estimate, save=True, prefix=1)
+        viz.plot_skyplot(derived, state_estimate, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
+    derived_no_sv_id = derived.remove(rows="sv_id")
+    with pytest.raises(KeyError) as excinfo:
+        viz.plot_skyplot(derived_no_sv_id, state_estimate, save=False)
+    assert "sv_id" in str(excinfo.value)
+
+    derived_no_signal_type = derived.remove(rows="signal_type")
+    with pytest.raises(KeyError) as excinfo:
+        viz.plot_skyplot(derived_no_signal_type, state_estimate, save=False)
+    assert "signal_type" in str(excinfo.value)
 
 def test_plot_residuals(derived, state_estimate):
     """Test for plotting residuals.
@@ -175,14 +247,24 @@ def test_plot_residuals(derived, state_estimate):
     solve_residuals(derived, state_estimate)
 
     # don't save figures
-    figs = vis.plot_residuals(derived, save=False)
+    figs = viz.plot_residuals(derived, save=False)
     close_figures(figs)
 
     # should return KeyError if no residuals row
     with pytest.raises(KeyError) as excinfo:
-        vis.plot_residuals(derived_original, save=False)
+        viz.plot_residuals(derived_original, save=False)
     assert "residuals missing" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
-        vis.plot_residuals(derived, save=True, prefix=1)
+        viz.plot_residuals(derived, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
+
+    derived_no_sv_id = derived.remove(rows="sv_id")
+    with pytest.raises(KeyError) as excinfo:
+        viz.plot_residuals(derived_no_sv_id, save=False)
+    assert "sv_id" in str(excinfo.value)
+
+    derived_no_signal_type = derived.remove(rows="signal_type")
+    with pytest.raises(KeyError) as excinfo:
+        viz.plot_residuals(derived_no_signal_type, save=False)
+    assert "signal_type" in str(excinfo.value)
