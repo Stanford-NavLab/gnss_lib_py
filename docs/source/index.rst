@@ -101,17 +101,18 @@ all be found in the :ref:`tutorials section<tutorials>`.
 Contributing
 ------------
 If you have a bug report or would like to contribute to our repository,
-please follow the guide in :ref:`contributing page<contributing>`.
+please follow the guide on the :ref:`contributing page<contributing>`.
 
 Reference
 ---------
 References on the package contents, explanation of the benefits of our
 custom NavData class, and function-level documentation can all be
-found on our :ref:`reference section<reference>`.
+found in the :ref:`reference section<reference>`.
 
 Troubleshooting
 ---------------
-Answers to common questions can be found in :ref:`troubleshooting section<troubleshooting>`.
+Answers to common questions can be found in the
+:ref:`troubleshooting section<troubleshooting>`.
 
 Attribution
 -----------
