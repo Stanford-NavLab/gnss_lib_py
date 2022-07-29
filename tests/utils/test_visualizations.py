@@ -145,6 +145,8 @@ def test_plot_metrics(derived):
         viz.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
+    with pytest.raises(ValueError) as excinfo:
+        viz.plot_metric(derived, 'raw_pr_m', row, row, save=False)
 
 def test_plot_metrics_by_constellation(derived):
     """Test for plotting metrics.
