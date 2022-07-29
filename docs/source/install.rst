@@ -123,6 +123,12 @@ Ubuntu/WSL2
    Check the :ref:`Testing<testing>` section in the Contribution guide
    for more details
 
+9. Verify that the documentation is building locally using
+
+   .. code-block:: bash
+
+      ./build_docs.sh
+
 Windows
 +++++++
 

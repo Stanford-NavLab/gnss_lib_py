@@ -3,6 +3,15 @@
 Documentation and Style Guide
 =============================
 
+This page serves as a guide on how to add to the documentation for
+developers.
+If you are using, :code:`gnss_lib_py`, documentation is hosted
+:ref:`here <mainpage>`.
+If you are looking for functional level reference documentation, check
+the :ref:`reference page <reference>`.
+For tutorials on how to use :code:`gnss_lib_py`, refer to the
+:ref:`tutorials page <tutorials>`.
+
 We use `numpy docstrings
 <https://numpydoc.readthedocs.io/en/latest/format.html>`__
 for all documentation within this package. You can see some example
@@ -82,7 +91,7 @@ the PEP 8 style guide for
 author and date inclusions
 (`dunders <https://www.python.org/dev/peps/pep-0008/#module-level-dunder-names>`__).
 
-.. code-block :: python
+.. code-block:: python
 
    """ Short description of the file contents.
 
@@ -157,9 +166,9 @@ If you wish to add python dependencies:
 
 If you wish to remove python dependencies, use :code:`poetry remove package`.
 
-After the above, you can run the helper tool from the main directory
-that will automatically rebuild references and build a local HTML copy
-of the documentation:
+If you're using :code:`poetry`, after the above, you can run the helper
+tool from the main directory that will automatically rebuild references
+and build a local HTML copy of the documentation:
 
     .. code-block:: bash
 
@@ -167,3 +176,7 @@ of the documentation:
 
 After building the html, you can open :code:`docs/build/html/index.html` in
 a browser to view your local copy.
+
+If you encounter errors while using the :code:`build_docs.sh` tool, refer
+to previously documented solutions in the
+:ref:`troubleshooting page <build_errors>`.

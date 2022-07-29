@@ -26,13 +26,27 @@ For example:
    Could not import extension nbsphinx (exception: No module named 'nbsphinx')
    make: *** [Makefile:20: html] Error 2
 
-It's possible a new dependency has been added. Try running
-:code:`poetry install`.
+It's possible a new dependency has been added. Verify that you're in the
+right directory (or using the right environment if running a Jupyter
+notebook) and update your environment using :code:`poetry install`.
+
+:code:`build_docs.sh` errors
+----------------------------
+.. _build_errors:
+
+When running :code:`./build_docs.sh`, it is possible to run into errors
+like :code:`.build_docs.sh: command not found`.
+In this case, try running :code:`bash build_docs.sh` instead.
+
+When running :code:`./build_docs.sh`, if you get the message
+:code:`rm: cannot remove './source/reference/algorithms/*'$'\r': No such file or directory`,
+the line endings for :code:`build_docs.sh` might have changed to CRLF.
+Change the line endings to LF and re-run the command.
 
 Pandoc wasn't found
 -------------------
 
-Following error is possible when building the documentation.
+The following error is possible when building the documentation.
 
 .. code-block::
 

@@ -32,10 +32,11 @@ We provide standard row names for :code:`NavData` elements on the
 These names ensure cross compatability between different datasets and
 algorithms.
 
+.. _organization:
+
 Code Organization
 -----------------
 
-.. _organization:
 
 :code:`gnss_lib_py` is organized as:
 

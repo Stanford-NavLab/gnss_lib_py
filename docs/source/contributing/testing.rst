@@ -89,7 +89,7 @@ Convention for writing tests
     before the tests stop running
 
 For additional details on :code:`pytest` functionality mentioned above,
-check the :code:`pytest` documentation.
+check the `pytest documentation <https://docs.pytest.org/>`__.
 
 .. _coverage:
 
