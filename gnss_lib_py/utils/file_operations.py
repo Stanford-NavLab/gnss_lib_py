@@ -74,3 +74,15 @@ def get_timestamp():
     """
     timestamp =  time.strftime("%Y%m%d%H%M%S")
     return timestamp
+
+def get_lib_dir():
+    """Returns filepath to the Pixel4XL data
+
+    Returns
+    -------
+    filepath : string
+        Filepath to the main gnss_lib_py repository directory
+
+    """
+    return os.path.dirname(os.path.dirname(os.path.dirname(
+                           os.path.realpath(__file__))))

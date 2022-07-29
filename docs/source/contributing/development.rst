@@ -19,8 +19,10 @@ Standard GitHub Workflow
 
       git clone https://github.com/<your username>/gnss_lib_py
 
-3. Follow the :ref:`developer install instructions<developer install>`
-   to install pyenv, poetry, and the python dependencies.
+3. If using poetry, follow the :ref:`developer install instructions<developer install>`
+   to install pyenv, poetry, and the python dependencies. If using
+   :code:`pip` or :code:`conda` for package management instead, use
+   :code:`pip install -r requirements.txt` to install dependencies.
 
 4. Create a local branch:
 
@@ -31,17 +33,20 @@ Standard GitHub Workflow
 5. Make changes locally and document them appropriately. See the
    :ref:`Documentation<documentation>` section for more details.
 
-6. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.sh>`__.
+6. Add tests for the newly added code and ensure the new code is covered.
+   See the :ref:`Testing<testing>` section for more details.
 
-7. When you're done making changes run all the tests with:
+7. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.sh>`__.
+
+8. When you're done making changes run all the tests with:
 
    .. code-block:: bash
 
       poetry run pytest
 
-   See the :ref:`Testing<testing>` section for more details.
+   Make sure that all tests are passing.
 
-8. Verify that testing coverage has not decreased:
+9. Verify that testing coverage has not decreased:
 
    .. code-block:: bash
 
@@ -50,7 +55,11 @@ Standard GitHub Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-9. Commit your changes and publish your branch to GitHub:
+10. Ensure that system and IDE dependent files, like those in :code:`.idea`
+    folders for PyCharm and :code:`.vscode` folders for VS Code are not
+    committed by updating the :code:`.gitignore` file.
+
+11. Commit your changes and publish your branch to GitHub:
 
    .. code-block:: bash
 
@@ -58,7 +67,7 @@ Standard GitHub Workflow
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-10. Submit a pull request through the GitHub website.
+12. Submit a pull request through GitHub.
 
 NAVLab GitHub Workflow
 ----------------------
@@ -71,9 +80,9 @@ NAVLab GitHub Workflow
 
 3. Create a local branch:
 
-    .. code-block:: bash
+   .. code-block:: bash
 
-       git checkout -b your-name/name-of-your-bugfix-or-feature
+      git checkout -b your-name/name-of-your-bugfix-or-feature
 
 4. Make changes locally and document them appropriately. See the
    :ref:`Documentation<documentation>` section for more details.
@@ -97,40 +106,45 @@ NAVLab GitHub Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-8. When you're ready to commit changes follow the steps below to
+8. Ensure that system and IDE dependent files, like those in :code:`.idea`
+   folders for PyCharm and :code:`.vscode` folders for VS Code are not
+   committed by updating the :code:`.gitignore` file.
+
+9. When you're ready to commit changes follow the steps below to
    minimize unnecessary merging. This is especially important if
    multiple people are working on the same branch. If you pull new
    changes, then repeat the tests above to double check that everything
    is still working as expected.
 
-    .. code-block:: bash
+   .. code-block:: bash
 
-        git stash
-        git pull
-        git stash apply
-        git add <files to add to commit>
-        git commit -m "<describe changes in this commit>"
-        git push origin your-name/name-of-your-bugfix-or-feature
+      git stash
+      git pull
+      git stash apply
+      git add <files to add to commit>
+      git commit -m "<describe changes in this commit>"
+      git push origin your-name/name-of-your-bugfix-or-feature
 
-9. Submit a pull request through the GitHub website and request as a
-   step in the pull request that either Ashwin or Derek review your
-   code.
+10. Submit a pull request through the GitHub website. In the pull request,
+    add a code review request for the current maintainers of the repository,
+    Ashwin Kanhere, Derek Knowles or Sriramya Bhamidipati. The reviewers
+    might add comments to ensure compliance with the rest of the code.
 
 Pull Request Review Workflow
 ----------------------------
 
 1. Change to the branch in review:
 
-.. code-block :: bash
+   .. code-block:: bash
 
-   git checkout their-name/name-of-the-bugfix-or-feature
+      git checkout their-name/name-of-the-bugfix-or-feature
 
 2. Update your local :code:`poetry` environment to include any
-   potentially new dependencies added to poetry:
+   new dependencies that might have been added to poetry:
 
-.. code-block :: bash
+   .. code-block:: bash
 
-   poetry install
+      poetry install
 
 3. Review the changes and added code. Look for common sense errors,
    violated conventions or places where a better implementation is
@@ -140,7 +154,7 @@ Pull Request Review Workflow
 
 3. Verify that documentation is complete and updated if necessary. See
    the :ref:`Documentation<documentation>` section for more details on
-   what to check.
+   what is expected.
 
 4. Verify that all tests run on your system:
 
@@ -150,7 +164,11 @@ Pull Request Review Workflow
 
    See the :ref:`Testing<testing>` section for more details.
 
-5. Verify that testing coverage has not decreased:
+5. Verify that all status checks are passing on GitHub.
+   Treat failing status checks as failed tests, doc errors or linting
+   issues, depending on the corresponding GitHub Action
+
+6. Verify that testing coverage has not decreased:
 
    .. code-block:: bash
 
@@ -159,4 +177,4 @@ Pull Request Review Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-6. Submit your approval or any comments on GitHub.
+7. Submit your approval or any comments on GitHub.
