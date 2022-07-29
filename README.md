@@ -88,7 +88,7 @@ In the directory organization above:
         * Residual plotting: specifically optimized for plotting residuals.
 
 
-Installation[reference section](gnss_lib_py.readthedocs.io/reference)
+Installation
 ------------
 For directions on how to install the `gnss_lib_py` project, please
 see the [install instructions](gnss_lib_py.readthedocs.io/install).
