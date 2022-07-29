@@ -99,13 +99,15 @@ Ubuntu/WSL2
 
 6. Install Python dependencies using :code:`poetry install`.
 
+.. _install_pandoc:
+
 7. Install pandoc to be able to build documentation. See details
    `here <https://pandoc.org/installing.html>`__.
 
    a. For Linux :code:`sudo apt install pandoc`
 
    b. For Windows :code:`choco install pandoc`
-   
+
    c. For MacOS :code:`brew install pandoc`
 
 
