@@ -37,8 +37,7 @@ STANFORD_COLORS = [
                    ]
 MARKERS = ["o","*","P","v","s","^","p","<","h",">","H","X","D"]
 
-mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
-                                + cycler(marker=MARKERS))
+mpl.rcParams['axes.prop_cycle'] = cycler(color=STANFORD_COLORS)
 
 TIMESTAMP = fo.get_timestamp()
 
@@ -464,8 +463,8 @@ def plot_residuals(navdata, save=True, prefix=""):
         for sv_name, sv_data in signal_residuals.items():
             color = STANFORD_COLORS[signal_type_svs.index(sv_name)]
             plt.plot(sv_data[0], sv_data[1],
-                    color = color,
-                    label = signal_type.replace("_"," ") + " " + str(sv_name))
+                     color = color,
+                     label = signal_type.replace("_"," ") + " " + str(sv_name))
         axes = plt.gca()
         axes.ticklabel_format(useOffset=False)
         axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
