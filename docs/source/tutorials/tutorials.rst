@@ -61,7 +61,7 @@ TODO: copy and paste from intro page
 .. toctree::
    :maxdepth: 1
 
-   tutorials_parsers
+   tutorials_parsers_notebook
 
 Algorithm Tutorials
 -------------------
