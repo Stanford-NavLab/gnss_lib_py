@@ -5,48 +5,17 @@ Tutorials
 
 
 This library is meant to be used to easily interact with standard
-GNSS datasets and run standard algorithms.
-The code below shows how you can easily create a skyplot from a dataset
-with only three function calls.
+GNSS datasets and measurement types to run standard baseline algorithms.
 
-.. code-block:: python
-
-    from gnss_lib_py.algorithms.snapshot import solve_wls
-    from gnss_lib_py.parsers.android import AndroidDerived
-    from gnss_lib_py.utils.visualizations import plot_skyplot
-
-    data_path = "/google-decimeter-2021/train/2021-01-05-US-SVL-1/Pixel4XL/Pixel4XL_derived.csv"
-
-    # convert data to NavData child class
-    derived_data = AndroidDerived(data_path)
-
-    # calculate Weighted Least Squares position estimate
-    state = solve_wls(derived_data)
-
-    # create skyplot of the satellites movement
-    plot_skyplot(derived_data, state)
-
-.. image:: ../img/skyplot.png
-  :width: 400
-  :alt: skyplot of GNSS movement over time
-
-
+The tutorials below show you how to interact with our standard
+:code:`NavData` class and how to run standard baselines all with only a
+few lines of code.
 
 NavData Tutorials
 ---------------------
 
-Our unifying class.
-
-TODO: simple example showing the speed up of the NavData class
-and intuitive adding data to it.
-
-.. code-block:: python
-
-    from gnss_lib_py.parsers.navdata import NavData
-
-    navdata = NavData()
-
-More information on the NavData class can be found.
+This tutorial shows how to interact with our standard :code:`NavData`
+class.
 
 .. toctree::
    :maxdepth: 1
@@ -56,7 +25,8 @@ More information on the NavData class can be found.
 Parser Tutorials
 ----------------
 
-TODO: copy and paste from intro page
+This tutorial explains details about existing parsers and how to create
+a new parser if necessary.
 
 .. toctree::
    :maxdepth: 1
@@ -66,7 +36,8 @@ TODO: copy and paste from intro page
 Algorithm Tutorials
 -------------------
 
-TODO: copy and paste from intro page
+This tutorial walks through the existing algorithms that you can use
+for baseline position solutions.
 
 .. toctree::
    :maxdepth: 1
@@ -77,7 +48,8 @@ TODO: copy and paste from intro page
 Utility Tutorials
 -----------------
 
-TODO: copy and paste from intro page
+This tutorial illustrates a few of the most common utility functions
+available in the :code:`utils` directory.
 
 .. toctree::
    :maxdepth: 1
