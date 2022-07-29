@@ -8,7 +8,7 @@ gnss_lib_py
 
 .. _mainpage:
 
-:code:`gnss_lib_py` is a modular tool for parsing, analyzing, and
+:code:`gnss_lib_py` is a modular Python tool for parsing, analyzing, and
 visualizing Global Navigation Satellite Systems (GNSS) data.
 It also provides an intuitive and modular framework allowing users to
 quickly prototype, implement, and visualize GNSS algorithms.
@@ -31,18 +31,6 @@ We provide standard row names for :code:`NavData` elements in the
 :ref:`reference page<reference>`.
 These names ensure cross compatability between different datasets and
 algorithms.
-
-Prerequisites
--------------
-
-:code:`gnss_lib_py` is written in Python and requires familiarity with
-Python classes, functions, standard Python methods, computation
-libraries, like :code:`numpy`, and :code:`matplotlib` for plotting.
-
-:code:`gnss_lib_py` is developed in Python 3.8.9 in Ubuntu 20 and
-Ubuntu 20 for WSL2.
-All :code:`gnss_lib_py` classes and methods are tested in Python 3.8
-and 3.10 in the latest Ubuntu, MacOS and Windows versions.
 
 Code Organization
 -----------------
@@ -98,32 +86,32 @@ In the directory organization above:
 
 
 Installation
-++++++++++++
+------------
 For directions on how to install the :code:`gnss_lib_py` project, please
 see the :ref:`install instructions<install>`.
 
 Tutorials
-+++++++++
+---------
 We have a range of tutorials on how to easily use this project. They can
 all be found in the :ref:`tutorials section<tutorials>`.
 
 Contributing
-++++++++++++
+------------
 If you have a bug report or would like to contribute to our repository,
 please follow the guide in :ref:`contributing page<contributing>`.
 
 Reference
-+++++++++
+---------
 References on the package contents, explanation of the benefits of our
 custom NavData class, and function-level documentation can all be
 found on our :ref:`reference section<reference>`.
 
 Troubleshooting
-+++++++++++++++
+---------------
 Answers to common questions can be found in :ref:`troubleshooting section<troubleshooting>`.
 
 Attribution
-+++++++++++
+-----------
 This project is a product of the `Stanford NAV Lab <https://navlab.stanford.edu/>`__
 and currently maintained by Ashwin Kanhere and Derek Knowles. If using
 this project in your own work please cite the following:

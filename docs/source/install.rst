@@ -3,14 +3,16 @@
 Install
 =======
 
-System Requirements
--------------------
+Prerequisites
+-------------
 
-Our code has been written in and tested on the following systems:
+:code:`gnss_lib_py` is written in Python and requires basic familiarity
+with Python classes, functions and associated syntax.
 
-- Ubuntu 18, 20
-- Ubuntu 20
-- Ubuntu 20 on WSL2
+:code:`gnss_lib_py` is developed in Python 3.8.9 in Ubuntu 20 and
+Ubuntu 20 for WSL2.
+All :code:`gnss_lib_py` classes and methods are tested in Python 3.8
+and 3.10 in the latest Ubuntu, MacOS and Windows versions.
 
 Standard Installation
 ---------------------
@@ -47,7 +49,8 @@ Standard Installation
 
       pip install -e .
 
-5. Verify installation by running :code:`pytest`
+5. Verify installation by running :code:`pytest`.
+   A successful installation will be indicated by all tests passing.
 
    .. code-block:: bash
 
