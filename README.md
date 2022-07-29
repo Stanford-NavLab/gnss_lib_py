@@ -29,7 +29,7 @@ algorithms.
 
 Documentation
 -------------
-Full documentation is available at https://gnss_lib_py.readthedocs.io
+Full documentation is available at gnss_lib_py.readthedocs.io
 
 
 Code Organization
@@ -74,7 +74,7 @@ In the directory organization above:
     GNSS data from the following sources into the
     `gnss_lib_py`'s unifying `NavData` class:
 
-      * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
+      * [2021 Google Android Derived Dataset](https://www.kaggle.com/c/google-smartphone-decimeter-challenge)
   * The following data visualization tools are available in the
     `utils` directory:
 
@@ -91,27 +91,27 @@ In the directory organization above:
 Installation
 ------------
 For directions on how to install the `gnss_lib_py` project, please
-see the :ref:`install instructions<install>`.
+see the [install instructions](gnss_lib_py.readthedocs.io/install).
 
 Tutorials
 ---------
 We have a range of tutorials on how to easily use this project. They can
-all be found in the :ref:`tutorials section<tutorials>`.
+all be found in the [tutorials section](gnss_lib_py.readthedocs.io/tutorials).
 
 Contributing
 ------------
 If you have a bug report or would like to contribute to our repository,
-please follow the guide in :ref:`contributing page<contributing>`.
+please follow the guide on the [contributing page](gnss_lib_py.readthedocs.io/contributing).
 
 Reference
 ---------
 References on the package contents, explanation of the benefits of our
 custom NavData class, and function-level documentation can all be
-found on our :ref:`reference section<reference>`.
+found in the [reference section](gnss_lib_py.readthedocs.io/reference).
 
 Troubleshooting
 ---------------
-Answers to common questions can be found in :ref:`troubleshooting section<troubleshooting>`.
+Answers to common questions can be found in the [troubleshooting section](gnss_lib_py.readthedocs.io/troubleshooting).
 
 Attribution
 -----------
