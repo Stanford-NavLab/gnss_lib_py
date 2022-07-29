@@ -27,7 +27,7 @@ and state estimates.
 The modularity of :code:`gnss_lib_py` is made possibly by the unifying
 :code:`NavData` class, which contains methods to add, remove and modify
 numeric and string data consistently.
-We provide standard row names for :code:`NavData` elements in the
+We provide standard row names for :code:`NavData` elements on the
 :ref:`reference page<reference>`.
 These names ensure cross compatability between different datasets and
 algorithms.
@@ -82,6 +82,9 @@ In the directory organization above:
           elapsed time of the provided :code:`NavData` class.
         * Metric plotting: allows you to plot a specific array of data
           from the :code:`NavData` class
+        * Metric plotting by constellation: allows you to plot a specific
+          array of data but broken up by individual constellations and
+          signal types.
         * Residual plotting: specifically optimized for plotting residuals.
 
 
