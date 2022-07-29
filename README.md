@@ -65,17 +65,22 @@ Code Organization
 ```
 In the directory organization above:
 
-  * The following algorithms are implemented in the `algorithms`
-    directory and work by passing in a `NavData` class.
+  * The `algorithms` directory contains localization algorithms that
+    work by passing in a `NavData` class. Currently, the following
+    algorithms are implemented in the `algorithms`:
 
       * Weighted Least Squares
       * Calculating pseudorange residuals
   * The data parsers in the `parsers` directory allow for loading
-    GNSS data from the following sources into the
-    `gnss_lib_py`'s unifying `NavData` class:
+    GNSS data into `gnss_lib_py`'s unifying `NavData` class.
+    Currently, the following datasets and types are supported:
 
       * [2021 Google Android Derived Dataset](https://www.kaggle.com/c/google-smartphone-decimeter-challenge)
-  * The following data visualization tools are available in the
+
+  * The `utils` directory contains utilities used to handle
+    GNSS measurements, time conversions, visualizations, satellite
+    simulation, file operations, etc.
+  * Currently, the following data visualization tools are available in the
     `utils` directory:
 
         * Skyplot: showing the movement of GNSS satellites during the
