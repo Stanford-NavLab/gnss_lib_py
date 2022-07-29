@@ -55,7 +55,11 @@ Standard GitHub Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-10. Commit your changes and publish your branch to GitHub:
+10. Ensure that system and IDE dependent files, like those in :code:`.idea`
+    folders for PyCharm and :code:`.vscode` folders for VS Code are not
+    committed by updating the :code:`.gitignore` file.
+
+11. Commit your changes and publish your branch to GitHub:
 
    .. code-block:: bash
 
@@ -63,7 +67,7 @@ Standard GitHub Workflow
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-11. Submit a pull request through GitHub.
+12. Submit a pull request through GitHub.
 
 NAVLab GitHub Workflow
 ----------------------
@@ -102,7 +106,11 @@ NAVLab GitHub Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-8. When you're ready to commit changes follow the steps below to
+8. Ensure that system and IDE dependent files, like those in :code:`.idea`
+    folders for PyCharm and :code:`.vscode` folders for VS Code are not
+    committed by updating the :code:`.gitignore` file.
+
+9. When you're ready to commit changes follow the steps below to
    minimize unnecessary merging. This is especially important if
    multiple people are working on the same branch. If you pull new
    changes, then repeat the tests above to double check that everything
@@ -117,7 +125,7 @@ NAVLab GitHub Workflow
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-9. Submit a pull request through the GitHub website. In the pull request,
+10. Submit a pull request through the GitHub website. In the pull request,
    add a code review request for the current maintainers of the repository,
    Ashwin Kanhere, Derek Knowles or Sriramya Bhamidipati. The reviewers
    might add comments to ensure compliance with the rest of the code.
