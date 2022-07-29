@@ -85,6 +85,10 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 html_static_path = []
 
+html_logo = "img/nav_lab_logo.png"
+
+html_favicon = "img/nav_lab_fav.ico"
+
 html_theme_options = {
     "style_nav_header_background" : "#8C1515",
     # "display_version" : True,
@@ -93,11 +97,13 @@ html_theme_options = {
     # "navigation_depth" : 4,
     "includehidden" : True,
     # "titles_only" : True,
+    "logo_only" : False,
+    "display_version" : True,
 
 
 }
 
-html_logo = "img/nav_lab_logo.png"
+
 
 # document __init__ methods
 autoclass_content = 'both'

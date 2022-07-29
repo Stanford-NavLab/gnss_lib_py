@@ -271,7 +271,7 @@ pylint==2.13.9; python_full_version >= "3.6.2"
 pynmea2==1.18.0 \
     --hash=sha256:098f9ffd89c4a6c5e137b8b59e5b38194888d4a557c50b003ebcf2c3c15ec22e \
     --hash=sha256:e340d3327ebf09683d09466a52541dfcccb98bde9cb661cab2d3eeb72ea424ad
-pyparsing==3.0.9; python_full_version >= "3.6.8" and python_version >= "3.7"
+pyparsing==3.0.9; python_full_version >= "3.6.8" and python_version >= "3.8"
 pyrsistent==0.18.1; python_version >= "3.7" \
     --hash=sha256:df46c854f490f81210870e509818b729db4488e1f30f2a1ce1698b2295a878d1 \
     --hash=sha256:5d45866ececf4a5fff8742c25722da6d4c9e180daa7b405dc0a2a2790d668c26 \
@@ -378,7 +378,7 @@ traitlets==5.2.1.post0; python_full_version >= "3.7.0" and python_version >= "3.
 typing-extensions==4.2.0; python_version < "3.10" and python_full_version >= "3.6.2" and python_version >= "3.7"
 unlzw3==0.2.1; python_version >= "3.7" \
     --hash=sha256:eaf26c213100d886cea513e2cd77cc2fe418192789197c685259aa070fb88829
-wcwidth==0.2.5; python_full_version >= "3.6.2" and python_version >= "3.6" \
+wcwidth==0.2.5; python_full_version >= "3.6.2" and python_version >= "3.8" \
     --hash=sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784 \
     --hash=sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83
 webencodings==0.5.1; python_version >= "3.7" \

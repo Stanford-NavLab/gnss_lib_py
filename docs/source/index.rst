@@ -10,8 +10,8 @@ gnss_lib_py
 
 :code:`gnss_lib_py` is a modular tool for parsing, analyzing, and
 visualizing Global Navigation Satellite Systems (GNSS) data.
-It also provides an intuitive framework allowing users to quickly
-prototype, implement, and visualize GNSS algorithms.
+It also provides an intuitive and modular framework allowing users to
+quickly prototype, implement, and visualize GNSS algorithms.
 :code:`gnss_lib_py` is modular in the sense that multiple types of
 algorithms can be easily exchanged for each other and extendable in
 facilitating user-specific extensions of existing implementations.
@@ -20,26 +20,82 @@ facilitating user-specific extensions of existing implementations.
   :width: 400
   :alt: skyplot of GNSS movement over time
 
-The data parers in the :code:`parsers` directory allow for loading
-GNSS data from the following sources into the
-:code:`gnss_lib_py`'s unifying :code:`NavData` class:
+:code:`gnss_lib_py` contains parsers for common file types used for
+storing GNSS measurements, benchmark algorithms for processing
+measurements into state estimates and visualization tools for measurements
+and state estimates.
+The modularity of :code:`gnss_lib_py` is made possibly by the unifying
+:code:`NavData` class, which contains methods to add, remove and modify
+numeric and string data consistently.
+We provide standard row names for :code:`NavData` elements in the
+:ref:`reference page<reference>`.
+These names ensure cross compatability between different datasets and
+algorithms.
 
-    * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
+Prerequisites
+-------------
 
-The following algorithms are implemented in the :code:`algorithms`
-directory and work by passing in a :code:`NavData` class.
+:code:`gnss_lib_py` is written in Python and requires familiarity with
+Python classes, functions, standard Python methods, computation
+libraries, like :code:`numpy`, and :code:`matplotlib` for plotting.
 
-    * Weighted Least Squares
-    * Calculating pseudorange residuals
+:code:`gnss_lib_py` is developed in Python 3.8.9 in Ubuntu 20 and
+Ubuntu 20 for WSL2.
+All :code:`gnss_lib_py` classes and methods are tested in Python 3.8
+and 3.10 in the latest Ubuntu, MacOS and Windows versions.
 
-The following data visualization tools are available in the
-:code:`utils` directory:
+Code Organization
+-----------------
 
-    * Skyplot: showing the movement of GNSS satellites during the
-      elapsed time of the provided :code:`NavData` class.
-    * Metric plotting: allows you to plot a specific array of data
-      from the :code:`NavData` class
-    * Residual plotting: specifically optimized for plotting residuals.
+:code:`gnss_lib_py` is organized as:
+
+.. code-block:: bash
+
+   ├── data/                          # Location for data files
+      └── unit_test/                  # Data files for unit testing
+   ├── dev/                           # Code users do not wish to commit
+   ├── docs/                          # Documentation files
+   ├── gnss_lib_py/                   # gnss_lib_py source files
+        ├── algorithms/               # Navigation algorithms
+        ├── parsers/                  # Data parsers
+        ├── utils/                    # GNSS and common utilities
+        └── __init__.py
+   ├── notebooks/                     # Interactive Jupyter notebooks
+        ├── tutorials/                # Notebooks with tutorial code
+   ├── results/                       # Location for result images/files
+   ├── tests/                         # Tests for source files
+      ├── algorithms/                 # Tests for files in algorithms
+      ├── parsers/                    # Tests for files in parsers
+      ├── utils/                      # Tests for files in utils
+      └── test_gnss_lib_py.py         # High level checks for repository
+   ├── CONTRIBUTORS.md                # List of contributors
+   ├── build_docs.sh                  # Bash script to build docs
+   ├── poetry.lock                    # Poetry specific Lock file
+   ├── pyproject.toml                 # List of package dependencies
+   ├── requirements.txt               # List of packages for pip install
+   └── setup.py                       # Setup file
+
+In the directory organization above:
+
+  * The following algorithms are implemented in the :code:`algorithms`
+    directory and work by passing in a :code:`NavData` class.
+
+      * Weighted Least Squares
+      * Calculating pseudorange residuals
+  * The data parers in the :code:`parsers` directory allow for loading
+    GNSS data from the following sources into the
+    :code:`gnss_lib_py`'s unifying :code:`NavData` class:
+
+      * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
+  * The following data visualization tools are available in the
+    :code:`utils` directory:
+
+        * Skyplot: showing the movement of GNSS satellites during the
+          elapsed time of the provided :code:`NavData` class.
+        * Metric plotting: allows you to plot a specific array of data
+          from the :code:`NavData` class
+        * Residual plotting: specifically optimized for plotting residuals.
+
 
 Installation
 ++++++++++++
@@ -54,7 +110,7 @@ all be found in the :ref:`tutorials section<tutorials>`.
 Contributing
 ++++++++++++
 If you have a bug report or would like to contribute to our repository,
-please head over the :ref:`contributing page<contributing>`.
+please follow the guide in :ref:`contributing page<contributing>`.
 
 Reference
 +++++++++
@@ -64,7 +120,7 @@ found on our :ref:`reference section<reference>`.
 
 Troubleshooting
 +++++++++++++++
-Common troubleshooting answers can be found in :ref:`troubleshooting section<troubleshooting>`.
+Answers to common questions can be found in :ref:`troubleshooting section<troubleshooting>`.
 
 Attribution
 +++++++++++
@@ -74,13 +130,14 @@ this project in your own work please cite the following:
 
 .. code-block:: bash
 
-    @misc{knowles_2022
-    author = "Derek Knowles, Ashwin Kanhere and Grace Gao",
-    title = "A Modular and Extendable GNSS Python Library",
-    institution = "Stanford University",
-    year = "2022 [Online]",
-    url = "https://github.com/Stanford-NavLab/gnss_lib_py",
-    }
+   @inproceedings{knowlesmodular2022,
+      title = {A Modular and Extendable GNSS Python Library},
+      author={Knowles, Derek and Kanhere, Ashwin V and Bhamidipati, Sriramya and and Gao, Grace},
+      booktitle={Proceedings of the 35th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2022)},
+      institution = {Stanford University},
+      year = {2022 [Online]},
+      url = {https://github.com/Stanford-NavLab/gnss_lib_py},
+   }
 
 Additionaly, we would like to thank `all contributors <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__ to this project.
 
