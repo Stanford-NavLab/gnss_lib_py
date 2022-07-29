@@ -107,8 +107,8 @@ NAVLab GitHub Workflow
    See the :ref:`Coverage Report<coverage>` section for more details.
 
 8. Ensure that system and IDE dependent files, like those in :code:`.idea`
-    folders for PyCharm and :code:`.vscode` folders for VS Code are not
-    committed by updating the :code:`.gitignore` file.
+   folders for PyCharm and :code:`.vscode` folders for VS Code are not
+   committed by updating the :code:`.gitignore` file.
 
 9. When you're ready to commit changes follow the steps below to
    minimize unnecessary merging. This is especially important if
@@ -126,9 +126,9 @@ NAVLab GitHub Workflow
       git push origin your-name/name-of-your-bugfix-or-feature
 
 10. Submit a pull request through the GitHub website. In the pull request,
-   add a code review request for the current maintainers of the repository,
-   Ashwin Kanhere, Derek Knowles or Sriramya Bhamidipati. The reviewers
-   might add comments to ensure compliance with the rest of the code.
+    add a code review request for the current maintainers of the repository,
+    Ashwin Kanhere, Derek Knowles or Sriramya Bhamidipati. The reviewers
+    might add comments to ensure compliance with the rest of the code.
 
 Pull Request Review Workflow
 ----------------------------
