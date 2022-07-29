@@ -70,7 +70,7 @@ In the directory organization above:
 
       * Weighted Least Squares
       * Calculating pseudorange residuals
-  * The data parers in the `parsers` directory allow for loading
+  * The data parsers in the `parsers` directory allow for loading
     GNSS data from the following sources into the
     `gnss_lib_py`'s unifying `NavData` class:
 
@@ -131,4 +131,4 @@ this project in your own work please cite the following:
    }
 ```
 
-Additionaly, we would like to thank [all contributors](https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md) to this project.
+Additionally, we would like to thank [all contributors](https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md) to this project.

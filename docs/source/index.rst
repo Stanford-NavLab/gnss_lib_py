@@ -74,14 +74,15 @@ In the directory organization above:
 
       * Weighted Least Squares
       * Calculating pseudorange residuals
-  * The data parers in the :code:`parsers` directory allow for loading
+  * The data parsers in the :code:`parsers` directory allow for loading
     GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class.
     Currently, the following datasets and types are supported:
 
       * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
+
   * The :code:`utils` directory contains utilities used to handle
-      GNSS measurements, time conversions, visualizations, satellite
-      simulation, file operations, etc.
+    GNSS measurements, time conversions, visualizations, satellite
+    simulation, file operations, etc.
   * Currently, the following data visualization tools are available in the
     :code:`utils` directory:
 
@@ -138,7 +139,7 @@ this project in your own work please cite the following:
       url = {https://github.com/Stanford-NavLab/gnss_lib_py},
    }
 
-Additionaly, we would like to thank `all contributors <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__ to this project.
+Additionally, we would like to thank `all contributors <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__ to this project.
 
 
 .. toctree::
