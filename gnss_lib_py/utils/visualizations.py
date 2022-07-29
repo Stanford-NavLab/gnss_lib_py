@@ -295,6 +295,19 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
         raise KeyError("signal_type missing")
     if "sv_id" not in navdata.rows:
         raise KeyError("sv_id missing")
+    if "x_sv_m" not in navdata.rows:
+        raise KeyError("x_sv_m missing")
+    if "y_sv_m" not in navdata.rows:
+        raise KeyError("y_sv_m missing")
+    if "z_sv_m" not in navdata.rows:
+        raise KeyError("z_sv_m missing")
+    if "x_rx_m" not in state_estimate.rows:
+        raise KeyError("x_rx_m missing")
+    if "y_rx_m" not in state_estimate.rows:
+        raise KeyError("y_rx_m missing")
+    if "z_rx_m" not in state_estimate.rows:
+        raise KeyError("z_rx_m missing")
+
     local_coord = None
 
     skyplot_data = {}

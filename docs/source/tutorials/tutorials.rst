@@ -82,4 +82,4 @@ TODO: copy and paste from intro page
 .. toctree::
    :maxdepth: 1
 
-   tutorials_utilities
+   tutorials_utilities_notebook
