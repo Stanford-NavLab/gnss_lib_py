@@ -1,16 +1,6 @@
-.. _tutorials:
+.. _tutorials_parsers:
 
-Tutorials
-=========
-
-
-Simple Example of Entire Pipeline
----------------------------------
-Tutorial
-
-How to Use Existing NavData Class
--------------------------------------
-Tutorial!
+Description of general parser tutorials
 
 How to Create a New NavData Child Class
 -------------------------------------------

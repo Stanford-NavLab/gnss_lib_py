@@ -135,7 +135,7 @@ Additionaly, we would like to thank `all contributors <https://github.com/Stanfo
    :hidden:
 
    install
-   tutorials
-   contributing/contributing.rst
+   tutorials/tutorials.rst
    reference/reference.rst
+   contributing/contributing.rst
    troubleshooting
