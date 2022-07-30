@@ -29,7 +29,7 @@ algorithms.
 
 Documentation
 -------------
-Full documentation is available at gnss_lib_py.readthedocs.io
+Full documentation is available on our [readthedocs website](https://gnss-lib-py.readthedocs.io/en/latest/index.html).
 
 
 Code Organization
