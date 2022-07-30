@@ -99,9 +99,10 @@ html_theme_options = {
     # "titles_only" : True,
     "logo_only" : False,
     "display_version" : True,
-
-
 }
 
 # document __init__ methods
 autoclass_content = 'both'
+
+# allow errors when building notebooks
+nbsphinx_allow_errors = True
