@@ -106,16 +106,16 @@ Tutorials
 We have a range of tutorials on how to easily use this project. They can
 all be found in the :ref:`tutorials section<tutorials>`.
 
-Contributing
-------------
-If you have a bug report or would like to contribute to our repository,
-please follow the guide on the :ref:`contributing page<contributing>`.
-
 Reference
 ---------
 References on the package contents, explanation of the benefits of our
 custom NavData class, and function-level documentation can all be
 found in the :ref:`reference section<reference>`.
+
+Contributing
+------------
+If you have a bug report or would like to contribute to our repository,
+please follow the guide on the :ref:`contributing page<contributing>`.
 
 Troubleshooting
 ---------------
