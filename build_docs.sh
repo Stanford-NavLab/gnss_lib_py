@@ -1,5 +1,5 @@
 #!/bin/bash
-poetry export -f requirements.txt --output ./docs/source/requirements.txt
+poetry export -f requirements.txt --output ./docs/source/requirements.txt --dev
 cd docs
 echo "Rebuilding References"
 rm -rv ./source/reference/algorithms/*
