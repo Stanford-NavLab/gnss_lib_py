@@ -13,7 +13,7 @@ results/*
 
 # ignore downloaded csv files in notebook tutorials
 notebooks/tutorials/Pixel4XL_derived.csv
-docs/source/tutorials/Pixel4XL_derived.csv
+docs/source/tutorials/*.csv
 
 #Excluding VS Code files
 .vscode/*
