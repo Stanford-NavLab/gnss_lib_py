@@ -132,7 +132,7 @@ this project in your own work please cite the following:
 
    @inproceedings{knowlesmodular2022,
       title = {A Modular and Extendable GNSS Python Library},
-      author={Knowles, Derek and Kanhere, Ashwin V and Bhamidipati, Sriramya and and Gao, Grace},
+      author={Knowles, Derek and Kanhere, Ashwin V and Bhamidipati, Sriramya and Gao, Grace},
       booktitle={Proceedings of the 35th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2022)},
       institution = {Stanford University},
       year = {2022 [Online]},
