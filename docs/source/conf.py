@@ -103,6 +103,3 @@ html_theme_options = {
 
 # document __init__ methods
 autoclass_content = 'both'
-
-# allow errors when building notebooks
-nbsphinx_allow_errors = True

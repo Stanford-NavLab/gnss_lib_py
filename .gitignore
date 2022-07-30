@@ -11,6 +11,10 @@ dev/*
 results/*
 !results/.gitkeep
 
+# ignore downloaded csv files in notebook tutorials
+notebooks/tutorials/Pixel4XL_derived.csv
+docs/source/tutorials/Pixel4XL_derived.csv
+
 #Excluding VS Code files
 .vscode/*
 */.vscode/
