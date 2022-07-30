@@ -1,6 +1,6 @@
 [![build](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml/badge.svg)](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml)
 [![codecov](https://codecov.io/gh/Stanford-NavLab/gnss_lib_py/branch/main/graph/badge.svg?token=1FBGEWRFM6)](https://codecov.io/gh/Stanford-NavLab/gnss_lib_py)
-
+[![Documentation Status](https://readthedocs.org/projects/gnss_lib_py/badge/?version=latest)](https://gnss_lib_py.readthedocs.io/en/latest/?badge=latest)
 
 gnss_lib_py
 ===========
