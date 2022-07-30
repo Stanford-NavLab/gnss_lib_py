@@ -23,7 +23,7 @@ The modularity of `gnss_lib_py` is made possibly by the unifying
 `NavData` class, which contains methods to add, remove and modify
 numeric and string data consistently.
 We provide standard row names for `NavData` elements on the
-[reference page](gnss_lib_py.readthedocs.io/reference).
+[reference page](https://gnss-lib-py.readthedocs.io/en/latest/reference/reference.html).
 These names ensure cross compatability between different datasets and
 algorithms.
 
@@ -96,27 +96,27 @@ In the directory organization above:
 Installation
 ------------
 For directions on how to install the `gnss_lib_py` project, please
-see the [install instructions](gnss_lib_py.readthedocs.io/install).
+see the [install instructions](https://gnss-lib-py.readthedocs.io/en/latest/install.html).
 
 Tutorials
 ---------
 We have a range of tutorials on how to easily use this project. They can
-all be found in the [tutorials section](gnss_lib_py.readthedocs.io/tutorials).
-
-Contributing
-------------
-If you have a bug report or would like to contribute to our repository,
-please follow the guide on the [contributing page](gnss_lib_py.readthedocs.io/contributing).
+all be found in the [tutorials section](https://gnss-lib-py.readthedocs.io/en/latest/tutorials/tutorials.html).
 
 Reference
 ---------
 References on the package contents, explanation of the benefits of our
 custom NavData class, and function-level documentation can all be
-found in the [reference section](gnss_lib_py.readthedocs.io/reference).
+found in the [reference section](https://gnss-lib-py.readthedocs.io/en/latest/reference/reference.html).
+
+Contributing
+------------
+If you have a bug report or would like to contribute to our repository,
+please follow the guide on the [contributing page](https://gnss-lib-py.readthedocs.io/en/latest/contributing/contributing.html).
 
 Troubleshooting
 ---------------
-Answers to common questions can be found in the [troubleshooting section](gnss_lib_py.readthedocs.io/troubleshooting).
+Answers to common questions can be found in the [troubleshooting section](https://gnss-lib-py.readthedocs.io/en/latest/troubleshooting.html).
 
 Attribution
 -----------
