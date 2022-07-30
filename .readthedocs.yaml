@@ -2,8 +2,8 @@
 # Read the Docs configuration file
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 
-# Required
-version: 0.1.0
+# Version of the configuration file (Required)
+version: 1
 
 # Set the version of Python and other tools you might need
 build:
