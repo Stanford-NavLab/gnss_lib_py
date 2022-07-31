@@ -99,8 +99,6 @@ html_theme_options = {
     # "titles_only" : True,
     "logo_only" : False,
     "display_version" : True,
-
-
 }
 
 # document __init__ methods
