@@ -3,47 +3,58 @@
 Install
 =======
 
-Our code has been written in and tested on the following systems:
+Prerequisites
+-------------
 
-- Ubuntu 18
-- Ubuntu 20
-- Ubuntu 20 on WSL2
+:code:`gnss_lib_py` is written in Python and requires basic familiarity
+with Python classes, functions and associated syntax.
+
+:code:`gnss_lib_py` is developed in Python 3.8.9 in Ubuntu 20 and
+Ubuntu 20 for WSL2.
+All :code:`gnss_lib_py` classes and methods are tested in Python 3.8
+and 3.10 in the latest Ubuntu, MacOS and Windows versions.
 
 Standard Installation
 ---------------------
 
-Clone the GitHub repository:
+1. Clone the GitHub repository:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
+      git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
 
-Install dependencies with pip:
+2. Install dependencies with pip:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    pip3 install -r requirements.txt
+       pip3 install -r requirements.txt
 
-Update pip version. For Linux:
+3. Update pip version.
 
-.. code-block:: bash
-   
-   pip install -U pip
+   a. For Linux:
 
-For Windows: 
+      .. code-block:: bash
 
-.. code-block:: bash
-   
-   python -m pip install -U pip
+         pip install -U pip
 
-Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+   b. For Windows:
 
-.. code-block:: bash
-   
-   pip install -e .
+      .. code-block:: bash
 
-Verify installation by running :code:`pytest`
+          python -m pip install -U pip
 
+4. Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+
+   .. code-block:: bash
+
+      pip install -e .
+
+5. Verify installation by running :code:`pytest`.
+   A successful installation will be indicated by all tests passing.
+
+   .. code-block:: bash
+
+      pytest
 
 .. _developer install:
 
@@ -91,7 +102,19 @@ Ubuntu/WSL2
 
 6. Install Python dependencies using :code:`poetry install`.
 
-7. Verify that the code is working by running tests on the code using
+.. _install_pandoc:
+
+7. Install pandoc to be able to build documentation. See details
+   `here <https://pandoc.org/installing.html>`__.
+
+   a. For Linux :code:`sudo apt install pandoc`
+
+   b. For Windows :code:`choco install pandoc`
+
+   c. For MacOS :code:`brew install pandoc`
+
+
+8. Verify that the code is working by running tests on the code using
 
    .. code-block:: bash
 
@@ -99,6 +122,12 @@ Ubuntu/WSL2
 
    Check the :ref:`Testing<testing>` section in the Contribution guide
    for more details
+
+9. Verify that the documentation is building locally using
+
+   .. code-block:: bash
+
+      ./build_docs.sh
 
 Windows
 +++++++

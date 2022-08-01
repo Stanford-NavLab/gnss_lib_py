@@ -7,6 +7,3 @@ parsers
    android
    ephemeris
    navdata
-   nmea
-   rinex
-   sp3

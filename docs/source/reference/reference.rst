@@ -8,28 +8,63 @@ Package Architecture
 
 The gnss_lib_py package is broadly divided into the following sections.
 Please choose the most appropriate location based on the descriptions
-below for new features or functionality.
+below when adding new features or functionality.
 
     * :code:`algorithms` : This directory contains localization algorithms.
     * :code:`parsers` : This directory contains functions to read and process various
       GNSS data/file types.
     * :code:`utils` : This directory contains utilities used to handle
-      GNSS measurements, time conversions, visualizatoins, satellite
+      GNSS measurements, time conversions, visualizations, satellite
       simulation, file operations, etc.
 
-Details about NavData Class
--------------------------------
-Reasons that our NavData Class is awesome
+More information about currently available methods and the folder
+organization can be found in the :ref:`organization subsection <organization>`.
 
-    * if initializing with np.ndarrays, rows are each data type
-    * column names need to be strings
-    * if initializing with a csv file without headers, use
-      :code:`NavData(csv_path = "path", header = None)`
+Details about NavData Class
+---------------------------
+
+We use a custom class :code:`NavData` in :code:`gnss_lib_py` for storing
+measurements and state estimates.
+Along with the standard naming convention for measurements and
+state estimates, the :code:`NavData` class provides modularity between
+different datasets, algorithms and functions for visualization and metric
+calculation.
+
+Using our custom :code:`NavData` class has the following advantages:
+
+  * Our implementation uses string labels to intuitively access and set
+    values in the underlying array. Eg. :code:`data['row_name'] = row_values`.
+    This prevents mistakenly accessing the wrong row while using
+    measurements
+  * Our implementation uses :code:`np.ndarray` as the underlying data
+    data storage object, which is faster than :code:`pd.DataFrame`
+  * We have implemented custom methods for adding new rows (measurement
+    types), adding new columns (time stamps of data), deleting rows and
+    columns and creating copies, including subsets
+  * We have also implemented custom methods for returning subsets where
+    given equality and inequalities are satisfied
+  * :code:`NavData` also has implementations to loop over a larger
+    :code:`NavData` column-wise and loop over subsets grouped over time
+  * :code:`NavData` also supports string valued entries, which are stored
+    numerically in the underlying array. We provide methods so that
+    accessing string valued rows takes strings as inputs and outputs.
+    Users don't have to worry about the internal handling of string values
+
+However, :code:`NavData` is maintained as part of :code:`gnss_lib_py`
+and might not have all desired functionality that more mature libraries,
+like pandas and numpy might have.
+As a workaround, since the underlying storage is in :code:`np.ndarray`
+and we provide functions for handling strings, you can implement your
+own methods using a combination of numpy methods and :code:`NavData`
+methods.
+
 
 Standard Naming Conventions
 ---------------------------
 
-In large part our conventions follow from `Google's naming pattern <https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data>`_
+In large part our conventions follow from the naming patterns in Google's
+derived datasets for the `Google Decimeter challenge <https://www.kaggle.com/competitions/smartphone-decimeter-2022/data>`_
+
 
 
 GNSS measurement naming conventions are as follows:
@@ -39,24 +74,18 @@ GNSS measurement naming conventions are as follows:
     on January 6th, 1980. The `NOAA CORS website <https://geodesy.noaa.gov/CORS/Gpscal.shtml>`__
     maintains a helpful reference calendar.
   * :code:`gps_tow` : (float) time of receiving signal as measured by
-    the receiver in seconds since start of GPS week (Sunday at )
+    the receiver in seconds since start of GPS week (Sunday at midnight).
+    This time includes leap seconds
   * :code:`unix_time_millis` : (int) milliseconds that have elapsed
     since January 1, 1970 at midnight (midnight UTC) and not counting
     leapseconds.
-  * :code:`gnss_id` : (int) GNSS identification number using
-    the following mapping
-
-      *  0 : UNKNOWN
-      *  1 : GPS
-      *  2 : SBAS
-      *  3 : GLONASS
-      *  4 : QZSS
-      *  5 : BEIDOU
-      *  6 : GALILEO
-      *  7 : IRNSS
-
+  * :code:`gnss_id` : (string) GNSS identification using the constellation
+    name, like :code:`gps`, :code:`galileo` and :code:`qzss`
   * :code:`sv_id` : (int) satellite vehicle identification number
-  * :code:`signal_type`
+  * :code:`signal_type` (string) Identifier for signal type, eg. GPS_L1,
+    GPS_L5 and GAL_E5. We use the first three characters (capitalized) to
+    represent the constellation, followed by an underscore and the
+    signal band.
   * :code:`tx_sv_tow` (float) measured signal transmission time as
     sent by the space vehicle/satellite and in seconds since the start
     of the gps week.
@@ -91,6 +120,13 @@ GNSS measurement naming conventions are as follows:
     accumulated delta range in meters.
 
 State estimate naming conventions are as follows:
+
+  * :code:`gps_week` : (int) GPS weeks since the start of the GPS epoch
+    on January 6th, 1980. The `NOAA CORS website <https://geodesy.noaa.gov/CORS/Gpscal.shtml>`__
+    maintains a helpful reference calendar.
+  * :code:`gps_tow` : (float) time of receiving signal as measured by
+    the receiver in seconds since start of GPS week (Sunday at midnight).
+    This time includes leap seconds
   * :code:`unix_time_millis` : (int) milliseconds that have elapsed
     since January 1, 1970 at midnight (midnight UTC) and not counting
     leapseconds.
@@ -98,22 +134,6 @@ State estimate naming conventions are as follows:
   * :code:`y_rx_m` : (float) receiver ECEF y position in meters.
   * :code:`z_rx_m` : (float) receiver ECEF z position in meters.
   * :code:`b_rx_m` : (float) receiver clock bias in meters.
-
-GPS Time Conversions
---------------------
-
-    * The GPS Week starts at 12:00am on Sunday morning
-    * Converting GPS millis since gps start -> UTC
-    * UTC to GPS week / time of the week
-    * GPS week / time into UTC
-    * added info about when GPS week starts/ends
-    * GPS week rollover discussion
-    * leap second discussion (when was it last changed?) From 18 to 19 on
-      December 2016(??)
-    * Other common errors?
-    * :code:`time_of_ephemeris_millis` : (int) time of ephemeris as
-      number of milliseconds since the start of the GPS epoch,
-      January 6th, 1980.
 
 
 Module Level Function References
