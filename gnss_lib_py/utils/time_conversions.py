@@ -14,24 +14,24 @@ from gnss_lib_py.utils.constants import GPS_EPOCH_0, WEEKSEC
 UNIX_EPOCH_0 = datetime(1970, 1, 1, 0, 0, tzinfo=timezone.utc)
 
 # Manually need to add leapSeconds when needed for future ones
-LEAPSECONDS_TABLE = [datetime(2017, 1, 1, 0, 0),
-                        datetime(2015, 7, 1, 0, 0),
-                        datetime(2012, 7, 1, 0, 0),
-                        datetime(2009, 1, 1, 0, 0),
-                        datetime(2006, 1, 1, 0, 0),
-                        datetime(1999, 1, 1, 0, 0),
-                        datetime(1997, 7, 1, 0, 0),
-                        datetime(1996, 1, 1, 0, 0),
-                        datetime(1994, 7, 1, 0, 0),
-                        datetime(1993, 7, 1, 0, 0),
-                        datetime(1992, 7, 1, 0, 0),
-                        datetime(1991, 1, 1, 0, 0),
-                        datetime(1990, 1, 1, 0, 0),
-                        datetime(1988, 1, 1, 0, 0),
-                        datetime(1985, 7, 1, 0, 0),
-                        datetime(1983, 7, 1, 0, 0),
-                        datetime(1982, 7, 1, 0, 0),
-                        datetime(1981, 7, 1, 0, 0),
+LEAPSECONDS_TABLE = [datetime(2017, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(2015, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(2012, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(2009, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(2006, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1999, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1997, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1996, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1994, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1993, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1992, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1991, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1990, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1988, 1, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1985, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1983, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1982, 7, 1, 0, 0, tzinfo=timezone.utc),
+                        datetime(1981, 7, 1, 0, 0, tzinfo=timezone.utc),
                         GPS_EPOCH_0]
 
 def get_leap_seconds(gps_time):
@@ -54,12 +54,9 @@ def get_leap_seconds(gps_time):
         curr_time = gps_time
     else:
         curr_time = GPS_EPOCH_0 + timedelta(milliseconds=gps_time)
-    if not hasattr(gps_time, 'tzinfo'):
-        warnings.warn("No time zone info found in datetime, assuming UTC",\
-                        RuntimeWarning)
-        gps_time = gps_time.replace(tzinfo=timezone.utc)
-    if t_datetime.tzinfo != timezone.utc:
-        t_datetime = t_datetime.astimezone(timezone.utc)
+        curr_time = curr_time.replace(tzinfo=timezone.utc)
+    #TODO: Abstract checking for tzinfo into a single private function
+    curr_time = _check_tzinfo(curr_time)
     if curr_time < GPS_EPOCH_0:
         raise RuntimeError("Need input time after GPS epoch "+ str(GPS_EPOCH_0))
     for row_num, time_frame in enumerate(LEAPSECONDS_TABLE):
@@ -123,14 +120,9 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
         GPS time of week [s]
 
     """
+    t_datetime = _check_tzinfo(t_datetime)
     if t_datetime < GPS_EPOCH_0:
         raise RuntimeError("Input time must be after GPS epoch "+ str(GPS_EPOCH_0))
-    if not hasattr(t_datetime, 'tzinfo'):
-        warnings.warn("No time zone info found in datetime, assuming UTC",\
-                        RuntimeWarning)
-        gps_time = gps_time.replace(tzinfo=timezone.utc)
-    if t_datetime.tzinfo != timezone.utc:
-        t_datetime = t_datetime.astimezone(timezone.utc)
     if add_leap_secs:
         out_leapsecs = get_leap_seconds(t_datetime)
         t_datetime = t_datetime + timedelta(seconds=out_leapsecs)
@@ -138,8 +130,7 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
             print("leapSecs added")
     gps_week = (t_datetime - GPS_EPOCH_0).days // 7
 
-    tow = ((t_datetime - GPS_EPOCH_0) \
-            - timedelta(gps_week* 7.0)).total_seconds()
+    tow = ((t_datetime - GPS_EPOCH_0) - timedelta(gps_week* 7.0)).total_seconds()
 
     return gps_week, tow
 
@@ -232,12 +223,7 @@ def datetime_to_unix_millis(t_datetime):
     unix_millis : float
         Milliseconds since UNIX Epoch (1/1/1970 UTC)
     """
-    if not hasattr(t_datetime, 'tzinfo'):
-        warnings.warn("No time zone info found in datetime, assuming UTC",\
-                        RuntimeWarning)
-        gps_time = gps_time.replace(tzinfo=timezone.utc)
-    if t_datetime.tzinfo != timezone.utc:
-        t_datetime = t_datetime.astimezone(timezone.utc)
+    t_datetime = _check_tzinfo(t_datetime)
     unix_millis = 1000*(t_datetime - UNIX_EPOCH_0).total_seconds()
     return unix_millis
 
@@ -376,3 +362,26 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
     t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
     unix_millis = datetime_to_unix_millis(t_utc)
     return unix_millis
+
+
+def _check_tzinfo(t_datetime):
+    """Raises warning if given time doesn't have timezone and converts to UTC
+
+    Parameters
+    ----------
+    t_datetime : datetime.datetime
+        Datetime object with no timezone, UTC timezone or local timezone
+
+    Returns
+    -------
+    t_datetime: datetime.datetime
+        Datetime object in UTC, added if no timezone was given and
+        converted to UTC if datetime was in local timezone
+    """
+    if not hasattr(t_datetime, 'tzinfo'):
+        warnings.warn("No time zone info found in datetime, assuming UTC",\
+                        RuntimeWarning)
+        t_datetime = t_datetime.replace(tzinfo=timezone.utc)
+    if t_datetime.tzinfo != timezone.utc:
+        t_datetime = t_datetime.astimezone(timezone.utc)
+    return t_datetime

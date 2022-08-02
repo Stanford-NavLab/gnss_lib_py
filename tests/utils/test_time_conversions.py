@@ -5,7 +5,7 @@
 __authors__ = "Sriramya Bhamidipati, Ashwin Kanhere"
 __date__ = "28 Jul 2022"
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 
 import numpy as np
@@ -23,30 +23,30 @@ def leapseconds_table():
         Array of reference times and leap seconds for validation
     """
     leapseconds_ref_table = np.transpose([[GPS_EPOCH_0, 0],
-                                    [datetime(1981, 7, 1, 0, 0), 1],
-                                    [datetime(1982, 7, 1, 0, 0), 2],
-                                    [datetime(1983, 7, 1, 0, 0), 3],
-                                    [datetime(1985, 7, 1, 0, 0), 4],
-                                    [datetime(1988, 1, 1, 0, 0), 5],
-                                    [datetime(1990, 1, 1, 0, 0), 6],
-                                    [datetime(1991, 1, 1, 0, 0), 7],
-                                    [datetime(1992, 7, 1, 0, 0), 8],
-                                    [datetime(1993, 7, 1, 0, 0), 9],
-                                    [datetime(1994, 7, 1, 0, 0), 10],
-                                    [datetime(1996, 1, 1, 0, 0), 11],
-                                    [datetime(1997, 7, 1, 0, 0), 12],
-                                    [datetime(1999, 1, 1, 0, 0), 13],
-                                    [datetime(2006, 1, 1, 0, 0), 14],
-                                    [datetime(2009, 1, 1, 0, 0), 15],
-                                    [datetime(2012, 7, 1, 0, 0), 16],
-                                    [datetime(2015, 7, 1, 0, 0), 17],
-                                    [datetime(2017, 1, 1, 0, 0), 18]])
+                                    [datetime(1981, 7, 1, 0, 0, tzinfo=timezone.utc), 1],
+                                    [datetime(1982, 7, 1, 0, 0, tzinfo=timezone.utc), 2],
+                                    [datetime(1983, 7, 1, 0, 0, tzinfo=timezone.utc), 3],
+                                    [datetime(1985, 7, 1, 0, 0, tzinfo=timezone.utc), 4],
+                                    [datetime(1988, 1, 1, 0, 0, tzinfo=timezone.utc), 5],
+                                    [datetime(1990, 1, 1, 0, 0, tzinfo=timezone.utc), 6],
+                                    [datetime(1991, 1, 1, 0, 0, tzinfo=timezone.utc), 7],
+                                    [datetime(1992, 7, 1, 0, 0, tzinfo=timezone.utc), 8],
+                                    [datetime(1993, 7, 1, 0, 0, tzinfo=timezone.utc), 9],
+                                    [datetime(1994, 7, 1, 0, 0, tzinfo=timezone.utc), 10],
+                                    [datetime(1996, 1, 1, 0, 0, tzinfo=timezone.utc), 11],
+                                    [datetime(1997, 7, 1, 0, 0, tzinfo=timezone.utc), 12],
+                                    [datetime(1999, 1, 1, 0, 0, tzinfo=timezone.utc), 13],
+                                    [datetime(2006, 1, 1, 0, 0, tzinfo=timezone.utc), 14],
+                                    [datetime(2009, 1, 1, 0, 0, tzinfo=timezone.utc), 15],
+                                    [datetime(2012, 7, 1, 0, 0, tzinfo=timezone.utc), 16],
+                                    [datetime(2015, 7, 1, 0, 0, tzinfo=timezone.utc), 17],
+                                    [datetime(2017, 1, 1, 0, 0, tzinfo=timezone.utc), 18]])
     return leapseconds_ref_table
 
 def test_get_leap_seconds(check_leapseconds):
     """Test to validate leap seconds based on input time.
     """
-    input_millis = 1000.0 * (datetime(2022, 7, 28, 0, 0) - tc.GPS_EPOCH_0).total_seconds()
+    input_millis = 1000.0 * (datetime(2022, 7, 28, 0, 0, tzinfo=timezone.utc) - tc.GPS_EPOCH_0).total_seconds()
     valseconds = tc.get_leap_seconds(input_millis)
     assert valseconds == 18
     buffer_secs = 3.0
@@ -77,7 +77,7 @@ def test_datetime_to_tow():
 
     """
 
-    input_time = datetime(2022, 7, 28, 12, 0, 0)
+    input_time = datetime(2022, 7, 28, 12, 0, 0, tzinfo=timezone.utc)
     output_wk, output_tow = tc.datetime_to_tow(input_time,
                                                add_leap_secs = True)
     assert output_wk == 2220
