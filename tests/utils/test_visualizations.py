@@ -301,3 +301,12 @@ def test_plot_residuals(derived, state_estimate):
     with pytest.raises(KeyError) as excinfo:
         viz.plot_residuals(derived_no_signal_type, save=False)
     assert "signal_type" in str(excinfo.value)
+
+def test_get_signal_label():
+    """Test for getting signal labels.
+
+    """
+
+    assert viz.get_signal_label("GPS_L1") == "GPS L1"
+    assert viz.get_signal_label("GLO_G1") == "GLO G1"
+    assert viz.get_signal_label("BDS_B1I") == "BDS B1i"
