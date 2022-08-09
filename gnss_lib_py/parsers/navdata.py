@@ -29,7 +29,7 @@ class NavData():
         Map is of the form {pandas column name : {}} for non string rows.
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
-                 header="infer"):
+                 header="infer", sep=","):
         # For a Pythonic implementation,
         # including all attributes as None in the beginning
         self.arr_dtype = np.float32 # default value
@@ -43,7 +43,7 @@ class NavData():
         self.num_cols = 0
 
         if csv_path is not None:
-            self.from_csv_path(csv_path, header)
+            self.from_csv_path(csv_path, header, sep)
         elif pandas_df is not None:
             self.from_pandas_df(pandas_df)
         elif numpy_array is not None:
@@ -65,7 +65,7 @@ class NavData():
         """
         self.array = np.zeros((0,0), dtype=self.arr_dtype)
 
-    def from_csv_path(self, csv_path, header="infer"):
+    def from_csv_path(self, csv_path, header="infer", sep=","):
         """Build attributes of NavData using csv file.
 
         Parameters
@@ -75,6 +75,8 @@ class NavData():
         header : string, int, or None
             "infer" uses the first row as column names, setting to
             None will add int names for the columns.
+        sep : char
+            Delimiter to use when reading in csv file.
 
         """
         if not isinstance(csv_path, str):
@@ -84,7 +86,7 @@ class NavData():
 
         self.build_navdata()
 
-        pandas_df = pd.read_csv(csv_path, header=header)
+        pandas_df = pd.read_csv(csv_path, header=header, sep=sep)
         self.from_pandas_df(pandas_df)
 
     def from_pandas_df(self, pandas_df):

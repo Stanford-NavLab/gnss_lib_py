@@ -27,10 +27,6 @@ class AndroidDerived(NavData):
         input_path : string
             Path to measurement csv file
 
-        Returns
-        -------
-        pd_df : pd.DataFrame
-            Loaded measurements with consistent column names
         """
 
         super().__init__(csv_path=input_path)
