@@ -234,7 +234,7 @@ def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
     for signal_type, signal_data in data.items():
         fig = plt.figure(figsize=(5,3))
         axes = plt.gca()
-        plt.title(signal_type)
+        plt.title(get_signal_label(signal_type))
 
         for sv_name, sv_data in signal_data.items():
             axes.scatter(sv_data[0],sv_data[1],label=sv_name,s=5.)
@@ -244,7 +244,7 @@ def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
 
         plt.xlabel("time [s]")
         plt.ylabel(metric)
-        plt.legend(bbox_to_anchor=(1.05, 1))
+        plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
 
         if save: # pragma: no cover
             if prefix != "" and not prefix.endswith('_'):
@@ -370,7 +370,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
             if s_idx == 0:
                 axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
                         marker=marker, markersize=8,
-                        label=signal_type.replace("_"," "))
+                        label=get_signal_label(signal_type))
             else:
                 axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
                         marker=marker, markersize=8)
@@ -384,7 +384,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
     axes.set_yticks(range(0, 90+10, 30))    # Define the yticks
     axes.set_ylim(90,0)
 
-    axes.legend(bbox_to_anchor=(1.05, 1))
+    axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
 
     if save: # pragma: no cover
         root_path = os.path.dirname(
@@ -470,19 +470,19 @@ def plot_residuals(navdata, save=True, prefix=""):
     for signal_type, signal_residuals in residual_data.items():
         fig = plt.figure(figsize=(5,3))
 
-        plt.title(signal_type.replace("_"," "))
+        plt.title(get_signal_label(signal_type))
         signal_type_svs = list(signal_residuals.keys())
 
         for sv_name, sv_data in signal_residuals.items():
             plt.plot(sv_data[0], sv_data[1],
-                     label = signal_type.replace("_"," ") + " " + str(sv_name))
+                     label = get_signal_label(signal_type) + " " + str(sv_name))
         axes = plt.gca()
         axes.ticklabel_format(useOffset=False)
         axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
         plt.ylim(-100.,100.)
         plt.xlabel("time [s]")
         plt.ylabel("residiual [m]")
-        plt.legend(bbox_to_anchor=(1.05, 1))
+        plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
 
         if save: # pragma: no cover
             if prefix != "" and not prefix.endswith('_'):
@@ -500,3 +500,28 @@ def plot_residuals(navdata, save=True, prefix=""):
     if save: # pragma: no cover
         return None
     return figs
+
+def get_signal_label(signal_name_raw):
+    """Return signal name with better formatting for legend.
+
+    Parameters
+    ----------
+    signal_name_raw : string
+        Signal name with underscores between parts of singal type.
+        For example, GPS_L1
+
+    Returns
+    -------
+    signal_label : string
+        Properly formatted signal label
+
+    """
+
+    signal_label = signal_name_raw.replace("_"," ")
+
+    # replace with lowercase "i" for Beidou "I" signals for more legible
+    # name in the legend
+    if signal_label[-1] == "I":
+        signal_label = signal_label[:-1] + "i"
+
+    return signal_label
