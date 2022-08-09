@@ -173,7 +173,9 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
     measure_df = derived.pandas_df()
     measure_df.rename(columns=derived_col_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
-    pd.testing.assert_frame_equal(pd_df, measure_df, check_dtype=False)
+    pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
+                                  measure_df.sort_index(axis=1),
+                                  check_dtype=False, check_names=True)
 
 
 @pytest.mark.parametrize('row_name, index, value',

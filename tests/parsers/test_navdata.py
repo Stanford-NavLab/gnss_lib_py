@@ -958,7 +958,5 @@ def test_col_looping(csv_simple):
     for idx, col in enumerate(data):
         col_df = col.pandas_df().reset_index(drop=True)
         expected_df = compare_df.iloc[[idx], :].reset_index(drop=True)
-        print(col_df)
-        print(expected_df)
         pd.testing.assert_frame_equal(col_df, expected_df,
                                       check_index_type=False)

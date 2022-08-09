@@ -113,8 +113,8 @@ def test_plot_metrics(derived):
                  "tropo_delay_m",
                  ]
 
-    for r_idx, row in enumerate(derived.rows):
-        if not derived.str_bool[r_idx]:
+    for row in derived.rows:
+        if not derived.str_bool[derived.map[row]]:
             if row in test_rows:
                 fig = viz.plot_metric(derived, row, save=False)
                 close_figures(fig)
@@ -129,8 +129,8 @@ def test_plot_metrics(derived):
         viz.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
-    for r_idx, row in enumerate(derived.rows):
-        if not derived.str_bool[r_idx]:
+    for row in derived.rows:
+        if not derived.str_bool[derived.map[row]]:
             if row in test_rows:
                 fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
                 close_figures(fig)
@@ -167,8 +167,8 @@ def test_plot_metrics_by_constellation(derived):
                  "tropo_delay_m",
                  ]
 
-    for r_idx, row in enumerate(derived.rows):
-        if not derived.str_bool[r_idx]:
+    for row in derived.rows:
+        if not derived.str_bool[derived.map[row]]:
             if row in test_rows:
                 fig = viz.plot_metric_by_constellation(derived, row, save=False)
                 close_figures(fig)

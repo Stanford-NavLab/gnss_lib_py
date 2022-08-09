@@ -33,12 +33,7 @@ class AndroidDerived(NavData):
             Loaded measurements with consistent column names
         """
 
-        pd_df = pd.read_csv(input_path)
-        col_map = self._column_map()
-        pd_df.rename(columns=col_map, inplace=True)
-
-        super().__init__(pandas_df=pd_df)
-        self.postprocess()
+        super().__init__(csv_path=input_path)
 
     def postprocess(self):
         """Android derived specific postprocessing
@@ -137,7 +132,6 @@ class AndroidRawImu(NavData):
         #NOTE: Assuming pandas index corresponds to measurements order
         #NOTE: Override times of gyro measurements with corresponding
         # accel times
-        measurements.rename(columns=self._column_map(), inplace=True)
         return measurements
 
     @staticmethod
