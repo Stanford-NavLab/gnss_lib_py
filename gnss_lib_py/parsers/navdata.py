@@ -51,6 +51,8 @@ class NavData():
         else:
             self.build_navdata()
 
+        self.rename(self._row_map())
+
         self.postprocess()
 
     def postprocess(self):
@@ -124,6 +126,23 @@ class NavData():
 
         for row_num in range(numpy_array.shape[0]):
             self.__setitem__(str(row_num), numpy_array[row_num,:])
+
+    @staticmethod
+    def _row_map():
+        """Map of column names from loaded to gnss_lib_py standard
+
+        Initializes as an emptry dictionary, must be reimplemented for
+        custom parsers.
+
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+        """
+
+        row_map = {}
+
+        return row_map
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
@@ -296,6 +315,7 @@ class NavData():
             #Creating an entire new row
             if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
                 # Adding string values
+                # print("\n",key_idx,"\n",newvalue)
                 self.fillna(newvalue)
                 new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue),
                                     dtype=self.arr_dtype)
@@ -308,6 +328,7 @@ class NavData():
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
+                # print("\n",key_idx,"\n")#,newvalue)
                 if not isinstance(newvalue, int) and not isinstance(newvalue, float):
                     assert not isinstance(np.asarray(newvalue)[0], str), \
                             "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
@@ -665,7 +686,7 @@ class NavData():
         for key, value in mapper.items():
             if not isinstance(value, str):
                 raise TypeError("Column names must be strings")
-            if key not in self.map.keys():
+            if key not in self.map:
                 raise KeyError("'" + str(key) \
                                + "' key doesn't exist in NavData class")
 

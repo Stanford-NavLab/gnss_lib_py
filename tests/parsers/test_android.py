@@ -107,16 +107,16 @@ def fixture_pd_df(derived_path):
     return derived_df
 
 
-@pytest.fixture(name="derived_col_map")
-def fixture_inverse_col_map():
+@pytest.fixture(name="derived_row_map")
+def fixture_inverse_row_map():
     """Map from standard names to derived column names
 
     Returns
     -------
-    inverse_col_map : Dict
+    inverse_row_map : Dict
         Column names for inverse map of form {standard_name : derived_name}
     """
-    inverse_col_map = {'trace_name' : 'collectionName',
+    inverse_row_map = {'trace_name' : 'collectionName',
                        'rx_name' : 'phoneName',
                        'gnss_id' : 'constellationType',
                        'sv_id' : 'svid',
@@ -135,7 +135,7 @@ def fixture_inverse_col_map():
                        'iono_delay_m' : 'ionoDelayM',
                        'tropo_delay_m' : 'tropoDelayM',
                     }
-    return inverse_col_map
+    return inverse_row_map
 
 
 @pytest.fixture(name="derived")
@@ -156,7 +156,7 @@ def fixture_load_derived(derived_path):
     return derived
 
 
-def test_derived_df_equivalence(derived, pd_df, derived_col_map):
+def test_derived_df_equivalence(derived, pd_df, derived_row_map):
     """Test if naive dataframe and AndroidDerived contain same data
 
     Parameters
@@ -165,15 +165,17 @@ def test_derived_df_equivalence(derived, pd_df, derived_col_map):
         Instance of AndroidDerived for testing
     pd_df : pytest.fixture
         pd.DataFrame for testing measurements
-    derived_col_map : pytest.fixture
+    derived_row_map : pytest.fixture
         Column map to convert standard to original derived column names
 
     """
     # Also tests if strings are being converted back correctly
     measure_df = derived.pandas_df()
-    measure_df.rename(columns=derived_col_map, inplace=True)
+    measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
-    pd.testing.assert_frame_equal(pd_df, measure_df, check_dtype=False)
+    pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
+                                  measure_df.sort_index(axis=1),
+                                  check_dtype=False, check_names=True)
 
 
 @pytest.mark.parametrize('row_name, index, value',
@@ -328,10 +330,10 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
     csv_loc = make_csv(android_raw_path, output_directory, file_type)
     test_df = pd.read_csv(csv_loc)
     test_measure = AndroidRawImu(android_raw_path)
-    col_map = test_measure._column_map()
+    row_map = test_measure._row_map()
     for col_name in test_df.columns:
-        if col_name in col_map:
-            row_idx = col_map[col_name]
+        if col_name in row_map:
+            row_idx = row_map[col_name]
         else:
             row_idx = col_name
         if col_name in no_check or col_name :

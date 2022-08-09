@@ -33,12 +33,7 @@ class AndroidDerived(NavData):
             Loaded measurements with consistent column names
         """
 
-        pd_df = pd.read_csv(input_path)
-        col_map = self._column_map()
-        pd_df.rename(columns=col_map, inplace=True)
-
-        super().__init__(pandas_df=pd_df)
-        self.postprocess()
+        super().__init__(csv_path=input_path)
 
     def postprocess(self):
         """Android derived specific postprocessing
@@ -57,15 +52,15 @@ class AndroidDerived(NavData):
         self['corr_pr_m'] = pr_corrected
 
     @staticmethod
-    def _column_map():
+    def _row_map():
         """Map of column names from loaded to gnss_lib_py standard
 
         Returns
         -------
-        col_map : Dict
+        row_map : Dict
             Dictionary of the form {old_name : new_name}
         """
-        col_map = {'collectionName' : 'trace_name',
+        row_map = {'collectionName' : 'trace_name',
                    'phoneName' : 'rx_name',
                    'constellationType' : 'gnss_id',
                    'svid' : 'sv_id',
@@ -84,7 +79,7 @@ class AndroidDerived(NavData):
                    'ionoDelayM' : 'iono_delay_m',
                    'tropoDelayM' : 'tropo_delay_m',
                    }
-        return col_map
+        return row_map
 
 
 class AndroidRawImu(NavData):
@@ -137,19 +132,18 @@ class AndroidRawImu(NavData):
         #NOTE: Assuming pandas index corresponds to measurements order
         #NOTE: Override times of gyro measurements with corresponding
         # accel times
-        measurements.rename(columns=self._column_map(), inplace=True)
         return measurements
 
     @staticmethod
-    def _column_map():
-        col_map = {'AccelXMps2' : 'acc_x_mps2',
+    def _row_map():
+        row_map = {'AccelXMps2' : 'acc_x_mps2',
                    'AccelYMps2' : 'acc_y_mps2',
                    'AccelZMps2' : 'acc_z_mps2',
                    'GyroXRadPerSec' : 'ang_vel_x_radps',
                    'GyroYRadPerSec' : 'ang_vel_y_radps',
                    'GyroZRadPerSec' : 'ang_vel_z_radps',
                    }
-        return col_map
+        return row_map
 
 
 class AndroidRawFixes(NavData):
