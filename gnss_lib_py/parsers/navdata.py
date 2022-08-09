@@ -51,7 +51,7 @@ class NavData():
         else:
             self.build_navdata()
 
-        self.rename(self._column_map())
+        self.rename(self._row_map())
 
         self.postprocess()
 
@@ -128,7 +128,7 @@ class NavData():
             self.__setitem__(str(row_num), numpy_array[row_num,:])
 
     @staticmethod
-    def _column_map():
+    def _row_map():
         """Map of column names from loaded to gnss_lib_py standard
 
         Initializes as an emptry dictionary, must be reimplemented for
@@ -136,13 +136,13 @@ class NavData():
 
         Returns
         -------
-        col_map : Dict
+        row_map : Dict
             Dictionary of the form {old_name : new_name}
         """
 
-        col_map = {}
+        row_map = {}
 
-        return col_map
+        return row_map
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
