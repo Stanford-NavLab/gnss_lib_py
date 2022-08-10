@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gnss_lib_py.parsers.android import AndroidDerived, AndroidRawFixes, AndroidRawImu, AndroidGroundTruth
+from gnss_lib_py.parsers.android import AndroidDerived2021, AndroidRawFixes, AndroidRawImu, AndroidGroundTruth2021
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import make_csv
 
@@ -29,7 +29,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
+    root_path = os.path.join(root_path, 'data/unit_test/android_2021')
     return root_path
 
 
@@ -140,7 +140,7 @@ def fixture_inverse_row_map():
 
 @pytest.fixture(name="derived")
 def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived
+    """Load instance of AndroidDerived2021
 
     Parameters
     ----------
@@ -149,20 +149,20 @@ def fixture_load_derived(derived_path):
 
     Returns
     -------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
     """
-    derived = AndroidDerived(derived_path)
+    derived = AndroidDerived2021(derived_path)
     return derived
 
 
 def test_derived_df_equivalence(derived, pd_df, derived_row_map):
-    """Test if naive dataframe and AndroidDerived contain same data
+    """Test if naive dataframe and AndroidDerived2021 contain same data
 
     Parameters
     ----------
     derived : pytest.fixture
-        Instance of AndroidDerived for testing
+        Instance of AndroidDerived2021 for testing
     pd_df : pytest.fixture
         pd.DataFrame for testing measurements
     derived_row_map : pytest.fixture
@@ -186,12 +186,12 @@ def test_derived_df_equivalence(derived, pd_df, derived_row_map):
                          ('signal_type', 6, np.asarray([['GLO_G1']], dtype=object))]
                         )
 def test_derived_value_check(derived, row_name, index, value):
-    """Check AndroidDerived entries against known values using test matrix
+    """Check AndroidDerived2021 entries against known values using test matrix
 
     Parameters
     ----------
     derived : pytest.fixture
-        Instance of AndroidDerived for testing
+        Instance of AndroidDerived2021 for testing
     row_name : string
         Row key for test example
     index : int
@@ -216,7 +216,7 @@ def test_get_and_set_num(derived):
     Parameters
     ----------
     derived : pytest.fixture
-        Instance of AndroidDerived for testing
+        Instance of AndroidDerived2021 for testing
     """
     key = 'testing123'
     value = np.zeros(len(derived))
@@ -230,7 +230,7 @@ def test_get_and_set_str(derived):
     Parameters
     ----------
     derived : pytest.fixture
-        Instance of AndroidDerived for testing
+        Instance of AndroidDerived2021 for testing
     """
     key = 'testing123_string'
     value = ['word']*len(derived)
@@ -275,10 +275,10 @@ def test_navdata_type(derived):
     Parameters
     ----------
     derived : pytest.fixture
-        Instance of AndroidDerived for testing
+        Instance of AndroidDerived2021 for testing
     """
     isinstance(derived, NavData)
-    isinstance(derived, AndroidDerived)
+    isinstance(derived, AndroidDerived2021)
 
 
 def test_shape_update(derived):
@@ -287,7 +287,7 @@ def test_shape_update(derived):
     Parameters
     ----------
     derived : pytest.fixture
-        Instance of AndroidDerived for testing
+        Instance of AndroidDerived2021 for testing
     """
     old_shape = derived.shape
     derived["new_row"] = np.ones((old_shape[1]))
@@ -372,7 +372,7 @@ def fixture_gtruth_path(root_path):
 
 @pytest.fixture(name="gtruth")
 def fixture_load_gtruth(gtruth_path):
-    """Load instance of AndroidGroundTruth
+    """Load instance of AndroidGroundTruth2021
 
     Parameters
     ----------
@@ -381,10 +381,10 @@ def fixture_load_gtruth(gtruth_path):
 
     Returns
     -------
-    gtruth : AndroidGroundTruth
-        Instance of AndroidGroundTruth for testing
+    gtruth : AndroidGroundTruth2021
+        Instance of AndroidGroundTruth2021 for testing
     """
-    gtruth = AndroidGroundTruth(gtruth_path)
+    gtruth = AndroidGroundTruth2021(gtruth_path)
     return gtruth
 
 def test_android_gtruth(android_gtruth_path):
@@ -395,8 +395,7 @@ def test_android_gtruth(android_gtruth_path):
     android_gtruth_path : pytest.fixture
         Path to Android Ground Truth text log file
     """
-    test_gtruth = AndroidGroundTruth(android_gtruth_path)
+    test_gtruth = AndroidGroundTruth2021(android_gtruth_path)
     isinstance(test_gtruth, NavData)
 
 
-    

@@ -5,14 +5,17 @@
 __authors__ = "Shubh Gupta, Adam Dai, Ashwin Kanhere"
 __date__ = "02 Nov 2021"
 
+from distutils.log import warn
 import os
 import csv
+import warnings
 
 import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
+from gnss_lib_py.utils.time_conversions import unix_to_gps_millis
 
 class AndroidDerived2021(NavData):
     """Class handling derived measurements from Android dataset.
@@ -26,18 +29,37 @@ class AndroidDerived2021(NavData):
         ----------
         input_path : string
             Path to measurement csv file
-        """
 
-        super().__init__(csv_path=input_path)
+        Notes
+        -----
+        Removes duplicate rows using correction 5 from competition hosts
+        implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+        retrieved on 10 August, 2022
+
+        """
+        pd_df = pd.read_csv(input_path)
+        # Correction 5 implemented verbatim from competition tips
+        delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
+        where_good_signals = (delta_millis > 0) & (delta_millis < 300)
+        pd_df = pd_df[where_good_signals].copy()
+
+        # Correction 1: Mapping _derived timestamps to previous timestamp
+        # for correspondance with ground truth and Raw data
+        derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
+        indexes = np.searchsorted(derived_timestamps, derived_timestamps)
+        map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
+        pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v], pd_df['millisSinceGpsEpoch'])))
+
+        super().__init__(pandas_df=pd_df)
 
     def postprocess(self):
         """Android derived specific postprocessing
 
         Notes
         -----
-        Adds corrected pseudoranges to measurements. Corrections
+        Adds corrected pseudoranges to measurements. Time step corrections
         implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-        retrieved on 12 January, 2022
+        retrieved on 10 August, 2022
         """
         pr_corrected = self['raw_pr_m', :] \
                      + self['b_sv_m', :] \
@@ -48,7 +70,7 @@ class AndroidDerived2021(NavData):
 
     @staticmethod
     def _row_map():
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------
@@ -57,6 +79,7 @@ class AndroidDerived2021(NavData):
         """
         row_map = {'collectionName' : 'trace_name',
                    'phoneName' : 'rx_name',
+                   'millisSinceGpsEpoch' : 'gps_millis',
                    'constellationType' : 'gnss_id',
                    'svid' : 'sv_id',
                    'signalType' : 'signal_type',
@@ -87,7 +110,7 @@ class AndroidDerived2022(AndroidDerived2021):
 
     @staticmethod
     def _row_map():
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------
@@ -117,6 +140,95 @@ class AndroidDerived2022(AndroidDerived2021):
                    }
         return row_map
 
+
+class AndroidGroundTruth2021(NavData):
+    """Class handling ground truth from Android dataset.
+
+    Inherits from NavData().
+    """
+    def __init__(self, input_path):
+        """Android specific loading and preprocessing for NavData()
+
+        Parameters
+        ----------
+        input_path : string
+            Path to measurement csv file
+        """
+
+        super().__init__(csv_path=input_path)
+
+        self.postprocess()
+
+    def postprocess(self):
+        """Android derived specific postprocessing for NavData()
+
+        Notes
+        -----
+        Corrections incorporated from Kaggle notes hosted here:
+        https://www.kaggle.com/code/gymf123/tips-notes-from-the-competition-hosts
+        """
+        # Correcting reported altitude
+        self['alt_gt_m'] = self['alt_gt_m'] - 61.
+        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'], self['long_gt_deg'], self['alt_gt_m']]))
+        gt_ecef = geodetic_to_ecef(gt_lla)
+        self["x_gt_m"] = gt_ecef[:,0]
+        self["y_gt_m"] = gt_ecef[:,1]
+        self["z_gt_m"] = gt_ecef[:,2]
+
+    @staticmethod
+    def _row_map():
+            """Map of row names from loaded ground truth to gnss_lib_py standard
+
+            Returns
+            -------
+            row_map : Dict
+                Dictionary of the form {old_name : new_name}
+            """
+            row_map = {'latDeg' : 'lat_gt_deg',
+                    'lngDeg' : 'long_gt_deg',
+                    'AltitudheightAboveWgs84EllipsoidMeMeters' : 'alt_gt_m',
+                    'millisSinceGpsEpoch' : 'gps_millis'
+                    }
+            return row_map
+
+
+class AndroidGroundTruth2022(AndroidGroundTruth2021):
+    """Class handling ground truth from Android dataset.
+
+    Inherits from AndroidDerivedGt2021().
+    """
+
+    def postprocess(self):
+        """Android derived specific postprocessing for NavData()
+
+        Notes
+        -----
+        """
+        if np.any(np.isnan(self['alt_gt_m'])):
+            warnings.warn("Some altitude values were missing, using 0m ", RuntimeWarning)
+            self['alt_gt_m'] = np.np.nan_to_num(self['alt_gt_m'])
+        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'], self['long_gt_deg'], self['alt_gt_m']]))
+        gt_ecef = geodetic_to_ecef(gt_lla)
+        self["x_gt_m"] = gt_ecef[:,0]
+        self["y_gt_m"] = gt_ecef[:,1]
+        self["z_gt_m"] = gt_ecef[:,2]
+        self["gps_millis"] = unix_to_gps_millis(self['unix_millis'])
+
+    @staticmethod
+    def _row_map():
+            """Map of row names from loaded ground truth to gnss_lib_py standard
+
+            Returns
+            -------
+            row_map : Dict
+                Dictionary of the form {old_name : new_name}
+            """
+            row_map = {'LatitudeDegrees' : 'lat_gt_deg',
+                    'LongitudeDegrees' : 'long_gt_deg',
+                    'AltitudeMeters' : 'alt_gt_m',
+                    'UnixTimeMillis' : 'unix_millis'
+                    }
+            return row_map
 
 class AndroidRawImu(NavData):
     """Class handling IMU measurements from raw Android dataset.
@@ -269,39 +381,3 @@ def make_csv(input_path, output_directory, field, show_path=False):
         print(output_path)
 
     return output_path
-
-class AndroidGroundTruth(NavData):
-    """Class handling ground truth from Android dataset.
-
-    Inherits from NavData().
-    """
-    def __init__(self, input_path):
-        """Android specific loading and preprocessing for NavData()
-
-        Parameters
-        ----------
-        input_path : string
-            Path to measurement csv file
-
-        Returns
-        -------
-        pd_df : pd.DataFrame
-            Loaded measurements with consistent column names
-        """
-
-        pd_df = pd.read_csv(input_path)
-        super().__init__(pandas_df=pd_df)
-
-        self.postprocess()
-
-    def postprocess(self):
-        """Android derived specific postprocessing for NavData()
-
-        Notes
-        -----        
-        """     
-        gt_lla = np.transpose(np.vstack([self['latDeg'], self['lngDeg'], self['heightAboveWgs84EllipsoidM']]))        
-        gt_ecef = geodetic_to_ecef(gt_lla)
-        self["x_gt_m"] = gt_ecef[:,0]
-        self["y_gt_m"] = gt_ecef[:,1]
-        self["z_gt_m"] = gt_ecef[:,2]
