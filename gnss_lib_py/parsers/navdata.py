@@ -255,14 +255,14 @@ class NavData():
         row_str : list
             List of boolean values indicating which rows contain strings
         """
-        str_bool = self.str_bool
+        _row_idx_str_bool = self._row_idx_str_bool
         if isinstance(rows, slice):
             slice_idx = rows.indices(self.shape[0])
             row_list = np.arange(slice_idx[0], slice_idx[1], slice_idx[2])
-            row_str = [str_bool[row] for row in row_list]
+            row_str = [_row_idx_str_bool[row] for row in row_list]
         else:
             row_list = list(rows)
-            row_str = [str_bool[row] for row in rows]
+            row_str = [_row_idx_str_bool[row] for row in rows]
         return row_list, row_str
 
     def __getitem__(self, key_idx):
@@ -641,7 +641,7 @@ class NavData():
 
 
     @property
-    def str_bool(self):
+    def _row_idx_str_bool(self):
         """Dictionary of index : if data entry is string.
 
         Row has string values if the string map is nonempty for a
@@ -649,11 +649,34 @@ class NavData():
 
         Returns
         -------
-        str_bool : Dict
+        _row_idx_str_bool : Dict
             Dictionary of whether data at row number key is string or not
         """
-        str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map.keys()}
-        return str_bool
+        _row_idx_str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map.keys()}
+        return _row_idx_str_bool
+
+    def is_str(self, row_name):
+        """Check whether a row contained string values.
+
+        Parameters
+        ----------
+        row_name : string
+            Name of the row to check whether it contains string values.
+
+        Returns
+        -------
+        contains_str : bool
+            True if the row contains string values, False otherwise.
+
+        """
+
+        if row_name not in self.map:
+            raise KeyError("'" + str(row_name) \
+                           + "' key doesn't exist in NavData class")
+
+        contains_str = self._row_idx_str_bool[self.map[row_name]]
+
+        return contains_str
 
     @property
     def inv_map(self):

@@ -960,3 +960,27 @@ def test_col_looping(csv_simple):
         expected_df = compare_df.iloc[[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(col_df, expected_df,
                                       check_index_type=False)
+
+def test_is_str(df_simple):
+    """Test the is_str function.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Simple pd.DataFrame with which to initialize NavData.
+
+    """
+    navdata = NavData(pandas_df=df_simple)
+
+    # check on simple dataframe rows
+    assert navdata.is_str("names")
+    assert not navdata.is_str("integers")
+    assert not navdata.is_str("floats")
+    assert navdata.is_str("strings")
+
+    # should raise error if key doesn't exist
+    with pytest.raises(KeyError):
+        navdata.is_str("bananas")
+
+    with pytest.raises(KeyError):
+        navdata.is_str(0)
