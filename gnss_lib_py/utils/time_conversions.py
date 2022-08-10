@@ -42,12 +42,12 @@ def get_leap_seconds(gps_time):
     Parameters
     ----------
     t_secs : float or datetime.datetime
-        Time of clock can be float [ms] or datetime.datetime object
+        Time of clock can be float [ms] or datetime.datetime object.
 
     Returns
     -------
     out_leapsecs : float
-        Leap seconds at given time [s]
+        Leap seconds at given time [s].
 
     """
     if isinstance(gps_time, datetime):
@@ -55,19 +55,17 @@ def get_leap_seconds(gps_time):
     else:
         curr_time = GPS_EPOCH_0 + timedelta(milliseconds=gps_time)
         curr_time = curr_time.replace(tzinfo=timezone.utc)
-    #TODO: Abstract checking for tzinfo into a single private function
     curr_time = _check_tzinfo(curr_time)
     if curr_time < GPS_EPOCH_0:
-        raise RuntimeError("Need input time after GPS epoch "+ str(GPS_EPOCH_0))
+        raise RuntimeError("Need input time after GPS epoch " \
+                           + str(GPS_EPOCH_0))
     for row_num, time_frame in enumerate(LEAPSECONDS_TABLE):
         if curr_time >= time_frame:
             out_leapsecs = len(LEAPSECONDS_TABLE)-1 - row_num
             break
     return out_leapsecs
 
-def gps_millis_to_tow(millis, add_leap_secs=True, verbose=False):
-    #TODO: Should we be adding leap seconds by default? Shouldn't they
-    # be in the same time frame of reference
+def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
     """Convert milliseconds since GPS epoch to GPS week number and time.
 
     The initial GPS epoch is defined by the variable GPS_EPOCH_0 at
@@ -85,7 +83,7 @@ def gps_millis_to_tow(millis, add_leap_secs=True, verbose=False):
     Returns
     -------
     gps_week : float
-        GPS week
+        GPS week.
     tow : float
         GPS time of week [s].
 
@@ -115,14 +113,15 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
     Returns
     -------
     gps_week : float
-        GPS week
+        GPS week.
     tow : float
-        GPS time of week [s]
+        GPS time of week [s].
 
     """
     t_datetime = _check_tzinfo(t_datetime)
     if t_datetime < GPS_EPOCH_0:
-        raise RuntimeError("Input time must be after GPS epoch "+ str(GPS_EPOCH_0))
+        raise RuntimeError("Input time must be after GPS epoch " \
+                         + str(GPS_EPOCH_0))
     if add_leap_secs:
         out_leapsecs = get_leap_seconds(t_datetime)
         t_datetime = t_datetime + timedelta(seconds=out_leapsecs)
@@ -136,21 +135,22 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
 
 
 def tow_to_datetime(gps_week, tow, rem_leap_secs=True):
-    """Convert GPS week and time of week (seconds) to datetime
+    """Convert GPS week and time of week (seconds) to datetime.
 
     Parameters
     ----------
     gps_week : float
-        GPS week
+        GPS week.
     tow : float
-        GPS time of week [s]
+        GPS time of week [s].
     rem_leap_secs : bool
-        Flag on whether to remove leap seconds from given tow
+        Flag on whether to remove leap seconds from given tow.
 
     Returns
     -------
     t_datetime: datetime.datetime
-        Datetime in UTC timezone, with or without leap seconds based on flag
+        Datetime in UTC timezone, with or without leap seconds based on
+        flag.
     """
     seconds_since_epoch = WEEKSEC * gps_week + tow
     t_datetime = GPS_EPOCH_0 + timedelta(seconds=seconds_since_epoch)
@@ -160,22 +160,25 @@ def tow_to_datetime(gps_week, tow, rem_leap_secs=True):
     return t_datetime
 
 def tow_to_unix_millis(gps_week, tow):
-    """Convert GPS week and time of week (seconds) to milliseconds since UNIX epoch
+    """Convert GPS week and time of week (seconds) to UNIX milliseconds.
 
+    Convert GPS week and time of week (seconds) to milliseconds since
+    UNIX epoch.
     Leap seconds will always be removed from tow because of offset between
-    UTC and GPS clocks
+    UTC and GPS clocks.
 
     Parameters
     ----------
     gps_week : float
-        GPS week
+        GPS week.
     tow : float
-        GPS time of week [s]
+        GPS time of week [s].
 
     Returns
     -------
     unix_millis: float
-        Milliseconds since UNIX epoch (midnight 1/1/1970 UTC)
+        Milliseconds since UNIX epoch (midnight 1/1/1970 UTC).
+
     """
     #NOTE: Don't need to remove leapseconds here because they're
     # removed in tow_to_datetime
@@ -186,65 +189,71 @@ def tow_to_unix_millis(gps_week, tow):
 
 
 def tow_to_gps_millis(gps_week, tow):
-    """Convert GPS week and time of week (seconds) to milliseconds since GPS epoch
+    """Convert GPS week and time of week (seconds) to GPS milliseconds.
 
+    Convert GPS week and time of week (seconds) to milliseconds since
+    GPS epoch.
     No leap seconds adjustments are made because both times are in the
     same frame of reference.
 
     Parameters
     ----------
     gps_week : float
-        GPS week
+        GPS week.
     tow : float
-        GPS time of week [s]
+        GPS time of week [s].
 
     Returns
     -------
     gps_millis: float
         Milliseconds since GPS epoch
-        (midnight 6th January, 1980 UTC with leap seconds)
+        (midnight 6th January, 1980 UTC with leap seconds).
+
     """
     millis_since_epoch = 1000*(WEEKSEC * gps_week + tow)
     return millis_since_epoch
 
 
 def datetime_to_unix_millis(t_datetime):
-    """Convert datetime to milliseconds since UNIX Epoch (1/1/1970 UTC)
+    """Convert datetime to milliseconds since UNIX Epoch (1/1/1970 UTC).
 
-    If no timezone is specified, assumes UTC as timezone
+    If no timezone is specified, assumes UTC as timezone.
 
     Parameters
     ----------
     t_datetime : datetime.datetime
-        UTC time as a datetime object
+        UTC time as a datetime object.
 
     Returns
     -------
     unix_millis : float
-        Milliseconds since UNIX Epoch (1/1/1970 UTC)
+        Milliseconds since UNIX Epoch (1/1/1970 UTC).
+
     """
     t_datetime = _check_tzinfo(t_datetime)
     unix_millis = 1000*(t_datetime - UNIX_EPOCH_0).total_seconds()
     return unix_millis
 
 def datetime_to_gps_millis(t_datetime, add_leap_secs=True):
-    """Convert datetime to milliseconds since GPS Epoch (6th January 1980)
+    """Convert datetime to milliseconds since GPS Epoch.
 
+    GPS Epoch starts at the 6th January 1980.
     If no timezone is specified, assumes UTC as timezone and returns
     milliseconds in GPS time frame of reference by adding leap seconds.
-    Milliseconds are not added when the flag add_leap_secs is set to False.
+    Milliseconds are not added when the flag add_leap_secs is False.
 
     Parameters
     ----------
     t_datetime : datetime.datetime
-        UTC time as a datetime object
+        UTC time as a datetime object.
     add_leap_secs : bool
         Flag for whether output is in UTC seconds or GPS seconds.
 
     Returns
     -------
     gps_millis : float
-        Milliseconds since GPS Epoch (6th January 1980 GPS)
+        Milliseconds since GPS Epoch (6th January 1980 GPS).
+
     """
     gps_week, tow = datetime_to_tow(t_datetime, add_leap_secs=add_leap_secs)
     gps_millis = tow_to_gps_millis(gps_week, tow)
@@ -252,17 +261,17 @@ def datetime_to_gps_millis(t_datetime, add_leap_secs=True):
 
 
 def unix_millis_to_datetime(unix_millis):
-    """Convert milliseconds since UNIX epoch (1/1/1970) to UTC datetime
+    """Convert milliseconds since UNIX epoch (1/1/1970) to UTC datetime.
 
     Parameters
     ----------
     unix_millis : float
-        Milliseconds that have passed since UTC epoch
+        Milliseconds that have passed since UTC epoch.
 
     Returns
     -------
     t_utc : datetime.datetime
-        UTC time as a datetime object
+        UTC time as a datetime object.
     """
     t_utc = UNIX_EPOCH_0 + timedelta(milliseconds=unix_millis)
     t_utc = t_utc.replace(tzinfo=timezone.utc)
@@ -270,21 +279,22 @@ def unix_millis_to_datetime(unix_millis):
 
 
 def unix_millis_to_tow(unix_millis):
-    """Convert milliseconds since UNIX epoch (1/1/1970) to datetime
+    """Convert UNIX milliseconds to GPS week and time of week (seconds).
 
-    Always adds leap seconds to convert from UTC to GPS time reference
+    UNIX milliseconds are since UNIX epoch (1/1/1970).
+    Always adds leap seconds to convert from UTC to GPS time reference.
 
     Parameters
     ----------
     unix_millis : float
-        Milliseconds that have passed since UTC epoch
+        Milliseconds that have passed since UTC epoch.
 
     Returns
     -------
     gps_week : float
-        GPS week
+        GPS week.
     tow : float
-        GPS time of week [s]
+        GPS time of week [s].
     """
     t_utc = unix_millis_to_datetime(unix_millis)
     gps_week, tow = datetime_to_tow(t_utc, add_leap_secs=True)
@@ -292,21 +302,22 @@ def unix_millis_to_tow(unix_millis):
 
 
 def unix_to_gps_millis(unix_millis, add_leap_secs=True):
-    """Convert milliseconds since UNIX epoch (1/1/1970) to millis since GPS epoch
+    """Convert milliseconds since UNIX epoch (1/1/1970) to GPS millis.
 
     Adds leap seconds by default but time can be kept in UTC frame by
-    setting to False
+    setting to False.
+
     Parameters
     ----------
     unix_millis : float
-        Milliseconds that have passed since UTC epoch
+        Milliseconds that have passed since UTC epoch.
     add_leap_secs : bool
         Flag for whether output is in UTC seconds or GPS seconds.
 
     Returns
     -------
     gps_millis : float
-        Milliseconds since GPS Epoch (6th January 1980 GPS)
+        Milliseconds since GPS Epoch (6th January 1980 GPS).
     """
     # Add leapseconds should always be true here
     t_utc = unix_millis_to_datetime(unix_millis)
@@ -315,8 +326,9 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
 
 
 def gps_millis_to_datetime(gps_millis, rem_leap_secs=True):
-    """Convert milliseconds since the GPS epoch (in GPS reference) to UTC
+    """Convert milliseconds since GPS epoch to datetime.
 
+    GPS millis is from the start of the GPS in GPS reference.
     The initial GPS epoch is defined by the variable GPS_EPOCH_0 at
     which the week number is assumed to be 0.
 
@@ -332,15 +344,15 @@ def gps_millis_to_datetime(gps_millis, rem_leap_secs=True):
     t_utc : datetime.datetime
         UTC time as a datetime object
     """
-    # TODO: Should we remove leapseconds here
     gps_week, tow = gps_millis_to_tow(gps_millis, add_leap_secs=False)
     t_utc = tow_to_datetime(gps_week, tow, rem_leap_secs=rem_leap_secs)
     return t_utc
 
 
 def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
-    """Convert milliseconds since the GPS epoch (in GPS reference) to UTC
+    """Convert milliseconds since GPS epoch to UNIX millis.
 
+    GPS millis is from the start of the GPS in GPS reference.
     The initial GPS epoch is defined by the variable GPS_EPOCH_0 at
     which the week number is assumed to be 0.
 
@@ -365,18 +377,20 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
 
 
 def _check_tzinfo(t_datetime):
-    """Raises warning if given time doesn't have timezone and converts to UTC
+    """Raises warning if time doesn't have timezone and converts to UTC.
 
     Parameters
     ----------
     t_datetime : datetime.datetime
-        Datetime object with no timezone, UTC timezone or local timezone
+        Datetime object with no timezone, UTC timezone, or local
+        timezone.
 
     Returns
     -------
     t_datetime: datetime.datetime
         Datetime object in UTC, added if no timezone was given and
-        converted to UTC if datetime was in local timezone
+        converted to UTC if datetime was in local timezone.
+
     """
     if not hasattr(t_datetime, 'tzinfo') or not t_datetime.tzinfo:
         warnings.warn("No time zone info found in datetime, assuming UTC",\

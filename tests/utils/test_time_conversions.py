@@ -52,7 +52,8 @@ def test_get_leap_seconds(check_leapseconds):
     check_leapseconds : np.ndarray
         Array of times at which leap seconds changed and changed values
     """
-    input_millis = 1000.0 * (datetime(2022, 7, 28, 0, 0, tzinfo=timezone.utc) - tc.GPS_EPOCH_0).total_seconds()
+    input_millis = 1000.0 * (datetime(2022, 7, 28, 0, 0, tzinfo=timezone.utc) \
+                 - tc.GPS_EPOCH_0).total_seconds()
     valseconds = tc.get_leap_seconds(input_millis)
     assert valseconds == 18
     buffer_secs = 3.0
@@ -158,14 +159,15 @@ def test_tow_to_unix_millis():
 
     Given UTC time, milli seconds since the UNIX epoch were calculated
     from an online calculator [4]_. The UTC time was converted to GPS
-    time and TOW using another online calculator [3]_.
+    time and TOW using another online calculator [5]_.
 
     References
     ----------
-    .. [3] https://www.labsat.co.uk/index.php/en/gps-time-calculator
-           Accessed as of July 28, 2022.
     .. [4] https://currentmillis.com/
            Accessed August 10, 2022.
+    .. [5] https://www.labsat.co.uk/index.php/en/gps-time-calculator
+           Accessed as of July 28, 2022.
+
    """
     gps_week = 2222
     gps_tow = 330687.
@@ -186,11 +188,11 @@ def test_datetime_to_unix_millis():
     and back
 
     Datetime to UNIX milliseconds conversion was obtained using an
-    online convertor [4]_.
+    online convertor [6]_.
 
     References
     ----------
-    .. [4] https://currentmillis.com/
+    .. [6] https://currentmillis.com/
            Accessed August 10, 2022.
 
     """
@@ -208,11 +210,11 @@ def test_datetime_to_gps_millis():
     and back
 
     Datetime to GPS milliseconds conversion was obtained using an
-    online convertor [3]_.
+    online convertor [7]_.
 
     References
     ----------
-    .. [3] https://www.labsat.co.uk/index.php/en/gps-time-calculator
+    .. [7] https://www.labsat.co.uk/index.php/en/gps-time-calculator
            Accessed as of July 28, 2022.
 
     """
@@ -229,16 +231,16 @@ def test_gps_unix_millis():
     """Test milliseconds since GPS epoch to milliseconds since UNIX epoch.
 
     Given UTC time, milliseconds since the UNIX epoch were calculated
-    from an online calculator [4]_. The UTC time was converted to seconds
+    from an online calculator [8]_. The UTC time was converted to seconds
     (and hence milliseconds) since GPS epoch using another online
-    calculator [3]_.
+    calculator [9]_.
 
     References
     ----------
-    .. [3] https://www.labsat.co.uk/index.php/en/gps-time-calculator
-           Accessed as of July 28, 2022.
-    .. [4] https://currentmillis.com/
+    .. [8] https://currentmillis.com/
            Accessed August 10, 2022.
+    .. [9] https://www.labsat.co.uk/index.php/en/gps-time-calculator
+           Accessed as of July 28, 2022.
    """
     unix_millis = 1660161069000.
     exp_gps_millis = 1344196287000.
@@ -260,7 +262,6 @@ def test_tz_conversion():
     """
     local_time = datetime(2022, 8, 10, 19, 51, 9)
     exp_utc_time = datetime(2022, 8, 10, 19, 51, 9, tzinfo=timezone.utc)
-    print(local_time.tzinfo)
     with pytest.warns(RuntimeWarning):
         out_utc_time = tc._check_tzinfo(local_time)
         assert exp_utc_time == out_utc_time
