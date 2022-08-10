@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
-
+from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 
 class AndroidDerived(NavData):
     """Class handling derived measurements from Android dataset.
@@ -233,3 +233,41 @@ def make_csv(input_path, output_directory, field, show_path=False):
         print(output_path)
 
     return output_path
+
+class AndroidGroundTruth(NavData):
+    """Class handling ground truth from Android dataset.
+
+    Inherits from NavData().
+    """
+    def __init__(self, input_path):
+        """Android specific loading and preprocessing for NavData()
+
+        Parameters
+        ----------
+        input_path : string
+            Path to measurement csv file
+
+        Returns
+        -------
+        pd_df : pd.DataFrame
+            Loaded measurements with consistent column names
+        """
+
+        pd_df = pd.read_csv(input_path)
+        super().__init__(pandas_df=pd_df)
+
+        self.postprocess()
+
+    def postprocess(self):
+        """Android derived specific postprocessing for NavData()
+
+        Notes
+        -----
+        
+        """
+        
+        gt_LLA = np.transpose(np.vstack([self['latDeg'], self['lngDeg'], self['heightAboveWgs84EllipsoidM']]))        
+        gt_ECEF = geodetic_to_ecef(gt_LLA)
+        self["x_gt_m"] = gt_ECEF[:,0]
+        self["y_gt_m"] = gt_ECEF[:,1]
+        self["z_gt_m"] = gt_ECEF[:,2]
