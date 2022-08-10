@@ -94,7 +94,7 @@ def gps_millis_to_tow(millis, add_leap_secs=True, verbose=False):
     tow = tow / 1000.0
     if add_leap_secs:
         out_leapsecs = get_leap_seconds(millis)
-        if verbose: #prgama: no cover
+        if verbose: #pragma: no cover
             print('leapSecs added')
         tow = tow + out_leapsecs
 
