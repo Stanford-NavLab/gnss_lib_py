@@ -132,7 +132,7 @@ def plot_metric(navdata, *args, save=True, prefix=""):
         plt_title = y_metric
         plt.title(plt_title)
         data = navdata[y_metric]
-        axes.scatter(range(data.shape[1]),data,s=5.)
+        axes.scatter(range(data.shape[0]),data,s=5.)
         plt.xlabel("index")
         plt.ylabel(y_metric)
     else:
@@ -319,7 +319,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
                           navdata["z_sv_m",:].reshape(-1,1)))
 
     for t_idx, timestep in enumerate(np.unique(navdata["millisSinceGpsEpoch",:])):
-        idxs = np.where(navdata["millisSinceGpsEpoch",:] == timestep)[1]
+        idxs = np.where(navdata["millisSinceGpsEpoch",:] == timestep)[0]
         for m_idx in idxs:
 
             if signal_types[m_idx] not in skyplot_data:

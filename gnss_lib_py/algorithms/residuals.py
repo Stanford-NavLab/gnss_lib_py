@@ -27,7 +27,7 @@ def solve_residuals(measurements, state_estimate):
 
     unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
     for t_idx, timestep in enumerate(unique_timesteps):
-        idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
+        idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[0]
 
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
                               measurements["y_sv_m",idxs].reshape(-1,1),
