@@ -10,9 +10,10 @@ import numpy as np
 from gnss_lib_py.parsers.navdata import NavData
 
 
-class TUChemnitzRaw(NavData):
-    """Class handling raw measurements from TU Chemnitz dataset [1]_.
+class SmartLocRaw(NavData):
+    """Class handling raw measurements from SmartLoc dataset [1]_.
 
+    The SmartLoc dataset is a GNSS dataset from TU Chemnitz
     Dataset is available on their website [2]_. Inherits from NavData().
 
     References
@@ -27,7 +28,7 @@ class TUChemnitzRaw(NavData):
 
     """
     def __init__(self, input_path):
-        """TU Chemniz raw specific loading and preprocessing.
+        """TU Chemnitz raw specific loading and preprocessing.
 
         Should input path to RXM-RAWX.csv file.
 

@@ -1,4 +1,4 @@
-"""Tests for TU Chemnitz data loaders.
+"""Tests for TU Chemnitz SmartLoc data loaders.
 
 """
 
@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.tu_chemnitz import TUChemnitzRaw
+from gnss_lib_py.parsers.smart_loc import SmartLocRaw
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -79,7 +79,7 @@ def fixture_pd_df(raw_path):
 
 @pytest.fixture(name="navdata_raw")
 def fixture_load_navdata_raw(raw_path):
-    """Load instance of TUChemnitzRaw
+    """Load instance of SmartLocRaw
 
     Parameters
     ----------
@@ -88,20 +88,20 @@ def fixture_load_navdata_raw(raw_path):
 
     Returns
     -------
-    navdata_raw : TUChemnitzRaw
-        Instance of TUChemnitzRaw for testing
+    navdata_raw : SmartLocRaw
+        Instance of SmartLocRaw for testing
     """
-    navdata_raw = TUChemnitzRaw(raw_path)
+    navdata_raw = SmartLocRaw(raw_path)
     return navdata_raw
 
 
 def test_navdata_raw_df_equivalence(navdata_raw, pd_df):
-    """Test if naive dataframe and TUChemnitzRaw contain same data
+    """Test if naive dataframe and SmartLocRaw contain same data
 
     Parameters
     ----------
     navdata_raw : pytest.fixture
-        Instance of TUChemnitzRaw for testing
+        Instance of SmartLocRaw for testing
     pd_df : pytest.fixture
         pd.DataFrame for testing measurements
 
@@ -122,12 +122,12 @@ def test_navdata_raw_df_equivalence(navdata_raw, pd_df):
                          ('gnss_id', 55, np.asarray([['sbas']], dtype=object))]
                         )
 def test_navdata_raw_value_check(navdata_raw, row_name, index, value):
-    """Check TUChemnitzRaw entries against known values using test matrix
+    """Check SmartLocRaw entries against known values using test matrix
 
     Parameters
     ----------
     navdata_raw : pytest.fixture
-        Instance of TUChemnitzRaw for testing
+        Instance of SmartLocRaw for testing
     row_name : string
         Row key for test example
     index : int
@@ -145,7 +145,7 @@ def test_get_and_set_num(navdata_raw):
     Parameters
     ----------
     navdata_raw : pytest.fixture
-        Instance of TUChemnitzRaw for testing
+        Instance of SmartLocRaw for testing
     """
     key = 'testing123'
     value = np.zeros(len(navdata_raw))
@@ -159,7 +159,7 @@ def test_get_and_set_str(navdata_raw):
     Parameters
     ----------
     navdata_raw : pytest.fixture
-        Instance of TUChemnitzRaw for testing
+        Instance of SmartLocRaw for testing
     """
     key = 'testing123_string'
     value = ['word']*len(navdata_raw)
@@ -179,10 +179,10 @@ def test_navdata_type(navdata_raw):
     Parameters
     ----------
     navdata_raw : pytest.fixture
-        Instance of TUChemnitzRaw for testing
+        Instance of SmartLocRaw for testing
     """
     isinstance(navdata_raw, NavData)
-    isinstance(navdata_raw, TUChemnitzRaw)
+    isinstance(navdata_raw, SmartLocRaw)
 
 
 def test_shape_update(navdata_raw):
@@ -191,7 +191,7 @@ def test_shape_update(navdata_raw):
     Parameters
     ----------
     navdata_raw : pytest.fixture
-        Instance of TUChemnitzRaw for testing
+        Instance of SmartLocRaw for testing
     """
     old_shape = navdata_raw.shape
     navdata_raw["new_row"] = np.ones((old_shape[1]))
