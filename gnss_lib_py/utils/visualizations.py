@@ -8,8 +8,9 @@ __date__ = "27 Jan 2022"
 import os
 
 import numpy as np
-import matplotlib as mpl
 from cycler import cycler
+import plotly.express as px
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
@@ -525,3 +526,67 @@ def get_signal_label(signal_name_raw):
         signal_label = signal_label[:-1] + "i"
 
     return signal_label
+
+
+def map_lla(*args, zoom=9, save=True, prefix=""):
+    """Map trajectories.
+
+    Parameters
+    ----------
+    *args : tuple
+        Tuple of gnss_lib_py.parsers.navdata.NavData objects. The
+        NavData objects should include ...
+    save : bool
+        Save figure if true, otherwise returns figure object. Defaults
+        to saving the figure in the Results folder.
+    prefix : string
+        File prefix to add to filename.
+
+    Returns
+    -------
+    figs : list
+        List of matplotlib.pyplot.figure objects of residuels, returns
+        None if save set to True.
+
+    """
+
+    if save: # pragma: no cover
+        root_path = os.path.dirname(
+                    os.path.dirname(
+                    os.path.dirname(
+                    os.path.realpath(__file__))))
+        log_path = os.path.join(root_path,"results",TIMESTAMP)
+        fo.make_dir(log_path)
+    else:
+        figs = []
+
+    fig = None
+
+    # TODO: raise warning if non existent lat or if more than one.
+
+    for traj_data in args:
+        fig = px.scatter_mapbox(traj_data,
+
+                                # Here, plotly gets, (x,y) coordinates
+
+                                lat_row_name = find("lat")
+
+                                data[["lat_rx_deg","lon_rx_deg"]]
+
+                                lat=traj_data["lat_rx_deg"][0],
+                                lon=traj_data["lon_rx_deg"][0],
+
+                                #Here, plotly detects color of series
+                                # color='Label',
+                                # labels='Label',
+
+                                # zoom=zoom,
+                                # center=center,
+                                # height=600,
+                                # width=800))
+                                )
+    fig.update_layout(mapbox_style='stamen-terrain')
+    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+#     fig.update_layout(title_text="Ground Truth Tracks of Android Smartphone GNSS Dataset")
+#     fig.legend()
+    fig.show()
