@@ -262,12 +262,10 @@ class AndroidGroundTruth(NavData):
         """Android derived specific postprocessing for NavData()
 
         Notes
-        -----
-        
-        """
-        
-        gt_LLA = np.transpose(np.vstack([self['latDeg'], self['lngDeg'], self['heightAboveWgs84EllipsoidM']]))        
-        gt_ECEF = geodetic_to_ecef(gt_LLA)
-        self["x_gt_m"] = gt_ECEF[:,0]
-        self["y_gt_m"] = gt_ECEF[:,1]
-        self["z_gt_m"] = gt_ECEF[:,2]
+        -----        
+        """     
+        gt_lla = np.transpose(np.vstack([self['latDeg'], self['lngDeg'], self['heightAboveWgs84EllipsoidM']]))        
+        gt_ecef = geodetic_to_ecef(gt_lla)
+        self["x_gt_m"] = gt_ecef[:,0]
+        self["y_gt_m"] = gt_ecef[:,1]
+        self["z_gt_m"] = gt_ecef[:,2]
