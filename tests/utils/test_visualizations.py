@@ -113,8 +113,8 @@ def test_plot_metrics(derived):
                  "tropo_delay_m",
                  ]
 
-    for r_idx, row in enumerate(derived.rows):
-        if not derived.str_bool[r_idx]:
+    for row in derived.rows:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric(derived, row, save=False)
                 close_figures(fig)
@@ -129,8 +129,8 @@ def test_plot_metrics(derived):
         viz.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
-    for r_idx, row in enumerate(derived.rows):
-        if not derived.str_bool[r_idx]:
+    for row in derived.rows:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
                 close_figures(fig)
@@ -167,8 +167,8 @@ def test_plot_metrics_by_constellation(derived):
                  "tropo_delay_m",
                  ]
 
-    for r_idx, row in enumerate(derived.rows):
-        if not derived.str_bool[r_idx]:
+    for row in derived.rows:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric_by_constellation(derived, row, save=False)
                 close_figures(fig)
@@ -301,3 +301,12 @@ def test_plot_residuals(derived, state_estimate):
     with pytest.raises(KeyError) as excinfo:
         viz.plot_residuals(derived_no_signal_type, save=False)
     assert "signal_type" in str(excinfo.value)
+
+def test_get_signal_label():
+    """Test for getting signal labels.
+
+    """
+
+    assert viz.get_signal_label("GPS_L1") == "GPS L1"
+    assert viz.get_signal_label("GLO_G1") == "GLO G1"
+    assert viz.get_signal_label("BDS_B1I") == "BDS B1i"
