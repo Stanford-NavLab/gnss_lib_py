@@ -2,7 +2,7 @@
 
 """
 
-__authors__ = "Shubh Gupta, Ashwin Kanhere, Sriramya Bhamidipati"
+__authors__ = "Ashwin Kanhere, Sriramya Bhamidipati, Shubh Gupta"
 __date__ = "28 Jul 2022"
 
 from datetime import datetime, timedelta, timezone
@@ -126,7 +126,7 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
     if add_leap_secs:
         out_leapsecs = get_leap_seconds(t_datetime)
         t_datetime = t_datetime + timedelta(seconds=out_leapsecs)
-        if verbose:
+        if verbose: # pragma: no cover
             print("leapSecs added")
     gps_week = (t_datetime - GPS_EPOCH_0).days // 7
 
@@ -378,7 +378,7 @@ def _check_tzinfo(t_datetime):
         Datetime object in UTC, added if no timezone was given and
         converted to UTC if datetime was in local timezone
     """
-    if not hasattr(t_datetime, 'tzinfo'):
+    if not hasattr(t_datetime, 'tzinfo') or not t_datetime.tzinfo:
         warnings.warn("No time zone info found in datetime, assuming UTC",\
                         RuntimeWarning)
         t_datetime = t_datetime.replace(tzinfo=timezone.utc)
