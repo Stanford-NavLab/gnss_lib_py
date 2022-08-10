@@ -277,7 +277,8 @@ class NavData():
         -------
         arr_slice : np.ndarray
             Array of data containing row names and time indexed
-            columns. The return in squeezed meaning that all
+            columns. The return is squeezed meaning that all dimensions
+            of the output that are length of one are removed
         """
         rows, cols = self._parse_key_idx(key_idx)
         row_list, row_str = self._get_str_rows(rows)
@@ -294,7 +295,7 @@ class NavData():
         else:
             arr_slice = self.array[rows, cols]
 
-        # remove all dimensions of length 1
+        # remove all dimensions of length one
         arr_slice = np.squeeze(arr_slice)
 
         return arr_slice
