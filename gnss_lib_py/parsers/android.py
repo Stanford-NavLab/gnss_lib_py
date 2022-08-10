@@ -14,7 +14,7 @@ import pandas as pd
 from gnss_lib_py.parsers.navdata import NavData
 
 
-class AndroidDerived(NavData):
+class AndroidDerived2021(NavData):
     """Class handling derived measurements from Android dataset.
 
     Inherits from NavData().
@@ -26,11 +26,6 @@ class AndroidDerived(NavData):
         ----------
         input_path : string
             Path to measurement csv file
-
-        Returns
-        -------
-        pd_df : pd.DataFrame
-            Loaded measurements with consistent column names
         """
 
         super().__init__(csv_path=input_path)
@@ -78,6 +73,47 @@ class AndroidDerived(NavData):
                    'isrbM' : 'intersignal_bias_m',
                    'ionoDelayM' : 'iono_delay_m',
                    'tropoDelayM' : 'tropo_delay_m',
+                   }
+        return row_map
+
+
+class AndroidDerived2022(AndroidDerived2021):
+    """Class handling derived measurements from Android dataset.
+
+    Inherits from AndroidDerived2021().
+    The row nomenclature for the new derived dataset changed. We reflect
+    this changed nomenclature in the _row_map() method.
+    """
+
+    @staticmethod
+    def _row_map():
+        """Map of column names from loaded to gnss_lib_py standard
+
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+        """
+        row_map = {'utcTimeMillis' : 'unix_millis',
+                   'ConstellationType' : 'gnss_id',
+                   'Svid' : 'sv_id',
+                   'SignalType' : 'signal_type',
+                   'SvPositionXEcefMeters' : 'x_sv_m',
+                   'SvPositionYEcefMeters' : 'y_sv_m',
+                   'SvPositionZEcefMeters' : 'z_sv_m',
+                   'SvVelocityXEcefMetersPerSecond' : 'vx_sv_mps',
+                   'SvVelocityYEcefMetersPerSecond' : 'vy_sv_mps',
+                   'SvVelocityZEcefMetersPerSecond' : 'vz_sv_mps',
+                   'SvClockBiasMeters' : 'b_sv_m',
+                   'SvClockDriftMetersPerSecond' : 'b_dot_sv_mps',
+                   'RawPseudorangeMeters' : 'raw_pr_m',
+                   'RawPseudorangeUncertaintyMeters' : 'raw_pr_sigma_m',
+                   'IsrbMeters' : 'intersignal_bias_m',
+                   'IonosphericDelayMeters' : 'iono_delay_m',
+                   'TroposphericDelayMeters' : 'tropo_delay_m',
+                   'Cn0DbHz': 'cn0_dbhz',
+                   'AccumulatedDeltaRangeMeters' : 'accumulated_delta_range_m',
+                   'AccumulatedDeltaRangeUncertaintyMeters': 'accumulated_delta_range_sigma_m'
                    }
         return row_map
 
