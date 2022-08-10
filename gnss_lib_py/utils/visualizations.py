@@ -528,7 +528,7 @@ def get_signal_label(signal_name_raw):
     return signal_label
 
 
-def map_lla(*args, zoom=9, save=True, prefix=""):
+def map_lla(*args, save=True, prefix="", **kwargs):
     """Map trajectories.
 
     Parameters
@@ -557,11 +557,10 @@ def map_lla(*args, zoom=9, save=True, prefix=""):
                     os.path.realpath(__file__))))
         log_path = os.path.join(root_path,"results",TIMESTAMP)
         fo.make_dir(log_path)
-    else:
-        figs = []
 
     fig = None
 
+    # lat_row_name = ""
     # TODO: raise warning if non existent lat or if more than one.
 
     for traj_data in args:
@@ -569,9 +568,7 @@ def map_lla(*args, zoom=9, save=True, prefix=""):
 
                                 # Here, plotly gets, (x,y) coordinates
 
-                                lat_row_name = find("lat")
-
-                                data[["lat_rx_deg","lon_rx_deg"]]
+                                # lat_row_name = find("lat")
 
                                 lat=traj_data["lat_rx_deg"][0],
                                 lon=traj_data["lon_rx_deg"][0],
@@ -580,13 +577,21 @@ def map_lla(*args, zoom=9, save=True, prefix=""):
                                 # color='Label',
                                 # labels='Label',
 
-                                # zoom=zoom,
-                                # center=center,
-                                # height=600,
-                                # width=800))
                                 )
-    fig.update_layout(mapbox_style='stamen-terrain')
+    fig.update_layout(mapbox_style="open-street-map")
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    fig.update_layout(**kwargs)
 #     fig.update_layout(title_text="Ground Truth Tracks of Android Smartphone GNSS Dataset")
 #     fig.legend()
     fig.show()
+
+    if save: # pragma: no cover
+        if prefix != "" and not prefix.endswith('_'):
+            prefix += "_"
+        plt_file = os.path.join(log_path, prefix + "map.png")
+
+        fig.write_image(plt_file)
+
+        return None
+
+    return fig

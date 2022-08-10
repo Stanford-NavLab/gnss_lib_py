@@ -634,6 +634,14 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "kaleido"
+version = "0.2.1"
+description = "Static image export for web-based visualization libraries with zero dependencies"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "kiwisolver"
 version = "1.4.4"
 description = "A fast implementation of the Cassowary constraint solver"
@@ -1707,7 +1715,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8, < 3.11"
-content-hash = "58a2fd69651e13f657ce26e82c26e648d15d236ed882fd8856f2d3b81e3ececc"
+content-hash = "c62384bd02209cbe57aedffee7f2d4ee4049cd41798044f149183d54c9bc1ba0"
 
 [metadata.files]
 alabaster = []
@@ -1759,6 +1767,7 @@ jupyter-console = []
 jupyter-core = []
 jupyterlab-pygments = []
 jupyterlab-widgets = []
+kaleido = []
 kiwisolver = []
 lazy-object-proxy = []
 markupsafe = []
