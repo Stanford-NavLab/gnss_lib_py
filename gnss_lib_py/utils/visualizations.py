@@ -215,16 +215,16 @@ def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
     signal_types = navdata.get_strings("signal_type")
     sv_ids = navdata.get_strings("sv_id")
 
-    time0 = navdata["millisSinceGpsEpoch",0]/1000.
+    time0 = navdata["gps_millis",0]/1000.
 
     for m_idx in range(navdata.shape[1]):
         if signal_types[m_idx] not in data:
             data[signal_types[m_idx]] = {}
         if sv_ids[m_idx] not in data[signal_types[m_idx]]:
-            data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["millisSinceGpsEpoch",m_idx]/1000. - time0],
+            data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["gps_millis",m_idx]/1000. - time0],
                                                   [navdata[metric,m_idx]]]
         else:
-            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["gps_millis",m_idx]/1000. - time0)
             data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata[metric,m_idx])
 
     ####################################################################
@@ -318,8 +318,8 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
                           navdata["y_sv_m",:].reshape(-1,1),
                           navdata["z_sv_m",:].reshape(-1,1)))
 
-    for t_idx, timestep in enumerate(np.unique(navdata["millisSinceGpsEpoch",:])):
-        idxs = np.where(navdata["millisSinceGpsEpoch",:] == timestep)[1]
+    for t_idx, timestep in enumerate(np.unique(navdata["gps_millis",:])):
+        idxs = np.where(navdata["gps_millis",:] == timestep)[1]
         for m_idx in idxs:
 
             if signal_types[m_idx] not in skyplot_data:
@@ -450,16 +450,16 @@ def plot_residuals(navdata, save=True, prefix=""):
     signal_types = navdata.get_strings("signal_type")
     sv_ids = navdata.get_strings("sv_id")
 
-    time0 = navdata["millisSinceGpsEpoch",0]/1000.
+    time0 = navdata["gps_millis",0]/1000.
 
     for m_idx in range(navdata.shape[1]):
         if signal_types[m_idx] not in residual_data:
             residual_data[signal_types[m_idx]] = {}
         if sv_ids[m_idx] not in residual_data[signal_types[m_idx]]:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["millisSinceGpsEpoch",m_idx]/1000. - time0],
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["gps_millis",m_idx]/1000. - time0],
                         [navdata["residuals",m_idx]]]
         else:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["gps_millis",m_idx]/1000. - time0)
             residual_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata["residuals",m_idx])
 
     ####################################################################

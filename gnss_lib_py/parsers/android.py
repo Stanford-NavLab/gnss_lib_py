@@ -38,17 +38,18 @@ class AndroidDerived2021(NavData):
 
         """
         pd_df = pd.read_csv(input_path)
-        # Correction 5 implemented verbatim from competition tips
-        delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
-        where_good_signals = (delta_millis > 0) & (delta_millis < 300)
-        pd_df = pd_df[where_good_signals].copy()
-
         # Correction 1: Mapping _derived timestamps to previous timestamp
         # for correspondance with ground truth and Raw data
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
         indexes = np.searchsorted(derived_timestamps, derived_timestamps)
         map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
         pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v], pd_df['millisSinceGpsEpoch'])))
+
+
+        # Correction 5 implemented verbatim from competition tips
+        delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
+        where_good_signals = (delta_millis > 0) & (delta_millis < 300)
+        pd_df = pd_df[where_good_signals].copy()
 
         super().__init__(pandas_df=pd_df)
 
@@ -186,7 +187,7 @@ class AndroidGroundTruth2021(NavData):
             """
             row_map = {'latDeg' : 'lat_gt_deg',
                     'lngDeg' : 'long_gt_deg',
-                    'AltitudheightAboveWgs84EllipsoidMeMeters' : 'alt_gt_m',
+                    'heightAboveWgs84EllipsoidM' : 'alt_gt_m',
                     'millisSinceGpsEpoch' : 'gps_millis'
                     }
             return row_map

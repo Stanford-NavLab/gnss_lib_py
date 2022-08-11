@@ -8,6 +8,8 @@ __date__ = "28 Jul 2022"
 from datetime import datetime, timedelta, timezone
 import warnings
 
+import numpy as np
+
 from gnss_lib_py.utils.constants import GPS_EPOCH_0, WEEKSEC
 
 # reference datetime that is considered as start of UTC epoch
@@ -320,8 +322,14 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
         Milliseconds since GPS Epoch (6th January 1980 GPS).
     """
     # Add leapseconds should always be true here
-    t_utc = unix_millis_to_datetime(unix_millis)
-    gps_millis = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
+    if isinstance(unix_millis, np.ndarray) and len(unix_millis) > 1:
+        gps_millis = np.zeros_like(unix_millis)
+        for t_idx, unix in enumerate(unix_millis):
+            t_utc = unix_millis_to_datetime(unix)
+            gps_millis[t_idx] = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
+    else:
+        t_utc = unix_millis_to_datetime(unix_millis)
+        gps_millis = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
     return gps_millis
 
 
