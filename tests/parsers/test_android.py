@@ -173,6 +173,8 @@ def test_derived_df_equivalence(derived, pd_df, derived_row_map):
     measure_df = derived.pandas_df()
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
+    measure_df = measure_df.drop(columns='gps_week')
+    measure_df = measure_df.drop(columns='gps_tow')
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
                                   measure_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)

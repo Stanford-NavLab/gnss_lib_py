@@ -60,12 +60,12 @@ def solve_wls(measurements, weight_type = None,
     if "b_sv_m" not in measurements.rows:
         raise KeyError("b_sv_m (clock bias of sv) missing.")
 
-    unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
+    unique_timesteps = np.unique(measurements["gps_tow",:])
 
     states = np.nan*np.ones((4,len(unique_timesteps)))
 
     for t_idx, timestep in enumerate(unique_timesteps):
-        idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
+        idxs = np.where(measurements["gps_tow",:] == timestep)[1]
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
                               measurements["y_sv_m",idxs].reshape(-1,1),
                               measurements["z_sv_m",idxs].reshape(-1,1)))
@@ -85,6 +85,7 @@ def solve_wls(measurements, weight_type = None,
         states[:,t_idx:t_idx+1] = position
 
     state_estimate = NavData()
+    state_estimate["gps_tow"] = unique_timesteps
     state_estimate["x_rx_m"] = states[0,:]
     state_estimate["y_rx_m"] = states[1,:]
     state_estimate["z_rx_m"] = states[2,:]

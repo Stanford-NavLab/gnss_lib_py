@@ -51,6 +51,12 @@ class AndroidDerived(NavData):
                      - self['iono_delay_m', :]
         self['corr_pr_m'] = pr_corrected
 
+        wk, tow = divmod(self['millisSinceGpsEpoch'], 7 * 86400 * 1e3)
+        tow = tow / 1e3
+        self['gps_week'] = wk
+        self['gps_tow'] = tow
+        
+        
     @staticmethod
     def _row_map():
         """Map of column names from loaded to gnss_lib_py standard
@@ -264,6 +270,11 @@ class AndroidGroundTruth(NavData):
         Notes
         -----        
         """     
+        wk, tow = divmod(self['millisSinceGpsEpoch'], 7*86400*1000)
+        tow = tow / 1000.0
+        self['gps_week'] = wk
+        self['gps_tow'] = tow
+        
         gt_lla = np.transpose(np.vstack([self['latDeg'], self['lngDeg'], self['heightAboveWgs84EllipsoidM']]))        
         gt_ecef = geodetic_to_ecef(gt_lla)
         self["x_gt_m"] = gt_ecef[:,0]

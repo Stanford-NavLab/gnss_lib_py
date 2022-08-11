@@ -320,9 +320,10 @@ def test_solve_wls(derived):
     assert isinstance(state_estimate,type(NavData()))
 
     # should have four rows
-    assert len(state_estimate.rows) == 4
+    assert len(state_estimate.rows) == 5
 
     # should have the following contents
+    assert "gps_tow" in state_estimate.rows
     assert "x_rx_m" in state_estimate.rows
     assert "y_rx_m" in state_estimate.rows
     assert "z_rx_m" in state_estimate.rows
