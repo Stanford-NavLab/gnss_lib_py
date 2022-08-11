@@ -8,6 +8,7 @@ __date__ = "09 Aug 2022"
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.time_conversions import tow_to_gps_millis
 
 
 class SmartLocRaw(NavData):
@@ -46,7 +47,14 @@ class SmartLocRaw(NavData):
 
         """
 
-        self["gnss_id"] = np.array([x.lower() for x in self["gnss_id"]], dtype=object)
+        # convert gnss_id to lowercase as per standard naming convention
+        self["gnss_id"] = np.array([x.lower() for x in self["gnss_id"]],
+                                    dtype=object)
+
+        # create gps_millis row from gps week and time of week
+        self["gps_millis"] = [tow_to_gps_millis(*x) for x in
+                              zip(self["gps_week"],self["gps_tow"])]
+
 
     @staticmethod
     def _row_map():

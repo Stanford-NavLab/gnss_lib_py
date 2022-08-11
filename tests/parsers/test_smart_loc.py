@@ -110,6 +110,7 @@ def test_navdata_raw_df_equivalence(navdata_raw, pd_df):
     measure_df = navdata_raw.pandas_df()
     inverse_row_map = {v : k for k,v in navdata_raw._row_map().items()}
     measure_df.rename(columns=inverse_row_map, inplace=True)
+    measure_df.drop(columns='gps_millis',inplace=True)
     pd_df['GNSS identifier (gnssId) []'] = pd_df['GNSS identifier (gnssId) []'].str.lower()
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
                                   measure_df.sort_index(axis=1),
