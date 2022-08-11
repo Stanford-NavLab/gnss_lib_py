@@ -107,7 +107,7 @@ class NavData():
 
         for _, col_name in enumerate(pandas_df.columns):
             newvalue = pandas_df[col_name].to_numpy()
-            self.__setitem__(col_name, newvalue)
+            self[col_name] = newvalue
 
     def from_numpy_array(self, numpy_array):
         """Build attributes of NavData using np.ndarray.
@@ -125,7 +125,7 @@ class NavData():
         self.build_navdata()
 
         for row_num in range(numpy_array.shape[0]):
-            self.__setitem__(str(row_num), numpy_array[row_num,:])
+            self[str(row_num)] = numpy_array[row_num,:]
 
     @staticmethod
     def _row_map():
@@ -277,7 +277,8 @@ class NavData():
         -------
         arr_slice : np.ndarray
             Array of data containing row names and time indexed
-            columns
+            columns. The return is squeezed meaning that all dimensions
+            of the output that are length of one are removed
         """
         rows, cols = self._parse_key_idx(key_idx)
         row_list, row_str = self._get_str_rows(rows)
@@ -293,6 +294,10 @@ class NavData():
                 # arr_slice.append(str_arr[ cols])
         else:
             arr_slice = self.array[rows, cols]
+
+        # remove all dimensions of length one
+        arr_slice = np.squeeze(arr_slice)
+
         return arr_slice
 
     def __setitem__(self, key_idx, newvalue):
@@ -330,7 +335,7 @@ class NavData():
             else:
                 # print("\n",key_idx,"\n")#,newvalue)
                 if not isinstance(newvalue, int) and not isinstance(newvalue, float):
-                    assert not isinstance(np.asarray(newvalue)[0], str), \
+                    assert not isinstance(np.asarray(newvalue).item(0), str), \
                             "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
                 # Adding numeric values
                 self.str_map[key_idx] = {}
@@ -408,7 +413,10 @@ class NavData():
                                                    dtype=self.arr_dtype)
             # Set unassigned value to int not accessed by string map
             for str_key, str_val in str_dict.items():
-                new_str_vals[newvalue==str_val] = str_key
+                if new_str_vals.size == 1:
+                    new_str_vals = np.array(str_key,dtype=self.arr_dtype)
+                else:
+                    new_str_vals[newvalue==str_val] = str_key
             # Copy set to false to prevent memory overflows
             new_str_vals = np.round(new_str_vals.astype(self.arr_dtype,
                                                         copy=False))
@@ -693,7 +701,10 @@ class NavData():
 
         """
         nan_str = np.array([np.nan]).astype(str)[0]
-        array[np.where(array.astype(str)==nan_str)] = ""
+        if array.size > 1:
+            array[np.where(array.astype(str)==nan_str)] = ""
+        elif array.size == 1 and array == nan_str:
+            array = np.array("")
 
     def rename(self, mapper):
         """Rename rows of NavData class.
