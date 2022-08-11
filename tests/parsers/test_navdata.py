@@ -546,7 +546,7 @@ def test_get_item(data, index, exp_value):
     exp_value : np.ndarray
         Expected value at queried indices
     """
-    np.testing.assert_array_equal(data[index], exp_value)
+    np.testing.assert_array_equal(data[index], np.squeeze(exp_value))
 
 
 def test_get_all_numpy(numpy_array):
@@ -648,7 +648,7 @@ def test_set_get_item(data, index, new_value, exp_value):
         Expected value at queried indices
     """
     data[index] = new_value
-    np.testing.assert_array_equal(data[index], exp_value)
+    np.testing.assert_array_equal(data[index], np.squeeze(exp_value))
 
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
@@ -709,8 +709,8 @@ def test_add_numpy_1d():
     """
     data = NavData(numpy_array=np.zeros([1,6]))
     data.add(numpy_array=np.ones(8))
-    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]),
-                                  np.ones([1, 8]))))
+    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros(6),
+                                  np.ones(8))))
 
     # test adding to empty NavData
     data_empty = NavData()
