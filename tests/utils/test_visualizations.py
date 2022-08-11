@@ -114,7 +114,7 @@ def test_plot_metrics(derived):
                  ]
 
     for row in derived.rows:
-        if not derived.str_bool[derived.map[row]]:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric(derived, row, save=False)
                 close_figures(fig)
@@ -130,7 +130,7 @@ def test_plot_metrics(derived):
     assert "Prefix" in str(excinfo.value)
 
     for row in derived.rows:
-        if not derived.str_bool[derived.map[row]]:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
                 close_figures(fig)
@@ -168,7 +168,7 @@ def test_plot_metrics_by_constellation(derived):
                  ]
 
     for row in derived.rows:
-        if not derived.str_bool[derived.map[row]]:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric_by_constellation(derived, row, save=False)
                 close_figures(fig)

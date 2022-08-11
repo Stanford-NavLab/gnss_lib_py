@@ -546,7 +546,7 @@ def test_get_item(data, index, exp_value):
     exp_value : np.ndarray
         Expected value at queried indices
     """
-    np.testing.assert_array_equal(data[index], exp_value)
+    np.testing.assert_array_equal(data[index], np.squeeze(exp_value))
 
 
 def test_get_all_numpy(numpy_array):
@@ -648,7 +648,7 @@ def test_set_get_item(data, index, new_value, exp_value):
         Expected value at queried indices
     """
     data[index] = new_value
-    np.testing.assert_array_equal(data[index], exp_value)
+    np.testing.assert_array_equal(data[index], np.squeeze(exp_value))
 
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
@@ -709,8 +709,8 @@ def test_add_numpy_1d():
     """
     data = NavData(numpy_array=np.zeros([1,6]))
     data.add(numpy_array=np.ones(8))
-    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros([1,6]),
-                                  np.ones([1, 8]))))
+    np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros(6),
+                                  np.ones(8))))
 
     # test adding to empty NavData
     data_empty = NavData()
@@ -960,3 +960,27 @@ def test_col_looping(csv_simple):
         expected_df = compare_df.iloc[[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(col_df, expected_df,
                                       check_index_type=False)
+
+def test_is_str(df_simple):
+    """Test the is_str function.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Simple pd.DataFrame with which to initialize NavData.
+
+    """
+    navdata = NavData(pandas_df=df_simple)
+
+    # check on simple dataframe rows
+    assert navdata.is_str("names")
+    assert not navdata.is_str("integers")
+    assert not navdata.is_str("floats")
+    assert navdata.is_str("strings")
+
+    # should raise error if key doesn't exist
+    with pytest.raises(KeyError):
+        navdata.is_str("bananas")
+
+    with pytest.raises(KeyError):
+        navdata.is_str(0)
