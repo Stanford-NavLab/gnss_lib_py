@@ -5,7 +5,7 @@
 __authors__ = "Shubh Gupta, Adam Dai, Ashwin Kanhere"
 __date__ = "02 Nov 2021"
 
-from distutils.log import warn
+
 import os
 import csv
 import warnings
@@ -22,7 +22,7 @@ class AndroidDerived2021(NavData):
 
     Inherits from NavData().
     """
-    def __init__(self, input_path):
+    def __init__(self, input_path, remove_bad_measures=True):
         """Android specific loading and preprocessing
 
         Parameters
@@ -47,9 +47,10 @@ class AndroidDerived2021(NavData):
 
 
         # Correction 5 implemented verbatim from competition tips
-        delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
-        where_good_signals = (delta_millis > 0) & (delta_millis < 300)
-        pd_df = pd_df[where_good_signals].copy()
+        if remove_bad_measures:
+            delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
+            where_good_signals = (delta_millis > 0) & (delta_millis < 300)
+            pd_df = pd_df[where_good_signals].copy()
 
         super().__init__(pandas_df=pd_df)
 
@@ -101,13 +102,39 @@ class AndroidDerived2021(NavData):
         return row_map
 
 
-class AndroidDerived2022(AndroidDerived2021):
+class AndroidDerived2022(NavData):
     """Class handling derived measurements from Android dataset.
 
-    Inherits from AndroidDerived2021().
-    The row nomenclature for the new derived dataset changed. We reflect
-    this changed nomenclature in the _row_map() method.
+    Inherits from NavData().
+    The row nomenclature for the new derived dataset has changed.
+    We reflect this changed nomenclature in the _row_map() method.
     """
+
+    def __init__(self, input_path):
+        """Android specific loading and preprocessing
+
+        Parameters
+        ----------
+        input_path : string
+            Path to measurement csv file
+        """
+        super().__init__(csv_path=input_path)
+
+    def postprocess(self):
+        """Android derived specific postprocessing
+
+        Notes
+        -----
+        Adds corrected pseudoranges to measurements. Time step corrections
+        implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+        retrieved on 10 August, 2022
+        """
+        pr_corrected = self['raw_pr_m', :] \
+                     + self['b_sv_m', :] \
+                     - self['intersignal_bias_m', :] \
+                     - self['tropo_delay_m', :] \
+                     - self['iono_delay_m', :]
+        self['corr_pr_m'] = pr_corrected
 
     @staticmethod
     def _row_map():
@@ -207,7 +234,7 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
         """
         if np.any(np.isnan(self['alt_gt_m'])):
             warnings.warn("Some altitude values were missing, using 0m ", RuntimeWarning)
-            self['alt_gt_m'] = np.np.nan_to_num(self['alt_gt_m'])
+            self['alt_gt_m'] = np.nan_to_num(self['alt_gt_m'])
         gt_lla = np.transpose(np.vstack([self['lat_gt_deg'], self['long_gt_deg'], self['alt_gt_m']]))
         gt_ecef = geodetic_to_ecef(gt_lla)
         self["x_gt_m"] = gt_ecef[:,0]
@@ -225,9 +252,9 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
                 Dictionary of the form {old_name : new_name}
             """
             row_map = {'LatitudeDegrees' : 'lat_gt_deg',
-                    'LongitudeDegrees' : 'long_gt_deg',
-                    'AltitudeMeters' : 'alt_gt_m',
-                    'UnixTimeMillis' : 'unix_millis'
+                       'LongitudeDegrees' : 'long_gt_deg',
+                       'AltitudeMeters' : 'alt_gt_m',
+                       'UnixTimeMillis' : 'unix_millis'
                     }
             return row_map
 
@@ -358,7 +385,7 @@ def make_csv(input_path, output_directory, field, show_path=False):
     with MakeCsv() in opensource/ReadGnssLogger.m
 
     """
-    if not os.path.isdir(output_directory):
+    if not os.path.isdir(output_directory): #pragma: no cover
         os.makedirs(output_directory)
     output_path = os.path.join(output_directory, field + ".csv")
     with open(output_path, 'w', encoding="utf8") as out_csv:
@@ -378,7 +405,7 @@ def make_csv(input_path, output_directory, field, show_path=False):
                     line_data = line.rstrip('\n').replace(" ","").split(",")
                     if line_data[0] == field:
                         writer.writerow(line_data[1:])
-    if show_path:
+    if show_path: #pragma: no cover
         print(output_path)
 
     return output_path

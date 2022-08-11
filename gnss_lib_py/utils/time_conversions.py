@@ -379,10 +379,15 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
     """
     #NOTE: Ensure that one of these methods is always adding/removing
     # leap seconds here
-    t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
-    unix_millis = datetime_to_unix_millis(t_utc)
+    if isinstance(gps_millis, np.ndarray) and len(gps_millis) > 1:
+        unix_millis = np.zeros_like(gps_millis)
+        for t_idx, gps in enumerate(gps_millis):
+            t_utc = gps_millis_to_datetime(gps, rem_leap_secs=rem_leap_secs)
+            unix_millis[t_idx] = datetime_to_unix_millis(t_utc)
+    else:
+        t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
+        unix_millis = datetime_to_unix_millis(t_utc)
     return unix_millis
-
 
 def _check_tzinfo(t_datetime):
     """Raises warning if time doesn't have timezone and converts to UTC.

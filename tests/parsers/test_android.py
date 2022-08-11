@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from gnss_lib_py.parsers.android import AndroidDerived2021, AndroidRawFixes, AndroidRawImu, AndroidGroundTruth2021
+from gnss_lib_py.parsers.android import AndroidDerived2022, AndroidGroundTruth2022
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import make_csv
 
@@ -36,6 +37,11 @@ def fixture_root_path():
 @pytest.fixture(name="derived_path")
 def fixture_derived_path(root_path):
     """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
 
     Returns
     -------
@@ -64,6 +70,11 @@ def fixture_derived_path(root_path):
 @pytest.fixture(name="android_raw_path")
 def fixture_raw_path(root_path):
     """Filepath of Android Raw measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
 
     Returns
     -------
@@ -352,14 +363,14 @@ def fixture_gtruth_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Ground Truth Dataset [2]_,
+    Test data is a subset of the Android Ground Truth Dataset [3]_,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
     was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -397,3 +408,132 @@ def test_android_gtruth(android_gtruth_path):
     isinstance(test_gtruth, NavData)
 
 
+def test_gt_2022(root_path):
+    """Testing that Android ground truth 2022 is created without errors.
+
+    Parameters
+    ----------
+    gt_2022_path : string
+        Location for the unit_test Android ground truth 2022 measurements
+    """
+    gt_path = os.path.join(root_path, 'ground_truth.csv')
+    gt_2021 = AndroidGroundTruth2021(gt_path)
+    assert isinstance(gt_2021, NavData)
+
+
+######################################################################
+#### Android Derived 2022 Dataset tests
+######################################################################
+
+@pytest.fixture(name="root_path_2022")
+def fixture_root_path_2022():
+    """Location of measurements for unit test
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/android_2022')
+    return root_path
+
+
+@pytest.fixture(name="derived_2022_path")
+def fixture_derived_2022_path(root_path_2022):
+    """Filepath of Android Derived measurements
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived 2022 measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [4]_,
+    from the 2022 Decimeter Challenge. Particularly, the
+    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+
+    References
+    ----------
+    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
+    return derived_path
+
+
+@pytest.fixture(name="gt_2022_path")
+def fixture_gt_2022_path(root_path_2022):
+    """Filepath of Android ground truth estimates
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android ground truth estimates
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [5]_,
+    from the 2022 Decimeter Challenge. Particularly, the
+    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+
+    References
+    ----------
+    .. [5] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    gt_path = os.path.join(root_path_2022, 'ground_truth.csv')
+    return gt_path
+
+
+def test_derived_2022(derived_2022_path):
+    """Testing that Android Derived 2022 is created without errors.
+
+    Parameters
+    ----------
+    derived_2022_path : string
+        Location for the unit_test Android derived 2022 measurements
+    """
+    derived_2022 = AndroidDerived2022(derived_2022_path)
+    assert isinstance(derived_2022, NavData)
+
+
+def test_gt_2022(gt_2022_path):
+    """Testing that Android ground truth 2022 is created without errors.
+
+    Parameters
+    ----------
+    gt_2022_path : string
+        Location for the unit_test Android ground truth 2022 measurements
+    """
+    gt_2022 = AndroidGroundTruth2022(gt_2022_path)
+    assert isinstance(gt_2022, NavData)
+
+
+def test_gt_alt_nan(root_path_2022):
+    """Testing that Android Ground Truth Loader sets blank altitudes to 0.
+
+    Parameters
+    ----------
+    root_path_2022 : string
+        Location for the files with missing altitude, including the file
+        with missing altitude
+    """
+    gt_2022_nan = os.path.join(root_path_2022, 'alt_nan_ground_truth.csv')
+    with pytest.warns(RuntimeWarning):
+        gt_2022 = AndroidGroundTruth2022(gt_2022_nan)
+        np.testing.assert_almost_equal(gt_2022['alt_gt_m'], np.zeros(len(gt_2022)))
