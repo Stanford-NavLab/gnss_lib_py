@@ -221,7 +221,7 @@ def test_get_and_set_num(derived):
     key = 'testing123'
     value = np.zeros(len(derived))
     derived[key] = value
-    np.testing.assert_equal(derived[key, :], np.reshape(value, [1, -1]))
+    np.testing.assert_equal(derived[key, :], value)
 
 
 def test_get_and_set_str(derived):
@@ -242,7 +242,7 @@ def test_get_and_set_str(derived):
     value = np.concatenate((np.asarray(value1, dtype=object), np.asarray(value2, dtype=object)))
     derived[key] = value
 
-    np.testing.assert_equal(derived[key, :], [value])
+    np.testing.assert_equal(derived[key, :], value)
 
 
 def test_imu_raw(android_raw_path):
