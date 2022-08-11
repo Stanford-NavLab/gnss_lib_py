@@ -6,4 +6,4 @@ parsers
 
    test_android
    test_navdata
-   test_tu_chemnitz
+   test_smart_loc

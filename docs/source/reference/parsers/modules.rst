@@ -7,4 +7,4 @@ parsers
    android
    ephemeris
    navdata
-   tu_chemnitz
+   smart_loc

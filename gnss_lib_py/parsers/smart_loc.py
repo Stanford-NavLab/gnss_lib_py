@@ -46,8 +46,7 @@ class SmartLocRaw(NavData):
 
         """
 
-        self["gnss_id"] = np.array([x.lower() for x in self["gnss_id"][0]], dtype=object)
-
+        self["gnss_id"] = np.array([x.lower() for x in self["gnss_id"]], dtype=object)
 
     @staticmethod
     def _row_map():

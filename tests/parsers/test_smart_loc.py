@@ -119,7 +119,7 @@ def test_navdata_raw_df_equivalence(navdata_raw, pd_df):
 @pytest.mark.parametrize('row_name, index, value',
                         [('raw_pr_m', 0, 19834597.8712713),
                          ('raw_pr_sigma_m', 9, 40.96),
-                         ('gnss_id', 55, np.asarray([['sbas']], dtype=object))]
+                         ('gnss_id', 55, 'sbas')]
                         )
 def test_navdata_raw_value_check(navdata_raw, row_name, index, value):
     """Check SmartLocRaw entries against known values using test matrix
@@ -150,7 +150,7 @@ def test_get_and_set_num(navdata_raw):
     key = 'testing123'
     value = np.zeros(len(navdata_raw))
     navdata_raw[key] = value
-    np.testing.assert_equal(navdata_raw[key, :], np.reshape(value, [1, -1]))
+    np.testing.assert_equal(navdata_raw[key, :], value)
 
 
 def test_get_and_set_str(navdata_raw):
@@ -168,10 +168,10 @@ def test_get_and_set_str(navdata_raw):
     size2 = (navdata_raw_size-int(navdata_raw_size/2))
     value1 = ['ashwin']*size1
     value2 = ['derek']*size2
-    value = np.concatenate((np.asarray(value1, dtype=object), np.asarray(value2, dtype=object)))
-    navdata_raw[key] = value
+    value = np.concatenate((value1,value2))
+    navdata_raw[key] = value.astype(object)
 
-    np.testing.assert_equal(navdata_raw[key, :], [value])
+    np.testing.assert_equal(navdata_raw[key, :], value)
 
 def test_navdata_type(navdata_raw):
     """Test that all subclasses inherit from NavData
