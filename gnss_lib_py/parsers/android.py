@@ -30,6 +30,11 @@ class AndroidDerived2021(NavData):
         input_path : string
             Path to measurement csv file
 
+        remove_bad_measures : bool
+            Flag for whether to remove measures that are too close or
+            too far away in time. Code from the competition hosts used
+            to implement changes
+
         Notes
         -----
         Removes duplicate rows using correction 5 from competition hosts
@@ -223,7 +228,7 @@ class AndroidGroundTruth2021(NavData):
 class AndroidGroundTruth2022(AndroidGroundTruth2021):
     """Class handling ground truth from Android dataset.
 
-    Inherits from AndroidDerivedGt2021().
+    Inherits from AndroidGroundTruth2021().
     """
 
     def postprocess(self):
