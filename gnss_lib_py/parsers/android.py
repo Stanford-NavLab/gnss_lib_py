@@ -140,6 +140,9 @@ class AndroidDerived2022(NavData):
                      - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
 
+        # add gps milliseconds
+        self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
+
     @staticmethod
     def _row_map():
         """Map of row names from loaded to gnss_lib_py standard
@@ -202,7 +205,7 @@ class AndroidGroundTruth2021(NavData):
         # Correcting reported altitude
         self['alt_gt_m'] = self['alt_gt_m'] - 61.
         gt_lla = np.transpose(np.vstack([self['lat_gt_deg'],
-                                         self['long_gt_deg'],
+                                         self['lon_gt_deg'],
                                          self['alt_gt_m']]))
         gt_ecef = geodetic_to_ecef(gt_lla)
         self["x_gt_m"] = gt_ecef[:,0]
@@ -219,7 +222,7 @@ class AndroidGroundTruth2021(NavData):
             Dictionary of the form {old_name : new_name}
         """
         row_map = {'latDeg' : 'lat_gt_deg',
-                   'lngDeg' : 'long_gt_deg',
+                   'lngDeg' : 'lon_gt_deg',
                    'heightAboveWgs84EllipsoidM' : 'alt_gt_m',
                    'millisSinceGpsEpoch' : 'gps_millis'
                 }
@@ -242,7 +245,7 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
             warnings.warn("Some altitude values were missing, using 0m ", RuntimeWarning)
             self['alt_gt_m'] = np.nan_to_num(self['alt_gt_m'])
         gt_lla = np.transpose(np.vstack([self['lat_gt_deg'],
-                                         self['long_gt_deg'],
+                                         self['lon_gt_deg'],
                                          self['alt_gt_m']]))
         gt_ecef = geodetic_to_ecef(gt_lla)
         self["x_gt_m"] = gt_ecef[:,0]
@@ -260,7 +263,7 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
             Dictionary of the form {old_name : new_name}
         """
         row_map = {'LatitudeDegrees' : 'lat_gt_deg',
-                   'LongitudeDegrees' : 'long_gt_deg',
+                   'LongitudeDegrees' : 'lon_gt_deg',
                    'AltitudeMeters' : 'alt_gt_m',
                    'UnixTimeMillis' : 'unix_millis'
                 }

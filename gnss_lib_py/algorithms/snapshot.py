@@ -14,6 +14,7 @@ import warnings
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
 def solve_wls(measurements, weight_type = None,
               only_bias = False, tol = 1e-7, max_count = 20):
@@ -85,10 +86,18 @@ def solve_wls(measurements, weight_type = None,
         states[:,t_idx:t_idx+1] = position
 
     state_estimate = NavData()
+    state_estimate["gps_millis"] = unique_timesteps
     state_estimate["x_rx_m"] = states[0,:]
     state_estimate["y_rx_m"] = states[1,:]
     state_estimate["z_rx_m"] = states[2,:]
     state_estimate["b_rx_m"] = states[3,:]
+
+    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m",
+                                                   "y_rx_m",
+                                                   "z_rx_m"]])
+    state_estimate["lat_rx_deg"] = lat
+    state_estimate["lon_rx_deg"] = lon
+    state_estimate["alt_rx_deg"] = alt
 
     return state_estimate
 

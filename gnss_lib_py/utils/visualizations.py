@@ -541,6 +541,11 @@ def map_lla(*args, save=True, prefix="", **kwargs):
         to saving the figure in the Results folder.
     prefix : string
         File prefix to add to filename.
+    mapbox_style : str
+        Can optionally be included as one of the **kwargs
+        Free options include 'open-street-map', 'white-bg',
+        'carto-positron', 'carto-darkmatter', 'stamen-terrain',
+        'stamen-toner', and 'stamen-watercolor'.
 
     Returns
     -------
@@ -560,30 +565,34 @@ def map_lla(*args, save=True, prefix="", **kwargs):
 
     fig = None
 
-    # lat_row_name = ""
-    # TODO: raise warning if non existent lat or if more than one.
-
     for traj_data in args:
-        fig = px.scatter_mapbox(traj_data,
+        lat_row_name = [s for s in traj_data.rows if "lat" in s]
+        lon_row_name = [s for s in traj_data.rows if "lon" in s]
+        # TODO: raise warning if non existent lat or if more than one.
 
-                                # Here, plotly gets, (x,y) coordinates
+        if fig is None:
+            fig = px.scatter_mapbox(traj_data,
+                                    lat=traj_data[lat_row_name],
+                                    lon=traj_data[lon_row_name],
+                                    size=1*np.ones(traj_data[lat_row_name].size, dtype=np.int),
 
-                                # lat_row_name = find("lat")
+                                    )
+        else:
+            fig2 = px.scatter_mapbox(traj_data,
+                                    lat=traj_data[lat_row_name],
+                                    lon=traj_data[lon_row_name],
+                                    color=traj_data['gps_millis'],
+                                    size=5*np.ones(traj_data[lat_row_name].size, dtype=np.int),
+                                    # color= "b",
+                                    )
+            fig.add_trace(fig2.data[0])
 
-                                lat=traj_data["lat_rx_deg"][0],
-                                lon=traj_data["lon_rx_deg"][0],
-
-                                #Here, plotly detects color of series
-                                # color='Label',
-                                # labels='Label',
-
-                                )
     fig.update_layout(mapbox_style="open-street-map")
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
     fig.update_layout(**kwargs)
 #     fig.update_layout(title_text="Ground Truth Tracks of Android Smartphone GNSS Dataset")
 #     fig.legend()
-    fig.show()
+
 
     if save: # pragma: no cover
         if prefix != "" and not prefix.endswith('_'):
