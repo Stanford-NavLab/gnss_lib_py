@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.algorithms.snapshot import solve_wls
-from gnss_lib_py.parsers.android import AndroidDerived
+from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.residuals import solve_residuals
 
@@ -28,7 +28,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
+    root_path = os.path.join(root_path, 'data/unit_test/android_2021')
     return root_path
 
 
@@ -62,7 +62,7 @@ def fixture_derived_path(root_path):
 
 @pytest.fixture(name="derived")
 def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived
+    """Load instance of AndroidDerived2021
 
     Parameters
     ----------
@@ -71,10 +71,10 @@ def fixture_load_derived(derived_path):
 
     Returns
     -------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
     """
-    derived = AndroidDerived(derived_path)
+    derived = AndroidDerived2021(derived_path)
     return derived
 
 def test_residuals(derived):
@@ -82,8 +82,8 @@ def test_residuals(derived):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
 
     """
 
