@@ -11,7 +11,7 @@ import pytest
 
 import numpy as np
 
-from gnss_lib_py.parsers.android import AndroidDerived
+from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 
@@ -256,7 +256,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
+    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
     return root_path
 
 
@@ -290,7 +290,7 @@ def fixture_derived_path(root_path):
 
 @pytest.fixture(name="derived")
 def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived
+    """Load instance of AndroidDerived2021
 
     Parameters
     ----------
@@ -299,10 +299,10 @@ def fixture_load_derived(derived_path):
 
     Returns
     -------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
     """
-    derived = AndroidDerived(derived_path)
+    derived = AndroidDerived2021(derived_path)
     return derived
 
 def test_solve_wls(derived):
@@ -310,8 +310,8 @@ def test_solve_wls(derived):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
 
     """
     state_estimate = solve_wls(derived)
@@ -329,7 +329,7 @@ def test_solve_wls(derived):
     assert "b_rx_m" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
-    assert len(state_estimate) == len(np.unique(derived["millisSinceGpsEpoch",:]))
+    assert len(state_estimate) == len(np.unique(derived["gps_millis",:]))
 
     # test what happens when rows down't exist
     derived_no_x_sv_m = derived.remove(rows="x_sv_m")
@@ -357,8 +357,8 @@ def test_solve_wls_weights(derived, tolerance):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
     tolerance : fixture
         Error threshold for test pass/fail
     """

@@ -27,7 +27,7 @@ def fixture_csv_path(csv_filepath):
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
+    root_path = os.path.join(root_path, 'data/unit_test/navdata')
 
     csv_path = os.path.join(root_path, csv_filepath)
 

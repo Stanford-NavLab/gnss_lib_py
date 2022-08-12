@@ -251,6 +251,24 @@ def test_gps_unix_millis():
     assert unix_millis == rev_unix_millis
 
 
+def test_gps_unix_millis_vect():
+    """Test vectorized version of unix_to_gps_millis and gps_to_unix_millis.
+
+    Notes
+    -----
+    Test based on the test implemented in test_gps_unix_millis
+    """
+
+    delta_times = np.arange(10)
+    unix_millis_vect = 1660161069000. + delta_times
+    exp_gps_millis_vect  = 1344196287000. + delta_times
+    out_gps_millis_vect = tc.unix_to_gps_millis(unix_millis_vect)
+    np.testing.assert_almost_equal(exp_gps_millis_vect, out_gps_millis_vect)
+    # Testing reverse conversion
+    rev_unix_millis_vect = tc.gps_to_unix_millis(exp_gps_millis_vect)
+    np.testing.assert_almost_equal(unix_millis_vect, rev_unix_millis_vect)
+
+
 def test_tz_conversion():
     """Checking internal timezone conversions to UTC
 

@@ -8,6 +8,8 @@ __date__ = "28 Jul 2022"
 from datetime import datetime, timedelta, timezone
 import warnings
 
+import numpy as np
+
 from gnss_lib_py.utils.constants import GPS_EPOCH_0, WEEKSEC
 
 # reference datetime that is considered as start of UTC epoch
@@ -15,24 +17,24 @@ UNIX_EPOCH_0 = datetime(1970, 1, 1, 0, 0, tzinfo=timezone.utc)
 
 # Manually need to add leapSeconds when needed for future ones
 LEAPSECONDS_TABLE = [datetime(2017, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2015, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2012, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2009, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2006, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1999, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1997, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1996, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1994, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1993, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1992, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1991, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1990, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1988, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1985, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1983, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1982, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1981, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        GPS_EPOCH_0]
+                     datetime(2015, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(2012, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(2009, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(2006, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1999, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1997, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1996, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1994, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1993, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1992, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1991, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1990, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1988, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1985, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1983, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1982, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1981, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     GPS_EPOCH_0]
 
 def get_leap_seconds(gps_time):
     """Compute leap seconds to be added in time conversions.
@@ -320,8 +322,14 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
         Milliseconds since GPS Epoch (6th January 1980 GPS).
     """
     # Add leapseconds should always be true here
-    t_utc = unix_millis_to_datetime(unix_millis)
-    gps_millis = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
+    if isinstance(unix_millis, np.ndarray) and len(unix_millis) > 1:
+        gps_millis = np.zeros_like(unix_millis)
+        for t_idx, unix in enumerate(unix_millis):
+            t_utc = unix_millis_to_datetime(unix)
+            gps_millis[t_idx] = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
+    else:
+        t_utc = unix_millis_to_datetime(unix_millis)
+        gps_millis = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
     return gps_millis
 
 
@@ -371,10 +379,15 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
     """
     #NOTE: Ensure that one of these methods is always adding/removing
     # leap seconds here
-    t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
-    unix_millis = datetime_to_unix_millis(t_utc)
+    if isinstance(gps_millis, np.ndarray) and len(gps_millis) > 1:
+        unix_millis = np.zeros_like(gps_millis)
+        for t_idx, gps in enumerate(gps_millis):
+            t_utc = gps_millis_to_datetime(gps, rem_leap_secs=rem_leap_secs)
+            unix_millis[t_idx] = datetime_to_unix_millis(t_utc)
+    else:
+        t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
+        unix_millis = datetime_to_unix_millis(t_utc)
     return unix_millis
-
 
 def _check_tzinfo(t_datetime):
     """Raises warning if time doesn't have timezone and converts to UTC.
