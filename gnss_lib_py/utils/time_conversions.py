@@ -17,24 +17,24 @@ UNIX_EPOCH_0 = datetime(1970, 1, 1, 0, 0, tzinfo=timezone.utc)
 
 # Manually need to add leapSeconds when needed for future ones
 LEAPSECONDS_TABLE = [datetime(2017, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2015, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2012, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2009, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(2006, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1999, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1997, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1996, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1994, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1993, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1992, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1991, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1990, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1988, 1, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1985, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1983, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1982, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        datetime(1981, 7, 1, 0, 0, tzinfo=timezone.utc),
-                        GPS_EPOCH_0]
+                     datetime(2015, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(2012, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(2009, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(2006, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1999, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1997, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1996, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1994, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1993, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1992, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1991, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1990, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1988, 1, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1985, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1983, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1982, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     datetime(1981, 7, 1, 0, 0, tzinfo=timezone.utc),
+                     GPS_EPOCH_0]
 
 def get_leap_seconds(gps_time):
     """Compute leap seconds to be added in time conversions.

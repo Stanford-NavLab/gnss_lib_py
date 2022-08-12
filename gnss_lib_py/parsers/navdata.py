@@ -311,7 +311,6 @@ class NavData():
         newvalue : np.ndarray/list/int
             Values to be added to self.array attribute
         """
-        #TODO: Fix error when assigning strings with 2D arrays
         if isinstance(key_idx, int) and len(self.map)<=key_idx:
             raise KeyError('Row indices must be strings when assigning new values')
         if isinstance(key_idx, slice) and len(self.map)==0:
@@ -454,7 +453,7 @@ class NavData():
             if old_len == 0:
                 self.from_pandas_df(pandas_df)
             else:
-                #TODO: Case handling for when column name in dataframe is different?
+
                 self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
                 for col in pandas_df.columns:
                     self[col, new_data_cols] = np.asarray(pandas_df[col].values)

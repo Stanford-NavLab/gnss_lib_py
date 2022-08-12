@@ -2,7 +2,7 @@
 
 """
 
-__authors__ = "Shubh Gupta, Adam Dai, Ashwin Kanhere"
+__authors__ = "Ashwin Kanhere, Shubh Gupta, Adam Dai"
 __date__ = "02 Nov 2021"
 
 
@@ -22,23 +22,22 @@ class AndroidDerived2021(NavData):
 
     Inherits from NavData().
     """
-    def __init__(self, input_path, remove_bad_measures=True):
+    def __init__(self, input_path, remove_timing_outliers=True):
         """Android specific loading and preprocessing
 
         Parameters
         ----------
         input_path : string
             Path to measurement csv file
-
-        remove_bad_measures : bool
+        remove_timing_outliers : bool
             Flag for whether to remove measures that are too close or
             too far away in time. Code from the competition hosts used
-            to implement changes
+            to implement changes. See note.
 
         Notes
         -----
         Removes duplicate rows using correction 5 from competition hosts
-        implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+        implemented from https://www.kaggle.com/code/gymf123/tips-notes-from-the-competition-hosts/notebook
         retrieved on 10 August, 2022
 
         """
@@ -52,7 +51,7 @@ class AndroidDerived2021(NavData):
 
 
         # Correction 5 implemented verbatim from competition tips
-        if remove_bad_measures:
+        if remove_timing_outliers:
             delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
             where_good_signals = (delta_millis > 0) & (delta_millis < 300)
             pd_df = pd_df[where_good_signals].copy()
@@ -68,11 +67,11 @@ class AndroidDerived2021(NavData):
         implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
         retrieved on 10 August, 2022
         """
-        pr_corrected = self['raw_pr_m', :] \
-                     + self['b_sv_m', :] \
-                     - self['intersignal_bias_m', :] \
-                     - self['tropo_delay_m', :] \
-                     - self['iono_delay_m', :]
+        pr_corrected = self['raw_pr_m'] \
+                     + self['b_sv_m'] \
+                     - self['intersignal_bias_m'] \
+                     - self['tropo_delay_m'] \
+                     - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
 
     @staticmethod
@@ -134,11 +133,11 @@ class AndroidDerived2022(NavData):
         implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
         retrieved on 10 August, 2022
         """
-        pr_corrected = self['raw_pr_m', :] \
-                     + self['b_sv_m', :] \
-                     - self['intersignal_bias_m', :] \
-                     - self['tropo_delay_m', :] \
-                     - self['iono_delay_m', :]
+        pr_corrected = self['raw_pr_m'] \
+                     + self['b_sv_m'] \
+                     - self['intersignal_bias_m'] \
+                     - self['tropo_delay_m'] \
+                     - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
 
     @staticmethod
@@ -202,7 +201,9 @@ class AndroidGroundTruth2021(NavData):
         """
         # Correcting reported altitude
         self['alt_gt_m'] = self['alt_gt_m'] - 61.
-        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'], self['long_gt_deg'], self['alt_gt_m']]))
+        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'],
+                                         self['long_gt_deg'],
+                                         self['alt_gt_m']]))
         gt_ecef = geodetic_to_ecef(gt_lla)
         self["x_gt_m"] = gt_ecef[:,0]
         self["y_gt_m"] = gt_ecef[:,1]
@@ -210,19 +211,19 @@ class AndroidGroundTruth2021(NavData):
 
     @staticmethod
     def _row_map():
-            """Map of row names from loaded ground truth to gnss_lib_py standard
+        """Map of row names from loaded ground truth to gnss_lib_py standard
 
-            Returns
-            -------
-            row_map : Dict
-                Dictionary of the form {old_name : new_name}
-            """
-            row_map = {'latDeg' : 'lat_gt_deg',
-                    'lngDeg' : 'long_gt_deg',
-                    'heightAboveWgs84EllipsoidM' : 'alt_gt_m',
-                    'millisSinceGpsEpoch' : 'gps_millis'
-                    }
-            return row_map
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+        """
+        row_map = {'latDeg' : 'lat_gt_deg',
+                   'lngDeg' : 'long_gt_deg',
+                   'heightAboveWgs84EllipsoidM' : 'alt_gt_m',
+                   'millisSinceGpsEpoch' : 'gps_millis'
+                }
+        return row_map
 
 
 class AndroidGroundTruth2022(AndroidGroundTruth2021):
@@ -240,7 +241,9 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
         if np.any(np.isnan(self['alt_gt_m'])):
             warnings.warn("Some altitude values were missing, using 0m ", RuntimeWarning)
             self['alt_gt_m'] = np.nan_to_num(self['alt_gt_m'])
-        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'], self['long_gt_deg'], self['alt_gt_m']]))
+        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'],
+                                         self['long_gt_deg'],
+                                         self['alt_gt_m']]))
         gt_ecef = geodetic_to_ecef(gt_lla)
         self["x_gt_m"] = gt_ecef[:,0]
         self["y_gt_m"] = gt_ecef[:,1]
@@ -249,19 +252,19 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
 
     @staticmethod
     def _row_map():
-            """Map of row names from loaded ground truth to gnss_lib_py standard
+        """Map row names from loaded data to gnss_lib_py standard
 
-            Returns
-            -------
-            row_map : Dict
-                Dictionary of the form {old_name : new_name}
-            """
-            row_map = {'LatitudeDegrees' : 'lat_gt_deg',
-                       'LongitudeDegrees' : 'long_gt_deg',
-                       'AltitudeMeters' : 'alt_gt_m',
-                       'UnixTimeMillis' : 'unix_millis'
-                    }
-            return row_map
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+        """
+        row_map = {'LatitudeDegrees' : 'lat_gt_deg',
+                   'LongitudeDegrees' : 'long_gt_deg',
+                   'AltitudeMeters' : 'alt_gt_m',
+                   'UnixTimeMillis' : 'unix_millis'
+                }
+        return row_map
 
 class AndroidRawImu(NavData):
     """Class handling IMU measurements from raw Android dataset.
@@ -304,11 +307,14 @@ class AndroidRawImu(NavData):
                     elif row[0] == 'Gyro':
                         gyro.append(row[1:])
 
-        accel = pd.DataFrame(accel[1:], columns = accel[0], dtype=np.float64)
-        gyro = pd.DataFrame(gyro[1:], columns = gyro[0], dtype=np.float64)
+        accel = pd.DataFrame(accel[1:], columns = accel[0],
+                             dtype=np.float64)
+        gyro = pd.DataFrame(gyro[1:], columns = gyro[0],
+                            dtype=np.float64)
 
         #Drop common columns from gyro and keep values from accel
-        gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'], inplace=True)
+        gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'],
+                  inplace=True)
         measurements = pd.concat([accel, gyro], axis=1)
         #NOTE: Assuming pandas index corresponds to measurements order
         #NOTE: Override times of gyro measurements with corresponding
