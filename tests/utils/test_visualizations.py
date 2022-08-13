@@ -10,7 +10,7 @@ import pytest
 
 import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
-from gnss_lib_py.parsers.android import AndroidDerived
+from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.utils.file_operations import close_figures
 from gnss_lib_py.algorithms.residuals import solve_residuals
 
@@ -27,7 +27,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
+    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
     return root_path
 
 
@@ -61,7 +61,7 @@ def fixture_derived_path(root_path):
 
 @pytest.fixture(name="derived")
 def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived
+    """Load instance of AndroidDerived2021
 
     Parameters
     ----------
@@ -70,10 +70,10 @@ def fixture_load_derived(derived_path):
 
     Returns
     -------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
     """
-    derived = AndroidDerived(derived_path)
+    derived = AndroidDerived2021(derived_path)
     return derived
 
 @pytest.fixture(name="state_estimate")
@@ -82,8 +82,8 @@ def fixture_solve_wls(derived):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
 
     Returns
     -------
@@ -102,8 +102,8 @@ def test_plot_metrics(derived):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
 
     """
 
@@ -114,7 +114,7 @@ def test_plot_metrics(derived):
                  ]
 
     for row in derived.rows:
-        if not derived.str_bool[derived.map[row]]:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric(derived, row, save=False)
                 close_figures(fig)
@@ -130,7 +130,7 @@ def test_plot_metrics(derived):
     assert "Prefix" in str(excinfo.value)
 
     for row in derived.rows:
-        if not derived.str_bool[derived.map[row]]:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
                 close_figures(fig)
@@ -156,8 +156,8 @@ def test_plot_metrics_by_constellation(derived):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
 
     """
 
@@ -168,7 +168,7 @@ def test_plot_metrics_by_constellation(derived):
                  ]
 
     for row in derived.rows:
-        if not derived.str_bool[derived.map[row]]:
+        if not derived.is_str(row):
             if row in test_rows:
                 fig = viz.plot_metric_by_constellation(derived, row, save=False)
                 close_figures(fig)
@@ -202,8 +202,8 @@ def test_plot_skyplot(derived, state_estimate):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
     state_estimate : gnss_lib_py.parsers.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of
@@ -265,8 +265,8 @@ def test_plot_residuals(derived, state_estimate):
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
     state_estimate : gnss_lib_py.parsers.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of

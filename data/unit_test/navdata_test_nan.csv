@@ -1,7 +1,0 @@
-﻿names,integers,floats,strings
-ab,10,0.5,gps
-cde,2,nan,glonass
-alpha,45,0.3,galileo
-epsilon,67,0.99,gps
-gamma,nan,0.45,gps
-xyzuvw,300,0.74,galileo
