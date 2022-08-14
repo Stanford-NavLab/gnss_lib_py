@@ -338,6 +338,7 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         df_slice = test_df[col_name].values
         np.testing.assert_almost_equal(measure_slice, df_slice)
     os.remove(csv_loc)
+    os.rmdir(output_directory)
 
 @pytest.fixture(name="android_gtruth_path")
 def fixture_gtruth_path(root_path):
