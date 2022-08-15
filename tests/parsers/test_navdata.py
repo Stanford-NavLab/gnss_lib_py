@@ -576,6 +576,32 @@ def fixture_new_string():
                              'date', 'pear', 'lime'], dtype=object)
     return new_string
 
+@pytest.fixture(name="new_string_str")
+def fixture_new_string_string_type():
+    """String to test for value assignment
+
+    Returns
+    -------
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+    """
+    new_string = np.asarray(['pie', 'cake', 'sherbert',
+                             'cookies', 'cupcake', 'brownies'],dtype=str)
+    return new_string
+
+@pytest.fixture(name="new_string_unicode")
+def fixture_new_string_unicode_type():
+    """String to test for value assignment
+
+    Returns
+    -------
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+    """
+    new_string = np.asarray(['red', 'orange', 'yellow',
+                             'green', 'blue', 'purple'])
+    return new_string
+
 
 @pytest.fixture(name="new_str_list")
 def fixture_new_str_list(new_string):
@@ -623,10 +649,18 @@ def fixture_subsect_str_list(subset_str):
                         ('new_key_2d_col', np.ones([6,1]), np.ones([1,6])),
                         ('new_str_key', lazy_fixture('new_string'),
                          lazy_fixture('new_str_list')),
+                        ('new_str_key', lazy_fixture('new_string_str'),
+                         lazy_fixture('new_string_str')),
+                        ('new_str_key', lazy_fixture('new_string_unicode'),
+                         lazy_fixture('new_string_unicode')),
                         ('integers', 0, np.zeros([1,6])),
                         (1, 7, 7*np.ones([1,6])),
                         ('names', lazy_fixture('new_string'),
                          lazy_fixture('new_str_list')),
+                        ('names', lazy_fixture('new_string_str'),
+                         lazy_fixture('new_string_str')),
+                        ('names', lazy_fixture('new_string_unicode'),
+                         lazy_fixture('new_string_unicode')),
                         ((['integers', 'floats'], slice(1, 4)), -10,
                          -10*np.ones([2,3])),
                         (('strings', slice(2, 5)),

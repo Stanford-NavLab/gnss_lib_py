@@ -291,7 +291,8 @@ class NavData():
 
         row_list, row_str_existing = self._get_str_rows(rows)
 
-        if isinstance(new_value, np.ndarray) and new_value.dtype==object:
+        if isinstance(new_value, np.ndarray) and (new_value.dtype in (object,str) \
+                        or np.issubdtype(new_value.dtype,np.dtype('U'))):
             if type(new_value.item(0)) in (int, float):
                 row_str_new = [False]*len(row_list)
             else:
@@ -362,10 +363,11 @@ class NavData():
             raise KeyError('Row indices must be strings when assigning new values')
         if isinstance(key_idx, str) and key_idx not in self.map:
             #Creating an entire new row
-            if isinstance(new_value, np.ndarray) and new_value.dtype==object:
-                # Adding string values
-                # print("\n",key_idx,"\n",new_value)
-                self.fillna(new_value)
+            if isinstance(new_value, np.ndarray) \
+                    and (new_value.dtype in (object,str) \
+                    or np.issubdtype(new_value.dtype,np.dtype('U'))):                # Adding string values
+                # string values
+                new_value = new_value.astype(str)
                 new_str_vals = len(np.unique(new_value))*np.ones(np.shape(new_value),
                                     dtype=self.arr_dtype)
                 new_str_vals = self._str_2_val(new_str_vals, new_value, key_idx)
@@ -377,7 +379,7 @@ class NavData():
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
-                # print("\n",key_idx,"\n")#,new_value)
+                # numeric values
                 if not isinstance(new_value, int) and not isinstance(new_value, float):
                     assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Cannot set a row with list of strings, \
@@ -402,7 +404,9 @@ class NavData():
             assert np.all(row_str) or np.all(np.logical_not(row_str)), \
                 "Cannot assign/return combination of strings and numbers"
             if np.all(row_str):
-                assert isinstance(new_value, np.ndarray) and new_value.dtype==object, \
+                assert isinstance(new_value, np.ndarray) \
+                   and (new_value.dtype in (object,str) \
+                     or np.issubdtype(new_value.dtype,np.dtype('U'))), \
                         "String assignment only supported for ndarray of type object"
                 inv_map = self.inv_map
                 new_value = np.reshape(new_value, [-1, new_value.shape[0]])
@@ -734,22 +738,6 @@ class NavData():
         """
         inv_map = {v: k for k, v in self.map.items()}
         return inv_map
-
-    def fillna(self, array):
-        """Fills nan values in an array of strings (in-place).
-
-        You have to do a string comparison, so we first have to create
-        the string equivalent of the NaN to compare against.
-
-        array : np.ndarray
-            np.ndarray of strings
-
-        """
-        nan_str = np.array([np.nan]).astype(str)[0]
-        if array.size > 1:
-            array[np.where(array.astype(str)==nan_str)] = ""
-        elif array.size == 1 and array == nan_str:
-            array = np.array("")
 
     def rename(self, mapper):
         """Rename rows of NavData class.
