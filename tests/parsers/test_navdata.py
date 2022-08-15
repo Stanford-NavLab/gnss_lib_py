@@ -87,9 +87,9 @@ def load_test_dataframe(csv_filepath, header="infer"):
 
     """
 
-    df = pd.read_csv(csv_filepath, header=header)
+    data = pd.read_csv(csv_filepath, header=header)
 
-    return df
+    return data
 
 @pytest.fixture(name='df_simple')
 def fixture_df_simple(csv_simple):
@@ -697,6 +697,103 @@ def test_multi_set(data,new_string):
 
     np.testing.assert_array_equal(data_temp2["strings"], new_string)
     np.testing.assert_array_equal(data_temp2["names"], new_string)
+
+def test_set_changing_type(data,new_string):
+    """Test setting a numeric row with strings and vice versa.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        NavData instance for testing
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+
+    """
+
+    new_numeric = np.arange(len(data),dtype=float)
+
+    data_temp1 = data.copy()
+
+    # setting strings with strings
+    data_temp1["strings"] = new_string
+    np.testing.assert_array_equal(data_temp1["strings"], new_string)
+    data_temp1["names"] = np.array(new_string,dtype=object)
+    np.testing.assert_array_equal(data_temp1["names"], new_string)
+
+    # should raise error trying to set with list of strings
+    with pytest.raises(RuntimeError):
+        data_temp1["names"] = np.array(new_string).tolist()
+
+    # setting numerics with numerics
+    data_temp1["integers"] = new_numeric
+    np.testing.assert_array_equal(data_temp1["integers"], new_numeric)
+    data_temp1["floats"] = np.array(new_numeric, dtype=object)
+    np.testing.assert_array_equal(data_temp1["floats"], new_numeric)
+
+    data_temp2 = data.copy()
+    # setting numerics with strings
+    data_temp2["integers"] = new_string
+    np.testing.assert_array_equal(data_temp2["integers"], new_string)
+    data_temp2["floats"] = np.array(new_string,dtype=object)
+    np.testing.assert_array_equal(data_temp2["floats"], new_string)
+
+    # should raise error trying to set with list of strings
+    with pytest.raises(RuntimeError):
+        data_temp1["floats"] = new_string.tolist()
+
+    # setting strings with numerics
+    data_temp2["strings"] = new_numeric
+    np.testing.assert_array_equal(data_temp2["strings"], new_numeric)
+    data_temp2["names"] = np.array(new_numeric, dtype=object)
+    np.testing.assert_array_equal(data_temp2["names"], new_numeric)
+
+def test_multi_set_changing_type(data,new_string):
+    """Test setting a numeric row with strings and vice versa.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        NavData instance for testing
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+
+    """
+    new_numeric = np.arange(len(data),dtype=float)
+    data_temp1 = data.copy()
+
+    # test setting strings to numerics with input of size (2,6)
+    double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
+                                      new_numeric.reshape(1,-1)))
+    data_temp1[["strings","names"]] = double_numeric_input
+
+    np.testing.assert_array_equal(data_temp1["strings"], new_numeric)
+    np.testing.assert_array_equal(data_temp1["names"], new_numeric)
+
+    # test setting numerics to strings with input of size (2,6)
+    double_string_input = np.vstack((new_string.reshape(1,-1),
+                                     new_string.reshape(1,-1)))
+    data_temp1[["integers","floats"]] = double_string_input
+
+    np.testing.assert_array_equal(data_temp1["integers"], new_string)
+    np.testing.assert_array_equal(data_temp1["floats"], new_string)
+
+    data_temp2 = data.copy()
+
+    # test setting strings to numerics with input of size (6,2)
+    double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
+                                      new_numeric.reshape(1,-1))).T
+    data_temp2[["strings","names"]] = double_numeric_input
+
+    np.testing.assert_array_equal(data_temp2["strings"], new_numeric)
+    np.testing.assert_array_equal(data_temp2["names"], new_numeric)
+
+    # test strings with input of size (6,2)
+    double_string_input = np.vstack((new_string.reshape(1,-1),
+                                     new_string.reshape(1,-1))).T
+    data_temp2[["integers","floats"]] = double_string_input
+
+    np.testing.assert_array_equal(data_temp2["integers"], new_string)
+    np.testing.assert_array_equal(data_temp2["floats"], new_string)
 
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),

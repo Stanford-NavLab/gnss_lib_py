@@ -267,6 +267,49 @@ class NavData():
             row_str = [_row_idx_str_bool[row] for row in rows]
         return row_list, row_str
 
+    def _get_set_str_rows(self, rows, new_value):
+        """Checks which output rows contain string elements given input.
+
+        If the row used to be string values but now is numeric, this
+        function also empties the corresponding dictionary in str_map.
+
+        Parameters
+        ----------
+        rows : slice/list
+            Rows to check for string elements
+        new_value : np.ndarray/list/int
+            Values to be added to self.array attribute
+
+        Returns
+        -------
+        row_list : list
+            Input rows, strictly in list format
+        row_str_new : list
+            List of boolean values indicating which of the new rows
+            contain strings.
+        """
+
+        row_list, row_str_existing = self._get_str_rows(rows)
+
+        if isinstance(new_value, np.ndarray) and new_value.dtype==object:
+            if type(new_value.item(0)) in (int, float):
+                row_str_new = [False]*len(row_list)
+            else:
+                row_str_new = [True]*len(row_list)
+        elif isinstance(np.asarray(new_value).item(0), str):
+            raise RuntimeError("Cannot set a row with list of strings, \
+                             please use np.ndarray with dtype=object")
+        else:
+            row_str_new = [False]*len(row_list)
+
+        for row_idx, row in enumerate(row_list):
+            if row_str_existing[row_idx] and not row_str_new[row_idx]:
+                # changed from string to numeric
+                self.str_map[self.inv_map[row]] = {}
+
+
+        return row_list, row_str_new
+
     def __getitem__(self, key_idx):
         """Return item indexed from class
 
@@ -317,7 +360,7 @@ class NavData():
             raise KeyError('Row indices must be strings when assigning new values')
         if isinstance(key_idx, slice) and len(self.map)==0:
             raise KeyError('Row indices must be strings when assigning new values')
-        if isinstance(key_idx, str) and key_idx not in self.map.keys():
+        if isinstance(key_idx, str) and key_idx not in self.map:
             #Creating an entire new row
             if isinstance(new_value, np.ndarray) and new_value.dtype==object:
                 # Adding string values
@@ -337,7 +380,8 @@ class NavData():
                 # print("\n",key_idx,"\n")#,new_value)
                 if not isinstance(new_value, int) and not isinstance(new_value, float):
                     assert not isinstance(np.asarray(new_value).item(0), str), \
-                            "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
+                            "Cannot set a row with list of strings, \
+                            please use np.ndarray with dtype=object"
                 # Adding numeric values
                 self.str_map[key_idx] = {}
                 if self.array.shape == (0,0):
@@ -354,7 +398,7 @@ class NavData():
         else:
             # Updating existing rows or columns
             rows, cols = self._parse_key_idx(key_idx)
-            row_list, row_str = self._get_str_rows(rows)
+            row_list, row_str = self._get_set_str_rows(rows,new_value)
             assert np.all(row_str) or np.all(np.logical_not(row_str)), \
                 "Cannot assign/return combination of strings and numbers"
             if np.all(row_str):
@@ -392,7 +436,7 @@ class NavData():
             Key indicating row where string to numeric conversion is
             required
         """
-        if key in self.map.keys():
+        if key in self.map:
             # Key already exists, update existing string value dictionary
             inv_str_map = {v: k for k, v in self.str_map[key].items()}
             string_vals = np.unique(new_value)
@@ -653,7 +697,7 @@ class NavData():
         _row_idx_str_bool : Dict
             Dictionary of whether data at row number key is string or not
         """
-        _row_idx_str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map.keys()}
+        _row_idx_str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map}
         return _row_idx_str_bool
 
     def is_str(self, row_name):
