@@ -108,8 +108,8 @@ class NavData():
         self.build_navdata()
 
         for _, col_name in enumerate(pandas_df.columns):
-            newvalue = pandas_df[col_name].to_numpy()
-            self[col_name] = newvalue
+            new_value = pandas_df[col_name].to_numpy()
+            self[col_name] = new_value
 
     def from_numpy_array(self, numpy_array):
         """Build attributes of NavData using np.ndarray.
@@ -302,16 +302,16 @@ class NavData():
 
         return arr_slice
 
-    def __setitem__(self, key_idx, newvalue):
+    def __setitem__(self, key_idx, new_value):
         """Add/update rows.
 
         Parameters
         ----------
         key_idx : str/list/tuple/slice/int
             Query for array items to set
-
-        newvalue : np.ndarray/list/int
+        new_value : np.ndarray/list/int
             Values to be added to self.array attribute
+
         """
         if isinstance(key_idx, int) and len(self.map)<=key_idx:
             raise KeyError('Row indices must be strings when assigning new values')
@@ -319,13 +319,13 @@ class NavData():
             raise KeyError('Row indices must be strings when assigning new values')
         if isinstance(key_idx, str) and key_idx not in self.map.keys():
             #Creating an entire new row
-            if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
+            if isinstance(new_value, np.ndarray) and new_value.dtype==object:
                 # Adding string values
-                # print("\n",key_idx,"\n",newvalue)
-                self.fillna(newvalue)
-                new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue),
+                # print("\n",key_idx,"\n",new_value)
+                self.fillna(new_value)
+                new_str_vals = len(np.unique(new_value))*np.ones(np.shape(new_value),
                                     dtype=self.arr_dtype)
-                new_str_vals = self._str_2_val(new_str_vals, newvalue, key_idx)
+                new_str_vals = self._str_2_val(new_str_vals, new_value, key_idx)
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
                     self.array = np.reshape(new_str_vals, [1, -1])
@@ -334,22 +334,22 @@ class NavData():
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
-                # print("\n",key_idx,"\n")#,newvalue)
-                if not isinstance(newvalue, int) and not isinstance(newvalue, float):
-                    assert not isinstance(np.asarray(newvalue).item(0), str), \
+                # print("\n",key_idx,"\n")#,new_value)
+                if not isinstance(new_value, int) and not isinstance(new_value, float):
+                    assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
                 # Adding numeric values
                 self.str_map[key_idx] = {}
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
-                    self.array = np.reshape(newvalue, (1,-1))
+                    self.array = np.reshape(new_value, (1,-1))
                     # have to explicitly convert to float in case
                     # numbers were interpretted as integers
                     self.array = self.array.astype(self.arr_dtype)
                 else:
                     # if array is not empty, add to it
                     self.array = np.vstack((self.array, np.empty([1, len(self)])))
-                    self.array[-1, :] = np.reshape(newvalue, -1)
+                    self.array[-1, :] = np.reshape(new_value, -1)
                 self.map[key_idx] = self.shape[0]-1
         else:
             # Updating existing rows or columns
@@ -358,26 +358,26 @@ class NavData():
             assert np.all(row_str) or np.all(np.logical_not(row_str)), \
                 "Cannot assign/return combination of strings and numbers"
             if np.all(row_str):
-                assert isinstance(newvalue, np.ndarray) and newvalue.dtype==object, \
+                assert isinstance(new_value, np.ndarray) and new_value.dtype==object, \
                         "String assignment only supported for ndarray of type object"
                 inv_map = self.inv_map
-                newvalue = np.reshape(newvalue, [-1, newvalue.shape[0]])
-                new_str_vals = np.ones_like(newvalue, dtype=self.arr_dtype)
+                new_value = np.reshape(new_value, [-1, new_value.shape[0]])
+                new_str_vals = np.ones_like(new_value, dtype=self.arr_dtype)
                 for row_num, row in enumerate(row_list):
                     # print('Assigning values to ', inv_map[row])
                     key = inv_map[row]
-                    newvalue_row = newvalue[row_num , :]
+                    new_value_row = new_value[row_num , :]
                     new_str_vals_row = new_str_vals[row_num, :]
                     new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row,
-                                                    newvalue_row, key)
+                                                    new_value_row, key)
                 self.array[rows, cols] = new_str_vals
             else:
-                if not isinstance(newvalue, int):
-                    assert not isinstance(np.asarray(newvalue)[0], str), \
+                if not isinstance(new_value, int):
+                    assert not isinstance(np.asarray(new_value)[0], str), \
                             "Please use dtype=object for string assignments"
-                self.array[rows, cols] = newvalue
+                self.array[rows, cols] = new_value
 
-    def _str_2_val(self, new_str_vals, newvalue, key):
+    def _str_2_val(self, new_str_vals, new_value, key):
         """Convert string valued arrays to values for storing in array
 
         Parameters
@@ -385,7 +385,7 @@ class NavData():
         new_str_vals : np.ndarray
             Array of dtype=self.arr_dtype where numeric values are to be
             stored
-        newvalue : np.ndarray
+        new_value : np.ndarray
             Array of dtype=object, containing string values that are to
             be converted
         key : string
@@ -395,29 +395,29 @@ class NavData():
         if key in self.map.keys():
             # Key already exists, update existing string value dictionary
             inv_str_map = {v: k for k, v in self.str_map[key].items()}
-            string_vals = np.unique(newvalue)
+            string_vals = np.unique(new_value)
             str_map_dict = self.str_map[key]
             total_str = len(self.str_map[key])
             for str_val in string_vals:
                 if str_val not in inv_str_map.keys():
                     str_map_dict[total_str] = str_val
-                    new_str_vals[newvalue==str_val] = total_str
+                    new_str_vals[new_value==str_val] = total_str
                     total_str += 1
                 else:
-                    new_str_vals[newvalue==str_val] = inv_str_map[str_val]
+                    new_str_vals[new_value==str_val] = inv_str_map[str_val]
             self.str_map[key] = str_map_dict
         else:
-            string_vals = np.unique(newvalue)
+            string_vals = np.unique(new_value)
             str_dict = dict(enumerate(string_vals))
             self.str_map[key] = str_dict
-            new_str_vals = len(string_vals)*np.ones(np.shape(newvalue),
+            new_str_vals = len(string_vals)*np.ones(np.shape(new_value),
                                                    dtype=self.arr_dtype)
             # Set unassigned value to int not accessed by string map
             for str_key, str_val in str_dict.items():
                 if new_str_vals.size == 1:
                     new_str_vals = np.array(str_key,dtype=self.arr_dtype)
                 else:
-                    new_str_vals[newvalue==str_val] = str_key
+                    new_str_vals[new_value==str_val] = str_key
             # Copy set to false to prevent memory overflows
             new_str_vals = np.round(new_str_vals.astype(self.arr_dtype,
                                                         copy=False))
