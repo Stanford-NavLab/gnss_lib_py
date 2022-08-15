@@ -37,7 +37,15 @@ Using our custom :code:`NavData` class has the following advantages:
   This prevents mistakenly accessing the wrong row while using
   measurements
 * Our implementation uses :code:`np.ndarray` as the underlying data
-  data storage object, which is faster than :code:`pd.DataFrame`
+  data storage object, which is faster than :code:`pd.DataFrame`. The
+  speed increase over Pandas' :code:`pd.DataFrame` is illustrated in the
+  :code:`timing_comparisons` `example notebook <https://gnss-lib-py.readthedocs.io/en/latest/reference/timing_comparisons_notebook.html>`__.
+
+  .. toctree::
+     :maxdepth: 1
+     :hidden:
+
+     timing_comparisons_notebook
 * We have implemented custom methods for adding new rows (measurement
   types), adding new columns (time stamps of data), deleting rows and
   columns and creating copies, including subsets

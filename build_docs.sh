@@ -18,7 +18,7 @@ rm -r ./source/reference/test_utils/*
 poetry run sphinx-apidoc -f -M -q -o ./source/reference/test_utils/ ./../tests/utils/
 
 # remove previously downloaded .csv files if they exist
-rm ./source/tutorials/*.csv
+rm ./source/*/*.csv
 
 echo "Cleaning existing make"
 poetry run make clean
