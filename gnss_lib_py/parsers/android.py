@@ -59,13 +59,20 @@ class AndroidDerived2021(NavData):
         super().__init__(pandas_df=pd_df)
 
     def postprocess(self):
-        """Android derived specific postprocessing
+        """Android derived specific postprocessing.
 
-        Notes
-        -----
-        Adds corrected pseudoranges to measurements. Time step corrections
-        implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-        retrieved on 10 August, 2022
+        Adds corrected pseudoranges to measurements. Time step
+        corrections implemented from dataset webpage [1]_ retrieved on
+        10 August, 2022.
+
+        Correlates constellation type numbers with corresponding
+        constellation names. Mapping also comes from competition
+        website [1]_.
+
+        References
+        ----------
+        .. [1] https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
         """
         pr_corrected = self['raw_pr_m'] \
                      + self['b_sv_m'] \
@@ -73,6 +80,19 @@ class AndroidDerived2021(NavData):
                      - self['tropo_delay_m'] \
                      - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
+
+        # rename gnss_id column to constellation type
+        constellation_map = {0.:"unkown",
+                             1.:"gps",
+                             2.:"sbas",
+                             3.:"glonass",
+                             4.:"qzss",
+                             5.:"beidou",
+                             6.:"galileo",
+                             7.:"irnss",
+                            }
+        #new_id = (np.vectorize(constellation_map.get)(self['gnss_id'])).astype(object)
+        #self['gnss_id'] = new_id
 
     @staticmethod
     def _row_map():
