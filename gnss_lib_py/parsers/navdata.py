@@ -806,9 +806,9 @@ class NavData():
 
         Parameters
         ----------
-        rows : None/list/np.ndarray
+        rows : None/list/np.ndarray/tuple
             Rows to remove from NavData
-        cols : None/list/np.ndarray
+        cols : None/list/np.ndarray/tuple
             Columns to remove from NavData
 
         Returns
@@ -836,3 +836,32 @@ class NavData():
             key = row_idx
             new_navdata[key] = new_row
         return new_navdata
+
+    def in_rows(self, rows):
+        """Checks whether the given rows are in NavData.
+
+        If the rows are not in NavData, it creates a KeyError and lists
+        all non-existent rows.
+
+        Parameters
+        ----------
+        rows : string or list/np.ndarray/tuple of strings
+            Indexes to check whether they are rows in NavData
+        """
+
+        if isinstance(rows,str):
+            if rows not in self.rows:
+                missing_rows = [rows]
+            else:
+                missing_rows = []
+        elif type(rows) in (list, np.ndarray, tuple):
+            if isinstance(rows,np.ndarray):
+                rows = np.atleast_1d(rows)
+            missing_rows = ["'"+row+"'" for row in rows if row not in self.rows]
+        else:
+            raise KeyError("input to in_rows must be a single row " \
+                         + "index or list/np.ndarray/tuple of indexes")
+
+        if len(missing_rows) > 0:
+            raise KeyError(", ".join(missing_rows) + " row(s) are" \
+                           + " missing from NavData object.")

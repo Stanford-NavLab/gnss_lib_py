@@ -9,6 +9,7 @@ __date__ = "30 Apr 2022"
 import os
 
 import pytest
+import itertools
 import numpy as np
 import pandas as pd
 from pytest_lazyfixture import lazy_fixture
@@ -1163,3 +1164,109 @@ def test_is_str(df_simple):
 
     with pytest.raises(KeyError):
         navdata.is_str(0)
+
+def test_in_rows_single(data):
+    """Test the in_rows function.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
+
+    """
+
+    # should not throw error
+    for row in data.rows:
+        data.in_rows(row)
+
+    # check removing a single row
+    for row in data.rows:
+        data_temp = data.copy()
+        data_temp = data_temp.remove(rows=[row])
+
+        ## lists
+        # check by passing in multiple rows
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(data.rows)
+        assert row in str(excinfo.value)
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows([row])
+        assert row in str(excinfo.value)
+
+        ## np.ndarrays
+        # check by passing in multiple rows
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(np.array(data.rows))
+        assert row in str(excinfo.value)
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(np.array(row))
+        assert row in str(excinfo.value)
+
+        ## tuples
+        # check by passing in multiple rows
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(tuple(data.rows))
+        assert row in str(excinfo.value)
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows((row))
+        assert row in str(excinfo.value)
+
+        ## single value
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(row)
+        assert row in str(excinfo.value)
+
+    # None of these should work
+    with pytest.raises(KeyError) as excinfo:
+        data_temp.in_rows(1)
+    assert "in_rows" in str(excinfo.value)
+
+    with pytest.raises(KeyError) as excinfo:
+        data_temp.in_rows(1.)
+    assert "in_rows" in str(excinfo.value)
+
+    with pytest.raises(KeyError) as excinfo:
+        data_temp.in_rows(np.nan)
+    assert "in_rows" in str(excinfo.value)
+
+def test_in_rows_multi(data):
+    """Test the in_rows function.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
+
+    """
+
+    for choice in [2,3]:
+        for combo_rows in itertools.combinations(data.rows,choice):
+
+            # should pass without error
+            data.in_rows(combo_rows)
+
+            # remove multiple rows
+            data_temp = data.copy()
+            data_temp = data_temp.remove(rows=combo_rows)
+
+            # list
+            with pytest.raises(KeyError) as excinfo:
+                data_temp.in_rows(list(combo_rows))
+            for row in combo_rows:
+                assert row in str(excinfo.value)
+
+            # np.ndarray
+            with pytest.raises(KeyError) as excinfo:
+                data_temp.in_rows(np.array(combo_rows))
+            for row in combo_rows:
+                assert row in str(excinfo.value)
+
+            # tuple
+            with pytest.raises(KeyError) as excinfo:
+                data_temp.in_rows(combo_rows)
+            for row in combo_rows:
+                assert row in str(excinfo.value)

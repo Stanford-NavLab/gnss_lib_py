@@ -291,22 +291,9 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
 
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    if "signal_type" not in navdata.rows:
-        raise KeyError("signal_type missing")
-    if "sv_id" not in navdata.rows:
-        raise KeyError("sv_id missing")
-    if "x_sv_m" not in navdata.rows:
-        raise KeyError("x_sv_m missing")
-    if "y_sv_m" not in navdata.rows:
-        raise KeyError("y_sv_m missing")
-    if "z_sv_m" not in navdata.rows:
-        raise KeyError("z_sv_m missing")
-    if "x_rx_m" not in state_estimate.rows:
-        raise KeyError("x_rx_m missing")
-    if "y_rx_m" not in state_estimate.rows:
-        raise KeyError("y_rx_m missing")
-    if "z_rx_m" not in state_estimate.rows:
-        raise KeyError("z_rx_m missing")
+    # check for missing rows
+    navdata.in_rows(["signal_type","sv_id","x_sv_m","y_sv_m","z_sv_m"])
+    state_estimate.in_rows(["x_rx_m","y_rx_m","z_rx_m"])
 
     local_coord = None
 
@@ -432,10 +419,8 @@ def plot_residuals(navdata, save=True, prefix=""):
         raise KeyError("residuals missing, run solve_residuals().")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    if "signal_type" not in navdata.rows:
-        raise KeyError("signal_type missing")
-    if "sv_id" not in navdata.rows:
-        raise KeyError("sv_id missing")
+    # check for missing rows
+    navdata.in_rows(["signal_type","sv_id"])
     if save: # pragma: no cover
         root_path = os.path.dirname(
                     os.path.dirname(
