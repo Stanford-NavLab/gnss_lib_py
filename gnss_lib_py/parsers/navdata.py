@@ -349,6 +349,13 @@ class NavData():
     def __setitem__(self, key_idx, new_value):
         """Add/update rows.
 
+        __setitem__ expects that the shape of the value being passed
+        matches the shape of the internal arrays that have to be set.
+        So, if 2 variable types (rows) at 10 instances (columns) need to
+        be set, the input new_value must be of shape (2, 10).
+        If the shape is (10, 2) the assignment operator will raise a
+        ValueError. This applies to all types of value assignments.
+
         Parameters
         ----------
         key_idx : str/list/tuple/slice/int
