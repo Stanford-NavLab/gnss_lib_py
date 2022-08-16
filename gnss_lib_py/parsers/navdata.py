@@ -412,7 +412,6 @@ class NavData():
                 new_value = np.reshape(new_value, [-1, new_value.shape[0]])
                 new_str_vals = np.ones_like(new_value, dtype=self.arr_dtype)
                 for row_num, row in enumerate(row_list):
-                    # print('Assigning values to ', inv_map[row])
                     key = inv_map[row]
                     new_value_row = new_value[row_num , :]
                     new_str_vals_row = new_str_vals[row_num, :]
@@ -805,7 +804,7 @@ class NavData():
             new_navdata[key] = new_row
         return new_navdata
 
-    def remove(self, rows=None, cols=None):
+    def remove(self, rows=None, cols=None, inplace=False):
         """Reset NavData to remove specified rows and columns
 
         Parameters
@@ -814,25 +813,62 @@ class NavData():
             Rows to remove from NavData
         cols : None/list/np.ndarray/tuple
             Columns to remove from NavData
+        inplace : bool
+            If False, will return new NavData instance will specified
+            rows and columns removed. If True, will remove rows and
+            columns from the current NavData instance.
 
         Returns
         -------
-        new_navdata : gnss_lib_py.parsers.navdata.NavData
-            NavData instance after removing specified rows and columns
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after removing
+            specified rows and columns. If inplace is True, returns
+            None.
 
-        Notes
-        -----
-        This method returns the NavData with removed rows and columns,
-        but does not reset the current instance in place.
         """
         if cols is None:
             cols = []
         if rows is None:
             rows = []
+        if isinstance(rows,str):
+            rows = [rows]
         new_navdata = NavData()
-        inv_map = self.inv_map
         if len(rows) != 0 and isinstance(rows[0], int):
-            rows = [inv_map[row_idx] for row_idx in rows]
+            try:
+                rows = [self.inv_map[row_idx] for row_idx in rows]
+            except KeyError as exception:
+                raise KeyError("row '" + str(exception) + "' is out " \
+                             + "of bounds of data.") from Exception
+
+        for row in rows:
+            if row not in self.rows:
+                raise KeyError("row '" + row + "' does not exist so " \
+                             + "cannont be removed.")
+        for col in cols:
+            if col >= len(self):
+                raise KeyError("column '" + str(col) + "' exceeds " \
+                             + "NavData dimensions, so cannont be " \
+                             + "removed.")
+
+        if inplace: # remove rows/cols from current column
+
+            # delete rows and columns from self.array
+            del_row_idxs = [self.map[row] for row in rows]
+            self.array = np.delete(self.array,del_row_idxs,axis=0)
+            self.array = np.delete(self.array,cols,axis=1)
+
+            # delete keys from self.map and self.str_map
+            for row in rows:
+                del self.map[row]
+                del self.str_map[row]
+
+            # reindex self.map
+            self.map = {key : index for index, key in \
+                enumerate(sorted(self.map, key=lambda k: self.map[k]))}
+
+            return None
+
+        # inplace = False; return new instance with rows/cols removed
         keep_rows = [row for row in self.rows if row not in rows]
         keep_cols = [col for col in range(len(self)) if col not in cols]
         for row_idx in keep_rows:
@@ -854,11 +890,8 @@ class NavData():
         """
 
         if isinstance(rows,str):
-            if rows not in self.rows:
-                missing_rows = [rows]
-            else:
-                missing_rows = []
-        elif type(rows) in (list, np.ndarray, tuple):
+            rows = [rows]
+        if type(rows) in (list, np.ndarray, tuple):
             if isinstance(rows,np.ndarray):
                 rows = np.atleast_1d(rows)
             missing_rows = ["'"+row+"'" for row in rows if row not in self.rows]

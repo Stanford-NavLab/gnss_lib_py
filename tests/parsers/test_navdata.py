@@ -989,14 +989,108 @@ def test_copy_navdata(data, df_simple, rows, cols):
                         [None,
                         ['names', 'integers'],
                         np.asarray(['names', 'integers'], dtype=object),
-                        [0, 1]
+                        ('names', 'integers'),
+                        [0, 1],
+                        [],
+                        [6],
+                        [0,3,4],
+                        ["howdy"],
+                        ["names","fake"]
                         ])
 @pytest.mark.parametrize("cols",
                         [None,
                         [0,1],
-                        np.asarray([0,1])
+                        np.asarray([0,1]),
+                        (0,1),
+                        [12],
+                        [1,2,6]
                         ])
 def test_remove_navdata(data, df_simple, rows, cols):
+    """Test method to remove rows and columns from navdata
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
+    df_simple : pd.DataFrame
+        Dataframe that is sliced to compare copies against
+    rows : list/np.ndarray/tuple
+        Rows to remove from NavData
+    cols : list/np.ndarray/tuple
+        Columns to remove from NavData
+    """
+
+    all_rows = ['names', 'integers', 'floats', 'strings']
+
+    expect_fail = False
+    if rows is not None and len(rows) != 0 and isinstance(rows[0], int):
+        if max(rows) >= len(all_rows):
+            expect_fail = True
+            expect_message = str(max(rows))
+    elif not expect_fail and rows is not None:
+        for row in rows:
+            if row not in all_rows:
+                expect_fail = True
+                expect_message = row
+                break
+    if not expect_fail and cols is not None:
+        for col in cols:
+            if col >= len(df_simple):
+                expect_fail = True
+                expect_message = str(col)
+                break
+    
+    if expect_fail:
+        with pytest.raises(KeyError) as excinfo:
+            new_data = data.remove(rows=rows, cols=cols)
+        assert expect_message in str(excinfo.value)
+    else:
+        new_data = data.remove(rows=rows, cols=cols)
+        new_df = new_data.pandas_df().reset_index(drop=True)
+
+        inv_map = {0 : 'names',
+                    1 : 'integers',
+                    2 : 'floats',
+                    3 : 'strings'}
+        all_cols = np.arange(6)
+        if rows is None:
+            rows = []
+        if cols is None:
+            cols = []
+        if len(rows)!=0:
+            if not isinstance(rows[0], str):
+                int_rows = rows
+                rows = []
+                for row_idx in int_rows:
+                    rows.append(inv_map[row_idx])
+        keep_rows = [row for row in all_rows if row not in rows]
+        keep_cols = [col for col in all_cols if col not in cols]
+        subset_df = df_simple.loc[keep_cols, keep_rows]
+
+        subset_df = subset_df.reset_index(drop=True)
+        pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
+
+@pytest.mark.parametrize("rows",
+                        [None,
+                        ['names', 'integers'],
+                        np.asarray(['names', 'integers'], dtype=object),
+                        ('names', 'integers'),
+                        [0, 1],
+                        [],
+                        [6],
+                        [0,3,4],
+                        ["howdy"],
+                        ["names","fake"]
+                        ])
+@pytest.mark.parametrize("cols",
+                        [None,
+                        [0,1],
+                        np.asarray([0,1]),
+                        (0,1),
+                        [12],
+                        [1,2,6]
+                        ])
+def test_remove_inplace(data, df_simple, rows, cols):
     """Test method to remove rows and columns from navdata
 
     Parameters
@@ -1009,33 +1103,58 @@ def test_remove_navdata(data, df_simple, rows, cols):
         Rows to remove from NavData
     cols : list/np.ndarray
         Columns to remove from NavData
+
     """
-    new_data = data.remove(rows=rows, cols=cols)
-    new_df = new_data.pandas_df().reset_index(drop=True)
-
-    inv_map = {0 : 'names',
-                1 : 'integers',
-                2 : 'floats',
-                3 : 'strings'}
     all_rows = ['names', 'integers', 'floats', 'strings']
-    all_cols = np.arange(6)
-    if rows is None:
-        rows = []
-    if cols is None:
-        cols = []
-    if len(rows)!=0:
-        if not isinstance(rows[0], str):
-            int_rows = rows
+
+    expect_fail = False
+    if rows is not None and len(rows) != 0 and isinstance(rows[0], int):
+        if max(rows) >= len(all_rows):
+            expect_fail = True
+            expect_message = str(max(rows))
+    elif not expect_fail and rows is not None:
+        for row in rows:
+            if row not in all_rows:
+                expect_fail = True
+                expect_message = row
+                break
+    if not expect_fail and cols is not None:
+        for col in cols:
+            if col >= len(df_simple):
+                expect_fail = True
+                expect_message = str(col)
+                break
+
+    if expect_fail:
+        with pytest.raises(KeyError) as excinfo:
+            new_data = data.remove(rows=rows, cols=cols, inplace=True)
+        assert expect_message in str(excinfo.value)
+    else:
+        new_data = data.copy()
+        new_data.remove(rows=rows, cols=cols, inplace=True)
+        new_df = new_data.pandas_df().reset_index(drop=True)
+
+        inv_map = {0 : 'names',
+                    1 : 'integers',
+                    2 : 'floats',
+                    3 : 'strings'}
+        all_cols = np.arange(6)
+        if rows is None:
             rows = []
-            for row_idx in int_rows:
-                rows.append(inv_map[row_idx])
-    keep_rows = [row for row in all_rows if row not in rows]
-    keep_cols = [col for col in all_cols if col not in cols]
-    subset_df = df_simple.loc[keep_cols, keep_rows]
+        if cols is None:
+            cols = []
+        if len(rows)!=0:
+            if not isinstance(rows[0], str):
+                int_rows = rows
+                rows = []
+                for row_idx in int_rows:
+                    rows.append(inv_map[row_idx])
+        keep_rows = [row for row in all_rows if row not in rows]
+        keep_cols = [col for col in all_cols if col not in cols]
+        subset_df = df_simple.loc[keep_cols, keep_rows]
 
-    subset_df = subset_df.reset_index(drop=True)
-    pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
-
+        subset_df = subset_df.reset_index(drop=True)
+        pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
 
 def test_where_str(csv_simple):
     """Testing implementation of NavData.where for string values
