@@ -380,7 +380,9 @@ class NavData():
                 self.map[key_idx] = self.shape[0]-1
             else:
                 # numeric values
-                if not isinstance(new_value, int) and not isinstance(new_value, float):
+                if not isinstance(new_value, int) \
+                and not isinstance(new_value, float) \
+                and new_value.size > 0:
                     assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Cannot set a row with list of strings, \
                             please use np.ndarray with dtype=object"

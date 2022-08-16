@@ -83,6 +83,13 @@ def fixture_csv_int_first():
     """
     return fixture_csv_path("navdata_test_int_first.csv")
 
+@pytest.fixture(name="csv_only_header")
+def fixture_csv_only_header():
+    """csv where there's no data, only columns.
+
+    """
+    return fixture_csv_path("navdata_only_header.csv")
+
 def load_test_dataframe(csv_filepath, header="infer"):
     """Create dataframe test fixture.
 
@@ -314,6 +321,32 @@ def test_init_np(numpy_array):
     # raises exception if input pandas dataframe
     with pytest.raises(TypeError):
         data = NavData(numpy_array=pd.DataFrame([0]))
+
+def test_init_only_header(csv_only_header, csv_simple):
+    """Test initializing NavData class with csv with only header
+
+    Parameters
+    ----------
+    csv_only_header : string
+        Path to csv file containing headers, but no data
+    csv_simple : string
+        Path to csv file headers and data
+
+    """
+
+    # should work when csv is passed
+    csv_data = NavData(csv_path=csv_only_header)
+    assert csv_data.shape == (4,0)
+    # test adding new data to empty NavData with column names
+    csv_data.add(csv_path=csv_simple)
+    assert csv_data.shape == (4,6)
+
+    # should work when DataFrame is passed
+    pd_data = NavData(pandas_df=pd.read_csv(csv_only_header))
+    assert pd_data.shape == (4,0)
+    # test adding new data to empty NavData with column names
+    pd_data.add(pandas_df=pd.read_csv(csv_only_header))
+    assert pd_data.shape == (4,6)
 
 @pytest.mark.parametrize('pandas_df',
                         [
@@ -1039,7 +1072,7 @@ def test_remove_navdata(data, df_simple, rows, cols):
                 expect_fail = True
                 expect_message = str(col)
                 break
-    
+
     if expect_fail:
         with pytest.raises(KeyError) as excinfo:
             new_data = data.remove(rows=rows, cols=cols)
