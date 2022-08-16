@@ -411,7 +411,8 @@ class NavData():
                      or np.issubdtype(new_value.dtype,np.dtype('U'))), \
                         "String assignment only supported for ndarray of type object"
                 inv_map = self.inv_map
-                new_value = np.reshape(new_value, [-1, new_value.shape[0]])
+                new_value = np.atleast_2d(new_value)
+                # new_value = np.reshape(new_value, [-1, new_value.shape[0]])
                 new_str_vals = np.ones_like(new_value, dtype=self.arr_dtype)
                 for row_num, row in enumerate(row_list):
                     key = inv_map[row]

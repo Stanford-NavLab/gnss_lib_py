@@ -734,11 +734,11 @@ def test_multi_set(data,new_string):
 
     # test numerics with input of size (2,6)
     double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
-                                      new_numeric.reshape(1,-1)))
+                                        new_numeric.reshape(1,-1) + 10.5))
     data_temp1[["integers","floats"]] = double_numeric_input
 
     np.testing.assert_array_equal(data_temp1["integers"], new_numeric)
-    np.testing.assert_array_equal(data_temp1["floats"], new_numeric)
+    np.testing.assert_array_equal(data_temp1["floats"], new_numeric+10.5)
 
     # test strings with input of size (2,6)
     double_string_input = np.vstack((new_string.reshape(1,-1),
@@ -750,21 +750,26 @@ def test_multi_set(data,new_string):
 
     data_temp2 = data.copy()
 
-    # test numerics with input of size (6,2)
-    double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
-                                      new_numeric.reshape(1,-1))).T
-    data_temp2[["integers","floats"]] = double_numeric_input
+    with pytest.raises(ValueError):
+        # NavData does not expect values with rows and columns
+        # interchanged. Shapes must be set to what the underlying array
+        # expects. This (and the following) test verifies that
+        # test numerics with input of size (6,2)
+        double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
+                                        new_numeric.reshape(1,-1))).T
+        data_temp2[["integers","floats"]] = double_numeric_input
 
-    np.testing.assert_array_equal(data_temp2["integers"], new_numeric)
-    np.testing.assert_array_equal(data_temp2["floats"], new_numeric)
+        np.testing.assert_array_equal(data_temp2["integers"], new_numeric)
+        np.testing.assert_array_equal(data_temp2["floats"], new_numeric)
 
-    # test strings with input of size (6,2)
-    double_string_input = np.vstack((new_string.reshape(1,-1),
-                                     new_string.reshape(1,-1))).T
-    data_temp2[["strings","names"]] = double_string_input
+    with pytest.raises(ValueError):
+        # test strings with input of size (6,2)
+        double_string_input = np.vstack((new_string.reshape(1,-1),
+                                        new_string.reshape(1,-1))).T
+        data_temp2[["strings","names"]] = double_string_input
 
-    np.testing.assert_array_equal(data_temp2["strings"], new_string)
-    np.testing.assert_array_equal(data_temp2["names"], new_string)
+        np.testing.assert_array_equal(data_temp2["strings"], new_string)
+        np.testing.assert_array_equal(data_temp2["names"], new_string)
 
 def test_set_changing_type(data,new_string):
     """Test setting a numeric row with strings and vice versa.
@@ -845,23 +850,7 @@ def test_multi_set_changing_type(data,new_string):
     np.testing.assert_array_equal(data_temp1["integers"], new_string)
     np.testing.assert_array_equal(data_temp1["floats"], new_string)
 
-    data_temp2 = data.copy()
-
-    # test setting strings to numerics with input of size (6,2)
-    double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
-                                      new_numeric.reshape(1,-1))).T
-    data_temp2[["strings","names"]] = double_numeric_input
-
-    np.testing.assert_array_equal(data_temp2["strings"], new_numeric)
-    np.testing.assert_array_equal(data_temp2["names"], new_numeric)
-
-    # test strings with input of size (6,2)
-    double_string_input = np.vstack((new_string.reshape(1,-1),
-                                     new_string.reshape(1,-1))).T
-    data_temp2[["integers","floats"]] = double_string_input
-
-    np.testing.assert_array_equal(data_temp2["integers"], new_string)
-    np.testing.assert_array_equal(data_temp2["floats"], new_string)
+    data_temp2 = data.copy()    
 
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
