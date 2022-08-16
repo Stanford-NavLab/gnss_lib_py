@@ -1163,3 +1163,19 @@ def test_is_str(df_simple):
 
     with pytest.raises(KeyError):
         navdata.is_str(0)
+
+
+def test_str_navdata(df_simple):
+    """Test that the NavData class can be printed without errors
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Dataframe with which to construct NavData instance
+    """
+    navdata = NavData(pandas_df=df_simple)
+    navdata_str = str(navdata)
+    # Conversion from int to float in DataFrame for consistency
+    df_simple = df_simple.astype({'integers': 'float64'})
+    df_str = str(df_simple)
+    assert navdata_str==df_str

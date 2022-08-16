@@ -653,6 +653,10 @@ class NavData():
         self.curr_col += 1
         return x_curr
 
+    def __str__(self):
+        str_out = str(self.pandas_df())
+        return str_out
+
     def __len__(self):
         """Return length of class
 
