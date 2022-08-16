@@ -345,7 +345,7 @@ def test_init_only_header(csv_only_header, csv_simple):
     pd_data = NavData(pandas_df=pd.read_csv(csv_only_header))
     assert pd_data.shape == (4,0)
     # test adding new data to empty NavData with column names
-    pd_data.add(pandas_df=pd.read_csv(csv_only_header))
+    pd_data.add(pandas_df=pd.read_csv(csv_simple))
     assert pd_data.shape == (4,6)
 
 @pytest.mark.parametrize('pandas_df',
@@ -850,7 +850,7 @@ def test_multi_set_changing_type(data,new_string):
     np.testing.assert_array_equal(data_temp1["integers"], new_string)
     np.testing.assert_array_equal(data_temp1["floats"], new_string)
 
-    data_temp2 = data.copy()    
+    data_temp2 = data.copy()
 
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),

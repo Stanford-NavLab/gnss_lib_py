@@ -485,10 +485,11 @@ class NavData():
         numpy_array : np.ndarray
             Array containing only numeric data to add
         """
+        old_row_num = len(self.map)
         old_len = len(self)
         new_data_cols = slice(old_len, None)
         if numpy_array is not None:
-            if old_len == 0:
+            if old_row_num == 0:
                 self.from_numpy_array(numpy_array)
             else:
                 if len(numpy_array.shape)==1:
@@ -497,15 +498,14 @@ class NavData():
                                         dtype=self.arr_dtype)))
                 self[:, new_data_cols] = numpy_array
         if csv_path is not None:
-            if old_len == 0:
+            if old_row_num == 0:
                 self.from_csv_path(csv_path)
             else:
                 pandas_df = pd.read_csv(csv_path)
         if pandas_df is not None:
-            if old_len == 0:
+            if old_row_num == 0:
                 self.from_pandas_df(pandas_df)
             else:
-
                 self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
                 for col in pandas_df.columns:
                     self[col, new_data_cols] = np.asarray(pandas_df[col].values)
