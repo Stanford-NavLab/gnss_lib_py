@@ -104,7 +104,8 @@ class EphemerisManager():
         data = data.sort_values('time').groupby(
             'sv').last().drop(labels = 'index', axis = 'columns')
         data['Leap Seconds'] = self.leapseconds
-        return data
+        data_measurement = Measurement(pandas_df=data.reset_index())
+        return data_measurement
 
     def get_leapseconds(self, timestamp):
         """Output saved leapseconds
@@ -214,11 +215,13 @@ class EphemerisManager():
         data.reset_index(inplace=True)
         data['source'] = decompressed_filename
         data['t_oc'] = pd.to_numeric(data['time'] - datetime(1980, 1, 6, 0, 0, 0))
+        #TODO: Use a constant for the time of GPS clock start
         data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
         data['time'] = data['time'].dt.tz_localize('UTC')
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
         return data
+
 
     @staticmethod
     def get_filetype(timestamp):
