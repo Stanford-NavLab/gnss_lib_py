@@ -154,15 +154,16 @@ class NavData():
         df : pd.DataFrame
             DataFrame with data, including strings as strings
         """
+
         df_list = []
-        for key, value in self.str_map.items():
-            if value:
-                vect_val = self.get_strings(key)
-            else:
-                vect_val = self.array[self.map[key], :]
-            df_val = pd.DataFrame(vect_val, columns=[key])
-            df_list.append(df_val)
-        dframe = pd.concat(df_list, axis=1)
+        for row in self.rows:
+            df_list.append(np.atleast_1d(self[row]))
+
+        # transpose list to conform to Pandas input
+        df_list = [list(x) for x in zip(*df_list)]
+
+        dframe = pd.DataFrame(df_list,columns=self.rows)
+
         return dframe
 
     def get_strings(self, key):

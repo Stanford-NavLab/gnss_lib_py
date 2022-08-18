@@ -148,6 +148,13 @@ def fixture_df_int_first(csv_int_first):
     """
     return load_test_dataframe(csv_int_first)
 
+@pytest.fixture(name='df_only_header')
+def fixture_df_only_header(csv_only_header):
+    """df where only headers given and no data.
+
+    """
+    return load_test_dataframe(csv_only_header)
+
 @pytest.fixture(name="data")
 def load_test_navdata(df_simple):
     """Creates a NavData instance from df_simple.
@@ -1716,3 +1723,40 @@ def test_in_rows_multi(data):
                 data_temp.in_rows(combo_rows)
             for row in combo_rows:
                 assert row in str(excinfo.value)
+
+def test_pandas_df(df_simple, df_only_header):
+    """Test that the NavData class can be printed without errors
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Dataframe with which to construct NavData instance
+    df_only_header : pd.DataFrame
+        Dataframe with only column names and no data
+    """
+    navdata = NavData(pandas_df=df_simple)
+
+    # test simple DataFrame
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  df_simple.sort_index(axis=1),
+                                  check_names=True, check_dtype=False)
+
+    # test DataFrame with a single row of data
+    df_super_simple = pd.DataFrame([["first",1.,3,"fourth"]],
+                                    columns=["A","B","C","D"])
+    navdata = NavData(pandas_df=df_super_simple)
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  df_super_simple.sort_index(axis=1),
+                                  check_names=True, check_dtype=False)
+
+    # make sure print doesn't break if given only headers
+    navdata = NavData(pandas_df=df_only_header)
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  df_only_header.sort_index(axis=1),
+                                  check_names=True)
+
+    # make sure it doesn't break with empty NavData
+    navdata = NavData()
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  pd.DataFrame().sort_index(axis=1),
+                                  check_names=True)
