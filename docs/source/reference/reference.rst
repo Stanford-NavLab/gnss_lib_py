@@ -147,10 +147,6 @@ State estimate naming conventions are as follows:
   degrees.
 * :code:`lon_rx_deg` : (float) receiver longitude position estimate in
   degrees.
-* :code:`lat_rx_rad` : (float) receiver latitude position estimate in
-  radians.
-* :code:`lon_rx_rad` : (float) receiver longitude position estimate in
-  radians.
 * :code:`alt_rx_m` : (float) receiver altitude position estimate in
   meters. Referenced to the WGS-84 ellipsoid.
 
@@ -171,10 +167,6 @@ Ground truth naming conventions are as follows:
   degrees.
 * :code:`lon_gt_deg` : (float) receiver ground truth longitude in
   degrees.
-* :code:`lat_gt_rad` : (float) receiver ground truth latitude in
-  radians.
-* :code:`lon_gt_rad` : (float) receiver ground truth longitude in
-  radians.
 * :code:`alt_gt_m` : (float) receiver ground truth altitude in meters.
   Referenced to the WGS-84 ellipsoid.
 

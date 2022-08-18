@@ -85,8 +85,6 @@ def geodetic_to_ecef(geodetic, radians=False):
 def ecef_to_geodetic(ecef, radians=False):
     """ECEF to LLA conversion using Ferrari's method.
 
-    # TODO: add height stuff
-
     Parameters
     ----------
     ecef : np.ndarray
@@ -101,7 +99,8 @@ def ecef_to_geodetic(ecef, radians=False):
     geodetic : np.ndarray
         Float with WGS-84 LLA coordinates corresponding to input ECEF.
         Order is returned as (lat, lon, h) and is returned in the same
-        shape as the input.
+        shape as the input. Height is in meters above the the WGS-84
+        ellipsoid.
 
     Notes
     -----
