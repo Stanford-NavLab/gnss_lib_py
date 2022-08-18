@@ -95,7 +95,7 @@ class AndroidDerived2021(NavData):
                              6.:"galileo",
                              7.:"irnss",
                             }
-        self.rename(constellation_map, rows="gnss_id", inplace=True)
+        self.replace(constellation_map, rows="gnss_id", inplace=True)
 
     @staticmethod
     def _row_map():
@@ -163,6 +163,18 @@ class AndroidDerived2022(NavData):
                      - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
 
+        # rename gnss_id column to constellation type
+        constellation_map = {0.:"unkown",
+                             1.:"gps",
+                             2.:"sbas",
+                             3.:"glonass",
+                             4.:"qzss",
+                             5.:"beidou",
+                             6.:"galileo",
+                             7.:"irnss",
+                            }
+        self.replace(constellation_map, rows="gnss_id", inplace=True)
+    
     @staticmethod
     def _row_map():
         """Map of row names from loaded to gnss_lib_py standard
