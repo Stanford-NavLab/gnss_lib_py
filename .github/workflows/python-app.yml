@@ -84,7 +84,8 @@ jobs:
         if: contains(steps.changed-files.outputs.modified_files, 'python-app.yml')
         run: |
           echo "README.md has changed, has index.rst?"
-          if [ ! contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst') ]; then
+          #if: contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst') ]; then
+          if: contains(steps.changed-files.outputs.modified_files, 'python-app.yml'); then
              echo "README.md has changed, but index.rst has not!"
              exit 1
           fi
