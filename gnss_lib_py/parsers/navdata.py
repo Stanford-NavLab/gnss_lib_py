@@ -29,7 +29,7 @@ class NavData():
         Map is of the form {pandas column name : {}} for non string rows.
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
-                 header="infer"):
+                 **kwargs):
         # For a Pythonic implementation,
         # including all attributes as None in the beginning
         self.arr_dtype = np.float32 # default value
@@ -43,7 +43,7 @@ class NavData():
         self.num_cols = 0
 
         if csv_path is not None:
-            self.from_csv_path(csv_path, header)
+            self.from_csv_path(csv_path, **kwargs)
         elif pandas_df is not None:
             self.from_pandas_df(pandas_df)
         elif numpy_array is not None:
@@ -51,7 +51,7 @@ class NavData():
         else:
             self.build_navdata()
 
-        self.rename(self._row_map())
+        self.rename(rows=self._row_map(), inplace=True)
 
         self.postprocess()
 
@@ -65,7 +65,7 @@ class NavData():
         """
         self.array = np.zeros((0,0), dtype=self.arr_dtype)
 
-    def from_csv_path(self, csv_path, header="infer"):
+    def from_csv_path(self, csv_path, **kwargs):
         """Build attributes of NavData using csv file.
 
         Parameters
@@ -75,6 +75,8 @@ class NavData():
         header : string, int, or None
             "infer" uses the first row as column names, setting to
             None will add int names for the columns.
+        sep : char
+            Delimiter to use when reading in csv file.
 
         """
         if not isinstance(csv_path, str):
@@ -84,7 +86,7 @@ class NavData():
 
         self.build_navdata()
 
-        pandas_df = pd.read_csv(csv_path, header=header)
+        pandas_df = pd.read_csv(csv_path, **kwargs)
         self.from_pandas_df(pandas_df)
 
     def from_pandas_df(self, pandas_df):
@@ -106,8 +108,8 @@ class NavData():
         self.build_navdata()
 
         for _, col_name in enumerate(pandas_df.columns):
-            newvalue = pandas_df[col_name].to_numpy()
-            self[col_name] = newvalue
+            new_value = pandas_df[col_name].to_numpy()
+            self[col_name] = new_value
 
     def from_numpy_array(self, numpy_array):
         """Build attributes of NavData using np.ndarray.
@@ -152,15 +154,16 @@ class NavData():
         df : pd.DataFrame
             DataFrame with data, including strings as strings
         """
+
         df_list = []
-        for key, value in self.str_map.items():
-            if value:
-                vect_val = self.get_strings(key)
-            else:
-                vect_val = self.array[self.map[key], :]
-            df_val = pd.DataFrame(vect_val, columns=[key])
-            df_list.append(df_val)
-        dframe = pd.concat(df_list, axis=1)
+        for row in self.rows:
+            df_list.append(np.atleast_1d(self[row]))
+
+        # transpose list to conform to Pandas input
+        df_list = [list(x) for x in zip(*df_list)]
+
+        dframe = pd.DataFrame(df_list,columns=self.rows)
+
         return dframe
 
     def get_strings(self, key):
@@ -265,6 +268,50 @@ class NavData():
             row_str = [_row_idx_str_bool[row] for row in rows]
         return row_list, row_str
 
+    def _get_set_str_rows(self, rows, new_value):
+        """Checks which output rows contain string elements given input.
+
+        If the row used to be string values but now is numeric, this
+        function also empties the corresponding dictionary in str_map.
+
+        Parameters
+        ----------
+        rows : slice/list
+            Rows to check for string elements
+        new_value : np.ndarray/list/int
+            Values to be added to self.array attribute
+
+        Returns
+        -------
+        row_list : list
+            Input rows, strictly in list format
+        row_str_new : list
+            List of boolean values indicating which of the new rows
+            contain strings.
+        """
+
+        row_list, row_str_existing = self._get_str_rows(rows)
+
+        if isinstance(new_value, np.ndarray) and (new_value.dtype in (object,str) \
+                        or np.issubdtype(new_value.dtype,np.dtype('U'))):
+            if type(new_value.item(0)) in (int, float):
+                row_str_new = [False]*len(row_list)
+            else:
+                row_str_new = [True]*len(row_list)
+        elif isinstance(np.asarray(new_value).item(0), str):
+            raise RuntimeError("Cannot set a row with list of strings, \
+                             please use np.ndarray with dtype=object")
+        else:
+            row_str_new = [False]*len(row_list)
+
+        for row_idx, row in enumerate(row_list):
+            if row_str_existing[row_idx] and not row_str_new[row_idx]:
+                # changed from string to numeric
+                self.str_map[self.inv_map[row]] = {}
+
+
+        return row_list, row_str_new
+
     def __getitem__(self, key_idx):
         """Return item indexed from class
 
@@ -300,30 +347,38 @@ class NavData():
 
         return arr_slice
 
-    def __setitem__(self, key_idx, newvalue):
+    def __setitem__(self, key_idx, new_value):
         """Add/update rows.
+
+        __setitem__ expects that the shape of the value being passed
+        matches the shape of the internal arrays that have to be set.
+        So, if 2 variable types (rows) at 10 instances (columns) need to
+        be set, the input new_value must be of shape (2, 10).
+        If the shape is (10, 2) the assignment operator will raise a
+        ValueError. This applies to all types of value assignments.
 
         Parameters
         ----------
         key_idx : str/list/tuple/slice/int
             Query for array items to set
-
-        newvalue : np.ndarray/list/int
+        new_value : np.ndarray/list/int
             Values to be added to self.array attribute
+
         """
         if isinstance(key_idx, int) and len(self.map)<=key_idx:
             raise KeyError('Row indices must be strings when assigning new values')
         if isinstance(key_idx, slice) and len(self.map)==0:
             raise KeyError('Row indices must be strings when assigning new values')
-        if isinstance(key_idx, str) and key_idx not in self.map.keys():
+        if isinstance(key_idx, str) and key_idx not in self.map:
             #Creating an entire new row
-            if isinstance(newvalue, np.ndarray) and newvalue.dtype==object:
-                # Adding string values
-                # print("\n",key_idx,"\n",newvalue)
-                self.fillna(newvalue)
-                new_str_vals = len(np.unique(newvalue))*np.ones(np.shape(newvalue),
+            if isinstance(new_value, np.ndarray) \
+                    and (new_value.dtype in (object,str) \
+                    or np.issubdtype(new_value.dtype,np.dtype('U'))):                # Adding string values
+                # string values
+                new_value = new_value.astype(str)
+                new_str_vals = len(np.unique(new_value))*np.ones(np.shape(new_value),
                                     dtype=self.arr_dtype)
-                new_str_vals = self._str_2_val(new_str_vals, newvalue, key_idx)
+                new_str_vals = self._str_2_val(new_str_vals, new_value, key_idx)
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
                     self.array = np.reshape(new_str_vals, [1, -1])
@@ -332,50 +387,55 @@ class NavData():
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
             else:
-                # print("\n",key_idx,"\n")#,newvalue)
-                if not isinstance(newvalue, int) and not isinstance(newvalue, float):
-                    assert not isinstance(np.asarray(newvalue).item(0), str), \
-                            "Cannot set a row with list of strings, please use np.ndarray with dtype=object"
+                # numeric values
+                if not isinstance(new_value, int) \
+                and not isinstance(new_value, float) \
+                and new_value.size > 0:
+                    assert not isinstance(np.asarray(new_value).item(0), str), \
+                            "Cannot set a row with list of strings, \
+                            please use np.ndarray with dtype=object"
                 # Adding numeric values
                 self.str_map[key_idx] = {}
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
-                    self.array = np.reshape(newvalue, (1,-1))
+                    self.array = np.reshape(new_value, (1,-1))
                     # have to explicitly convert to float in case
                     # numbers were interpretted as integers
                     self.array = self.array.astype(self.arr_dtype)
                 else:
                     # if array is not empty, add to it
                     self.array = np.vstack((self.array, np.empty([1, len(self)])))
-                    self.array[-1, :] = np.reshape(newvalue, -1)
+                    self.array[-1, :] = np.reshape(new_value, -1)
                 self.map[key_idx] = self.shape[0]-1
         else:
             # Updating existing rows or columns
             rows, cols = self._parse_key_idx(key_idx)
-            row_list, row_str = self._get_str_rows(rows)
+            row_list, row_str = self._get_set_str_rows(rows,new_value)
             assert np.all(row_str) or np.all(np.logical_not(row_str)), \
                 "Cannot assign/return combination of strings and numbers"
             if np.all(row_str):
-                assert isinstance(newvalue, np.ndarray) and newvalue.dtype==object, \
+                assert isinstance(new_value, np.ndarray) \
+                   and (new_value.dtype in (object,str) \
+                     or np.issubdtype(new_value.dtype,np.dtype('U'))), \
                         "String assignment only supported for ndarray of type object"
                 inv_map = self.inv_map
-                newvalue = np.reshape(newvalue, [-1, newvalue.shape[0]])
-                new_str_vals = np.ones_like(newvalue, dtype=self.arr_dtype)
+                new_value = np.atleast_2d(new_value)
+                # new_value = np.reshape(new_value, [-1, new_value.shape[0]])
+                new_str_vals = np.ones_like(new_value, dtype=self.arr_dtype)
                 for row_num, row in enumerate(row_list):
-                    # print('Assigning values to ', inv_map[row])
                     key = inv_map[row]
-                    newvalue_row = newvalue[row_num , :]
+                    new_value_row = new_value[row_num , :]
                     new_str_vals_row = new_str_vals[row_num, :]
                     new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row,
-                                                    newvalue_row, key)
+                                                    new_value_row, key)
                 self.array[rows, cols] = new_str_vals
             else:
-                if not isinstance(newvalue, int):
-                    assert not isinstance(np.asarray(newvalue)[0], str), \
+                if not isinstance(new_value, int):
+                    assert not isinstance(np.asarray(new_value)[0], str), \
                             "Please use dtype=object for string assignments"
-                self.array[rows, cols] = newvalue
+                self.array[rows, cols] = new_value
 
-    def _str_2_val(self, new_str_vals, newvalue, key):
+    def _str_2_val(self, new_str_vals, new_value, key):
         """Convert string valued arrays to values for storing in array
 
         Parameters
@@ -383,39 +443,39 @@ class NavData():
         new_str_vals : np.ndarray
             Array of dtype=self.arr_dtype where numeric values are to be
             stored
-        newvalue : np.ndarray
+        new_value : np.ndarray
             Array of dtype=object, containing string values that are to
             be converted
         key : string
             Key indicating row where string to numeric conversion is
             required
         """
-        if key in self.map.keys():
+        if key in self.map:
             # Key already exists, update existing string value dictionary
             inv_str_map = {v: k for k, v in self.str_map[key].items()}
-            string_vals = np.unique(newvalue)
+            string_vals = np.unique(new_value)
             str_map_dict = self.str_map[key]
             total_str = len(self.str_map[key])
             for str_val in string_vals:
                 if str_val not in inv_str_map.keys():
                     str_map_dict[total_str] = str_val
-                    new_str_vals[newvalue==str_val] = total_str
+                    new_str_vals[new_value==str_val] = total_str
                     total_str += 1
                 else:
-                    new_str_vals[newvalue==str_val] = inv_str_map[str_val]
+                    new_str_vals[new_value==str_val] = inv_str_map[str_val]
             self.str_map[key] = str_map_dict
         else:
-            string_vals = np.unique(newvalue)
+            string_vals = np.unique(new_value)
             str_dict = dict(enumerate(string_vals))
             self.str_map[key] = str_dict
-            new_str_vals = len(string_vals)*np.ones(np.shape(newvalue),
+            new_str_vals = len(string_vals)*np.ones(np.shape(new_value),
                                                    dtype=self.arr_dtype)
             # Set unassigned value to int not accessed by string map
             for str_key, str_val in str_dict.items():
                 if new_str_vals.size == 1:
                     new_str_vals = np.array(str_key,dtype=self.arr_dtype)
                 else:
-                    new_str_vals[newvalue==str_val] = str_key
+                    new_str_vals[new_value==str_val] = str_key
             # Copy set to false to prevent memory overflows
             new_str_vals = np.round(new_str_vals.astype(self.arr_dtype,
                                                         copy=False))
@@ -433,10 +493,11 @@ class NavData():
         numpy_array : np.ndarray
             Array containing only numeric data to add
         """
+        old_row_num = len(self.map)
         old_len = len(self)
         new_data_cols = slice(old_len, None)
         if numpy_array is not None:
-            if old_len == 0:
+            if old_row_num == 0:
                 self.from_numpy_array(numpy_array)
             else:
                 if len(numpy_array.shape)==1:
@@ -445,15 +506,14 @@ class NavData():
                                         dtype=self.arr_dtype)))
                 self[:, new_data_cols] = numpy_array
         if csv_path is not None:
-            if old_len == 0:
+            if old_row_num == 0:
                 self.from_csv_path(csv_path)
             else:
                 pandas_df = pd.read_csv(csv_path)
         if pandas_df is not None:
-            if old_len == 0:
+            if old_row_num == 0:
                 self.from_pandas_df(pandas_df)
             else:
-
                 self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
                 for col in pandas_df.columns:
                     self[col, new_data_cols] = np.asarray(pandas_df[col].values)
@@ -603,6 +663,12 @@ class NavData():
         self.curr_col += 1
         return x_curr
 
+    def __str__(self):
+        str_out = str(self.pandas_df())
+        str_out = str_out.replace("DataFrame","NavData")
+        str_out = str_out.replace("Columns","Rows")
+        return str_out
+
     def __len__(self):
         """Return length of class
 
@@ -651,7 +717,7 @@ class NavData():
         _row_idx_str_bool : Dict
             Dictionary of whether data at row number key is string or not
         """
-        _row_idx_str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map.keys()}
+        _row_idx_str_bool = {self.map[k]: bool(len(self.str_map[k])) for k in self.str_map}
         return _row_idx_str_bool
 
     def is_str(self, row_name):
@@ -689,42 +755,82 @@ class NavData():
         inv_map = {v: k for k, v in self.map.items()}
         return inv_map
 
-    def fillna(self, array):
-        """Fills nan values in an array of strings (in-place).
+    def rename(self, mapper=None, rows=None, inplace=False):
+        """Rename data within rows or row names of NavData class.
 
-        You have to do a string comparison, so we first have to create
-        the string equivalent of the NaN to compare against.
+        Row names must be strings.
 
-        array : np.ndarray
-            np.ndarray of strings
-
-        """
-        nan_str = np.array([np.nan]).astype(str)[0]
-        if array.size > 1:
-            array[np.where(array.astype(str)==nan_str)] = ""
-        elif array.size == 1 and array == nan_str:
-            array = np.array("")
-
-    def rename(self, mapper):
-        """Rename rows of NavData class.
-
-        Column names must be strings.
-
+        Parameters
+        ----------
         mapper : dict
-            Pairs of {"old_name" : "new_name"} for each column that
-            you want to be renamed.
+            Pairs of {"old_name" : "new_name"} for each value to
+            replace. Values are replaced for each row in "rows" if
+            "rows" is specified or for all rows if "rows" is left
+            defaulted to None.
+        rows : dict, or array-like
+            If a dictionary is passed, then rows will be renamed
+            according to pairs of {"old_name" : "new_name"}.
+            If mapper is not None, then an array-like input may be
+            passed to indicate which rows of values should be remapped.
+
+        inplace : bool
+            If False, will return new NavData instance with data and/or
+            rows renamed. If True, will rename data and/or rows in the
+            current NavData instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after renaming
+            specified data and/or rows. If inplace is True, returns
+            None.
 
         """
 
-        for key, value in mapper.items():
-            if not isinstance(value, str):
-                raise TypeError("Column names must be strings")
-            if key not in self.map:
-                raise KeyError("'" + str(key) \
-                               + "' key doesn't exist in NavData class")
+        if not (isinstance(mapper, dict) or mapper is None):
+            raise TypeError("'mapper' must be dict or None")
+        if isinstance(rows,str):
+            rows = [rows]
+        if not (type(rows) in (dict, list, np.ndarray, tuple, set) \
+           or rows is None):
+            raise TypeError("'rows' must be dict, array-like or None")
+        if not isinstance(inplace, bool):
+            raise TypeError("'inplace' must be bool")
+        if rows is not None:
+            for old_name in rows:
+                if old_name not in self.map:
+                    raise KeyError("'" + str(old_name) + "' row name " \
+                                 + "doesn't exist in NavData class")
+        if rows is not None:
+            # convert to None if rows is emptry
+            rows = None if len(rows)==0 else rows
+        if not inplace:
+            new_navdata = self.copy()   # create copy to return
+        if mapper is not None:
+            remap_rows = self.rows if rows is None else rows
+            for row in remap_rows:
+                new_row_values = list(self[row])
+                for old_value, new_value in mapper.items():
+                    while old_value in new_row_values:
+                        new_row_values[new_row_values.index(old_value)] = new_value
+                if inplace:
+                    self[row] = np.array(new_row_values)
+                else:
+                    new_navdata[row] = np.array(new_row_values)
+        if isinstance(rows,dict):
+            for old_name, new_name in rows.items():
+                if not isinstance(new_name, str):
+                    raise TypeError("Row names must be strings")
+                if inplace:
+                    self.map[new_name] = self.map.pop(old_name)
+                    self.str_map[new_name] = self.str_map.pop(old_name)
+                else:
+                    new_navdata.map[new_name] = new_navdata.map.pop(old_name)
+                    new_navdata.str_map[new_name] = new_navdata.str_map.pop(old_name)
 
-            self.map[value] = self.map.pop(key)
-            self.str_map[value] = self.str_map.pop(key)
+        if inplace:
+            return None
+        return new_navdata
 
     def copy(self, rows=None, cols=None):
         """Return copy of NavData keeping specified rows and columns
@@ -767,34 +873,71 @@ class NavData():
             new_navdata[key] = new_row
         return new_navdata
 
-    def remove(self, rows=None, cols=None):
+    def remove(self, rows=None, cols=None, inplace=False):
         """Reset NavData to remove specified rows and columns
 
         Parameters
         ----------
-        rows : None/list/np.ndarray
+        rows : None/list/np.ndarray/tuple
             Rows to remove from NavData
-        cols : None/list/np.ndarray
+        cols : None/list/np.ndarray/tuple
             Columns to remove from NavData
+        inplace : bool
+            If False, will return new NavData instance with specified
+            rows and columns removed. If True, will remove rows and
+            columns from the current NavData instance.
 
         Returns
         -------
-        new_navdata : gnss_lib_py.parsers.navdata.NavData
-            NavData instance after removing specified rows and columns
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after removing
+            specified rows and columns. If inplace is True, returns
+            None.
 
-        Notes
-        -----
-        This method returns the NavData with removed rows and columns,
-        but does not reset the current instance in place.
         """
         if cols is None:
             cols = []
         if rows is None:
             rows = []
+        if isinstance(rows,str):
+            rows = [rows]
         new_navdata = NavData()
-        inv_map = self.inv_map
         if len(rows) != 0 and isinstance(rows[0], int):
-            rows = [inv_map[row_idx] for row_idx in rows]
+            try:
+                rows = [self.inv_map[row_idx] for row_idx in rows]
+            except KeyError as exception:
+                raise KeyError("row '" + str(exception) + "' is out " \
+                             + "of bounds of data.") from Exception
+
+        for row in rows:
+            if row not in self.rows:
+                raise KeyError("row '" + row + "' does not exist so " \
+                             + "cannont be removed.")
+        for col in cols:
+            if col >= len(self):
+                raise KeyError("column '" + str(col) + "' exceeds " \
+                             + "NavData dimensions, so cannont be " \
+                             + "removed.")
+
+        if inplace: # remove rows/cols from current column
+
+            # delete rows and columns from self.array
+            del_row_idxs = [self.map[row] for row in rows]
+            self.array = np.delete(self.array,del_row_idxs,axis=0)
+            self.array = np.delete(self.array,cols,axis=1)
+
+            # delete keys from self.map and self.str_map
+            for row in rows:
+                del self.map[row]
+                del self.str_map[row]
+
+            # reindex self.map
+            self.map = {key : index for index, key in \
+                enumerate(sorted(self.map, key=lambda k: self.map[k]))}
+
+            return None
+
+        # inplace = False; return new instance with rows/cols removed
         keep_rows = [row for row in self.rows if row not in rows]
         keep_cols = [col for col in range(len(self)) if col not in cols]
         for row_idx in keep_rows:
@@ -802,3 +945,29 @@ class NavData():
             key = row_idx
             new_navdata[key] = new_row
         return new_navdata
+
+    def in_rows(self, rows):
+        """Checks whether the given rows are in NavData.
+
+        If the rows are not in NavData, it creates a KeyError and lists
+        all non-existent rows.
+
+        Parameters
+        ----------
+        rows : string or list/np.ndarray/tuple of strings
+            Indexes to check whether they are rows in NavData
+        """
+
+        if isinstance(rows,str):
+            rows = [rows]
+        if type(rows) in (list, np.ndarray, tuple):
+            if isinstance(rows,np.ndarray):
+                rows = np.atleast_1d(rows)
+            missing_rows = ["'"+row+"'" for row in rows if row not in self.rows]
+        else:
+            raise KeyError("input to in_rows must be a single row " \
+                         + "index or list/np.ndarray/tuple of indexes")
+
+        if len(missing_rows) > 0:
+            raise KeyError(", ".join(missing_rows) + " row(s) are" \
+                           + " missing from NavData object.")

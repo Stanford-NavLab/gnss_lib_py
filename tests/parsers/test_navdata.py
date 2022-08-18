@@ -9,6 +9,7 @@ __date__ = "30 Apr 2022"
 import os
 
 import pytest
+import itertools
 import numpy as np
 import pandas as pd
 from pytest_lazyfixture import lazy_fixture
@@ -82,14 +83,21 @@ def fixture_csv_int_first():
     """
     return fixture_csv_path("navdata_test_int_first.csv")
 
+@pytest.fixture(name="csv_only_header")
+def fixture_csv_only_header():
+    """csv where there's no data, only columns.
+
+    """
+    return fixture_csv_path("navdata_only_header.csv")
+
 def load_test_dataframe(csv_filepath, header="infer"):
     """Create dataframe test fixture.
 
     """
 
-    df = pd.read_csv(csv_filepath, header=header)
+    data = pd.read_csv(csv_filepath, header=header)
 
-    return df
+    return data
 
 @pytest.fixture(name='df_simple')
 def fixture_df_simple(csv_simple):
@@ -139,6 +147,13 @@ def fixture_df_int_first(csv_int_first):
 
     """
     return load_test_dataframe(csv_int_first)
+
+@pytest.fixture(name='df_only_header')
+def fixture_df_only_header(csv_only_header):
+    """df where only headers given and no data.
+
+    """
+    return load_test_dataframe(csv_only_header)
 
 @pytest.fixture(name="data")
 def load_test_navdata(df_simple):
@@ -314,46 +329,362 @@ def test_init_np(numpy_array):
     with pytest.raises(TypeError):
         data = NavData(numpy_array=pd.DataFrame([0]))
 
+def test_init_only_header(csv_only_header, csv_simple):
+    """Test initializing NavData class with csv with only header
+
+    Parameters
+    ----------
+    csv_only_header : string
+        Path to csv file containing headers, but no data
+    csv_simple : string
+        Path to csv file headers and data
+
+    """
+
+    # should work when csv is passed
+    csv_data = NavData(csv_path=csv_only_header)
+    assert csv_data.shape == (4,0)
+    # test adding new data to empty NavData with column names
+    csv_data.add(csv_path=csv_simple)
+    assert csv_data.shape == (4,6)
+
+    # should work when DataFrame is passed
+    pd_data = NavData(pandas_df=pd.read_csv(csv_only_header))
+    assert pd_data.shape == (4,0)
+    # test adding new data to empty NavData with column names
+    pd_data.add(pandas_df=pd.read_csv(csv_simple))
+    assert pd_data.shape == (4,6)
+
 @pytest.mark.parametrize('pandas_df',
                         [
                          lazy_fixture("df_simple"),
                         ])
-def test_rename(pandas_df):
+def test_rename_inplace(pandas_df):
     """Test column renaming functionality.
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
-        test data
+    pandas_df : pd.DataFrame
+        Dataframe for testing values
+
+    """
+    data = NavData(pandas_df=pandas_df)
+    data_temp = data.copy()
+
+    data_temp.rename(rows={"names": "terms"}, inplace=True)
+    assert "names" not in data_temp.map
+    assert "names" not in data_temp.str_map
+    assert "terms" in data_temp.map
+    assert "terms" in data_temp.str_map
+
+    data_temp = data.copy()
+    data_temp.rename(rows={"floats": "decimals", "integers": "numbers"},
+                inplace = True)
+    assert "floats" not in data_temp.map
+    assert "floats" not in data_temp.str_map
+    assert "integers" not in data_temp.map
+    assert "integers" not in data_temp.str_map
+    assert "numbers" in data_temp.map
+    assert "numbers" in data_temp.str_map
+    assert "decimals" in data_temp.map
+    assert "decimals" in data_temp.str_map
+
+    # raises exception if input is not string
+    data_temp = data.copy()
+    with pytest.raises(TypeError):
+        data_temp.rename(rows={"names": 0}, inplace=True)
+    data_temp = data.copy()
+    with pytest.raises(TypeError):
+        data_temp.rename(rows={"names": 0.8}, inplace=True)
+
+    # should raise error if key doesn't exist
+    data_temp = data.copy()
+    with pytest.raises(KeyError):
+        data_temp.rename(rows={"food": "test"}, inplace=True)
+
+@pytest.mark.parametrize('pandas_df',
+                        [
+                         lazy_fixture("df_simple"),
+                        ])
+def test_rename_new_navdata(pandas_df):
+    """Test column renaming functionality.
+
+    Parameters
+    ----------
+    pandas_df : pd.DataFrame
+        Dataframe for testing values
 
     """
     data = NavData(pandas_df=pandas_df)
 
-    data.rename({"names": "terms"})
-    assert "names" not in data.map
-    assert "names" not in data.str_map
-    assert "terms" in data.map
-    assert "terms" in data.str_map
+    new_navdata = data.rename(rows={"names": "terms"})
+    assert "names" not in new_navdata.map
+    assert "names" not in new_navdata.str_map
+    assert "terms" in new_navdata.map
+    assert "terms" in new_navdata.str_map
+    # original one shouldn't have changed
+    assert "names" in data.map
+    assert "names" in data.str_map
+    assert "terms" not in data.map
+    assert "terms" not in data.str_map
 
-    data.rename({"floats": "decimals", "integers": "numbers"})
-    assert "floats" not in data.map
-    assert "floats" not in data.str_map
-    assert "integers" not in data.map
-    assert "integers" not in data.str_map
-    assert "numbers" in data.map
-    assert "numbers" in data.str_map
-    assert "decimals" in data.map
-    assert "decimals" in data.str_map
+    navdata = data.rename(rows={"floats": "decimals", "integers": "numbers"})
+    assert "floats" not in navdata.map
+    assert "floats" not in navdata.str_map
+    assert "integers" not in navdata.map
+    assert "integers" not in navdata.str_map
+    assert "numbers" in navdata.map
+    assert "numbers" in navdata.str_map
+    assert "decimals" in navdata.map
+    assert "decimals" in navdata.str_map
+    # original one shouldn't have changed
+    assert "floats" in data.map
+    assert "floats" in data.str_map
+    assert "integers" in data.map
+    assert "integers" in data.str_map
+    assert "numbers" not in data.map
+    assert "numbers" not in data.str_map
+    assert "decimals" not in data.map
+    assert "decimals" not in data.str_map
 
     # raises exception if input is not string
     with pytest.raises(TypeError):
-        data.rename({"names": 0})
+        navdata = data.rename(rows={"names": 0})
     with pytest.raises(TypeError):
-        data.rename({"names": 0.8})
+        navdata = data.rename(rows={"names": 0.8})
 
     # should raise error if key doesn't exist
     with pytest.raises(KeyError):
-        data.rename({"food": "test"})
+        navdata = data.rename(rows={"food": "test"})
+
+@pytest.mark.parametrize('pandas_df',
+                        [
+                         lazy_fixture("df_simple"),
+                        ])
+def test_rename_fails(pandas_df):
+    """Test column renaming functionality.
+
+    Parameters
+    ----------
+    pandas_df : pd.DataFrame
+        Dataframe for testing values
+
+    """
+    data = NavData(pandas_df=pandas_df)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.rename(mapper=["names","floats"],rows={"names": "terms"})
+    assert "mapper" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.rename(mapper=None,rows=1.0)
+    assert "rows" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.rename(rows={"names": "terms"}, inplace=0.)
+    assert "inplace" in str(excinfo.value)
+
+
+@pytest.mark.parametrize('rows',
+                        [
+                        None,
+                        [],
+                        ["strings","integers"],
+                        ["strings","integers","names","floats"],
+                        ["integers","strings"],
+                        {},
+                        {"strings","integers"},
+                        {"strings","integers","names","floats"},
+                        {"integers","strings"},
+                        (),
+                        ("strings","integers"),
+                        ("strings","integers","names","floats"),
+                        ("integers","strings"),
+                        np.array([]),
+                        np.array(["strings","integers"]),
+                        np.array(["strings","integers","names","floats"]),
+                        np.array(["integers","strings"]),
+                        ])
+def test_rename_mapper_all(df_simple, rows):
+    """Test data renaming functionality.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
+    rows : None or array-like
+        Rows for which mapper is implemented.
+
+    """
+    data = NavData(pandas_df=df_simple)
+    mapper = {"gps":"GPS",
+              45 : 46,
+              }
+
+    # test that both rows change
+    new_navdata = data.rename(mapper, rows=rows)
+    np.testing.assert_array_equal(new_navdata["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(new_navdata["integers"],
+                          np.array([10,2,46,67,98,300]))
+
+    assert new_navdata["names"].dtype == object
+    assert new_navdata["integers"].dtype == np.float64
+    assert new_navdata["floats"].dtype == np.float64
+    assert new_navdata["strings"].dtype == object
+
+    # test that both rows change inplace
+    data_temp = data.copy()
+    data_temp.rename(mapper, rows=rows, inplace=True)
+    np.testing.assert_array_equal(data_temp["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(data_temp["integers"],
+                          np.array([10,2,46,67,98,300]))
+
+    assert data_temp["names"].dtype == object
+    assert data_temp["integers"].dtype == np.float64
+    assert data_temp["floats"].dtype == np.float64
+    assert data_temp["strings"].dtype == object
+
+
+@pytest.mark.parametrize('rows',
+                        [
+                        ["strings","floats","names"],
+                        ["floats","names","strings"],
+                        ["strings"],
+                        {"strings","floats","names"},
+                        {"floats","names","strings"},
+                        {"strings"},
+                        ("strings","floats","names"),
+                        ("floats","names","strings"),
+                        ("strings"),
+                        np.array(["strings","floats","names"]),
+                        np.array(["floats","names","strings"]),
+                        np.array(["strings"]),
+                        ])
+def test_rename_mapper_partial(df_simple, rows):
+    """Test data renaming functionality.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
+    rows : array-like
+        Rows for which mapper is implemented.
+
+    """
+    data = NavData(pandas_df=df_simple)
+    mapper = {"gps":"GPS",
+              45 : 46,
+              }
+
+    # test that only "strings" changes and not "integers"
+    new_navdata = data.rename(mapper, rows=rows)
+    np.testing.assert_array_equal(new_navdata["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(new_navdata["integers"],
+                          np.array([10,2,45,67,98,300]))
+
+    assert new_navdata["names"].dtype == object
+    assert new_navdata["integers"].dtype == np.float64
+    assert new_navdata["floats"].dtype == np.float64
+    assert new_navdata["strings"].dtype == object
+
+    # test that both rows change inplace
+    data_temp = data.copy()
+    data_temp.rename(mapper, rows=rows, inplace=True)
+    np.testing.assert_array_equal(data_temp["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(data_temp["integers"],
+                          np.array([10,2,45,67,98,300]))
+
+    assert data_temp["names"].dtype == object
+    assert data_temp["integers"].dtype == np.float64
+    assert data_temp["floats"].dtype == np.float64
+    assert data_temp["strings"].dtype == object
+
+
+def test_rename_mapper_type_change(df_simple):
+    """Test data renaming functionality with type changes.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with
+
+    """
+    data = NavData(pandas_df=df_simple)
+
+    integers_mapper = {2  : "two",
+                       10 : "ten",
+                       45 : "forty-five",
+                       67 : "sixty-seven",
+                       98 : "ninety-eight",
+                       300: "three-hundred",
+                       }
+    strings_mapper = {"gps": 1,
+                      "galileo" : 2,
+                      "glonass" : 3,
+                      }
+
+    # rename contents
+    data.rename(integers_mapper, inplace=True)
+    data.rename(strings_mapper, inplace=True)
+
+    # make sure the rows hold the correct content
+    np.testing.assert_array_equal(data["strings"],
+                          np.array([1, 3, 2, 1, 1, 2]))
+    np.testing.assert_array_equal(data["integers"],
+                          np.array(["ten","two","forty-five",
+                                    "sixty-seven","ninety-eight",
+                                    "three-hundred"]))
+
+    # verify that rows switched types
+    assert data["names"].dtype == object
+    assert data["integers"].dtype == object
+    assert data["floats"].dtype == np.float64
+    assert data["strings"].dtype == np.float64
+
+def test_rename_mapper_and_rows(df_simple):
+    """Test data renaming functionality with type changes and row names.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with
+
+    """
+    data = NavData(pandas_df=df_simple)
+
+    integers_mapper = {2  : "two",
+                       10 : "ten",
+                       45 : "forty-five",
+                       67 : "sixty-seven",
+                       98 : "ninety-eight",
+                       300: "three-hundred",
+                       }
+    row_mapper = {"integers" : "number_words"}
+
+    # rename contents
+    data.rename(integers_mapper, rows=row_mapper, inplace=True)
+
+    # make sure the rows hold the correct content
+    np.testing.assert_array_equal(data["number_words"],
+                          np.array(["ten","two","forty-five",
+                                    "sixty-seven","ninety-eight",
+                                    "three-hundred"]))
+
+    # verify that rows switched types
+    assert data["names"].dtype == object
+    assert data["number_words"].dtype == object
+    assert data["floats"].dtype == np.float64
+    assert data["strings"].dtype == object
+
+
 
 @pytest.fixture(name="df_rows",
                 params=[
@@ -576,6 +907,32 @@ def fixture_new_string():
                              'date', 'pear', 'lime'], dtype=object)
     return new_string
 
+@pytest.fixture(name="new_string_str")
+def fixture_new_string_string_type():
+    """String to test for value assignment
+
+    Returns
+    -------
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+    """
+    new_string = np.asarray(['pie', 'cake', 'sherbert',
+                             'cookies', 'cupcake', 'brownies'],dtype=str)
+    return new_string
+
+@pytest.fixture(name="new_string_unicode")
+def fixture_new_string_unicode_type():
+    """String to test for value assignment
+
+    Returns
+    -------
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+    """
+    new_string = np.asarray(['red', 'orange', 'yellow',
+                             'green', 'blue', 'purple'])
+    return new_string
+
 
 @pytest.fixture(name="new_str_list")
 def fixture_new_str_list(new_string):
@@ -623,10 +980,18 @@ def fixture_subsect_str_list(subset_str):
                         ('new_key_2d_col', np.ones([6,1]), np.ones([1,6])),
                         ('new_str_key', lazy_fixture('new_string'),
                          lazy_fixture('new_str_list')),
+                        ('new_str_key', lazy_fixture('new_string_str'),
+                         lazy_fixture('new_string_str')),
+                        ('new_str_key', lazy_fixture('new_string_unicode'),
+                         lazy_fixture('new_string_unicode')),
                         ('integers', 0, np.zeros([1,6])),
                         (1, 7, 7*np.ones([1,6])),
                         ('names', lazy_fixture('new_string'),
                          lazy_fixture('new_str_list')),
+                        ('names', lazy_fixture('new_string_str'),
+                         lazy_fixture('new_string_str')),
+                        ('names', lazy_fixture('new_string_unicode'),
+                         lazy_fixture('new_string_unicode')),
                         ((['integers', 'floats'], slice(1, 4)), -10,
                          -10*np.ones([2,3])),
                         (('strings', slice(2, 5)),
@@ -649,6 +1014,140 @@ def test_set_get_item(data, index, new_value, exp_value):
     """
     data[index] = new_value
     np.testing.assert_array_equal(data[index], np.squeeze(exp_value))
+
+def test_multi_set(data,new_string):
+    """Test setting a numeric row with strings and vice versa.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        NavData instance for testing
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+
+    """
+    new_numeric = np.arange(len(data),dtype=float)
+    data_temp1 = data.copy()
+
+    # test numerics with input of size (2,6)
+    double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
+                                        new_numeric.reshape(1,-1) + 10.5))
+    data_temp1[["integers","floats"]] = double_numeric_input
+
+    np.testing.assert_array_equal(data_temp1["integers"], new_numeric)
+    np.testing.assert_array_equal(data_temp1["floats"], new_numeric+10.5)
+
+    # test strings with input of size (2,6)
+    double_string_input = np.vstack((new_string.reshape(1,-1),
+                                     new_string.reshape(1,-1)))
+    data_temp1[["strings","names"]] = double_string_input
+
+    np.testing.assert_array_equal(data_temp1["strings"], new_string)
+    np.testing.assert_array_equal(data_temp1["names"], new_string)
+
+    data_temp2 = data.copy()
+
+    with pytest.raises(ValueError):
+        # NavData does not expect values with rows and columns
+        # interchanged. Shapes must be set to what the underlying array
+        # expects. This (and the following) test verifies that
+        # test numerics with input of size (6,2)
+        double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
+                                        new_numeric.reshape(1,-1))).T
+        data_temp2[["integers","floats"]] = double_numeric_input
+
+        np.testing.assert_array_equal(data_temp2["integers"], new_numeric)
+        np.testing.assert_array_equal(data_temp2["floats"], new_numeric)
+
+    with pytest.raises(ValueError):
+        # test strings with input of size (6,2)
+        double_string_input = np.vstack((new_string.reshape(1,-1),
+                                        new_string.reshape(1,-1))).T
+        data_temp2[["strings","names"]] = double_string_input
+
+        np.testing.assert_array_equal(data_temp2["strings"], new_string)
+        np.testing.assert_array_equal(data_temp2["names"], new_string)
+
+def test_set_changing_type(data,new_string):
+    """Test setting a numeric row with strings and vice versa.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        NavData instance for testing
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+
+    """
+
+    new_numeric = np.arange(len(data),dtype=float)
+
+    data_temp1 = data.copy()
+
+    # setting strings with strings
+    data_temp1["strings"] = new_string
+    np.testing.assert_array_equal(data_temp1["strings"], new_string)
+    data_temp1["names"] = np.array(new_string,dtype=object)
+    np.testing.assert_array_equal(data_temp1["names"], new_string)
+
+    # should raise error trying to set with list of strings
+    with pytest.raises(RuntimeError):
+        data_temp1["names"] = np.array(new_string).tolist()
+
+    # setting numerics with numerics
+    data_temp1["integers"] = new_numeric
+    np.testing.assert_array_equal(data_temp1["integers"], new_numeric)
+    data_temp1["floats"] = np.array(new_numeric, dtype=object)
+    np.testing.assert_array_equal(data_temp1["floats"], new_numeric)
+
+    data_temp2 = data.copy()
+    # setting numerics with strings
+    data_temp2["integers"] = new_string
+    np.testing.assert_array_equal(data_temp2["integers"], new_string)
+    data_temp2["floats"] = np.array(new_string,dtype=object)
+    np.testing.assert_array_equal(data_temp2["floats"], new_string)
+
+    # should raise error trying to set with list of strings
+    with pytest.raises(RuntimeError):
+        data_temp1["floats"] = new_string.tolist()
+
+    # setting strings with numerics
+    data_temp2["strings"] = new_numeric
+    np.testing.assert_array_equal(data_temp2["strings"], new_numeric)
+    data_temp2["names"] = np.array(new_numeric, dtype=object)
+    np.testing.assert_array_equal(data_temp2["names"], new_numeric)
+
+def test_multi_set_changing_type(data,new_string):
+    """Test setting a numeric row with strings and vice versa.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        NavData instance for testing
+    new_string : np.ndarray
+        String of length 6 to test string assignment
+
+    """
+    new_numeric = np.arange(len(data),dtype=float)
+    data_temp1 = data.copy()
+
+    # test setting strings to numerics with input of size (2,6)
+    double_numeric_input = np.vstack((new_numeric.reshape(1,-1),
+                                      new_numeric.reshape(1,-1)))
+    data_temp1[["strings","names"]] = double_numeric_input
+
+    np.testing.assert_array_equal(data_temp1["strings"], new_numeric)
+    np.testing.assert_array_equal(data_temp1["names"], new_numeric)
+
+    # test setting numerics to strings with input of size (2,6)
+    double_string_input = np.vstack((new_string.reshape(1,-1),
+                                     new_string.reshape(1,-1)))
+    data_temp1[["integers","floats"]] = double_string_input
+
+    np.testing.assert_array_equal(data_temp1["integers"], new_string)
+    np.testing.assert_array_equal(data_temp1["floats"], new_string)
+
+    data_temp2 = data.copy()
 
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
@@ -809,14 +1308,108 @@ def test_copy_navdata(data, df_simple, rows, cols):
                         [None,
                         ['names', 'integers'],
                         np.asarray(['names', 'integers'], dtype=object),
-                        [0, 1]
+                        ('names', 'integers'),
+                        [0, 1],
+                        [],
+                        [6],
+                        [0,3,4],
+                        ["howdy"],
+                        ["names","fake"]
                         ])
 @pytest.mark.parametrize("cols",
                         [None,
                         [0,1],
-                        np.asarray([0,1])
+                        np.asarray([0,1]),
+                        (0,1),
+                        [12],
+                        [1,2,6]
                         ])
 def test_remove_navdata(data, df_simple, rows, cols):
+    """Test method to remove rows and columns from navdata
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
+    df_simple : pd.DataFrame
+        Dataframe that is sliced to compare copies against
+    rows : list/np.ndarray/tuple
+        Rows to remove from NavData
+    cols : list/np.ndarray/tuple
+        Columns to remove from NavData
+    """
+
+    all_rows = ['names', 'integers', 'floats', 'strings']
+
+    expect_fail = False
+    if rows is not None and len(rows) != 0 and isinstance(rows[0], int):
+        if max(rows) >= len(all_rows):
+            expect_fail = True
+            expect_message = str(max(rows))
+    elif not expect_fail and rows is not None:
+        for row in rows:
+            if row not in all_rows:
+                expect_fail = True
+                expect_message = row
+                break
+    if not expect_fail and cols is not None:
+        for col in cols:
+            if col >= len(df_simple):
+                expect_fail = True
+                expect_message = str(col)
+                break
+
+    if expect_fail:
+        with pytest.raises(KeyError) as excinfo:
+            new_data = data.remove(rows=rows, cols=cols)
+        assert expect_message in str(excinfo.value)
+    else:
+        new_data = data.remove(rows=rows, cols=cols)
+        new_df = new_data.pandas_df().reset_index(drop=True)
+
+        inv_map = {0 : 'names',
+                    1 : 'integers',
+                    2 : 'floats',
+                    3 : 'strings'}
+        all_cols = np.arange(6)
+        if rows is None:
+            rows = []
+        if cols is None:
+            cols = []
+        if len(rows)!=0:
+            if not isinstance(rows[0], str):
+                int_rows = rows
+                rows = []
+                for row_idx in int_rows:
+                    rows.append(inv_map[row_idx])
+        keep_rows = [row for row in all_rows if row not in rows]
+        keep_cols = [col for col in all_cols if col not in cols]
+        subset_df = df_simple.loc[keep_cols, keep_rows]
+
+        subset_df = subset_df.reset_index(drop=True)
+        pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
+
+@pytest.mark.parametrize("rows",
+                        [None,
+                        ['names', 'integers'],
+                        np.asarray(['names', 'integers'], dtype=object),
+                        ('names', 'integers'),
+                        [0, 1],
+                        [],
+                        [6],
+                        [0,3,4],
+                        ["howdy"],
+                        ["names","fake"]
+                        ])
+@pytest.mark.parametrize("cols",
+                        [None,
+                        [0,1],
+                        np.asarray([0,1]),
+                        (0,1),
+                        [12],
+                        [1,2,6]
+                        ])
+def test_remove_inplace(data, df_simple, rows, cols):
     """Test method to remove rows and columns from navdata
 
     Parameters
@@ -829,33 +1422,58 @@ def test_remove_navdata(data, df_simple, rows, cols):
         Rows to remove from NavData
     cols : list/np.ndarray
         Columns to remove from NavData
+
     """
-    new_data = data.remove(rows=rows, cols=cols)
-    new_df = new_data.pandas_df().reset_index(drop=True)
-
-    inv_map = {0 : 'names',
-                1 : 'integers',
-                2 : 'floats',
-                3 : 'strings'}
     all_rows = ['names', 'integers', 'floats', 'strings']
-    all_cols = np.arange(6)
-    if rows is None:
-        rows = []
-    if cols is None:
-        cols = []
-    if len(rows)!=0:
-        if not isinstance(rows[0], str):
-            int_rows = rows
+
+    expect_fail = False
+    if rows is not None and len(rows) != 0 and isinstance(rows[0], int):
+        if max(rows) >= len(all_rows):
+            expect_fail = True
+            expect_message = str(max(rows))
+    elif not expect_fail and rows is not None:
+        for row in rows:
+            if row not in all_rows:
+                expect_fail = True
+                expect_message = row
+                break
+    if not expect_fail and cols is not None:
+        for col in cols:
+            if col >= len(df_simple):
+                expect_fail = True
+                expect_message = str(col)
+                break
+
+    if expect_fail:
+        with pytest.raises(KeyError) as excinfo:
+            new_data = data.remove(rows=rows, cols=cols, inplace=True)
+        assert expect_message in str(excinfo.value)
+    else:
+        new_data = data.copy()
+        new_data.remove(rows=rows, cols=cols, inplace=True)
+        new_df = new_data.pandas_df().reset_index(drop=True)
+
+        inv_map = {0 : 'names',
+                    1 : 'integers',
+                    2 : 'floats',
+                    3 : 'strings'}
+        all_cols = np.arange(6)
+        if rows is None:
             rows = []
-            for row_idx in int_rows:
-                rows.append(inv_map[row_idx])
-    keep_rows = [row for row in all_rows if row not in rows]
-    keep_cols = [col for col in all_cols if col not in cols]
-    subset_df = df_simple.loc[keep_cols, keep_rows]
+        if cols is None:
+            cols = []
+        if len(rows)!=0:
+            if not isinstance(rows[0], str):
+                int_rows = rows
+                rows = []
+                for row_idx in int_rows:
+                    rows.append(inv_map[row_idx])
+        keep_rows = [row for row in all_rows if row not in rows]
+        keep_cols = [col for col in all_cols if col not in cols]
+        subset_df = df_simple.loc[keep_cols, keep_rows]
 
-    subset_df = subset_df.reset_index(drop=True)
-    pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
-
+        subset_df = subset_df.reset_index(drop=True)
+        pd.testing.assert_frame_equal(new_df, subset_df, check_dtype=False)
 
 def test_where_str(csv_simple):
     """Testing implementation of NavData.where for string values
@@ -984,3 +1602,175 @@ def test_is_str(df_simple):
 
     with pytest.raises(KeyError):
         navdata.is_str(0)
+
+def test_str_navdata(df_simple, df_only_header):
+    """Test that the NavData class can be printed without errors
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Dataframe with which to construct NavData instance
+    df_only_header : pd.DataFrame
+        Dataframe with only column names and no data
+    """
+    navdata = NavData(pandas_df=df_simple)
+    navdata_str = str(navdata)
+    # Conversion from int to float in DataFrame for consistency
+    df_simple = df_simple.astype({'integers': 'float64'})
+    df_str = str(df_simple)
+    assert navdata_str==df_str
+
+    # make sure print doesn't break if given only headers
+    navdata_str = str(NavData(pandas_df=df_only_header))
+    df_str = str(df_only_header).replace("DataFrame","NavData")
+    df_str = df_str.replace("Columns","Rows")
+    assert navdata_str==df_str
+
+    # make sure it doesn't break with empty NavData
+    navdata_str = str(NavData())
+    df_str = str(pd.DataFrame()).replace("DataFrame","NavData")
+    df_str = df_str.replace("Columns","Rows")
+    assert navdata_str==df_str
+
+def test_in_rows_single(data):
+    """Test the in_rows function.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
+
+    """
+
+    # should not throw error
+    for row in data.rows:
+        data.in_rows(row)
+
+    # check removing a single row
+    for row in data.rows:
+        data_temp = data.copy()
+        data_temp = data_temp.remove(rows=[row])
+
+        ## lists
+        # check by passing in multiple rows
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(data.rows)
+        assert row in str(excinfo.value)
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows([row])
+        assert row in str(excinfo.value)
+
+        ## np.ndarrays
+        # check by passing in multiple rows
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(np.array(data.rows))
+        assert row in str(excinfo.value)
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(np.array(row))
+        assert row in str(excinfo.value)
+
+        ## tuples
+        # check by passing in multiple rows
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(tuple(data.rows))
+        assert row in str(excinfo.value)
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows((row))
+        assert row in str(excinfo.value)
+
+        ## single value
+        # check by passing in single row
+        with pytest.raises(KeyError) as excinfo:
+            data_temp.in_rows(row)
+        assert row in str(excinfo.value)
+
+    # None of these should work
+    with pytest.raises(KeyError) as excinfo:
+        data_temp.in_rows(1)
+    assert "in_rows" in str(excinfo.value)
+
+    with pytest.raises(KeyError) as excinfo:
+        data_temp.in_rows(1.)
+    assert "in_rows" in str(excinfo.value)
+
+    with pytest.raises(KeyError) as excinfo:
+        data_temp.in_rows(np.nan)
+    assert "in_rows" in str(excinfo.value)
+
+def test_in_rows_multi(data):
+    """Test the in_rows function.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.parsers.navdata.NavData
+        Instance of NavData
+
+    """
+
+    for choice in [2,3]:
+        for combo_rows in itertools.combinations(data.rows,choice):
+
+            # should pass without error
+            data.in_rows(combo_rows)
+
+            # remove multiple rows
+            data_temp = data.copy()
+            data_temp = data_temp.remove(rows=combo_rows)
+
+            # list
+            with pytest.raises(KeyError) as excinfo:
+                data_temp.in_rows(list(combo_rows))
+            for row in combo_rows:
+                assert row in str(excinfo.value)
+
+            # np.ndarray
+            with pytest.raises(KeyError) as excinfo:
+                data_temp.in_rows(np.array(combo_rows))
+            for row in combo_rows:
+                assert row in str(excinfo.value)
+
+            # tuple
+            with pytest.raises(KeyError) as excinfo:
+                data_temp.in_rows(combo_rows)
+            for row in combo_rows:
+                assert row in str(excinfo.value)
+
+def test_pandas_df(df_simple, df_only_header):
+    """Test that the NavData class can be printed without errors
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Dataframe with which to construct NavData instance
+    df_only_header : pd.DataFrame
+        Dataframe with only column names and no data
+    """
+    navdata = NavData(pandas_df=df_simple)
+
+    # test simple DataFrame
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  df_simple.sort_index(axis=1),
+                                  check_names=True, check_dtype=False)
+
+    # test DataFrame with a single row of data
+    df_super_simple = pd.DataFrame([["first",1.,3,"fourth"]],
+                                    columns=["A","B","C","D"])
+    navdata = NavData(pandas_df=df_super_simple)
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  df_super_simple.sort_index(axis=1),
+                                  check_names=True, check_dtype=False)
+
+    # make sure print doesn't break if given only headers
+    navdata = NavData(pandas_df=df_only_header)
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  df_only_header.sort_index(axis=1),
+                                  check_names=True)
+
+    # make sure it doesn't break with empty NavData
+    navdata = NavData()
+    pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
+                                  pd.DataFrame().sort_index(axis=1),
+                                  check_names=True)

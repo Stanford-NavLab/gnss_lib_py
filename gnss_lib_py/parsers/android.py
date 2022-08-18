@@ -47,14 +47,18 @@ class AndroidDerived2021(NavData):
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
         indexes = np.searchsorted(derived_timestamps, derived_timestamps)
         map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
-        pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v], pd_df['millisSinceGpsEpoch'])))
-
+        pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v],
+                                                pd_df['millisSinceGpsEpoch'])))
 
         # Correction 5 implemented verbatim from competition tips
         if remove_timing_outliers:
             delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
             where_good_signals = (delta_millis > 0) & (delta_millis < 300)
             pd_df = pd_df[where_good_signals].copy()
+            if np.all(~where_good_signals):
+                warnings.warn("All data removed due to timing outliers,"
+                            + " try setting remove_timing_outliers to"
+                            + " False", RuntimeWarning)
 
         super().__init__(pandas_df=pd_df)
 
