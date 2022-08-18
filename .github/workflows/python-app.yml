@@ -81,11 +81,7 @@ jobs:
           since_last_remote_commit: "true"
 
       - name: Check if index.rst changed when README.md file changes
-        if: contains(steps.changed-files.outputs.modified_files, 'python-app.yml')
+        if: contains(steps.changed-files.outputs.modified_files, 'python-app.yml') && !contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst')
         run: |
-          echo "README.md has changed, has index.rst?"
-          #if: contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst') ]; then
-          if: contains(steps.changed-files.outputs.modified_files, 'python-app.yml'); then
-             echo "README.md has changed, but index.rst has not!"
-             exit 1
-          fi
+          echo "README.md has changed, but index.rst has not!"
+          exit 1
