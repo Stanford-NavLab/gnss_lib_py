@@ -25,15 +25,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Get changed files using defaults
-      id: changed-files
-      uses: tj-actions/changed-files@v27
-    - name: Check if index.rst changed when README.md file changes
-      if: contains(steps.changed-files.outputs.modified_files, 'README.md')
-      with:
-        assertion: should.equal
-        expected: true
-        actual: ${{contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst'}}
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -75,3 +66,30 @@ jobs:
     - name: Test if docs are building
       run: |
         ./build_docs.sh
+  readme:
+    runs-on: ubuntu-latest
+    name: Check changed README
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v27
+
+      - name: List all changed files
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed"
+          done
+          
+#    - name: Get changed files using defaults
+#      id: changed-files
+#      uses: tj-actions/changed-files@v27
+#    - name: Check if index.rst changed when README.md file changes
+#      if: contains(steps.changed-files.outputs.modified_files, 'README.md')
+#      with:
+#        assertion: should.equal
+#        expected: true
+#        actual: ${{contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst'}}
