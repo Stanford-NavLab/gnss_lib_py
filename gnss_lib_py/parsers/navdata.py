@@ -51,7 +51,7 @@ class NavData():
         else:
             self.build_navdata()
 
-        self.rename(rows=self._row_map(), inplace=True)
+        self.rename(self._row_map(), inplace=True)
 
         self.postprocess()
 
@@ -333,12 +333,10 @@ class NavData():
                 "Cannot assign/return combination of strings and numbers"
         if np.all(row_str):
             # Return sliced strings
-            # arr_slice  = []
             arr_slice = np.atleast_2d(np.empty_like(self.array[rows, cols], dtype=object))
             for row_num, row in enumerate(row_list):
                 str_arr = self.get_strings(self.inv_map[row])
                 arr_slice[row_num, :] = str_arr[cols]
-                # arr_slice.append(str_arr[ cols])
         else:
             arr_slice = self.array[rows, cols]
 
@@ -420,7 +418,6 @@ class NavData():
                         "String assignment only supported for ndarray of type object"
                 inv_map = self.inv_map
                 new_value = np.atleast_2d(new_value)
-                # new_value = np.reshape(new_value, [-1, new_value.shape[0]])
                 new_str_vals = np.ones_like(new_value, dtype=self.arr_dtype)
                 for row_num, row in enumerate(row_list):
                     key = inv_map[row]
@@ -755,8 +752,57 @@ class NavData():
         inv_map = {v: k for k, v in self.map.items()}
         return inv_map
 
-    def rename(self, mapper=None, rows=None, inplace=False):
-        """Rename data within rows or row names of NavData class.
+    def rename(self, mapper=None, inplace=False):
+        """Rename rows of NavData class.
+
+        Row names must be strings.
+
+        Parameters
+        ----------
+        mapper : dict
+            Pairs of {"old_name" : "new_name"} for each row to be
+            renamed.
+        inplace : bool
+            If False, will return new NavData instance with rows
+            renamed. If True, will rename data rows in the
+            current NavData instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after renaming
+            specified rows. If inplace is True, returns
+            None.
+
+        """
+
+        if not isinstance(mapper, dict):
+            raise TypeError("'mapper' must be dict")
+        if not isinstance(inplace, bool):
+            raise TypeError("'inplace' must be bool")
+        for old_name in mapper:
+            if old_name not in self.map:
+                raise KeyError("'" + str(old_name) + "' row name " \
+                             + "doesn't exist in NavData class")
+
+        if not inplace:
+            new_navdata = self.copy()   # create copy to return
+        for old_name, new_name in mapper.items():
+            if not isinstance(new_name, str):
+                raise TypeError("New row names must be strings")
+            if inplace:
+                self.map[new_name] = self.map.pop(old_name)
+                self.str_map[new_name] = self.str_map.pop(old_name)
+            else:
+                new_navdata.map[new_name] = new_navdata.map.pop(old_name)
+                new_navdata.str_map[new_name] = new_navdata.str_map.pop(old_name)
+
+        if inplace:
+            return None
+        return new_navdata
+
+    def replace(self, mapper=None, rows=None, inplace=False):
+        """Replace data within rows or row names of NavData class.
 
         Row names must be strings.
 
@@ -772,23 +818,21 @@ class NavData():
             according to pairs of {"old_name" : "new_name"}.
             If mapper is not None, then an array-like input may be
             passed to indicate which rows of values should be remapped.
-
         inplace : bool
-            If False, will return new NavData instance with data and/or
-            rows renamed. If True, will rename data and/or rows in the
-            current NavData instance.
+            If False, will return new NavData instance with data
+            replaced. If True, will replace data in the current NavData
+            instance.
 
         Returns
         -------
         new_navdata : gnss_lib_py.parsers.navdata.NavData or None
-            If inplace is False, returns NavData instance after renaming
-            specified data and/or rows. If inplace is True, returns
-            None.
+            If inplace is False, returns NavData instance after
+            replacing specified data. If inplace is True, returns None.
 
         """
 
-        if not (isinstance(mapper, dict) or mapper is None):
-            raise TypeError("'mapper' must be dict or None")
+        if not isinstance(mapper, dict):
+            raise TypeError("'mapper' must be dict")
         if isinstance(rows,str):
             rows = [rows]
         if not (type(rows) in (dict, list, np.ndarray, tuple, set) \
@@ -806,7 +850,7 @@ class NavData():
             rows = None if len(rows)==0 else rows
         if not inplace:
             new_navdata = self.copy()   # create copy to return
-        if mapper is not None:
+        if mapper is not None and len(self) > 0:
             remap_rows = self.rows if rows is None else rows
             for row in remap_rows:
                 new_row_values = list(self[row])
@@ -816,16 +860,6 @@ class NavData():
                     self[row] = np.array(new_row_values)
                 else:
                     new_navdata[row] = np.array(new_row_values)
-        if isinstance(rows,dict):
-            for old_name, new_name in rows.items():
-                if not isinstance(new_name, str):
-                    raise TypeError("Row names must be strings")
-                if inplace:
-                    self.map[new_name] = self.map.pop(old_name)
-                    self.str_map[new_name] = self.str_map.pop(old_name)
-                else:
-                    new_navdata.map[new_name] = new_navdata.map.pop(old_name)
-                    new_navdata.str_map[new_name] = new_navdata.str_map.pop(old_name)
 
         if inplace:
             return None
@@ -857,8 +891,6 @@ class NavData():
         new_navdata = NavData()
         inv_map = self.inv_map
         if rows is None:
-            # row_indices = slice(None, None).indices(len(self.rows))
-            # rows = np.arange(row_indices[0], row_indices[1], row_indices[2])
             rows = self.rows
         if cols is None:
             col_indices = slice(None, None).indices(len(self))

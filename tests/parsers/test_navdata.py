@@ -371,14 +371,14 @@ def test_rename_inplace(pandas_df):
     data = NavData(pandas_df=pandas_df)
     data_temp = data.copy()
 
-    data_temp.rename(rows={"names": "terms"}, inplace=True)
+    data_temp.rename({"names": "terms"}, inplace=True)
     assert "names" not in data_temp.map
     assert "names" not in data_temp.str_map
     assert "terms" in data_temp.map
     assert "terms" in data_temp.str_map
 
     data_temp = data.copy()
-    data_temp.rename(rows={"floats": "decimals", "integers": "numbers"},
+    data_temp.rename(mapper={"floats": "decimals", "integers": "numbers"},
                 inplace = True)
     assert "floats" not in data_temp.map
     assert "floats" not in data_temp.str_map
@@ -392,15 +392,15 @@ def test_rename_inplace(pandas_df):
     # raises exception if input is not string
     data_temp = data.copy()
     with pytest.raises(TypeError):
-        data_temp.rename(rows={"names": 0}, inplace=True)
+        data_temp.rename({"names": 0}, inplace=True)
     data_temp = data.copy()
     with pytest.raises(TypeError):
-        data_temp.rename(rows={"names": 0.8}, inplace=True)
+        data_temp.rename({"names": 0.8}, inplace=True)
 
     # should raise error if key doesn't exist
     data_temp = data.copy()
     with pytest.raises(KeyError):
-        data_temp.rename(rows={"food": "test"}, inplace=True)
+        data_temp.rename({"food": "test"}, inplace=True)
 
 @pytest.mark.parametrize('pandas_df',
                         [
@@ -417,7 +417,7 @@ def test_rename_new_navdata(pandas_df):
     """
     data = NavData(pandas_df=pandas_df)
 
-    new_navdata = data.rename(rows={"names": "terms"})
+    new_navdata = data.rename({"names": "terms"})
     assert "names" not in new_navdata.map
     assert "names" not in new_navdata.str_map
     assert "terms" in new_navdata.map
@@ -428,7 +428,7 @@ def test_rename_new_navdata(pandas_df):
     assert "terms" not in data.map
     assert "terms" not in data.str_map
 
-    navdata = data.rename(rows={"floats": "decimals", "integers": "numbers"})
+    navdata = data.rename(mapper={"floats": "decimals", "integers": "numbers"})
     assert "floats" not in navdata.map
     assert "floats" not in navdata.str_map
     assert "integers" not in navdata.map
@@ -449,41 +449,75 @@ def test_rename_new_navdata(pandas_df):
 
     # raises exception if input is not string
     with pytest.raises(TypeError):
-        navdata = data.rename(rows={"names": 0})
+        navdata = data.rename({"names": 0})
     with pytest.raises(TypeError):
-        navdata = data.rename(rows={"names": 0.8})
+        navdata = data.rename({"names": 0.8})
 
     # should raise error if key doesn't exist
     with pytest.raises(KeyError):
-        navdata = data.rename(rows={"food": "test"})
+        navdata = data.rename({"food": "test"})
 
-@pytest.mark.parametrize('pandas_df',
-                        [
-                         lazy_fixture("df_simple"),
-                        ])
-def test_rename_fails(pandas_df):
+def test_replace_fails(df_simple, df_only_header):
+    """Test replace renaming functionality.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
+    df_only_header : pd.DataFrame
+        Dataframe with only column names and no data
+
+    """
+    data = NavData(pandas_df=df_simple)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.replace(mapper=["names","floats"],rows={"names": "terms"})
+    assert "mapper" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.replace(mapper={"names":"terms"},rows=1.0)
+    assert "rows" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.replace({"names": "terms"}, inplace=0.)
+    assert "inplace" in str(excinfo.value)
+
+    # should raise error if key doesn't exist
+    with pytest.raises(KeyError):
+        data.replace({"gps":"GPS"},rows={"food": "test"}, inplace=True)
+
+    data = NavData(pandas_df=df_only_header)
+    data.replace({"gps":"GPS"},inplace=True)
+
+def test_rename_fails(df_simple, df_only_header):
     """Test column renaming functionality.
 
     Parameters
     ----------
-    pandas_df : pd.DataFrame
-        Dataframe for testing values
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
+    df_only_header : pd.DataFrame
+        Dataframe with only column names and no data
 
     """
-    data = NavData(pandas_df=pandas_df)
+    data = NavData(pandas_df=df_simple)
 
     with pytest.raises(TypeError) as excinfo:
-        data.rename(mapper=["names","floats"],rows={"names": "terms"})
+        data.rename(mapper=["names","floats"])
     assert "mapper" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
-        data.rename(mapper=None,rows=1.0)
-    assert "rows" in str(excinfo.value)
+        data.rename(None)
+    assert "mapper" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
-        data.rename(rows={"names": "terms"}, inplace=0.)
+        data.rename(mapper={"names": "terms"}, inplace=0.)
     assert "inplace" in str(excinfo.value)
 
+    data = NavData(pandas_df=df_only_header)
+    data.rename({"strings":"words"},inplace=True)
+    assert "words" in data.rows
+    assert "strings" not in data.rows
 
 @pytest.mark.parametrize('rows',
                         [
@@ -505,7 +539,7 @@ def test_rename_fails(pandas_df):
                         np.array(["strings","integers","names","floats"]),
                         np.array(["integers","strings"]),
                         ])
-def test_rename_mapper_all(df_simple, rows):
+def test_replace_mapper_all(df_simple, rows):
     """Test data renaming functionality.
 
     Parameters
@@ -522,7 +556,7 @@ def test_rename_mapper_all(df_simple, rows):
               }
 
     # test that both rows change
-    new_navdata = data.rename(mapper, rows=rows)
+    new_navdata = data.replace(mapper, rows=rows)
     np.testing.assert_array_equal(new_navdata["strings"],
                           np.array(["GPS","glonass","galileo","GPS",
                                     "GPS","galileo"]))
@@ -536,7 +570,7 @@ def test_rename_mapper_all(df_simple, rows):
 
     # test that both rows change inplace
     data_temp = data.copy()
-    data_temp.rename(mapper, rows=rows, inplace=True)
+    data_temp.replace(mapper, rows=rows, inplace=True)
     np.testing.assert_array_equal(data_temp["strings"],
                           np.array(["GPS","glonass","galileo","GPS",
                                     "GPS","galileo"]))
@@ -564,7 +598,7 @@ def test_rename_mapper_all(df_simple, rows):
                         np.array(["floats","names","strings"]),
                         np.array(["strings"]),
                         ])
-def test_rename_mapper_partial(df_simple, rows):
+def test_replace_mapper_partial(df_simple, rows):
     """Test data renaming functionality.
 
     Parameters
@@ -581,7 +615,7 @@ def test_rename_mapper_partial(df_simple, rows):
               }
 
     # test that only "strings" changes and not "integers"
-    new_navdata = data.rename(mapper, rows=rows)
+    new_navdata = data.replace(mapper, rows=rows)
     np.testing.assert_array_equal(new_navdata["strings"],
                           np.array(["GPS","glonass","galileo","GPS",
                                     "GPS","galileo"]))
@@ -595,7 +629,7 @@ def test_rename_mapper_partial(df_simple, rows):
 
     # test that both rows change inplace
     data_temp = data.copy()
-    data_temp.rename(mapper, rows=rows, inplace=True)
+    data_temp.replace(mapper, rows=rows, inplace=True)
     np.testing.assert_array_equal(data_temp["strings"],
                           np.array(["GPS","glonass","galileo","GPS",
                                     "GPS","galileo"]))
@@ -608,7 +642,7 @@ def test_rename_mapper_partial(df_simple, rows):
     assert data_temp["strings"].dtype == object
 
 
-def test_rename_mapper_type_change(df_simple):
+def test_replace_mapper_type_change(df_simple):
     """Test data renaming functionality with type changes.
 
     Parameters
@@ -632,8 +666,8 @@ def test_rename_mapper_type_change(df_simple):
                       }
 
     # rename contents
-    data.rename(integers_mapper, inplace=True)
-    data.rename(strings_mapper, inplace=True)
+    data.replace(integers_mapper, inplace=True)
+    data.replace(strings_mapper, inplace=True)
 
     # make sure the rows hold the correct content
     np.testing.assert_array_equal(data["strings"],
@@ -670,7 +704,8 @@ def test_rename_mapper_and_rows(df_simple):
     row_mapper = {"integers" : "number_words"}
 
     # rename contents
-    data.rename(integers_mapper, rows=row_mapper, inplace=True)
+    data.replace(integers_mapper, rows="integers", inplace=True)
+    data.rename(row_mapper, inplace=True)
 
     # make sure the rows hold the correct content
     np.testing.assert_array_equal(data["number_words"],
