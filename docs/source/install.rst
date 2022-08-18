@@ -7,7 +7,7 @@ Prerequisites
 -------------
 
 | **Python:** >=3.8, <3.11
-| **Operating System:** Ubuntu, Windows, MacOS
+| **Operating System:** Linux, Windows, MacOS
 
 All :code:`gnss_lib_py` classes and methods are tested in Python 3.8
 and 3.10 in the latest Ubuntu, MacOS and Windows versions.
@@ -41,7 +41,7 @@ Editable Installation
 
 3. Update pip version.
 
-   a. For Linux:
+   a. For Linux and MacOS:
 
       .. code-block:: bash
 
@@ -74,8 +74,8 @@ Developer Installation
 This project is being developed using :code:`pyenv` and :code:`poetry`
 for python version and environment control respectively.
 
-Ubuntu/WSL2
-+++++++++++
+Linux/WSL2 and MacOS
+++++++++++++++++++++
 
 1. Install :code:`pyenv` using the installation instructions
    `here <https://github.com/pyenv/pyenv#installation>`__. The steps are
