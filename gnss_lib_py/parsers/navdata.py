@@ -811,8 +811,7 @@ class NavData():
             for row in remap_rows:
                 new_row_values = list(self[row])
                 for old_value, new_value in mapper.items():
-                    while old_value in new_row_values:
-                        new_row_values[new_row_values.index(old_value)] = new_value
+                    new_row_values = [new_value if v == old_value else v for v in new_row_values]
                 if inplace:
                     self[row] = np.array(new_row_values)
                 else:
