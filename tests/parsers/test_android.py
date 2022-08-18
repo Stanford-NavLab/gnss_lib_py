@@ -64,6 +64,38 @@ def fixture_derived_path(root_path):
     derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
     return derived_path
 
+@pytest.fixture(name="derived_path_xl")
+def fixture_derived_path_xl(root_path):
+    """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [6]_,
+    particularly the train/2020-05-14-US-MTV-1/Pixel4XL trace. The
+    dataset was retrieved from
+    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
+    References
+    ----------
+    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'Pixel4XL_derived.csv')
+    return derived_path
+
 
 @pytest.fixture(name="android_raw_path")
 def fixture_raw_path(root_path):
@@ -525,3 +557,19 @@ def test_gt_alt_nan(root_path_2022):
         gt_2022 = android.AndroidGroundTruth2022(gt_2022_nan)
         np.testing.assert_almost_equal(gt_2022['alt_gt_m'],
                                        np.zeros(len(gt_2022)))
+
+def test_remove_all_data(derived_path_xl):
+    """Test what happens when remove_timing_outliers removes all data.
+
+    Parameters
+    ----------
+    derived_path : string
+        Location for the unit_test Android 2021 derived measurements.
+
+    """
+    # Also tests if strings are being converted back correctly
+    with pytest.warns(RuntimeWarning):
+        derived = android.AndroidDerived2021(derived_path_xl,
+                                   remove_timing_outliers=True)
+
+    assert derived.shape == (21,0)
