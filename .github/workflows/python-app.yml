@@ -74,14 +74,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed files
+      - name: Get changed files since last remote commit
         id: changed-files
         uses: tj-actions/changed-files@v27
+        with:
+          since_last_remote_commit: "true"
 
       - name: Check if index.rst changed when README.md file changes
         if: contains(steps.changed-files.outputs.modified_files, 'README.md')
-        with:
-          since_last_remote_commit: "true"
-          assertion: should.equal
-          expected: true
-          actual: ${{contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst'}}
+        run: |
+          echo "README.md has changed"
+        #  if 'docs/source/index.rst' not in ${{contains(steps.changed-files.outputs.modified_files}};
+        #    return True
+        #  fi
