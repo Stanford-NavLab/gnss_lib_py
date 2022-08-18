@@ -97,6 +97,20 @@ class AndroidDerived2021(NavData):
                             }
         self.replace(constellation_map, rows="gnss_id", inplace=True)
 
+        # rename signal_type column to conform to standard convention
+        signal_map = {"GPS_L1" : "l1",
+                      "GPS_L5" : "l5",
+                      "GAL_E1" : "e1",
+                      "GAL_E5A" : "e5a",
+                      "GLO_G1" : "g1",
+                      "QZS_J1" : "j1",
+                      "QZS_J5" : "j5",
+                      "BDS_B1I" : "b1i",
+                      "BDS_B1C" : "b1c",
+                      "BDS_B2A" : "b2a",
+                     }
+        self.replace(signal_map, rows="signal_type", inplace=True)
+
     @staticmethod
     def _row_map():
         """Map of row names from loaded to gnss_lib_py standard
@@ -174,7 +188,21 @@ class AndroidDerived2022(NavData):
                              7.:"irnss",
                             }
         self.replace(constellation_map, rows="gnss_id", inplace=True)
-    
+
+        # rename signal_type column to conform to standard convention
+        signal_map = {"GPS_L1" : "l1",
+                      "GPS_L5" : "l5",
+                      "GAL_E1" : "e1",
+                      "GAL_E5A" : "e5a",
+                      "GLO_G1" : "g1",
+                      "QZS_J1" : "j1",
+                      "QZS_J5" : "j5",
+                      "BDS_B1I" : "b1i",
+                      "BDS_B1C" : "b1c",
+                      "BDS_B2A" : "b2a",
+                     }
+        self.replace(signal_map, rows="signal_type", inplace=True)
+
     @staticmethod
     def _row_map():
         """Map of row names from loaded to gnss_lib_py standard
