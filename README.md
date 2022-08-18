@@ -60,8 +60,7 @@ Code Organization
    ├── build_docs.sh                  # Bash script to build docs
    ├── poetry.lock                    # Poetry specific Lock file
    ├── pyproject.toml                 # List of package dependencies
-   ├── requirements.txt               # List of packages for pip install
-   └── setup.py                       # Setup file
+   └── requirements.txt               # List of packages for pip install
 ```
 In the directory organization above:
 
