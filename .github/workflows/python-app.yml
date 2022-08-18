@@ -68,7 +68,7 @@ jobs:
         ./build_docs.sh
   readme:
     runs-on: ubuntu-latest
-    name: Check changed README
+    name: Check if index.rst and README.md weren't changed together
     steps:
       - uses: actions/checkout@v3
         with:
@@ -83,5 +83,11 @@ jobs:
       - name: Check if index.rst changed when README.md file changes
         if: contains(steps.changed-files.outputs.modified_files, 'README.md') && !contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst')
         run: |
-          echo "README.md has changed, but index.rst has not!"
+          echo "README.md has changed but index.rst has not!"
+          exit 1
+
+      - name: Check if README.md changed when index.rst file changes
+        if: contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst') && !contains(steps.changed-files.outputs.modified_files, 'README.md')
+        run: |
+          echo "index.rst has changed but README.md has not!"
           exit 1
