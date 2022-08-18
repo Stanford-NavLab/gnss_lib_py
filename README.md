@@ -13,7 +13,7 @@ quickly prototype, implement, and visualize GNSS algorithms.
 algorithms can be easily exchanged for each other and extendable in
 facilitating user-specific extensions of existing implementations.
 
-<img src="docs/source/img/skyplot.png" alt="satellite skyplot" width="600"/>
+<img src="https://raw.githubusercontent.com/Stanford-NavLab/gnss_lib_py/main/docs/source/img/skyplot.png" alt="satellite skyplot" width="600"/>
 
 `gnss_lib_py` contains parsers for common file types used for
 storing GNSS measurements, benchmark algorithms for processing
