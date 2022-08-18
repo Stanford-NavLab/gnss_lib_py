@@ -6,7 +6,8 @@ gnss_lib_py
 ===========
 
 `gnss_lib_py` is a modular Python tool for parsing, analyzing, and
-visualizing Global Navigation Satellite Systems (GNSS) data.
+visualizing Global Navigation Satellite Systems (GNSS) data and state
+estimates.
 It also provides an intuitive and modular framework allowing users to
 quickly prototype, implement, and visualize GNSS algorithms.
 `gnss_lib_py` is modular in the sense that multiple types of
