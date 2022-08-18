@@ -197,18 +197,22 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
     derived = android.AndroidDerived2021(derived_path,
                                remove_timing_outliers=False)
     measure_df = derived.pandas_df()
-    constellation_map = {0.:"unkown",
-                         1.:"gps",
-                         2.:"sbas",
-                         3.:"glonass",
-                         4.:"qzss",
-                         5.:"beidou",
-                         6.:"galileo",
-                         7.:"irnss",
-                        }
     measure_df.replace({'gnss_id',"gps"},1,inplace=True)
     measure_df.replace({'gnss_id',"glonass"},3,inplace=True)
     measure_df.replace({'gnss_id',"galileo"},6,inplace=True)
+    signal_map = {"GPS_L1" : "l1",
+                  "GPS_L5" : "l5",
+                  "GAL_E1" : "e1",
+                  "GAL_E5A" : "e5a",
+                  "GLO_G1" : "g1",
+                  "QZS_J1" : "j1",
+                  "QZS_J5" : "j5",
+                  "BDS_B1I" : "b1i",
+                  "BDS_B1C" : "b1c",
+                  "BDS_B2A" : "b2a",
+                 }
+    for s_key, s_value in signal_map.items():
+        measure_df.replace({'signal_type',s_value},s_key,inplace=True)
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
@@ -225,7 +229,7 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
                          ('vz_sv_mps', 0, 3559.812),
                          ('b_dot_sv_mps', 0, 0.001),
                          ('signal_type', 0,
-                          np.asarray([['GLO_G1']], dtype=object))]
+                          np.asarray([['g1']], dtype=object))]
                         )
 def test_derived_value_check(derived, row_name, index, value):
     """Check AndroidDerived2021 entries against known values.

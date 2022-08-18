@@ -6,15 +6,25 @@ Install
 Prerequisites
 -------------
 
-:code:`gnss_lib_py` is written in Python and requires basic familiarity
-with Python classes, functions and associated syntax.
+| **Python:** >=3.8, <3.11
+| **Operating System:** Ubuntu, Windows, MacOS
 
-:code:`gnss_lib_py` is developed in Python 3.8.9 in Ubuntu 20 and
-Ubuntu 20 for WSL2.
 All :code:`gnss_lib_py` classes and methods are tested in Python 3.8
 and 3.10 in the latest Ubuntu, MacOS and Windows versions.
+:code:`gnss_lib_py` is developed in Python 3.8.9 in Ubuntu 20/22 and
+Ubuntu 20 for WSL2.
 
 Standard Installation
+---------------------
+
+1. :code:`gnss_lib_py` is available through :code:`pip` installation
+   with:
+
+   .. code-block:: bash
+
+      pip install gnss-lib-py
+
+Editable Installation
 ---------------------
 
 1. Clone the GitHub repository:
