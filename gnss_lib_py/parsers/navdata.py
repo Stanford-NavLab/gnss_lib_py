@@ -665,6 +665,8 @@ class NavData():
 
     def __str__(self):
         str_out = str(self.pandas_df())
+        str_out = str_out.replace("DataFrame","NavData")
+        str_out = str_out.replace("Columns","Rows")
         return str_out
 
     def __len__(self):

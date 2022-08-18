@@ -1603,19 +1603,33 @@ def test_is_str(df_simple):
     with pytest.raises(KeyError):
         navdata.is_str(0)
 
-def test_str_navdata(df_simple):
+def test_str_navdata(df_simple, df_only_header):
     """Test that the NavData class can be printed without errors
 
     Parameters
     ----------
     df_simple : pd.DataFrame
         Dataframe with which to construct NavData instance
+    df_only_header : pd.DataFrame
+        Dataframe with only column names and no data
     """
     navdata = NavData(pandas_df=df_simple)
     navdata_str = str(navdata)
     # Conversion from int to float in DataFrame for consistency
     df_simple = df_simple.astype({'integers': 'float64'})
     df_str = str(df_simple)
+    assert navdata_str==df_str
+
+    # make sure print doesn't break if given only headers
+    navdata_str = str(NavData(pandas_df=df_only_header))
+    df_str = str(df_only_header).replace("DataFrame","NavData")
+    df_str = df_str.replace("Columns","Rows")
+    assert navdata_str==df_str
+
+    # make sure it doesn't break with empty NavData
+    navdata_str = str(NavData())
+    df_str = str(pd.DataFrame()).replace("DataFrame","NavData")
+    df_str = df_str.replace("Columns","Rows")
     assert navdata_str==df_str
 
 def test_in_rows_single(data):
