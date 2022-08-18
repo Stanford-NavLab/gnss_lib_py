@@ -352,42 +352,332 @@ def test_init_only_header(csv_only_header, csv_simple):
                         [
                          lazy_fixture("df_simple"),
                         ])
-def test_rename(pandas_df):
+def test_rename_inplace(pandas_df):
     """Test column renaming functionality.
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
-        test data
+    pandas_df : pd.DataFrame
+        Dataframe for testing values
+
+    """
+    data = NavData(pandas_df=pandas_df)
+    data_temp = data.copy()
+
+    data_temp.rename(rows={"names": "terms"}, inplace=True)
+    assert "names" not in data_temp.map
+    assert "names" not in data_temp.str_map
+    assert "terms" in data_temp.map
+    assert "terms" in data_temp.str_map
+
+    data_temp = data.copy()
+    data_temp.rename(rows={"floats": "decimals", "integers": "numbers"},
+                inplace = True)
+    assert "floats" not in data_temp.map
+    assert "floats" not in data_temp.str_map
+    assert "integers" not in data_temp.map
+    assert "integers" not in data_temp.str_map
+    assert "numbers" in data_temp.map
+    assert "numbers" in data_temp.str_map
+    assert "decimals" in data_temp.map
+    assert "decimals" in data_temp.str_map
+
+    # raises exception if input is not string
+    data_temp = data.copy()
+    with pytest.raises(TypeError):
+        data_temp.rename(rows={"names": 0}, inplace=True)
+    data_temp = data.copy()
+    with pytest.raises(TypeError):
+        data_temp.rename(rows={"names": 0.8}, inplace=True)
+
+    # should raise error if key doesn't exist
+    data_temp = data.copy()
+    with pytest.raises(KeyError):
+        data_temp.rename(rows={"food": "test"}, inplace=True)
+
+@pytest.mark.parametrize('pandas_df',
+                        [
+                         lazy_fixture("df_simple"),
+                        ])
+def test_rename_new_navdata(pandas_df):
+    """Test column renaming functionality.
+
+    Parameters
+    ----------
+    pandas_df : pd.DataFrame
+        Dataframe for testing values
 
     """
     data = NavData(pandas_df=pandas_df)
 
-    data.rename({"names": "terms"})
-    assert "names" not in data.map
-    assert "names" not in data.str_map
-    assert "terms" in data.map
-    assert "terms" in data.str_map
+    new_navdata = data.rename(rows={"names": "terms"})
+    assert "names" not in new_navdata.map
+    assert "names" not in new_navdata.str_map
+    assert "terms" in new_navdata.map
+    assert "terms" in new_navdata.str_map
+    # original one shouldn't have changed
+    assert "names" in data.map
+    assert "names" in data.str_map
+    assert "terms" not in data.map
+    assert "terms" not in data.str_map
 
-    data.rename({"floats": "decimals", "integers": "numbers"})
-    assert "floats" not in data.map
-    assert "floats" not in data.str_map
-    assert "integers" not in data.map
-    assert "integers" not in data.str_map
-    assert "numbers" in data.map
-    assert "numbers" in data.str_map
-    assert "decimals" in data.map
-    assert "decimals" in data.str_map
+    navdata = data.rename(rows={"floats": "decimals", "integers": "numbers"})
+    assert "floats" not in navdata.map
+    assert "floats" not in navdata.str_map
+    assert "integers" not in navdata.map
+    assert "integers" not in navdata.str_map
+    assert "numbers" in navdata.map
+    assert "numbers" in navdata.str_map
+    assert "decimals" in navdata.map
+    assert "decimals" in navdata.str_map
+    # original one shouldn't have changed
+    assert "floats" in data.map
+    assert "floats" in data.str_map
+    assert "integers" in data.map
+    assert "integers" in data.str_map
+    assert "numbers" not in data.map
+    assert "numbers" not in data.str_map
+    assert "decimals" not in data.map
+    assert "decimals" not in data.str_map
 
     # raises exception if input is not string
     with pytest.raises(TypeError):
-        data.rename({"names": 0})
+        navdata = data.rename(rows={"names": 0})
     with pytest.raises(TypeError):
-        data.rename({"names": 0.8})
+        navdata = data.rename(rows={"names": 0.8})
 
     # should raise error if key doesn't exist
     with pytest.raises(KeyError):
-        data.rename({"food": "test"})
+        navdata = data.rename(rows={"food": "test"})
+
+@pytest.mark.parametrize('pandas_df',
+                        [
+                         lazy_fixture("df_simple"),
+                        ])
+def test_rename_fails(pandas_df):
+    """Test column renaming functionality.
+
+    Parameters
+    ----------
+    pandas_df : pd.DataFrame
+        Dataframe for testing values
+
+    """
+    data = NavData(pandas_df=pandas_df)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.rename(mapper=["names","floats"],rows={"names": "terms"})
+    assert "mapper" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.rename(mapper=None,rows=1.0)
+    assert "rows" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.rename(rows={"names": "terms"}, inplace=0.)
+    assert "inplace" in str(excinfo.value)
+
+
+@pytest.mark.parametrize('rows',
+                        [
+                        None,
+                        [],
+                        ["strings","integers"],
+                        ["strings","integers","names","floats"],
+                        ["integers","strings"],
+                        {},
+                        {"strings","integers"},
+                        {"strings","integers","names","floats"},
+                        {"integers","strings"},
+                        (),
+                        ("strings","integers"),
+                        ("strings","integers","names","floats"),
+                        ("integers","strings"),
+                        np.array([]),
+                        np.array(["strings","integers"]),
+                        np.array(["strings","integers","names","floats"]),
+                        np.array(["integers","strings"]),
+                        ])
+def test_rename_mapper_all(df_simple, rows):
+    """Test data renaming functionality.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
+    rows : None or array-like
+        Rows for which mapper is implemented.
+
+    """
+    data = NavData(pandas_df=df_simple)
+    mapper = {"gps":"GPS",
+              45 : 46,
+              }
+
+    # test that both rows change
+    new_navdata = data.rename(mapper, rows=rows)
+    np.testing.assert_array_equal(new_navdata["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(new_navdata["integers"],
+                          np.array([10,2,46,67,98,300]))
+
+    assert new_navdata["names"].dtype == object
+    assert new_navdata["integers"].dtype == np.float64
+    assert new_navdata["floats"].dtype == np.float64
+    assert new_navdata["strings"].dtype == object
+
+    # test that both rows change inplace
+    data_temp = data.copy()
+    data_temp.rename(mapper, rows=rows, inplace=True)
+    np.testing.assert_array_equal(data_temp["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(data_temp["integers"],
+                          np.array([10,2,46,67,98,300]))
+
+    assert data_temp["names"].dtype == object
+    assert data_temp["integers"].dtype == np.float64
+    assert data_temp["floats"].dtype == np.float64
+    assert data_temp["strings"].dtype == object
+
+
+@pytest.mark.parametrize('rows',
+                        [
+                        ["strings","floats","names"],
+                        ["floats","names","strings"],
+                        ["strings"],
+                        {"strings","floats","names"},
+                        {"floats","names","strings"},
+                        {"strings"},
+                        ("strings","floats","names"),
+                        ("floats","names","strings"),
+                        ("strings"),
+                        np.array(["strings","floats","names"]),
+                        np.array(["floats","names","strings"]),
+                        np.array(["strings"]),
+                        ])
+def test_rename_mapper_partial(df_simple, rows):
+    """Test data renaming functionality.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
+    rows : array-like
+        Rows for which mapper is implemented.
+
+    """
+    data = NavData(pandas_df=df_simple)
+    mapper = {"gps":"GPS",
+              45 : 46,
+              }
+
+    # test that only "strings" changes and not "integers"
+    new_navdata = data.rename(mapper, rows=rows)
+    np.testing.assert_array_equal(new_navdata["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(new_navdata["integers"],
+                          np.array([10,2,45,67,98,300]))
+
+    assert new_navdata["names"].dtype == object
+    assert new_navdata["integers"].dtype == np.float64
+    assert new_navdata["floats"].dtype == np.float64
+    assert new_navdata["strings"].dtype == object
+
+    # test that both rows change inplace
+    data_temp = data.copy()
+    data_temp.rename(mapper, rows=rows, inplace=True)
+    np.testing.assert_array_equal(data_temp["strings"],
+                          np.array(["GPS","glonass","galileo","GPS",
+                                    "GPS","galileo"]))
+    np.testing.assert_array_equal(data_temp["integers"],
+                          np.array([10,2,45,67,98,300]))
+
+    assert data_temp["names"].dtype == object
+    assert data_temp["integers"].dtype == np.float64
+    assert data_temp["floats"].dtype == np.float64
+    assert data_temp["strings"].dtype == object
+
+
+def test_rename_mapper_type_change(df_simple):
+    """Test data renaming functionality with type changes.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with
+
+    """
+    data = NavData(pandas_df=df_simple)
+
+    integers_mapper = {2  : "two",
+                       10 : "ten",
+                       45 : "forty-five",
+                       67 : "sixty-seven",
+                       98 : "ninety-eight",
+                       300: "three-hundred",
+                       }
+    strings_mapper = {"gps": 1,
+                      "galileo" : 2,
+                      "glonass" : 3,
+                      }
+
+    # rename contents
+    data.rename(integers_mapper, inplace=True)
+    data.rename(strings_mapper, inplace=True)
+
+    # make sure the rows hold the correct content
+    np.testing.assert_array_equal(data["strings"],
+                          np.array([1, 3, 2, 1, 1, 2]))
+    np.testing.assert_array_equal(data["integers"],
+                          np.array(["ten","two","forty-five",
+                                    "sixty-seven","ninety-eight",
+                                    "three-hundred"]))
+
+    # verify that rows switched types
+    assert data["names"].dtype == object
+    assert data["integers"].dtype == object
+    assert data["floats"].dtype == np.float64
+    assert data["strings"].dtype == np.float64
+
+def test_rename_mapper_and_rows(df_simple):
+    """Test data renaming functionality with type changes and row names.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with
+
+    """
+    data = NavData(pandas_df=df_simple)
+
+    integers_mapper = {2  : "two",
+                       10 : "ten",
+                       45 : "forty-five",
+                       67 : "sixty-seven",
+                       98 : "ninety-eight",
+                       300: "three-hundred",
+                       }
+    row_mapper = {"integers" : "number_words"}
+
+    # rename contents
+    data.rename(integers_mapper, rows=row_mapper, inplace=True)
+
+    # make sure the rows hold the correct content
+    np.testing.assert_array_equal(data["number_words"],
+                          np.array(["ten","two","forty-five",
+                                    "sixty-seven","ninety-eight",
+                                    "three-hundred"]))
+
+    # verify that rows switched types
+    assert data["names"].dtype == object
+    assert data["number_words"].dtype == object
+    assert data["floats"].dtype == np.float64
+    assert data["strings"].dtype == object
+
+
 
 @pytest.fixture(name="df_rows",
                 params=[
