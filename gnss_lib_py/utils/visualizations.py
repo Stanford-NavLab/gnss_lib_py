@@ -212,8 +212,8 @@ def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
 
     data = {}
 
-    signal_types = navdata.get_strings("signal_type")
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = navdata._get_strings("signal_type")
+    sv_ids = navdata._get_strings("sv_id")
 
     time0 = navdata["gps_millis",0]/1000.
 
@@ -298,8 +298,8 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
     local_coord = None
 
     skyplot_data = {}
-    signal_types = list(navdata.get_strings("signal_type"))
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = list(navdata._get_strings("signal_type"))
+    sv_ids = navdata._get_strings("sv_id")
 
     pos_sv_m = np.hstack((navdata["x_sv_m",:].reshape(-1,1),
                           navdata["y_sv_m",:].reshape(-1,1),
@@ -432,8 +432,8 @@ def plot_residuals(navdata, save=True, prefix=""):
         figs = []
 
     residual_data = {}
-    signal_types = navdata.get_strings("signal_type")
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = navdata._get_strings("signal_type")
+    sv_ids = navdata._get_strings("sv_id")
 
     time0 = navdata["gps_millis",0]/1000.
 

@@ -7,9 +7,9 @@ __date__ = "30 Apr 2022"
 
 
 import os
+import itertools
 
 import pytest
-import itertools
 import numpy as np
 import pandas as pd
 from pytest_lazyfixture import lazy_fixture
