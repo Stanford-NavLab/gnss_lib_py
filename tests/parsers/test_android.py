@@ -197,6 +197,18 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
     derived = android.AndroidDerived2021(derived_path,
                                remove_timing_outliers=False)
     measure_df = derived.pandas_df()
+    constellation_map = {0.:"unkown",
+                         1.:"gps",
+                         2.:"sbas",
+                         3.:"glonass",
+                         4.:"qzss",
+                         5.:"beidou",
+                         6.:"galileo",
+                         7.:"irnss",
+                        }
+    measure_df.replace({'gnss_id',"gps"},1,inplace=True)
+    measure_df.replace({'gnss_id',"glonass"},3,inplace=True)
+    measure_df.replace({'gnss_id',"galileo"},6,inplace=True)
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),

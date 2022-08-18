@@ -95,8 +95,7 @@ class AndroidDerived2021(NavData):
                              6.:"galileo",
                              7.:"irnss",
                             }
-        #new_id = (np.vectorize(constellation_map.get)(self['gnss_id'])).astype(object)
-        #self['gnss_id'] = new_id
+        self.rename(constellation_map, rows="gnss_id", inplace=True)
 
     @staticmethod
     def _row_map():

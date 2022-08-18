@@ -806,7 +806,7 @@ class NavData():
             rows = None if len(rows)==0 else rows
         if not inplace:
             new_navdata = self.copy()   # create copy to return
-        if mapper is not None:
+        if mapper is not None and len(self) > 0:
             remap_rows = self.rows if rows is None else rows
             for row in remap_rows:
                 new_row_values = list(self[row])
