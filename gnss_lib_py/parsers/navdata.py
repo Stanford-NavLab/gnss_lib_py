@@ -6,6 +6,7 @@ __authors__ = "Ashwin Kanhere, D. Knowles"
 __date__ = "03 Nov 2021"
 
 import os
+import re
 import copy
 
 import numpy as np
@@ -664,6 +665,10 @@ class NavData():
         str_out = str(self.pandas_df())
         str_out = str_out.replace("DataFrame","NavData")
         str_out = str_out.replace("Columns","Rows")
+        # swap rows and columns when printing for NavData consistency
+        str_out = re.sub(r"(.*)\[(\d+)\srows\sx\s(\d+)\scolumns\](.*)",
+                         r'\g<1>[\g<3> rows x \g<2> columns]\g<4>',
+                         str_out)
         return str_out
 
     def __len__(self):
