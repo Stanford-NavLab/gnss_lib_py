@@ -50,7 +50,7 @@ class NavData():
         elif numpy_array is not None:
             self.from_numpy_array(numpy_array)
         else:
-            self.build_navdata()
+            self._build_navdata()
 
         self.rename(self._row_map(), inplace=True)
 
@@ -60,7 +60,7 @@ class NavData():
         """Postprocess loaded data. Optional in subclass
         """
 
-    def build_navdata(self):
+    def _build_navdata(self):
         """Build attributes for NavData.
 
         """
@@ -85,7 +85,7 @@ class NavData():
         if not os.path.exists(csv_path):
             raise OSError("file not found")
 
-        self.build_navdata()
+        self._build_navdata()
 
         pandas_df = pd.read_csv(csv_path, **kwargs)
         self.from_pandas_df(pandas_df)
@@ -106,7 +106,7 @@ class NavData():
             # class they need to be strings
             pandas_df.rename(str, axis="columns", inplace=True)
 
-        self.build_navdata()
+        self._build_navdata()
 
         for _, col_name in enumerate(pandas_df.columns):
             new_value = pandas_df[col_name].to_numpy()
@@ -125,7 +125,7 @@ class NavData():
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
 
-        self.build_navdata()
+        self._build_navdata()
 
         for row_num in range(numpy_array.shape[0]):
             self[str(row_num)] = numpy_array[row_num,:]
@@ -309,7 +309,6 @@ class NavData():
             if row_str_existing[row_idx] and not row_str_new[row_idx]:
                 # changed from string to numeric
                 self.str_map[self.inv_map[row]] = {}
-
 
         return row_list, row_str_new
 
