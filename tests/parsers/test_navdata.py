@@ -7,9 +7,9 @@ __date__ = "30 Apr 2022"
 
 
 import os
+import itertools
 
 import pytest
-import itertools
 import numpy as np
 import pandas as pd
 from pytest_lazyfixture import lazy_fixture
@@ -1666,6 +1666,14 @@ def test_str_navdata(df_simple, df_only_header):
     df_str = str(pd.DataFrame()).replace("DataFrame","NavData")
     df_str = df_str.replace("Columns","Rows")
     assert navdata_str==df_str
+
+    # test DataFrame with a single row of data
+    df_long = pd.DataFrame(np.zeros((200,4)),
+                                    columns=["A","B","C","D"])
+    navdata = NavData(pandas_df=df_long)
+    assert str(navdata) == str(df_long).replace("[200 rows x 4 columns]",
+                                                "[4 rows x 200 columns]")
+
 
 def test_in_rows_single(data):
     """Test the in_rows function.
