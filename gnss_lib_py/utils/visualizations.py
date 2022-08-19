@@ -212,8 +212,8 @@ def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
 
     data = {}
 
-    signal_types = navdata.get_strings("signal_type")
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = navdata._get_strings("signal_type")
+    sv_ids = navdata._get_strings("sv_id")
 
     time0 = navdata["gps_millis",0]/1000.
 
@@ -291,28 +291,15 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
 
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    if "signal_type" not in navdata.rows:
-        raise KeyError("signal_type missing")
-    if "sv_id" not in navdata.rows:
-        raise KeyError("sv_id missing")
-    if "x_sv_m" not in navdata.rows:
-        raise KeyError("x_sv_m missing")
-    if "y_sv_m" not in navdata.rows:
-        raise KeyError("y_sv_m missing")
-    if "z_sv_m" not in navdata.rows:
-        raise KeyError("z_sv_m missing")
-    if "x_rx_m" not in state_estimate.rows:
-        raise KeyError("x_rx_m missing")
-    if "y_rx_m" not in state_estimate.rows:
-        raise KeyError("y_rx_m missing")
-    if "z_rx_m" not in state_estimate.rows:
-        raise KeyError("z_rx_m missing")
+    # check for missing rows
+    navdata.in_rows(["signal_type","sv_id","x_sv_m","y_sv_m","z_sv_m"])
+    state_estimate.in_rows(["x_rx_m","y_rx_m","z_rx_m"])
 
     local_coord = None
 
     skyplot_data = {}
-    signal_types = list(navdata.get_strings("signal_type"))
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = list(navdata._get_strings("signal_type"))
+    sv_ids = navdata._get_strings("sv_id")
 
     pos_sv_m = np.hstack((navdata["x_sv_m",:].reshape(-1,1),
                           navdata["y_sv_m",:].reshape(-1,1),
@@ -432,10 +419,8 @@ def plot_residuals(navdata, save=True, prefix=""):
         raise KeyError("residuals missing, run solve_residuals().")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    if "signal_type" not in navdata.rows:
-        raise KeyError("signal_type missing")
-    if "sv_id" not in navdata.rows:
-        raise KeyError("sv_id missing")
+    # check for missing rows
+    navdata.in_rows(["signal_type","sv_id"])
     if save: # pragma: no cover
         root_path = os.path.dirname(
                     os.path.dirname(
@@ -447,8 +432,8 @@ def plot_residuals(navdata, save=True, prefix=""):
         figs = []
 
     residual_data = {}
-    signal_types = navdata.get_strings("signal_type")
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = navdata._get_strings("signal_type")
+    sv_ids = navdata._get_strings("sv_id")
 
     time0 = navdata["gps_millis",0]/1000.
 
