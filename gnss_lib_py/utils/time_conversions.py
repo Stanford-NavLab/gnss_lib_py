@@ -84,7 +84,7 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
 
     Returns
     -------
-    gps_week : float
+    gps_week : int
         GPS week.
     tow : float
         GPS time of week [s].
@@ -98,7 +98,7 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
             print('leapSecs added')
         tow = tow + out_leapsecs
 
-    return gps_week, tow
+    return int(gps_week), tow
 
 def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
     """Convert Python datetime object to GPS Week and time of week.
@@ -114,7 +114,7 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
 
     Returns
     -------
-    gps_week : float
+    gps_week : int
         GPS week.
     tow : float
         GPS time of week [s].
@@ -133,7 +133,7 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
 
     tow = ((t_datetime - GPS_EPOCH_0) - timedelta(gps_week* 7.0)).total_seconds()
 
-    return gps_week, tow
+    return int(gps_week), tow
 
 
 def tow_to_datetime(gps_week, tow, rem_leap_secs=True):
@@ -141,7 +141,7 @@ def tow_to_datetime(gps_week, tow, rem_leap_secs=True):
 
     Parameters
     ----------
-    gps_week : float
+    gps_week : int
         GPS week.
     tow : float
         GPS time of week [s].
@@ -171,7 +171,7 @@ def tow_to_unix_millis(gps_week, tow):
 
     Parameters
     ----------
-    gps_week : float
+    gps_week : int
         GPS week.
     tow : float
         GPS time of week [s].
@@ -200,7 +200,7 @@ def tow_to_gps_millis(gps_week, tow):
 
     Parameters
     ----------
-    gps_week : float
+    gps_week : int
         GPS week.
     tow : float
         GPS time of week [s].
@@ -293,14 +293,14 @@ def unix_millis_to_tow(unix_millis):
 
     Returns
     -------
-    gps_week : float
+    gps_week : int
         GPS week.
     tow : float
         GPS time of week [s].
     """
     t_utc = unix_millis_to_datetime(unix_millis)
     gps_week, tow = datetime_to_tow(t_utc, add_leap_secs=True)
-    return gps_week, tow
+    return int(gps_week), tow
 
 
 def unix_to_gps_millis(unix_millis, add_leap_secs=True):
