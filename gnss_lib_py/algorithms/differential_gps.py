@@ -127,7 +127,7 @@ def compute_all_dgpscorr(derived, base):
     if all(x == derived['gnss_id',0][0] for x in derived['gnss_id'][0]):
         unique_gnss_id = derived['gnss_id', 0][0]
     else:
-        raise RuntimeError("No multi-DGNSS capability yet")
+        raise RuntimeError("No multi-GNSS capability yet")
 
     if unique_gnss_id == 1.0:
         unique_gnss_id_str = 'G'
@@ -137,7 +137,7 @@ def compute_all_dgpscorr(derived, base):
     if all(x == derived['gps_week',0][0] for x in derived['gps_week'][0]):
         unique_gps_week = derived['gps_week', 0][0]
     else:
-        raise RuntimeError("Cannot handle GPS-week transition")
+        raise RuntimeError("Cannot handle GPS week transition")
 
     print(unique_gnss_id, unique_gps_week)
 

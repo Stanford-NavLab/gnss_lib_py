@@ -150,10 +150,9 @@ def test_compute_all_dgpscorr(derived, derived_gl1, base):
     (2) Need to shorten the data being loaded for unit tests
     """
     # test what happens when rows down't exist
-    derived_no_x_sv_m = derived.remove(rows="x_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived, base)
-    assert "x_sv_m" in str(excinfo.value)
+    with pytest.raises(RuntimeError) as excinfo:
+        compute_all_dgpscorr(derived, base)
+    assert "multi-GNSS" in str(excinfo.value)
 
     derived_gl1_result = compute_all_dgpscorr(derived_gl1, base)
 
