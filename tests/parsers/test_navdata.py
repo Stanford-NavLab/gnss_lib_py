@@ -1581,7 +1581,7 @@ def test_time_looping(csv_simple):
                             1.499999*np.ones([1,1])))
     compare_df = data.pandas_df()
     count = 0
-    for delta_t, measure in data.loop_time('times'):
+    for _, delta_t, measure in data.loop_time('times'):
         if count == 0:
             np.testing.assert_almost_equal(delta_t, 0)
             row_num = [0,1]

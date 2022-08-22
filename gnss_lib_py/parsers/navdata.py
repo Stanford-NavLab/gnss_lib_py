@@ -251,22 +251,26 @@ class NavData():
         return new_cols
 
     def loop_time(self, time_row, tol_decimals=2):
-        """Generator object to loop over columns from same times
+        """Generator object to loop over columns from same times.
 
         Parameters
         ----------
         time_row : string/int
-            Key or index of the row in which times are stored
+            Key or index of the row in which times are stored.
         tol_decimals : int
-            Decimal places after which times are considered equal
+            Decimal places after which times are considered equal.
 
         Yields
         ------
+        timestamp : float
+            Current timestamp.
         delta_t : float
-            Difference between current time and previous time
+            Difference between current time and previous time.
         new_navdata : gnss_lib_py.parsers.navdata.NavData
-            NavData with same time, up to given decimal tolerance
+            NavData with same time, up to given decimal tolerance.
+
         """
+
         times = self[time_row]
         times_unique = np.sort(np.unique(np.around(times,
                                          decimals=tol_decimals)))
@@ -274,11 +278,11 @@ class NavData():
             if time_idx==0:
                 delta_t = 0
             else:
-                delta_t = times_unique[time_idx]-times_unique[time_idx-1]
+                delta_t = time-times_unique[time_idx-1]
             new_navdata = self.where(time_row, [time-10**(-tol_decimals),
                                                 time+10**(-tol_decimals)],
                                                 condition="between")
-            yield delta_t, new_navdata
+            yield time, delta_t, new_navdata
 
     def is_str(self, row_name):
         """Check whether a row contained string values.

@@ -58,7 +58,7 @@ def solve_wls(measurements, weight_type = None,
 
     states = []
 
-    for _, measurement_subset in measurements.loop_time("gps_millis"):
+    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
 
         pos_sv_m = np.hstack((measurement_subset["x_sv_m"].reshape(-1,1),
                               measurement_subset["y_sv_m"].reshape(-1,1),
@@ -77,8 +77,7 @@ def solve_wls(measurements, weight_type = None,
         position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m, weights,
                        only_bias, tol, max_count)
 
-        states.append([measurement_subset["gps_millis",0].tolist()] \
-                     + np.squeeze(position).tolist())
+        states.append([timestamp] + np.squeeze(position).tolist())
 
     states = np.array(states)
 
