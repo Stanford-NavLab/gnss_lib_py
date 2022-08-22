@@ -549,7 +549,8 @@ class NavData():
         if type(rows) in (list, np.ndarray, tuple):
             if isinstance(rows,np.ndarray):
                 rows = np.atleast_1d(rows)
-            missing_rows = ["'"+row+"'" for row in rows if row not in self.rows]
+            missing_rows = ["'"+row+"'" for row in rows
+                            if row not in self.rows]
         else:
             raise KeyError("input to in_rows must be a single row " \
                          + "index or list/np.ndarray/tuple of indexes")
@@ -699,8 +700,8 @@ class NavData():
             #Creating an entire new row
             if isinstance(new_value, np.ndarray) \
                     and (new_value.dtype in (object,str) \
-                    or np.issubdtype(new_value.dtype,np.dtype('U'))):                # Adding string values
-                # string values
+                    or np.issubdtype(new_value.dtype,np.dtype('U'))):
+                # Adding string values
                 new_value = new_value.astype(str)
                 new_str_vals = len(np.unique(new_value))*np.ones(np.shape(new_value),
                                     dtype=self.arr_dtype)
@@ -714,9 +715,9 @@ class NavData():
                 self.map[key_idx] = self.shape[0]-1
             else:
                 # numeric values
-                if not isinstance(new_value, int) \
-                and not isinstance(new_value, float) \
-                and new_value.size > 0:
+                if not type(new_value) in (int,float) \
+                and ((not isinstance(new_value, list) and new_value.size > 0)
+                or (isinstance(new_value, list) and len(new_value) > 0)):
                     assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Cannot set a row with list of strings, \
                             please use np.ndarray with dtype=object"
