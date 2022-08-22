@@ -1817,3 +1817,19 @@ def test_pandas_df(df_simple, df_only_header):
     pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
                                   pd.DataFrame().sort_index(axis=1),
                                   check_names=True)
+
+def test_large_int():
+    """Test get/set for large integers.
+
+    """
+
+    test_list = np.array([1e12 + 1,
+                          1e12 + 2,
+                          1e12 + 3,
+                          1e12 + 4,
+                          1e12 + 5,
+                          ])
+    navdata = NavData()
+    navdata["numbers"] = test_list
+
+    np.testing.assert_array_equal(navdata["numbers"], test_list)

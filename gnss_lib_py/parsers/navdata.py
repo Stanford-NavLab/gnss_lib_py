@@ -33,7 +33,7 @@ class NavData():
                  **kwargs):
         # For a Pythonic implementation,
         # including all attributes as None in the beginning
-        self.arr_dtype = np.float32 # default value
+        self.arr_dtype = np.float64 # default value
         self.array = None
         self.map = {}
         self.str_map = {}
