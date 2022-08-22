@@ -9,7 +9,8 @@ gnss_lib_py
 .. _mainpage:
 
 :code:`gnss_lib_py` is a modular Python tool for parsing, analyzing, and
-visualizing Global Navigation Satellite Systems (GNSS) data.
+visualizing Global Navigation Satellite Systems (GNSS) data and state
+estimates.
 It also provides an intuitive and modular framework allowing users to
 quickly prototype, implement, and visualize GNSS algorithms.
 :code:`gnss_lib_py` is modular in the sense that multiple types of
@@ -63,8 +64,7 @@ Code Organization
    ├── build_docs.sh                  # Bash script to build docs
    ├── poetry.lock                    # Poetry specific Lock file
    ├── pyproject.toml                 # List of package dependencies
-   ├── requirements.txt               # List of packages for pip install
-   └── setup.py                       # Setup file
+   └── requirements.txt               # List of packages for pip install
 
 In the directory organization above:
 

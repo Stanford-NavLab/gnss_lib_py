@@ -47,25 +47,36 @@ class AndroidDerived2021(NavData):
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
         indexes = np.searchsorted(derived_timestamps, derived_timestamps)
         map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
-        pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v], pd_df['millisSinceGpsEpoch'])))
-
+        pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v],
+                                                pd_df['millisSinceGpsEpoch'])))
 
         # Correction 5 implemented verbatim from competition tips
         if remove_timing_outliers:
             delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
             where_good_signals = (delta_millis > 0) & (delta_millis < 300)
             pd_df = pd_df[where_good_signals].copy()
+            if np.all(~where_good_signals):
+                warnings.warn("All data removed due to timing outliers,"
+                            + " try setting remove_timing_outliers to"
+                            + " False", RuntimeWarning)
 
         super().__init__(pandas_df=pd_df)
 
     def postprocess(self):
-        """Android derived specific postprocessing
+        """Android derived specific postprocessing.
 
-        Notes
-        -----
-        Adds corrected pseudoranges to measurements. Time step corrections
-        implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-        retrieved on 10 August, 2022
+        Adds corrected pseudoranges to measurements. Time step
+        corrections implemented from dataset webpage [1]_ retrieved on
+        10 August, 2022.
+
+        Correlates constellation type numbers with corresponding
+        constellation names. Mapping also comes from competition
+        website [1]_.
+
+        References
+        ----------
+        .. [1] https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
         """
         pr_corrected = self['raw_pr_m'] \
                      + self['b_sv_m'] \
@@ -73,6 +84,32 @@ class AndroidDerived2021(NavData):
                      - self['tropo_delay_m'] \
                      - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
+
+        # rename gnss_id column to constellation type
+        constellation_map = {0.:"unkown",
+                             1.:"gps",
+                             2.:"sbas",
+                             3.:"glonass",
+                             4.:"qzss",
+                             5.:"beidou",
+                             6.:"galileo",
+                             7.:"irnss",
+                            }
+        self.replace(constellation_map, rows="gnss_id", inplace=True)
+
+        # rename signal_type column to conform to standard convention
+        signal_map = {"GPS_L1" : "l1",
+                      "GPS_L5" : "l5",
+                      "GAL_E1" : "e1",
+                      "GAL_E5A" : "e5a",
+                      "GLO_G1" : "g1",
+                      "QZS_J1" : "j1",
+                      "QZS_J5" : "j5",
+                      "BDS_B1I" : "b1i",
+                      "BDS_B1C" : "b1c",
+                      "BDS_B2A" : "b2a",
+                     }
+        self.replace(signal_map, rows="signal_type", inplace=True)
 
     @staticmethod
     def _row_map():
@@ -139,6 +176,32 @@ class AndroidDerived2022(NavData):
                      - self['tropo_delay_m'] \
                      - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
+
+        # rename gnss_id column to constellation type
+        constellation_map = {0.:"unkown",
+                             1.:"gps",
+                             2.:"sbas",
+                             3.:"glonass",
+                             4.:"qzss",
+                             5.:"beidou",
+                             6.:"galileo",
+                             7.:"irnss",
+                            }
+        self.replace(constellation_map, rows="gnss_id", inplace=True)
+
+        # rename signal_type column to conform to standard convention
+        signal_map = {"GPS_L1" : "l1",
+                      "GPS_L5" : "l5",
+                      "GAL_E1" : "e1",
+                      "GAL_E5A" : "e5a",
+                      "GLO_G1" : "g1",
+                      "QZS_J1" : "j1",
+                      "QZS_J5" : "j5",
+                      "BDS_B1I" : "b1i",
+                      "BDS_B1C" : "b1c",
+                      "BDS_B2A" : "b2a",
+                     }
+        self.replace(signal_map, rows="signal_type", inplace=True)
 
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
