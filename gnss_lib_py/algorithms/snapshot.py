@@ -56,19 +56,18 @@ def solve_wls(measurements, weight_type = None,
     measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","b_sv_m",
                           "gps_millis"])
 
-    unique_timesteps = np.unique(measurements["gps_millis",:])
+    states = []
 
-    states = np.nan*np.ones((4,len(unique_timesteps)))
+    for _, measurement_subset in measurements.loop_time("gps_millis"):
 
-    for t_idx, timestep in enumerate(unique_timesteps):
-        idxs = np.where(measurements["gps_millis",:] == timestep)[0]
-        pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
-                              measurements["y_sv_m",idxs].reshape(-1,1),
-                              measurements["z_sv_m",idxs].reshape(-1,1)))
-        corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
+        pos_sv_m = np.hstack((measurement_subset["x_sv_m"].reshape(-1,1),
+                              measurement_subset["y_sv_m"].reshape(-1,1),
+                              measurement_subset["z_sv_m"].reshape(-1,1)))
+        corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
+
         if weight_type is not None:
             if isinstance(weight_type,str) and weight_type in measurements.rows:
-                weights = measurements[weight_type, idxs].reshape(-1,1)
+                weights = measurement_subset[weight_type].reshape(-1,1)
             else:
                 raise TypeError("WLS weights must be None or row"\
                                 +" in NavData")
@@ -78,14 +77,17 @@ def solve_wls(measurements, weight_type = None,
         position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m, weights,
                        only_bias, tol, max_count)
 
-        states[:,t_idx:t_idx+1] = position
+        states.append([measurement_subset["gps_millis",0].tolist()] \
+                     + np.squeeze(position).tolist())
+
+    states = np.array(states)
 
     state_estimate = NavData()
-    state_estimate["gps_millis"] = unique_timesteps
-    state_estimate["x_rx_m"] = states[0,:]
-    state_estimate["y_rx_m"] = states[1,:]
-    state_estimate["z_rx_m"] = states[2,:]
-    state_estimate["b_rx_m"] = states[3,:]
+    state_estimate["gps_millis"] = states[:,0]
+    state_estimate["x_rx_m"] = states[:,1]
+    state_estimate["y_rx_m"] = states[:,2]
+    state_estimate["z_rx_m"] = states[:,3]
+    state_estimate["b_rx_m"] = states[:,4]
 
     lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m",
                                                    "y_rx_m",

@@ -314,6 +314,8 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
         self["x_gt_m"] = gt_ecef[:,0]
         self["y_gt_m"] = gt_ecef[:,1]
         self["z_gt_m"] = gt_ecef[:,2]
+
+        # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self['unix_millis'])
 
     @staticmethod

@@ -265,7 +265,7 @@ class NavData():
         delta_t : float
             Difference between current time and previous time
         new_navdata : gnss_lib_py.parsers.navdata.NavData
-            NavData with same time, upto given decimal tolerance
+            NavData with same time, up to given decimal tolerance
         """
         times = self[time_row]
         times_unique = np.sort(np.unique(np.around(times,

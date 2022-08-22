@@ -320,37 +320,29 @@ def test_solve_wls(derived):
     assert isinstance(state_estimate,type(NavData()))
 
     # should have four rows
-    assert len(state_estimate.rows) == 4
+    assert len(state_estimate.rows) == 8
 
     # should have the following contents
+    assert "gps_millis" in state_estimate.rows
     assert "x_rx_m" in state_estimate.rows
     assert "y_rx_m" in state_estimate.rows
     assert "z_rx_m" in state_estimate.rows
     assert "b_rx_m" in state_estimate.rows
+    assert "lat_rx_deg" in state_estimate.rows
+    assert "lon_rx_deg" in state_estimate.rows
+    assert "alt_rx_deg" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
-    assert len(state_estimate) == len(np.unique(derived["gps_millis",:]))
+    assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
+
+    # len(np.unique(derived["gps_millis",:]))
 
     # test what happens when rows down't exist
-    derived_no_x_sv_m = derived.remove(rows="x_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_x_sv_m)
-    assert "x_sv_m" in str(excinfo.value)
-
-    derived_no_y_sv_m = derived.remove(rows="y_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_y_sv_m)
-    assert "y_sv_m" in str(excinfo.value)
-
-    derived_no_z_sv_m = derived.remove(rows="z_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_z_sv_m)
-    assert "z_sv_m" in str(excinfo.value)
-
-    derived_no_b_sv_m = derived.remove(rows="b_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_b_sv_m)
-    assert "b_sv_m" in str(excinfo.value)
+    for row_index in ["gps_millis","x_sv_m","y_sv_m","z_sv_m","b_sv_m"]:
+        derived_no_row = derived.remove(rows=row_index)
+        with pytest.raises(KeyError) as excinfo:
+            solve_wls(derived_no_row)
+        assert row_index in str(excinfo.value)
 
 def test_solve_wls_weights(derived, tolerance):
     """Tests that weights are working for weighted least squares.
