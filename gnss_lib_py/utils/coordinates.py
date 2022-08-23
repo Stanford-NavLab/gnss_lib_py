@@ -27,7 +27,7 @@ SOFTWARE.
 
 """
 
-__authors__ = "Shubh Gupta, Ashwin Kanhere"
+__authors__ = "Shubh Gupta, Ashwin Kanhere, Derek Knowles"
 __date__ = "20 July 2021"
 
 import numpy as np
@@ -410,52 +410,52 @@ def ecef_to_el_az(rx_pos, sv_pos):
 
     Notes
     -----
-    Code written by J. Makela.
+    Code based on method by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois
     Urbana-Champaign. Fall 2017
 
     """
 
-    # check for 1D case:
-    dim = len(rx_pos.shape)
-    if dim == 1:
-        rx_pos = np.reshape(rx_pos,(1,3))
+    # conform receiver position to correct shape
+    rx_pos = np.atleast_2d(rx_pos)
+    if rx_pos.shape == (3,1):
+        rx_pos = rx_pos.T
+    if rx_pos.shape != (1,3):
+        assert RuntimeError("Receiver ECEF position must be a " \
+                          + "np.ndarray of shape 1x3.")
 
-    dim = len(sv_pos.shape)
-    if dim == 1:
-        sv_pos = np.reshape(sv_pos,(1,3))
+    # conform satellite position to correct shape
+    sv_pos = np.atleast_2d(sv_pos)
+    if sv_pos.shape[1] != 3:
+        assert RuntimeError("Satellite ECEF position(s) must be a " \
+                          + "np.ndarray of shape Nx3.")
 
     # Convert the receiver location to WGS84
     rx_lla = ecef_to_geodetic(rx_pos)
-    assert np.shape(rx_lla)==(1,3)
 
     # Create variables with the latitude and longitude in radians
-    lat = np.deg2rad(rx_lla[0,0])
-    lon = np.deg2rad(rx_lla[0,1])
+    rx_lat, rx_lon = np.deg2rad(rx_lla[0,:2])
 
-    # Create the 3 x 3 transform matrix from ECEF to ecef_to_ven
-    cos_lon = np.cos(lon)
-    cos_lat = np.cos(lat)
-    sin_lon = np.sin(lon)
-    sin_lat = np.sin(lat)
-    ecef_to_ven = np.array([[ cos_lat*cos_lon,  cos_lat*sin_lon, sin_lat],
-                            [-sin_lon        ,  cos_lon        , 0.     ],
-                            [-sin_lat*cos_lon, -sin_lat*sin_lon, cos_lat]])
+    # Create the 3 x 3 transform matrix from ECEF to VEN
+    ecef_to_ven = np.array([[ np.cos(rx_lat)*np.cos(rx_lon),
+                              np.cos(rx_lat)*np.sin(rx_lon),
+                              np.sin(rx_lat)],
+                            [-np.sin(rx_lon),
+                              np.cos(rx_lon),
+                              0.     ],
+                            [-np.sin(rx_lat)*np.cos(rx_lon),
+                             -np.sin(rx_lat)*np.sin(rx_lon),
+                              np.cos(rx_lat)]])
 
     # Replicate the rx_pos array to be the same size as the satellite array
-    rx_array = np.ones_like(sv_pos) * rx_pos
+    rx_array = np.tile(rx_pos,(len(sv_pos),1))
 
-    # Calculate the pseudorange for each satellite
-    p = sv_pos - rx_array
-
-    # Calculate the length of this vector
-    n = np.array([np.sqrt(p[:,0]**2 + p[:,1]**2 + p[:,2]**2)])
-
-    # Create the normalized unit vector
-    p = p / (np.ones_like(p) * n.T)
+    # Calculate the normalized pseudorange for each satellite
+    pseudorange = (sv_pos - rx_array) / np.linalg.norm(sv_pos - rx_array,
+                                             axis=1, keepdims=True)
 
     # Perform the transform of the normalized pseudorange from ECEF to VEN
-    p_ven = np.dot(ecef_to_ven, p.T)
+    p_ven = np.dot(ecef_to_ven, pseudorange.T)
 
     # Calculate elevation and azimuth in degrees
     el_az = np.zeros([sv_pos.shape[0],2])
