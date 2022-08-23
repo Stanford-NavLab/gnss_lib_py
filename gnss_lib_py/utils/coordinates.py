@@ -387,3 +387,79 @@ class LocalCoord(object):
         ecef = self.ned_to_ecef(ned)
         geodetic = ecef_to_geodetic(ecef)
         return geodetic
+
+def ecef_to_el_az(rx_pos, sv_pos):
+    """Calculate the elevation and azimuth from receiver to satellites.
+
+    Vectorized to be able to be able to output the elevation and azimuth
+    for multiple satellites at the same time.
+
+    Parameters
+    ----------
+    rx_pos : np.ndarray
+        1x3 vector containing ECEF [X, Y, Z] coordinate of receiver
+    sv_pos : np.ndarray
+        Nx3 array  containing ECEF [X, Y, Z] coordinates of satellites
+
+    Returns
+    -------
+    el_az : np.ndarray
+        Nx2 array containing the elevation and azimuth from the
+        receiver to the requested satellites. Elevation and azimuth are
+        given in decimal degrees.
+
+    Notes
+    -----
+    Code written by J. Makela.
+    AE 456, Global Navigation Sat Systems, University of Illinois
+    Urbana-Champaign. Fall 2017
+
+    """
+
+    # check for 1D case:
+    dim = len(rx_pos.shape)
+    if dim == 1:
+        rx_pos = np.reshape(rx_pos,(1,3))
+
+    dim = len(sv_pos.shape)
+    if dim == 1:
+        sv_pos = np.reshape(sv_pos,(1,3))
+
+    # Convert the receiver location to WGS84
+    rx_lla = ecef_to_geodetic(rx_pos)
+    assert np.shape(rx_lla)==(1,3)
+
+    # Create variables with the latitude and longitude in radians
+    lat = np.deg2rad(rx_lla[0,0])
+    lon = np.deg2rad(rx_lla[0,1])
+
+    # Create the 3 x 3 transform matrix from ECEF to ecef_to_ven
+    cos_lon = np.cos(lon)
+    cos_lat = np.cos(lat)
+    sin_lon = np.sin(lon)
+    sin_lat = np.sin(lat)
+    ecef_to_ven = np.array([[ cos_lat*cos_lon,  cos_lat*sin_lon, sin_lat],
+                            [-sin_lon        ,  cos_lon        , 0.     ],
+                            [-sin_lat*cos_lon, -sin_lat*sin_lon, cos_lat]])
+
+    # Replicate the rx_pos array to be the same size as the satellite array
+    rx_array = np.ones_like(sv_pos) * rx_pos
+
+    # Calculate the pseudorange for each satellite
+    p = sv_pos - rx_array
+
+    # Calculate the length of this vector
+    n = np.array([np.sqrt(p[:,0]**2 + p[:,1]**2 + p[:,2]**2)])
+
+    # Create the normalized unit vector
+    p = p / (np.ones_like(p) * n.T)
+
+    # Perform the transform of the normalized pseudorange from ECEF to VEN
+    p_ven = np.dot(ecef_to_ven, p.T)
+
+    # Calculate elevation and azimuth in degrees
+    el_az = np.zeros([sv_pos.shape[0],2])
+    el_az[:,0] = np.rad2deg((np.pi/2. - np.arccos(p_ven[0,:])))
+    el_az[:,1] = np.rad2deg(np.arctan2(p_ven[1,:],p_ven[2,:]))
+
+    return el_az
