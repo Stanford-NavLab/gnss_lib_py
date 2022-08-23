@@ -27,7 +27,7 @@ def make_dir(directory): # pragma: no cover
         except OSError as error:
             raise OSError("Unable to create directory " + directory) from error
 
-def save_figure(fig, filename): # pragma: no cover
+def _save_figure(fig, filename): # pragma: no cover
     """Saves figure as a png.
 
     Parameters

@@ -6,6 +6,7 @@ __authors__ = "D. Knowles"
 __date__ = "27 Jan 2022"
 
 import os
+import pathlib
 
 import numpy as np
 from cycler import cycler
@@ -42,41 +43,8 @@ mpl.rcParams['axes.prop_cycle'] = cycler(color=STANFORD_COLORS)
 
 TIMESTAMP = fo.get_timestamp()
 
-def new_cmap(rgb_color):
-    """Return a new cmap from a color going to white.
-
-    Given an RGB color, it creates a new color map that starts at white
-    then fades into the provided RGB color.
-
-    Parameters
-    ----------
-    rgb_color : tuple
-        color tuple of (red, green, blue) in floats between 0 and 1.0
-
-    Returns
-    -------
-    cmap : ListedColormap
-        New color map made from the provided color.
-
-
-    Notes
-    -----
-    More details and examples at the following link
-    https://matplotlib.org/3.1.0/tutorials/colors/colormap-manipulation.html
-
-    """
-    num_vals = 256
-    vals = np.ones((num_vals, 4))
-
-    vals[:, 0] = np.linspace(1., rgb_color[0], num_vals)
-    vals[:, 1] = np.linspace(1., rgb_color[1], num_vals)
-    vals[:, 2] = np.linspace(1., rgb_color[2], num_vals)
-    cmap = ListedColormap(vals)
-
-    return cmap
-
-
-def plot_metric(navdata, *args, save=True, prefix=""):
+def plot_metric(navdata, *args, groupby=None, title=None, save=True,
+                prefix="", fname=None, **kwargs):
     """Plot specific metric from a row of the NavData class.
 
     Parameters
@@ -87,182 +55,167 @@ def plot_metric(navdata, *args, save=True, prefix=""):
         Tuple of row names that are to be plotted. If one is given, that
         value is plotted on the y-axis. If two values are given, the
         first is plotted on the x-axis and the second on the y-axis.
+    grouby : string
+        Row name by which to groub and label plots
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.
     prefix : string
         File prefix to add to filename.
+    fname : string or path-like
+        Path to save figure to. If not None, fname is passed directly
+        to matplotlib's savefig fname parameter and prefix will be
+        overwritten.
 
     Returns
     -------
-    figs : list
-        List of matplotlib.pyplot.figure objects of residuels, returns
-        None if save set to True.
+    fig : figure
+        matplotlib.pyplot.figure of plotted metrics.
 
     """
-    if len(args)==1:
-        x_metric = None
-        y_metric = args[0]
-    elif len(args)==2:
-        x_metric = args[0]
-        y_metric = args[1]
-    else:
-        raise ValueError("Cannot plot more than 1 pair of x-y values")
 
-    if len(navdata.str_map[y_metric]):
-        raise KeyError(y_metric + " is a non-numeric row, unable to plot.")
-    if x_metric is not None and len(navdata.str_map[x_metric]):
-        raise KeyError(x_metric + " is a non-numeric row, unable to plot.")
+    x_metric, y_metric = _parse_metric_args(navdata, *args)
+
+    if groupby is not None:
+        navdata.in_rows(groupby)
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
 
-    if save: # pragma: no cover
-        root_path = os.path.dirname(
-                    os.path.dirname(
-                    os.path.dirname(
-                    os.path.realpath(__file__))))
-        log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.make_dir(log_path)
-    else:
-        figs = []
-
-    fig = plt.figure(figsize=(5,3))
-    axes = plt.gca()
+    fig, axes = _get_new_fig()
 
     if x_metric is None:
-        plt_title = y_metric
-        plt.title(plt_title)
-        data = navdata[y_metric]
-        axes.scatter(range(data.shape[0]),data,s=5.)
+        if title is None:
+            title = y_metric
         plt.xlabel("index")
-        plt.ylabel(y_metric)
+        if groupby is not None:
+            for group in np.unique(navdata[groupby]):
+                subset = navdata.where(groupby,group)
+                y_data = np.atleast_1d(subset[y_metric])
+                axes.scatter(range(len(y_data)), y_data,
+                             s=5., label=group, **kwargs)
+        else:
+            y_data = np.atleast_1d(navdata[y_metric])
+            axes.scatter(range(len(y_data)), y_data,
+                         s=5., **kwargs)
     else:
-        plt_title = x_metric + " vs. " + y_metric
-        plt.title(plt_title)
-        axes.scatter(navdata[x_metric],navdata[y_metric],s=5.)
+        if title is None:
+            title = x_metric + " vs. " + y_metric
         plt.xlabel(x_metric)
-        plt.ylabel(y_metric)
+        if groupby is not None:
+            for group in np.unique(navdata[groupby]):
+                subset = navdata.where(groupby,group)
+                x_data = np.atleast_1d(subset[x_metric])
+                y_data = np.atleast_1d(subset[y_metric])
+                axes.scatter(x_data, y_data, s=5.,label=group,**kwargs)
+        else:
+            x_data = np.atleast_1d(navdata[x_metric])
+            y_data = np.atleast_1d(navdata[y_metric])
+            axes.scatter(x_data, y_data, s=5.,**kwargs)
 
-    axes.ticklabel_format(useOffset=False)
+    handles, _ = axes.get_legend_handles_labels()
+    if len(handles) > 0:
+        plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
+                   title=groupby)
 
+    plt.title(title)
+    plt.ylabel(y_metric)
+    fig.tight_layout()
 
     if save: # pragma: no cover
-        if prefix != "" and not prefix.endswith('_'):
-            prefix += "_"
-        plt_file = os.path.join(log_path,
-                      prefix + plt_title.replace(" vs. ","_")  + ".png")
+        _sav_figure(fig, title, prefix, fname)
+    return fig
 
-        fo.save_figure(fig, plt_file)
-
-        # close previous figure
-        plt.close(fig)
-
-    else:
-        figs.append(fig)
-
-    if save: # pragma: no cover
-        return None
-    return figs
-
-
-def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
+def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
+                                 fname=None, **kwargs):
     """Plot specific metric from a row of the NavData class.
+
+    Breaks up metrics by constellation names in "gnss_id" and
+    additionally "signal_type" if the "signal_type" row exists.
+
+    Plots will include a legend with satellite ID if the "sv_id" row
+    is present in navdata.
 
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class
-    metric : string
-        Row name for metric to be plotted
+        Instance of the NavData class. Must include "gnss_id" row and
+        optionally "signal_type" and "sv_id" for increased labelling.
+    *args : tuple
+        Tuple of row names that are to be plotted. If one is given, that
+        value is plotted on the y-axis. If two values are given, the
+        first is plotted on the x-axis and the second on the y-axis.
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.
     prefix : string
         File prefix to add to filename.
+    fname : string or path-like
+        Path to save figure to. If not None, fname is passed directly
+        to matplotlib's savefig fname parameter and prefix will be
+        overwritten.
 
     Returns
     -------
     figs : list
-        List of matplotlib.pyplot.figure objects of residuels, returns
-        None if save set to True.
+        List of matplotlib.pyplot.figures
 
     """
 
-    if len(navdata.str_map[metric]):
-        raise KeyError(metric + " is a non-numeric row, unable to plot.")
+    x_metric, y_metric = _parse_metric_args(navdata, *args)
+
+    print(x_metric,y_metric)
+
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    if "signal_type" not in navdata.rows:
-        raise KeyError("signal_type missing," \
+    if "gnss_id" not in navdata.rows:
+        raise KeyError("gnss_id row missing," \
                      + " try using" \
-                     + " plot_metric() function call instead")
-    if "sv_id" not in navdata.rows:
-        raise KeyError("sv_id missing," \
-                     + " try using" \
-                     + " plot_metric() function call instead")
+                     + " the plot_metric() function call instead")
 
-    if save: # pragma: no cover
-        root_path = os.path.dirname(
-                    os.path.dirname(
-                    os.path.dirname(
-                    os.path.realpath(__file__))))
-        log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.make_dir(log_path)
-    else:
-        figs = []
+    figs = []
+    for constellation in np.unique(navdata["gnss_id"]):
+        const_subset = navdata.where("gnss_id",constellation)
 
-    data = {}
-
-    signal_types = navdata._get_strings("signal_type")
-    sv_ids = navdata._get_strings("sv_id")
-
-    time0 = navdata["gps_millis",0]/1000.
-
-    for m_idx in range(navdata.shape[1]):
-        if signal_types[m_idx] not in data:
-            data[signal_types[m_idx]] = {}
-        if sv_ids[m_idx] not in data[signal_types[m_idx]]:
-            data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["gps_millis",m_idx]/1000. - time0],
-                                                  [navdata[metric,m_idx]]]
+        if prefix is None:
+            prefix = constellation + "_"
         else:
-            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["gps_millis",m_idx]/1000. - time0)
-            data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata[metric,m_idx])
-
-    ####################################################################
-    # BROKEN UP BY CONSTELLATION TYPE
-    ####################################################################
-
-    for signal_type, signal_data in data.items():
-        fig = plt.figure(figsize=(5,3))
-        axes = plt.gca()
-        plt.title(get_signal_label(signal_type))
-
-        for sv_name, sv_data in signal_data.items():
-            axes.scatter(sv_data[0],sv_data[1],label=sv_name,s=5.)
-
-        axes.ticklabel_format(useOffset=False)
-        axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-
-        plt.xlabel("time [s]")
-        plt.ylabel(metric)
-        plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
-
-        if save: # pragma: no cover
             if prefix != "" and not prefix.endswith('_'):
                 prefix += "_"
-            plt_file = os.path.join(log_path, prefix + metric \
-                     + "_" + signal_type + ".png")
+            prefix += constellation + "_"
 
-            fo.save_figure(fig, plt_file)
-
-            # close previous figure
-            plt.close(fig)
-
+        if "signal_type" in const_subset.rows:
+            for signal in np.unique(const_subset["signal_type"]):
+                prefix += signal + "_"
+                title = _get_label(constellation,signal)
+                signal_subset = navdata.where("signal_type",signal)
+                if "sv_id" in signal_subset.rows:
+                    # group by sv_id
+                    fig = plot_metric(signal_subset,x_metric,y_metric,
+                                      groupby="sv_id", title=title,
+                                      save=save, prefix=prefix,
+                                      fname=fname, **kwargs)
+                    figs.append(fig)
+                else:
+                    fig = plot_metric(signal_subset,x_metric,y_metric,
+                                      title=title, save=save,
+                                      prefix=prefix, fname=fname,
+                                      **kwargs)
+                    figs.append(fig)
         else:
-            figs.append(fig)
+            title = _get_label(constellation)
+            if "sv_id" in const_subset.rows:
+                # group by sv_id
+                fig = plot_metric(const_subset,x_metric,y_metric,
+                                  groupby="sv_id", title=title,
+                                  save=save, prefix=prefix, fname=fname,
+                                  **kwargs)
+                figs.append(fig)
+            else:
+                fig = plot_metric(const_subset,x_metric,y_metric,
+                                  title=title, save=save, prefix=prefix,
+                                  fname=fname, **kwargs)
+                figs.append(fig)
 
-    if save: # pragma: no cover
-        return None
     return figs
 
 def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
@@ -340,7 +293,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
     for signal_type, signal_data in skyplot_data.items():
         s_idx = 0
         color = "C" + str(c_idx % len(STANFORD_COLORS))
-        cmap = new_cmap(to_rgb(color))
+        cmap = _new_cmap(to_rgb(color))
         marker = MARKERS[c_idx % len(MARKERS)]
         for _, sv_data in signal_data.items():
             # only plot ~ 50 points for each sat to decrease time
@@ -385,7 +338,7 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
             prefix += "_"
         plt_file = os.path.join(log_path, prefix + "skyplot.png")
 
-        fo.save_figure(fig, plt_file)
+        fo._sav_figure(fig, plt_file)
 
         # close previous figure
         plt.close(fig)
@@ -463,7 +416,6 @@ def plot_residuals(navdata, save=True, prefix=""):
             plt.plot(sv_data[0], sv_data[1],
                      label = get_signal_label(signal_type) + " " + str(sv_name))
         axes = plt.gca()
-        axes.ticklabel_format(useOffset=False)
         axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
         plt.ylim(-100.,100.)
         plt.xlabel("time [s]")
@@ -476,7 +428,7 @@ def plot_residuals(navdata, save=True, prefix=""):
             plt_file = os.path.join(log_path, prefix + "residuals_" \
                      + signal_type + ".png")
 
-            fo.save_figure(fig, plt_file)
+            fo._sav_figure(fig, plt_file)
 
             # close previous figure
             plt.close(fig)
@@ -512,6 +464,35 @@ def get_signal_label(signal_name_raw):
 
     return signal_label
 
+def _get_label(constellation=None, signal=None):
+    """Return signal name with better formatting for legend.
+
+    Parameters
+    ----------
+    signal_name_raw : string
+        Signal name with underscores between parts of singal type.
+        For example, GPS_L1
+
+    Returns
+    -------
+    signal_label : string
+        Properly formatted signal label
+
+    """
+    if constellation is None:
+        constellation = ""
+    else:
+        constellation = constellation.upper()
+    if signal is None:
+        signal = ""
+    else:
+        signal = signal.upper()
+        # replace with lowercase "i" for Beidou "I" signals for more
+        # legible name in the legend
+        if signal[-1] == "I":
+            signal = signal[:-1] + "i"
+
+    return constellation + " " + signal
 
 def map_lla(*args, save=True, prefix="", **kwargs):
     """Map trajectories.
@@ -520,17 +501,17 @@ def map_lla(*args, save=True, prefix="", **kwargs):
     ----------
     *args : tuple
         Tuple of gnss_lib_py.parsers.navdata.NavData objects. The
-        NavData objects should include ...
+        NavData objects should include.
     save : bool
         Save figure if true, otherwise returns figure object. Defaults
         to saving the figure in the Results folder.
     prefix : string
         File prefix to add to filename.
     mapbox_style : str
-        Can optionally be included as one of the **kwargs
-        Free options include 'open-street-map', 'white-bg',
-        'carto-positron', 'carto-darkmatter', 'stamen-terrain',
-        'stamen-toner', and 'stamen-watercolor'.
+        Can optionally be included as one of the ``**kwargs``
+        Free options include ``open-street-map``, ``white-bg``,
+        ``carto-positron``, ``carto-darkmatter``, ``stamen-terrain``,
+        ``stamen-toner``, and ``stamen-watercolor``.
 
     Returns
     -------
@@ -539,6 +520,7 @@ def map_lla(*args, save=True, prefix="", **kwargs):
         None if save set to True.
 
     """
+    # TODO: add description about what NavData objects should include
 
     if save: # pragma: no cover
         root_path = os.path.dirname(
@@ -589,3 +571,164 @@ def map_lla(*args, save=True, prefix="", **kwargs):
         return None
 
     return fig
+
+def _get_new_fig():
+    """
+
+    fig : matplotlib.pyplot.figure
+        Default NavData figure.
+    axes : matplotlib.pyplot.axes
+        Default NavData axes.
+
+    """
+
+    fig = plt.figure(figsize=(5,3))
+    axes = plt.gca()
+
+    axes.ticklabel_format(useOffset=False)
+    axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+
+    return fig, axes
+
+def close_figures(figs):
+    """Closes figures.
+
+    Parameters
+    ----------
+    figs : list or matplotlib.pyplot.figure
+        List of figures or single matplotlib figure object.
+
+    """
+
+    if isinstance(figs,plt.Figure):
+        plt.close(figs)
+    elif isinstance(figs, list):
+        for fig in figs:
+            plt.close(fig)
+    else:
+        raise TypeError("Must be either a single figure or list of figures.")
+
+def _sav_figure(figures, titles, prefix, fnames): # pragma: no cover
+    """Saves figures to file.
+
+    Parameters
+    ----------
+    figures : single or list of List of matplotlib.pyplot.figure objects
+        Figures to be saved and closed.
+    titles : string, path-like or list of strings
+        Titles for all plots.
+    prefix : string
+        File prefix to add to filename.
+    fnames : single or list of string or path-like
+        Path to save figure to. If not None, fname is passed directly
+        to matplotlib's savefig fname parameter and prefix will be
+        overwritten.
+
+    """
+
+    if isinstance(figures, mpl.Figure):
+        figures = [figures]
+    if isinstance(titles,str):
+        titles = [titles]
+    if type(fnames) in (str, pathlib.Path):
+        fnames = [fnames]
+
+    for fig_idx, figure in enumerate(figures):
+
+        if fnames[fig_idx] is None:
+            # create results folder if it does not yet exist.
+            root_path = os.path.dirname(
+                        os.path.dirname(
+                        os.path.dirname(
+                        os.path.realpath(__file__))))
+            log_path = os.path.join(root_path,"results",TIMESTAMP)
+            fo.make_dir(log_path)
+
+            # make name path friendly
+            title = titles[fig_idx]
+            title.replace(" ","_")
+            title.replace(".","")
+            title.replace("vs","")
+
+            if prefix != "" and not prefix.endswith('_'):
+                prefix += "_"
+            fname = os.path.join(log_path, prefix + title \
+                                                  + ".png")
+        else:
+            fname = fnames[fig_idx]
+
+        figure.savefig(fname,
+                       dpi=300.,
+                       format="png",
+                       bbox_inches="tight")
+
+def _parse_metric_args(navdata, *args):
+    """Parses arguments and raises error if metrics are nonnumeric.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class
+    *args : tuple
+        Tuple of row names that are to be plotted. If one is given, that
+        value is plotted on the y-axis. If two values are given, the
+        first is plotted on the x-axis and the second on the y-axis.
+
+    Returns
+    -------
+    x_metric : string
+        Metric to be plotted on y-axis if y_metric is None, otherwise
+        x_metric is plotted on x axis.
+    y_metric : string or None
+        y_metric is plotted on the y axis.
+
+    """
+
+    # parse arguments
+    if len(args)==1:
+        x_metric = None
+        y_metric = args[0]
+    elif len(args)==2:
+        x_metric = args[0]
+        y_metric = args[1]
+    else:
+        raise ValueError("Cannot plot more than one pair of x-y values")
+    for metric in [x_metric, y_metric]:
+        if metric is not None and navdata.is_str(metric):
+            raise KeyError(metric + " is a non-numeric row." \
+                         + "Unable to plot with plot_metric().")
+
+    return x_metric, y_metric
+
+def _new_cmap(rgb_color):
+    """Return a new cmap from a color going to white.
+
+    Given an RGB color, it creates a new color map that starts at white
+    then fades into the provided RGB color.
+
+    Parameters
+    ----------
+    rgb_color : tuple
+        color tuple of (red, green, blue) in floats between 0 and 1.0
+
+    Returns
+    -------
+    cmap : ListedColormap
+        New color map made from the provided color.
+
+
+    Notes
+    -----
+    More details and examples at the following link
+    https://matplotlib.org/3.1.0/tutorials/colors/colormap-manipulation.html
+
+    """
+    num_vals = 256
+    vals = np.ones((num_vals, 4))
+
+    vals[:, 0] = np.linspace(1., rgb_color[0], num_vals)
+    vals[:, 1] = np.linspace(1., rgb_color[1], num_vals)
+    vals[:, 2] = np.linspace(1., rgb_color[2], num_vals)
+    cmap = ListedColormap(vals)
+
+    return cmap
