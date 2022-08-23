@@ -9,14 +9,14 @@ import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
 
-def solve_residuals(measurements, comparison, inplace=True):
+def solve_residuals(measurements, receiver_state, inplace=True):
     """Calculates residuals given pseudoranges and receiver position.
 
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class
-    comparison : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters and the estimated or ground truth receiver clock bias
         also in meters as an instance of the NavData class with the
@@ -37,16 +37,16 @@ def solve_residuals(measurements, comparison, inplace=True):
 
     # verify corrected pseudoranges exist in inputs
     measurements.in_rows(["gps_millis","corr_pr_m"])
-    comparison.in_rows(["gps_millis"])
+    receiver_state.in_rows(["gps_millis"])
 
-    # check for comparison indexes
-    comp_idxs = {"x_*_m" : [],
-                 "y_*_m" : [],
-                 "z_*_m" : [],
-                 "b_*_m" : [],
-                 }
-    for name, indexes in comp_idxs.items():
-        indexes = [row for row in comparison.rows
+    # check for receiver_state indexes
+    rx_idxs = {"x_*_m" : [],
+               "y_*_m" : [],
+               "z_*_m" : [],
+               "b_*_m" : [],
+               }
+    for name, indexes in rx_idxs.items():
+        indexes = [row for row in receiver_state.rows
                       if row.startswith(name.split("*",maxsplit=1)[0])
                        and row.endswith(name.split("*",maxsplit=1)[1])]
         if len(indexes) > 1:
@@ -57,7 +57,7 @@ def solve_residuals(measurements, comparison, inplace=True):
             raise KeyError("Missing required " + name + " row for " \
                         + "solve_wls.")
         # must call dictionary to avoid pass by value
-        comp_idxs[name] = indexes[0]
+        rx_idxs[name] = indexes[0]
 
     residuals = []
     for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
@@ -68,18 +68,18 @@ def solve_residuals(measurements, comparison, inplace=True):
 
         corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
 
-        # find time index for comparison NavData
-        comp_t_idx = np.argmin(np.abs(comparison["gps_millis"] - timestamp))
+        # find time index for receiver_state NavData instance
+        rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
 
-        rx_pos = comparison[[comp_idxs["x_*_m"],
-                             comp_idxs["y_*_m"],
-                             comp_idxs["z_*_m"]],
-                             comp_t_idx].reshape(-1,1)
+        rx_pos = receiver_state[[rx_idxs["x_*_m"],
+                                 rx_idxs["y_*_m"],
+                                 rx_idxs["z_*_m"]],
+                                 rx_t_idx].reshape(-1,1)
         pos_rx_m = np.tile(rx_pos.T, (num_svs, 1))
 
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                                  keepdims = True) \
-                + comparison[comp_idxs["b_*_m"],comp_t_idx]
+                + receiver_state[rx_idxs["b_*_m"],rx_t_idx]
 
         # calculate residual
         residuals_epoch = corr_pr_m - gt_pr_m

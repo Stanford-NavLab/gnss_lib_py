@@ -58,8 +58,8 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=True,
     grouby : string
         Row name by which to groub and label plots
     save : bool
-        Save figure if true, otherwise returns figure object. Defaults
-        to saving the figure in the Results folder.
+        Saves figure if true to file specified by fname or defaults
+        to the Results folder otherwise.
     prefix : string
         File prefix to add to filename.
     fname : string or path-like
@@ -69,8 +69,8 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=True,
 
     Returns
     -------
-    fig : figure
-        matplotlib.pyplot.figure of plotted metrics.
+    fig : matplotlib.pyplot.Figure
+         Figure of plotted metrics.
 
     """
 
@@ -138,32 +138,31 @@ def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class. Must include "gnss_id" row and
-        optionally "signal_type" and "sv_id" for increased labelling.
+        Instance of the NavData class. Must include ``gnss_id`` row and
+        optionally ``signal_type`` and ``sv_id`` for increased
+        labelling.
     *args : tuple
         Tuple of row names that are to be plotted. If one is given, that
         value is plotted on the y-axis. If two values are given, the
         first is plotted on the x-axis and the second on the y-axis.
     save : bool
-        Save figure if true, otherwise returns figure object. Defaults
-        to saving the figure in the Results folder.
+        Saves figure if true to file specified by ``fname`` or defaults
+        to the Results folder otherwise.
     prefix : string
         File prefix to add to filename.
     fname : string or path-like
-        Path to save figure to. If not None, fname is passed directly
-        to matplotlib's savefig fname parameter and prefix will be
-        overwritten.
+        Path to save figure to. If not None, ``fname`` is passed
+        directly to matplotlib's savefig fname parameter and prefix will
+        be overwritten.
 
     Returns
     -------
-    figs : list
-        List of matplotlib.pyplot.figures
+    fig : list of matplotlib.pyplot.Figure objects
+         List of figures of plotted metrics.
 
     """
 
     x_metric, y_metric = _parse_metric_args(navdata, *args)
-
-    print(x_metric,y_metric)
 
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
@@ -218,23 +217,36 @@ def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
 
     return figs
 
-def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
-    """Skyplot of data
+def plot_skyplot(navdata, receiver_state, save=True, prefix="",
+                 fname=None, **kwargs):
+    """Skyplot of satellite positions relative to receiver.
+
+    Breaks up satellites by constellation names in ``gnss_id`` and will
+    label the ``sv_id`` if the row is present in navdata.
+
+    Will automatically combine data across ``signal_type`` to show only
+    one instance for each ``sv_id`` if ``sv_id`` is present.
 
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        Estimated receiver position in ECEF frame in meters and the
-        estimated receiver clock bias also in meters as an instance of
-        the NavData class with shape (4 x # unique timesteps) and
-        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+        Instance of the NavData class. Must include ``gps_millis`` as
+        well as satellite ECEF positions as ``x_sv_m``, ``y_sv_m``, and
+        ``z_sv_m``. Optionally can include ``gnss_id`` and ``sv_id`` for
+        increased labelling.
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Either estimated or ground truth receiver position in ECEF frame
+        in meters as an instance of the NavData class with the
+        following rows: ``x_*_m``, ``y_*_m``, ``z_*_m``, ``gps_millis``.
     save : bool
-        Save figure if true, otherwise returns figure object. Defaults
-        to saving the figure in the Results folder.
+        Saves figure if true to file specified by ``fname`` or defaults
+        to the Results folder otherwise.
     prefix : string
         File prefix to add to filename.
+    fname : string or path-like
+        Path to save figure to. If not None, ``fname`` is passed
+        directly to matplotlib's savefig fname parameter and prefix will
+        be overwritten.
 
     Returns
     -------
@@ -246,107 +258,126 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
     # check for missing rows
-    navdata.in_rows(["signal_type","sv_id","x_sv_m","y_sv_m","z_sv_m"])
-    state_estimate.in_rows(["x_rx_m","y_rx_m","z_rx_m"])
+    navdata.in_rows(["gps_millis","x_sv_m","y_sv_m","z_sv_m"])
+    receiver_state.in_rows(["gps_millis"])
 
-    local_coord = None
+    # check for receiver_state indexes
+    rx_idxs = {"x_*_m" : [],
+               "y_*_m" : [],
+               "z_*_m" : [],
+               }
+    for name, indexes in rx_idxs.items():
+        indexes = [row for row in receiver_state.rows
+                      if row.startswith(name.split("*",maxsplit=1)[0])
+                       and row.endswith(name.split("*",maxsplit=1)[1])]
+        if len(indexes) > 1:
+            raise KeyError("Multiple possible row indexes for " \
+                         + name \
+                         + ". Unable to resolve for plot_skyplot().")
+        if len(indexes) == 0:
+            raise KeyError("Missing required " + name + " row for " \
+                        + "plot_skyplot().")
+        # must call dictionary to avoid pass by value
+        rx_idxs[name] = indexes[0]
 
-    skyplot_data = {}
-    signal_types = list(navdata._get_strings("signal_type"))
-    sv_ids = navdata._get_strings("sv_id")
-
-    pos_sv_m = np.hstack((navdata["x_sv_m",:].reshape(-1,1),
-                          navdata["y_sv_m",:].reshape(-1,1),
-                          navdata["z_sv_m",:].reshape(-1,1)))
-
-    for t_idx, timestep in enumerate(np.unique(navdata["gps_millis",:])):
-        idxs = np.where(navdata["gps_millis",:] == timestep)[0]
-        for m_idx in idxs:
-
-            if signal_types[m_idx] not in skyplot_data:
-                if "5" in signal_types[m_idx]:
-                    continue
-                skyplot_data[signal_types[m_idx]] = {}
-
-            if local_coord is None:
-                local_coord = LocalCoord.from_ecef(state_estimate[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
-            sv_ned = local_coord.ecef_to_ned(pos_sv_m[m_idx:m_idx+1,:])[0]
-
-            sv_az = np.pi/2.-np.arctan2(sv_ned[0],sv_ned[1])
-            xy_dist = np.sqrt(sv_ned[0]**2+sv_ned[1]**2)
-            sv_el = np.degrees(np.arctan2(-sv_ned[2],xy_dist))
-
-            if sv_ids[m_idx] not in skyplot_data[signal_types[m_idx]]:
-                skyplot_data[signal_types[m_idx]][sv_ids[m_idx]] = [[sv_az],[sv_el]]
-            else:
-                skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(sv_az)
-                skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(sv_el)
-
-    ####################################################################
-    # BROKEN UP BY CONSTELLATION TYPE
-    ####################################################################
-
-
-    fig = plt.figure(figsize=(5,5))
+    fig, axes = _get_new_fig()
     axes = fig.add_subplot(111, projection='polar')
-    c_idx = 0
-    for signal_type, signal_data in skyplot_data.items():
-        s_idx = 0
-        color = "C" + str(c_idx % len(STANFORD_COLORS))
-        cmap = _new_cmap(to_rgb(color))
-        marker = MARKERS[c_idx % len(MARKERS)]
-        for _, sv_data in signal_data.items():
-            # only plot ~ 50 points for each sat to decrease time
-            # it takes to plot these line collections
-            step = max(1,int(len(sv_data[0])/50.))
-            points = np.array([sv_data[0][::step],
-                               sv_data[1][::step]]).T
-            points = np.reshape(points,(-1, 1, 2))
-            segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            norm = plt.Normalize(0,len(segments))
-            local_coord = LineCollection(segments, cmap=cmap, norm=norm,
-                                array = range(len(segments)),
-                                linewidths=(4,))
-            axes.add_collection(local_coord)
-            if s_idx == 0:
-                axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-                        marker=marker, markersize=8,
-                        label=get_signal_label(signal_type))
-            else:
-                axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-                        marker=marker, markersize=8)
-            # axes.text(sv_data[0][-1], sv_data[1][-1], sv_name)
 
-            s_idx += 1
-        c_idx += 1
+    if "gnss_id" in navdata.rows:
+        if "signal_type" in navdata.rows:
+            if "sv_id" in navdata.rows:
+                pass
 
+
+    # updated axes for skyplot graph specifics
     axes.set_theta_zero_location('N')
     axes.set_theta_direction(-1)
     axes.set_yticks(range(0, 90+10, 30))    # Define the yticks
     axes.set_ylim(90,0)
+    axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
+                title="title")
 
-    axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
+    fig.tight_layout()
 
     if save: # pragma: no cover
-        root_path = os.path.dirname(
-                    os.path.dirname(
-                    os.path.dirname(
-                    os.path.realpath(__file__))))
-        log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.make_dir(log_path)
-        if prefix != "" and not prefix.endswith('_'):
-            prefix += "_"
-        plt_file = os.path.join(log_path, prefix + "skyplot.png")
-
-        fo._sav_figure(fig, plt_file)
-
-        # close previous figure
-        plt.close(fig)
-
-        return None
-
+        _sav_figure(fig, "skyplot", prefix=prefix, fnames=fname)
     return fig
 
+
+    ####################################################################
+    # old code
+    ####################################################################
+
+    # local_coord = None
+    #
+    # skyplot_data = {}
+    # signal_types = list(navdata._get_strings("signal_type"))
+    # sv_ids = navdata._get_strings("sv_id")
+    #
+    # pos_sv_m = np.hstack((navdata["x_sv_m",:].reshape(-1,1),
+    #                       navdata["y_sv_m",:].reshape(-1,1),
+    #                       navdata["z_sv_m",:].reshape(-1,1)))
+    #
+    # for t_idx, timestep in enumerate(np.unique(navdata["gps_millis",:])):
+    #     idxs = np.where(navdata["gps_millis",:] == timestep)[0]
+    #     for m_idx in idxs:
+    #
+    #         if signal_types[m_idx] not in skyplot_data:
+    #             if "5" in signal_types[m_idx]:
+    #                 continue
+    #             skyplot_data[signal_types[m_idx]] = {}
+    #
+    #         if local_coord is None:
+    #             local_coord = LocalCoord.from_ecef(receiver_state[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
+    #         sv_ned = local_coord.ecef_to_ned(pos_sv_m[m_idx:m_idx+1,:])[0]
+    #
+    #         sv_az = np.pi/2.-np.arctan2(sv_ned[0],sv_ned[1])
+    #         xy_dist = np.sqrt(sv_ned[0]**2+sv_ned[1]**2)
+    #         sv_el = np.degrees(np.arctan2(-sv_ned[2],xy_dist))
+    #
+    #         if sv_ids[m_idx] not in skyplot_data[signal_types[m_idx]]:
+    #             skyplot_data[signal_types[m_idx]][sv_ids[m_idx]] = [[sv_az],[sv_el]]
+    #         else:
+    #             skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(sv_az)
+    #             skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(sv_el)
+    #
+    # ####################################################################
+    # # BROKEN UP BY CONSTELLATION TYPE
+    # ####################################################################
+    #
+    #
+    # fig = plt.figure(figsize=(5,5))
+    # axes = fig.add_subplot(111, projection='polar')
+    # c_idx = 0
+    # for signal_type, signal_data in skyplot_data.items():
+    #     s_idx = 0
+    #     color = "C" + str(c_idx % len(STANFORD_COLORS))
+    #     cmap = _new_cmap(to_rgb(color))
+    #     marker = MARKERS[c_idx % len(MARKERS)]
+    #     for _, sv_data in signal_data.items():
+    #         # only plot ~ 50 points for each sat to decrease time
+    #         # it takes to plot these line collections
+    #         step = max(1,int(len(sv_data[0])/50.))
+    #         points = np.array([sv_data[0][::step],
+    #                            sv_data[1][::step]]).T
+    #         points = np.reshape(points,(-1, 1, 2))
+    #         segments = np.concatenate([points[:-1], points[1:]], axis=1)
+    #         norm = plt.Normalize(0,len(segments))
+    #         local_coord = LineCollection(segments, cmap=cmap, norm=norm,
+    #                             array = range(len(segments)),
+    #                             linewidths=(4,))
+    #         axes.add_collection(local_coord)
+    #         if s_idx == 0:
+    #             axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+    #                     marker=marker, markersize=8,
+    #                     label=get_signal_label(signal_type))
+    #         else:
+    #             axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
+    #                     marker=marker, markersize=8)
+    #         # axes.text(sv_data[0][-1], sv_data[1][-1], sv_name)
+    #
+    #         s_idx += 1
+    #     c_idx += 1
 
 def plot_residuals(navdata, save=True, prefix=""):
     """Plot residuals.

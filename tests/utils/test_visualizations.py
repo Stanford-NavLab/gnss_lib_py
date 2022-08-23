@@ -221,15 +221,15 @@ def test_plot_skyplot(derived, state_estimate):
         viz.plot_skyplot(derived, state_estimate, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
-    derived_no_sv_id = derived.remove(rows="sv_id")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived_no_sv_id, state_estimate, save=False)
-    assert "sv_id" in str(excinfo.value)
-
-    derived_no_signal_type = derived.remove(rows="signal_type")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived_no_signal_type, state_estimate, save=False)
-    assert "signal_type" in str(excinfo.value)
+    # derived_no_sv_id = derived.remove(rows="sv_id")
+    # with pytest.raises(KeyError) as excinfo:
+    #     viz.plot_skyplot(derived_no_sv_id, state_estimate, save=False)
+    # assert "sv_id" in str(excinfo.value)
+    #
+    # derived_no_signal_type = derived.remove(rows="signal_type")
+    # with pytest.raises(KeyError) as excinfo:
+    #     viz.plot_skyplot(derived_no_signal_type, state_estimate, save=False)
+    # assert "signal_type" in str(excinfo.value)
 
     derived_no_x = derived.remove(rows="x_sv_m")
     with pytest.raises(KeyError) as excinfo:
@@ -246,20 +246,20 @@ def test_plot_skyplot(derived, state_estimate):
         viz.plot_skyplot(derived_no_z, state_estimate, save=False)
     assert "z_sv_m" in str(excinfo.value)
 
-    state_estimate_no_x = state_estimate.remove(rows="x_rx_m")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived, state_estimate_no_x, save=False)
-    assert "x_rx_m" in str(excinfo.value)
-
-    state_estimate_no_y = state_estimate.remove(rows="y_rx_m")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived, state_estimate_no_y, save=False)
-    assert "y_rx_m" in str(excinfo.value)
-
-    state_estimate_no_z = state_estimate.remove(rows="z_rx_m")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived, state_estimate_no_z, save=False)
-    assert "z_rx_m" in str(excinfo.value)
+    # state_estimate_no_x = state_estimate.remove(rows="x_rx_m")
+    # with pytest.raises(KeyError) as excinfo:
+    #     viz.plot_skyplot(derived, state_estimate_no_x, save=False)
+    # assert "x_rx_m" in str(excinfo.value)
+    #
+    # state_estimate_no_y = state_estimate.remove(rows="y_rx_m")
+    # with pytest.raises(KeyError) as excinfo:
+    #     viz.plot_skyplot(derived, state_estimate_no_y, save=False)
+    # assert "y_rx_m" in str(excinfo.value)
+    #
+    # state_estimate_no_z = state_estimate.remove(rows="z_rx_m")
+    # with pytest.raises(KeyError) as excinfo:
+    #     viz.plot_skyplot(derived, state_estimate_no_z, save=False)
+    # assert "z_rx_m" in str(excinfo.value)
 
 def test_plot_residuals(derived, state_estimate):
     """Test for plotting residuals.
