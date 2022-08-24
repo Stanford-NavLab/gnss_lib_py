@@ -18,7 +18,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgb, ListedColormap
 
 import gnss_lib_py.utils.file_operations as fo
-from gnss_lib_py.utils.coordinates import LocalCoord
+from gnss_lib_py.utils.coordinates import ecef_to_el_az
 
 STANFORD_COLORS = [
                    "#8C1515",   # cardinal red
@@ -122,7 +122,7 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=True,
     fig.tight_layout()
 
     if save: # pragma: no cover
-        _sav_figure(fig, title, prefix, fname)
+        _save_figure(fig, title, prefix, fname)
     return fig
 
 def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
@@ -221,6 +221,9 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
                  fname=None, **kwargs):
     """Skyplot of satellite positions relative to receiver.
 
+    First adds ``el_sv_deg`` and ``az_sv_deg`` rows to navdata if they
+    do not yet exist.
+
     Breaks up satellites by constellation names in ``gnss_id`` and will
     label the ``sv_id`` if the row is present in navdata.
 
@@ -280,19 +283,82 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
         # must call dictionary to avoid pass by value
         rx_idxs[name] = indexes[0]
 
-    fig, axes = _get_new_fig()
+    if "el_sv_deg" not in navdata.rows or "az_sv_deg" not in navdata.rows:
+        sv_el_az = None
+
+        for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
+
+            pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
+
+            # find time index for receiver_state NavData instance
+            rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
+
+            pos_rx_m = receiver_state[[rx_idxs["x_*_m"],
+                                       rx_idxs["y_*_m"],
+                                       rx_idxs["z_*_m"]],
+                                       rx_t_idx].reshape(1,-1)
+
+            timestep_el_az = ecef_to_el_az(pos_rx_m, pos_sv_m)
+
+            if sv_el_az is None:
+                sv_el_az = timestep_el_az.T
+            else:
+                sv_el_az = np.hstack((sv_el_az,timestep_el_az.T))
+
+        navdata["el_sv_deg"] = sv_el_az[0,:]
+        navdata["az_sv_deg"] = sv_el_az[1,:]
+
+    # create new figure
+    fig = plt.figure(figsize=(8,6))
     axes = fig.add_subplot(111, projection='polar')
 
+    navdata = navdata.copy()
+    navdata["az_sv_rad"] = np.radians(navdata["az_sv_deg"])
     if "gnss_id" in navdata.rows:
-        if "signal_type" in navdata.rows:
-            if "sv_id" in navdata.rows:
-                pass
-
+        for c_idx, constellation in enumerate(np.unique(navdata["gnss_id"])):
+            const_subset = navdata.where("gnss_id",constellation)
+            color = "C" + str(c_idx % len(STANFORD_COLORS))
+            cmap = _new_cmap(to_rgb(color))
+            marker = MARKERS[c_idx % len(MARKERS)]
+            if "sv_id" in const_subset.rows:
+                # iterate through each satellite
+                for sv_idx, sv_name in enumerate(np.unique(const_subset["sv_id"])):
+                    sv_subset = const_subset.where("sv_id",sv_name)
+                    # only plot ~ 50 points for each sat to decrease time
+                    # it takes to plot these line collections
+                    step = max(1,int(len(sv_subset)/50.))
+                    points = np.array([sv_subset["az_sv_rad"],
+                                       sv_subset["el_sv_deg"]]).T
+                    points = np.reshape(points,(-1, 1, 2))
+                    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+                    norm = plt.Normalize(0,len(segments))
+                    local_coord = LineCollection(segments, cmap=cmap,
+                                    norm=norm, linewidths=(4,),
+                                    array = range(len(segments)))
+                    axes.add_collection(local_coord)
+                    if sv_idx == 0:
+                        # plot with label
+                        axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
+                                  np.atleast_1d(sv_subset["el_sv_deg"])[-1],
+                                  c=color, marker=marker, markersize=8,
+                            label=_get_label(constellation=constellation))
+                    else:
+                        # plot without label
+                        axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
+                                  np.atleast_1d(sv_subset["el_sv_deg"])[-1],
+                                  c=color, marker=marker, markersize=8)
+                    axes.text(np.atleast_1d(sv_subset["az_sv_rad"])[-1]\
+                            + 3.*np.radians(np.cos(np.atleast_1d(sv_subset["az_sv_rad"])[-1])),
+                              np.atleast_1d(sv_subset["el_sv_deg"])[-1]\
+                            - 3.*np.sin(np.atleast_1d(sv_subset["az_sv_rad"])[-1]),
+                              str(int(sv_name)),
+                              backgroundcolor=(1.,1.,1.,0.2))
 
     # updated axes for skyplot graph specifics
     axes.set_theta_zero_location('N')
     axes.set_theta_direction(-1)
-    axes.set_yticks(range(0, 90+10, 30))    # Define the yticks
+    axes.set_yticks(range(0, 60+10, 30))    # Define the yticks
+    axes.set_yticklabels(['',r'$30\degree$',r'$60\degree$'])
     axes.set_ylim(90,0)
     axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
                 title="title")
@@ -300,84 +366,8 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
     fig.tight_layout()
 
     if save: # pragma: no cover
-        _sav_figure(fig, "skyplot", prefix=prefix, fnames=fname)
+        _save_figure(fig, "skyplot", prefix=prefix, fnames=fname)
     return fig
-
-
-    ####################################################################
-    # old code
-    ####################################################################
-
-    # local_coord = None
-    #
-    # skyplot_data = {}
-    # signal_types = list(navdata._get_strings("signal_type"))
-    # sv_ids = navdata._get_strings("sv_id")
-    #
-    # pos_sv_m = np.hstack((navdata["x_sv_m",:].reshape(-1,1),
-    #                       navdata["y_sv_m",:].reshape(-1,1),
-    #                       navdata["z_sv_m",:].reshape(-1,1)))
-    #
-    # for t_idx, timestep in enumerate(np.unique(navdata["gps_millis",:])):
-    #     idxs = np.where(navdata["gps_millis",:] == timestep)[0]
-    #     for m_idx in idxs:
-    #
-    #         if signal_types[m_idx] not in skyplot_data:
-    #             if "5" in signal_types[m_idx]:
-    #                 continue
-    #             skyplot_data[signal_types[m_idx]] = {}
-    #
-    #         if local_coord is None:
-    #             local_coord = LocalCoord.from_ecef(receiver_state[["x_rx_m","y_rx_m","z_rx_m"],t_idx])
-    #         sv_ned = local_coord.ecef_to_ned(pos_sv_m[m_idx:m_idx+1,:])[0]
-    #
-    #         sv_az = np.pi/2.-np.arctan2(sv_ned[0],sv_ned[1])
-    #         xy_dist = np.sqrt(sv_ned[0]**2+sv_ned[1]**2)
-    #         sv_el = np.degrees(np.arctan2(-sv_ned[2],xy_dist))
-    #
-    #         if sv_ids[m_idx] not in skyplot_data[signal_types[m_idx]]:
-    #             skyplot_data[signal_types[m_idx]][sv_ids[m_idx]] = [[sv_az],[sv_el]]
-    #         else:
-    #             skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(sv_az)
-    #             skyplot_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(sv_el)
-    #
-    # ####################################################################
-    # # BROKEN UP BY CONSTELLATION TYPE
-    # ####################################################################
-    #
-    #
-    # fig = plt.figure(figsize=(5,5))
-    # axes = fig.add_subplot(111, projection='polar')
-    # c_idx = 0
-    # for signal_type, signal_data in skyplot_data.items():
-    #     s_idx = 0
-    #     color = "C" + str(c_idx % len(STANFORD_COLORS))
-    #     cmap = _new_cmap(to_rgb(color))
-    #     marker = MARKERS[c_idx % len(MARKERS)]
-    #     for _, sv_data in signal_data.items():
-    #         # only plot ~ 50 points for each sat to decrease time
-    #         # it takes to plot these line collections
-    #         step = max(1,int(len(sv_data[0])/50.))
-    #         points = np.array([sv_data[0][::step],
-    #                            sv_data[1][::step]]).T
-    #         points = np.reshape(points,(-1, 1, 2))
-    #         segments = np.concatenate([points[:-1], points[1:]], axis=1)
-    #         norm = plt.Normalize(0,len(segments))
-    #         local_coord = LineCollection(segments, cmap=cmap, norm=norm,
-    #                             array = range(len(segments)),
-    #                             linewidths=(4,))
-    #         axes.add_collection(local_coord)
-    #         if s_idx == 0:
-    #             axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-    #                     marker=marker, markersize=8,
-    #                     label=get_signal_label(signal_type))
-    #         else:
-    #             axes.plot(sv_data[0][-1],sv_data[1][-1],c=color,
-    #                     marker=marker, markersize=8)
-    #         # axes.text(sv_data[0][-1], sv_data[1][-1], sv_name)
-    #
-    #         s_idx += 1
-    #     c_idx += 1
 
 def plot_residuals(navdata, save=True, prefix=""):
     """Plot residuals.
@@ -459,7 +449,7 @@ def plot_residuals(navdata, save=True, prefix=""):
             plt_file = os.path.join(log_path, prefix + "residuals_" \
                      + signal_type + ".png")
 
-            fo._sav_figure(fig, plt_file)
+            fo._save_figure(fig, plt_file)
 
             # close previous figure
             plt.close(fig)
@@ -494,36 +484,6 @@ def get_signal_label(signal_name_raw):
         signal_label = signal_label[:-1] + "i"
 
     return signal_label
-
-def _get_label(constellation=None, signal=None):
-    """Return signal name with better formatting for legend.
-
-    Parameters
-    ----------
-    signal_name_raw : string
-        Signal name with underscores between parts of singal type.
-        For example, GPS_L1
-
-    Returns
-    -------
-    signal_label : string
-        Properly formatted signal label
-
-    """
-    if constellation is None:
-        constellation = ""
-    else:
-        constellation = constellation.upper()
-    if signal is None:
-        signal = ""
-    else:
-        signal = signal.upper()
-        # replace with lowercase "i" for Beidou "I" signals for more
-        # legible name in the legend
-        if signal[-1] == "I":
-            signal = signal[:-1] + "i"
-
-    return constellation + " " + signal
 
 def map_lla(*args, save=True, prefix="", **kwargs):
     """Map trajectories.
@@ -603,24 +563,6 @@ def map_lla(*args, save=True, prefix="", **kwargs):
 
     return fig
 
-def _get_new_fig():
-    """
-
-    fig : matplotlib.pyplot.figure
-        Default NavData figure.
-    axes : matplotlib.pyplot.axes
-        Default NavData axes.
-
-    """
-
-    fig = plt.figure(figsize=(5,3))
-    axes = plt.gca()
-
-    axes.ticklabel_format(useOffset=False)
-    axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-
-    return fig, axes
-
 def close_figures(figs):
     """Closes figures.
 
@@ -639,7 +581,55 @@ def close_figures(figs):
     else:
         raise TypeError("Must be either a single figure or list of figures.")
 
-def _sav_figure(figures, titles, prefix, fnames): # pragma: no cover
+def _get_new_fig():
+    """
+
+    fig : matplotlib.pyplot.figure
+        Default NavData figure.
+    axes : matplotlib.pyplot.axes
+        Default NavData axes.
+
+    """
+
+    fig = plt.figure(figsize=(5,3))
+    axes = plt.gca()
+
+    axes.ticklabel_format(useOffset=False)
+    axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+
+    return fig, axes
+
+def _get_label(constellation=None, signal=None):
+    """Return signal name with better formatting for legend.
+
+    Parameters
+    ----------
+    signal_name_raw : string
+        Signal name with underscores between parts of singal type.
+        For example, GPS_L1
+
+    Returns
+    -------
+    signal_label : string
+        Properly formatted signal label
+
+    """
+    if constellation is None:
+        constellation = ""
+    else:
+        constellation = constellation.upper()
+    if signal is None:
+        signal = ""
+    else:
+        signal = signal.upper()
+        # replace with lowercase "i" for Beidou "I" signals for more
+        # legible name in the legend
+        if signal[-1] == "I":
+            signal = signal[:-1] + "i"
+
+    return constellation + " " + signal
+
+def _save_figure(figures, titles, prefix, fnames): # pragma: no cover
     """Saves figures to file.
 
     Parameters

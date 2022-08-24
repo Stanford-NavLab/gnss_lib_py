@@ -45,10 +45,8 @@ class AndroidDerived2021(NavData):
         # Correction 1: Mapping _derived timestamps to previous timestamp
         # for correspondance with ground truth and Raw data
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
-        indexes = np.searchsorted(derived_timestamps, derived_timestamps)
-        map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
-        pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v],
-                                                pd_df['millisSinceGpsEpoch'])))
+        mapper = dict(zip(derived_timestamps[1:],derived_timestamps[:-1]))
+        pd_df.replace({"millisSinceGpsEpoch" : mapper},inplace=True)
 
         # Correction 5 implemented verbatim from competition tips
         if remove_timing_outliers:
@@ -222,6 +220,8 @@ class AndroidDerived2022(NavData):
                    'SvPositionXEcefMeters' : 'x_sv_m',
                    'SvPositionYEcefMeters' : 'y_sv_m',
                    'SvPositionZEcefMeters' : 'z_sv_m',
+                   'SvElevationDegrees' : 'el_sv_deg',
+                   'SvAzimuthDegrees' : 'az_sv_deg',
                    'SvVelocityXEcefMetersPerSecond' : 'vx_sv_mps',
                    'SvVelocityYEcefMetersPerSecond' : 'vy_sv_mps',
                    'SvVelocityZEcefMetersPerSecond' : 'vz_sv_mps',

@@ -190,7 +190,7 @@ class NavData():
         new_navdata = self.copy(cols=new_cols)
         return new_navdata
 
-    def argwhere(self, key_idx, value, condition):
+    def argwhere(self, key_idx, value, condition="eq"):
         """Return columns where conditions are met for the given row
 
         Parameters

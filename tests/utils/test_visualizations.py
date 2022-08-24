@@ -6,11 +6,14 @@ __authors__ = "D. Knowles"
 __date__ = "22 Jun 2022"
 
 import os
+
 import pytest
+from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived2021
+from gnss_lib_py.parsers.android import AndroidDerived2022
 from gnss_lib_py.algorithms.residuals import solve_residuals
 
 @pytest.fixture(name="root_path")
@@ -57,6 +60,83 @@ def fixture_derived_path(root_path):
     derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
     return derived_path
 
+@pytest.fixture(name="derived_path_xl")
+def fixture_derived_path_xl(root_path):
+    """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [6]_,
+    particularly the train/2020-05-14-US-MTV-1/Pixel4XL trace. The
+    dataset was retrieved from
+    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
+    References
+    ----------
+    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'Pixel4XL_derived.csv')
+    return derived_path
+
+@pytest.fixture(name="root_path_2022")
+def fixture_root_path_2022():
+    """Location of measurements for unit test
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/android_2022')
+    # root_path = "/home/derek/datasets/google-decimeter-2022/train/2020-05-15-US-MTV-1/GooglePixel4XL/"
+    return root_path
+
+
+@pytest.fixture(name="derived_2022_path")
+def fixture_derived_2022_path(root_path_2022):
+    """Filepath of Android Derived measurements
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived 2022 measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [4]_,
+    from the 2022 Decimeter Challenge. Particularly, the
+    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+
+    References
+    ----------
+    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
+    return derived_path
 
 @pytest.fixture(name="derived")
 def fixture_load_derived(derived_path):
@@ -73,6 +153,41 @@ def fixture_load_derived(derived_path):
         Instance of AndroidDerived2021 for testing
     """
     derived = AndroidDerived2021(derived_path)
+    return derived
+
+@pytest.fixture(name="derived_xl")
+def fixture_load_derived_xl(derived_path_xl):
+    """Load instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    derived_path : pytest.fixture
+        String with location of Android derived measurement file
+
+    Returns
+    -------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+    """
+    derived = AndroidDerived2021(derived_path_xl,
+                                 remove_timing_outliers=False)
+    return derived
+
+@pytest.fixture(name="derived_2022")
+def fixture_load_derived_2022(derived_2022_path):
+    """Load instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    derived_path : pytest.fixture
+    String with location of Android derived measurement file
+
+    Returns
+    -------
+    derived : AndroidDerived2022
+    Instance of AndroidDerived2022 for testing
+    """
+    derived = AndroidDerived2022(derived_2022_path)
     return derived
 
 @pytest.fixture(name="state_estimate")
@@ -197,69 +312,47 @@ def test_plot_metrics_by_constellation(derived):
     viz.plot_metric_by_constellation(derived_no_signal_type,
                                      "raw_pr_m", save=False)
 
-
-def test_plot_skyplot(derived, state_estimate):
+@pytest.mark.parametrize('navdata',[
+                                    lazy_fixture('derived_2022'),
+                                    lazy_fixture('derived'),
+                                    lazy_fixture('derived_xl'),
+                                    ])
+def test_plot_skyplot(navdata):
     """Test for plotting skyplot.
 
     Parameters
     ----------
-    derived : AndroidDerived2021
-        Instance of AndroidDerived2021 for testing.
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        Estimated receiver position in ECEF frame in meters and the
-        estimated receiver clock bias also in meters as an instance of
-        the NavData class with shape (4 x # unique timesteps) and
-        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+    navdata : AndroidDerived
+        Instance of AndroidDerived for testing.
 
     """
 
+    if isinstance(navdata, AndroidDerived2022):
+        row_map = {
+                   "WlsPositionXEcefMeters" : "x_rx_m",
+                   "WlsPositionYEcefMeters" : "y_rx_m",
+                   "WlsPositionZEcefMeters" : "z_rx_m",
+                    }
+        navdata.rename(row_map,inplace=True)
+        state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
+    else:
+        state_estimate = solve_wls(navdata)
+
     # don't save figures
-    fig = viz.plot_skyplot(derived, state_estimate, save=False)
+    fig = viz.plot_skyplot(navdata, state_estimate, save=False)
+    import matplotlib.pyplot as plt
+    plt.show()
     viz.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
-        viz.plot_skyplot(derived, state_estimate, save=True, prefix=1)
+        viz.plot_skyplot(navdata, state_estimate, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
-    # derived_no_sv_id = derived.remove(rows="sv_id")
-    # with pytest.raises(KeyError) as excinfo:
-    #     viz.plot_skyplot(derived_no_sv_id, state_estimate, save=False)
-    # assert "sv_id" in str(excinfo.value)
-    #
-    # derived_no_signal_type = derived.remove(rows="signal_type")
-    # with pytest.raises(KeyError) as excinfo:
-    #     viz.plot_skyplot(derived_no_signal_type, state_estimate, save=False)
-    # assert "signal_type" in str(excinfo.value)
-
-    derived_no_x = derived.remove(rows="x_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived_no_x, state_estimate, save=False)
-    assert "x_sv_m" in str(excinfo.value)
-
-    derived_no_y = derived.remove(rows="y_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived_no_y, state_estimate, save=False)
-    assert "y_sv_m" in str(excinfo.value)
-
-    derived_no_z = derived.remove(rows="z_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_skyplot(derived_no_z, state_estimate, save=False)
-    assert "z_sv_m" in str(excinfo.value)
-
-    # state_estimate_no_x = state_estimate.remove(rows="x_rx_m")
-    # with pytest.raises(KeyError) as excinfo:
-    #     viz.plot_skyplot(derived, state_estimate_no_x, save=False)
-    # assert "x_rx_m" in str(excinfo.value)
-    #
-    # state_estimate_no_y = state_estimate.remove(rows="y_rx_m")
-    # with pytest.raises(KeyError) as excinfo:
-    #     viz.plot_skyplot(derived, state_estimate_no_y, save=False)
-    # assert "y_rx_m" in str(excinfo.value)
-    #
-    # state_estimate_no_z = state_estimate.remove(rows="z_rx_m")
-    # with pytest.raises(KeyError) as excinfo:
-    #     viz.plot_skyplot(derived, state_estimate_no_z, save=False)
-    # assert "z_rx_m" in str(excinfo.value)
+    for row in ["x_sv_m","y_sv_m","z_sv_m","gps_millis"]:
+        derived_removed = navdata.remove(rows=row)
+        with pytest.raises(KeyError) as excinfo:
+            viz.plot_skyplot(derived_removed, state_estimate, save=False)
+        assert row in str(excinfo.value)
 
 def test_plot_residuals(derived, state_estimate):
     """Test for plotting residuals.

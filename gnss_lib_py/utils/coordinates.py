@@ -462,4 +462,8 @@ def ecef_to_el_az(rx_pos, sv_pos):
     el_az[:,0] = np.rad2deg((np.pi/2. - np.arccos(p_ven[0,:])))
     el_az[:,1] = np.rad2deg(np.arctan2(p_ven[1,:],p_ven[2,:]))
 
+    # wrap from 0 to 360
+    while np.any(el_az[:,1] < 0):
+        el_az[:,1][el_az[:,1] < 0] += 360
+
     return el_az
