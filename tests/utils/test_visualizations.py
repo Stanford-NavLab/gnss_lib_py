@@ -32,7 +32,6 @@ def fixture_root_path():
     root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
     return root_path
 
-
 @pytest.fixture(name="derived_path")
 def fixture_derived_path(root_path):
     """Filepath of Android Derived measurements
@@ -210,6 +209,27 @@ def fixture_solve_wls(derived):
     state_estimate = solve_wls(derived)
     return state_estimate
 
+@pytest.fixture(name="state_estimate_xl")
+def fixture_solve_wls_xl(derived_xl):
+    """Fixture of WLS state estimate.
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
+
+    Returns
+    -------
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Estimated receiver position in ECEF frame in meters and the
+        estimated receiver clock bias also in meters as an instance of
+        the NavData class with shape (4 x # unique timesteps) and
+        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+
+    """
+    state_estimate = solve_wls(derived_xl)
+    return state_estimate
+
 def test_plot_metrics(derived):
     """Test for plotting metrics.
 
@@ -312,17 +332,22 @@ def test_plot_metrics_by_constellation(derived):
                                      "raw_pr_m", save=False)
 
 @pytest.mark.parametrize('navdata',[
-                                    lazy_fixture('derived_2022'),
+                                    # lazy_fixture('derived_2022'),
                                     # lazy_fixture('derived'),
-                                    # lazy_fixture('derived_xl'),
+                                    lazy_fixture('derived_xl'),
                                     ])
-def test_plot_skyplot(navdata):
+def test_plot_skyplot(navdata, state_estimate_xl):
     """Test for plotting skyplot.
 
     Parameters
     ----------
     navdata : AndroidDerived
         Instance of AndroidDerived for testing.
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Estimated receiver position in ECEF frame in meters and the
+        estimated receiver clock bias also in meters as an instance of
+        the NavData class with shape (4 x # unique timesteps) and
+        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
 
     """
 
@@ -335,7 +360,7 @@ def test_plot_skyplot(navdata):
         navdata.rename(row_map,inplace=True)
         state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
     else:
-        state_estimate = solve_wls(navdata)
+        state_estimate = state_estimate_xl
 
     # don't save figures
     fig = viz.plot_skyplot(navdata, state_estimate, save=False)
@@ -351,7 +376,7 @@ def test_plot_skyplot(navdata):
             viz.plot_skyplot(derived_removed, state_estimate, save=False)
         assert row in str(excinfo.value)
 
-def test_plot_residuals(derived, state_estimate):
+def test_plot_residuals(derived_xl, state_estimate_xl):
     """Test for plotting residuals.
 
     Parameters
@@ -366,38 +391,20 @@ def test_plot_residuals(derived, state_estimate):
 
     """
 
-    derived_original = derived.copy()
-
-    solve_residuals(derived, state_estimate)
+    solve_residuals(derived_xl, state_estimate_xl, inplace=True)
 
     # don't save figures
-    figs = viz.plot_residuals(derived, save=False)
+    figs = viz.plot_metric_by_constellation(derived_xl, "gps_millis",
+                                            "residuals", save=False)
     viz.close_figures(figs)
 
-    # should return KeyError if no residuals row
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_residuals(derived_original, save=False)
-    assert "residuals missing" in str(excinfo.value)
-
-    with pytest.raises(TypeError) as excinfo:
-        viz.plot_residuals(derived, save=True, prefix=1)
-    assert "Prefix" in str(excinfo.value)
-
-    derived_no_sv_id = derived.remove(rows="sv_id")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_residuals(derived_no_sv_id, save=False)
-    assert "sv_id" in str(excinfo.value)
-
-    derived_no_signal_type = derived.remove(rows="signal_type")
-    with pytest.raises(KeyError) as excinfo:
-        viz.plot_residuals(derived_no_signal_type, save=False)
-    assert "signal_type" in str(excinfo.value)
-
-def test_get_signal_label():
-    """Test for getting signal labels.
+def test_get_label():
+    """Test for getting nice labels.
 
     """
 
-    assert viz.get_signal_label("GPS_L1") == "GPS L1"
-    assert viz.get_signal_label("GLO_G1") == "GLO G1"
-    assert viz.get_signal_label("BDS_B1I") == "BDS B1i"
+    assert viz._get_label({"signal_type" : "GPS_L1"}) == "GPS L1"
+    assert viz._get_label({"signal_type" : "GLO_G1"}) == "GLO G1"
+    assert viz._get_label({"signal_type" : "BDS_B1I"}) == "BDS B1i"
+    # shouldn't do lowercase 'i' trick if not signal_type
+    assert viz._get_label({"random" : "BDS_B1I"}) == "BDS B1I"

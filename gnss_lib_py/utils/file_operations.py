@@ -8,8 +8,6 @@ __date__ = "01 Jul 2022"
 import os
 import time
 
-import matplotlib.pyplot as plt
-
 def make_dir(directory): # pragma: no cover
     """Create a file directory if it doesn't yet exist.
 
@@ -26,41 +24,6 @@ def make_dir(directory): # pragma: no cover
             os.makedirs(directory)
         except OSError as error:
             raise OSError("Unable to create directory " + directory) from error
-
-def _save_figure(fig, filename): # pragma: no cover
-    """Saves figure as a png.
-
-    Parameters
-    ----------
-    fig : matplotlib.pyplot.figure
-        Figure to save.
-    filename : string
-        Filename for figure.
-
-    """
-    fig.savefig(filename,
-                dpi=300.,
-                format="png",
-                bbox_inches="tight")
-
-
-def close_figures(figs): # pragma: no cover
-    """Closes figures.
-
-    Parameters
-    ----------
-    figs : list or matplotlib.pyplot.figure
-        List of figures or single matplotlib figure object.
-
-    """
-
-    if isinstance(figs,plt.Figure):
-        plt.close(figs)
-    elif isinstance(figs, list):
-        for fig in figs:
-            plt.close(fig)
-    else:
-        raise TypeError("Must be either a single figure or list of figures.")
 
 def get_timestamp():
     """Returns timestamp of the current time.

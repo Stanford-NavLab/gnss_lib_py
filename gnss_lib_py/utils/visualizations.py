@@ -85,40 +85,43 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=True,
 
     if x_metric is None:
         if title is None:
-            title = y_metric
-        plt.xlabel("index")
+            title = _get_label({y_metric:y_metric})
+        plt.xlabel("Index")
         if groupby is not None:
             for group in np.unique(navdata[groupby]):
                 subset = navdata.where(groupby,group)
                 y_data = np.atleast_1d(subset[y_metric])
-                axes.scatter(range(len(y_data)), y_data,
-                             s=5., label=group, **kwargs)
+                axes.plot(range(len(y_data)), y_data,
+                          markersize=5.,
+                          label=_get_label({groupby:group}), **kwargs)
         else:
             y_data = np.atleast_1d(navdata[y_metric])
-            axes.scatter(range(len(y_data)), y_data,
-                         s=5., **kwargs)
+            axes.plot(range(len(y_data)), y_data,
+                         markersize=5., **kwargs)
     else:
         if title is None:
-            title = x_metric + " vs. " + y_metric
-        plt.xlabel(x_metric)
+            title = _get_label({x_metric:x_metric}) + " vs. " \
+                  + _get_label({y_metric:y_metric})
+        plt.xlabel(_get_label({x_metric:x_metric}))
         if groupby is not None:
             for group in np.unique(navdata[groupby]):
                 subset = navdata.where(groupby,group)
                 x_data = np.atleast_1d(subset[x_metric])
                 y_data = np.atleast_1d(subset[y_metric])
-                axes.scatter(x_data, y_data, s=5.,label=group,**kwargs)
+                axes.plot(x_data, y_data, markersize=5.,
+                          label=_get_label({groupby:group}),**kwargs)
         else:
             x_data = np.atleast_1d(navdata[x_metric])
             y_data = np.atleast_1d(navdata[y_metric])
-            axes.scatter(x_data, y_data, s=5.,**kwargs)
+            axes.plot(x_data, y_data, markersize=5.,**kwargs)
 
     handles, _ = axes.get_legend_handles_labels()
     if len(handles) > 0:
         plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
-                   title=groupby)
+                   title=_get_label({groupby:groupby}))
 
     plt.title(title)
-    plt.ylabel(y_metric)
+    plt.ylabel(_get_label({y_metric:y_metric}))
     fig.tight_layout()
 
     if save: # pragma: no cover
@@ -185,7 +188,7 @@ def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
         if "signal_type" in const_subset.rows:
             for signal in np.unique(const_subset["signal_type"]):
                 prefix += signal + "_"
-                title = _get_label(constellation,signal)
+                title = _get_label({"gnss_id":constellation,"signal_type":signal})
                 signal_subset = navdata.where("signal_type",signal)
                 if "sv_id" in signal_subset.rows:
                     # group by sv_id
@@ -201,7 +204,7 @@ def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
                                       **kwargs)
                     figs.append(fig)
         else:
-            title = _get_label(constellation)
+            title = _get_label({"gnss_id":constellation})
             if "sv_id" in const_subset.rows:
                 # group by sv_id
                 fig = plot_metric(const_subset,x_metric,y_metric,
@@ -327,8 +330,8 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
                     # only plot ~ 50 points for each sat to decrease time
                     # it takes to plot these line collections
                     step = max(1,int(len(sv_subset)/50.))
-                    points = np.array([sv_subset["az_sv_rad"],
-                                       sv_subset["el_sv_deg"]]).T
+                    points = np.array([np.atleast_1d(sv_subset["az_sv_rad"])[::step],
+                                       np.atleast_1d(sv_subset["el_sv_deg"])[::step]]).T
                     points = np.reshape(points,(-1, 1, 2))
                     segments = np.concatenate([points[:-1], points[1:]], axis=1)
                     norm = plt.Normalize(0,len(segments))
@@ -341,7 +344,7 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
                         axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
                                   np.atleast_1d(sv_subset["el_sv_deg"])[-1],
                                   c=color, marker=marker, markersize=8,
-                            label=_get_label(constellation=constellation))
+                            label=_get_label({"gnss_id":constellation}))
                     else:
                         # plot without label
                         axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
@@ -360,130 +363,17 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
     axes.set_yticks(range(0, 60+10, 30))    # Define the yticks
     axes.set_yticklabels(['',r'$30\degree$',r'$60\degree$'])
     axes.set_ylim(90,0)
-    axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
-                title="title")
+
+    handles, _ = axes.get_legend_handles_labels()
+    if len(handles) > 0:
+        axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
+                   title=_get_label({"sv_id":"sv_id"}))
 
     fig.tight_layout()
 
     if save: # pragma: no cover
         _save_figure(fig, "skyplot", prefix=prefix, fnames=fname)
     return fig
-
-def plot_residuals(navdata, save=True, prefix=""):
-    """Plot residuals.
-
-    Parameters
-    ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class
-    save : bool
-        Save figure if true, otherwise returns figure object. Defaults
-        to saving the figure in the Results folder.
-    prefix : string
-        File prefix to add to filename.
-
-    Returns
-    -------
-    figs : list
-        List of matplotlib.pyplot.figure objects of residuels, returns
-        None if save set to True.
-
-    """
-
-    if "residuals" not in navdata.rows:
-        raise KeyError("residuals missing, run solve_residuals().")
-    if not isinstance(prefix, str):
-        raise TypeError("Prefix must be a string.")
-    # check for missing rows
-    navdata.in_rows(["signal_type","sv_id"])
-    if save: # pragma: no cover
-        root_path = os.path.dirname(
-                    os.path.dirname(
-                    os.path.dirname(
-                    os.path.realpath(__file__))))
-        log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.make_dir(log_path)
-    else:
-        figs = []
-
-    residual_data = {}
-    signal_types = navdata._get_strings("signal_type")
-    sv_ids = navdata._get_strings("sv_id")
-
-    time0 = navdata["gps_millis",0]/1000.
-
-    for m_idx in range(navdata.shape[1]):
-        if signal_types[m_idx] not in residual_data:
-            residual_data[signal_types[m_idx]] = {}
-        if sv_ids[m_idx] not in residual_data[signal_types[m_idx]]:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["gps_millis",m_idx]/1000. - time0],
-                        [navdata["residuals",m_idx]]]
-        else:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["gps_millis",m_idx]/1000. - time0)
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata["residuals",m_idx])
-
-    ####################################################################
-    # BROKEN UP BY CONSTELLATION TYPE
-    ####################################################################
-
-
-    for signal_type, signal_residuals in residual_data.items():
-        fig = plt.figure(figsize=(5,3))
-
-        plt.title(get_signal_label(signal_type))
-        signal_type_svs = list(signal_residuals.keys())
-
-        for sv_name, sv_data in signal_residuals.items():
-            plt.plot(sv_data[0], sv_data[1],
-                     label = get_signal_label(signal_type) + " " + str(sv_name))
-        axes = plt.gca()
-        axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-        plt.ylim(-100.,100.)
-        plt.xlabel("time [s]")
-        plt.ylabel("residiual [m]")
-        plt.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
-
-        if save: # pragma: no cover
-            if prefix != "" and not prefix.endswith('_'):
-                prefix += "_"
-            plt_file = os.path.join(log_path, prefix + "residuals_" \
-                     + signal_type + ".png")
-
-            fo._save_figure(fig, plt_file)
-
-            # close previous figure
-            plt.close(fig)
-        else:
-            figs.append(fig)
-
-    if save: # pragma: no cover
-        return None
-    return figs
-
-def get_signal_label(signal_name_raw):
-    """Return signal name with better formatting for legend.
-
-    Parameters
-    ----------
-    signal_name_raw : string
-        Signal name with underscores between parts of singal type.
-        For example, GPS_L1
-
-    Returns
-    -------
-    signal_label : string
-        Properly formatted signal label
-
-    """
-
-    signal_label = signal_name_raw.replace("_"," ")
-
-    # replace with lowercase "i" for Beidou "I" signals for more legible
-    # name in the legend
-    if signal_label[-1] == "I":
-        signal_label = signal_label[:-1] + "i"
-
-    return signal_label
 
 def map_lla(*args, save=True, prefix="", **kwargs):
     """Map trajectories.
@@ -595,39 +485,63 @@ def _get_new_fig():
     axes = plt.gca()
 
     axes.ticklabel_format(useOffset=False)
-    axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    fig.autofmt_xdate() # rotate x labels automatically
+    # axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 
     return fig, axes
 
-def _get_label(constellation=None, signal=None):
-    """Return signal name with better formatting for legend.
+def _get_label(inputs):
+    """Return label/title name from input dictionary.
 
     Parameters
     ----------
-    signal_name_raw : string
-        Signal name with underscores between parts of singal type.
-        For example, GPS_L1
+
+    inputs : dict
+        Dictionary of {row_name : row_value} pairs to create name from.
 
     Returns
     -------
-    signal_label : string
-        Properly formatted signal label
+    label : string
+        Properly formatted label/title for use in graphs.
 
     """
-    if constellation is None:
-        constellation = ""
-    else:
-        constellation = constellation.upper()
-    if signal is None:
-        signal = ""
-    else:
-        signal = signal.upper()
-        # replace with lowercase "i" for Beidou "I" signals for more
-        # legible name in the legend
-        if signal[-1] == "I":
-            signal = signal[:-1] + "i"
 
-    return constellation + " " + signal
+    if not isinstance(inputs,dict):
+        raise TypeError("_get_label input must be dictionary.")
+
+    label = ""
+    for key, value in inputs.items():
+
+        if len(label) != 0: # add space between multiple inputs
+            value = " " + value
+
+        if not isinstance(value,str): # convert numbers/arrays to string
+            value = str(value)
+
+        try: # convert to integer if a numeric value
+            value = str(int(float(value)))
+        except ValueError:
+            pass
+
+        value = value.upper()
+        value = value.replace("_"," ")
+
+        if key == "gnss_id": # use GNSS specific capitalization
+            constellation_map = {"GALILEO" : "Galileo",
+                                 "BEIDOU" : "BeiDou"
+                                 }
+            for old_value, new_value in constellation_map.items():
+                value = value.replace(old_value,new_value)
+
+        if key == "signal_type":
+            # replace with lowercase "i" for Beidou "I" signals for more
+            # legible name in the legend
+            if value[-1] == "I":
+                value = value[:-1] + "i"
+
+        label += value
+
+    return label
 
 def _save_figure(figures, titles, prefix, fnames): # pragma: no cover
     """Saves figures to file.
