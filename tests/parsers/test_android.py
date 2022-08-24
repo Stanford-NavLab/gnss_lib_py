@@ -2,7 +2,7 @@
 
 """
 
-__authors__ = "Ashwin Kanhere"
+__authors__ = "Ashwin Kanhere, Derek Knowles"
 __date__ = "10 Nov 2021"
 
 import os
@@ -179,7 +179,6 @@ def fixture_load_derived(derived_path):
     derived = android.AndroidDerived2021(derived_path)
     return derived
 
-
 def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
     """Test if naive dataframe and AndroidDerived2021 contain same data.
 
@@ -215,6 +214,8 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
         measure_df.replace({'signal_type',s_value},s_key,inplace=True)
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
+    pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
+    pd_df.reset_index(drop=True, inplace=True)
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
                                   measure_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
@@ -325,6 +326,29 @@ def test_navdata_type(derived):
     isinstance(derived, NavData)
     isinstance(derived, android.AndroidDerived2021)
 
+def test_timestep_parsing(derived_path_xl):
+    """Test that the timesteps contain the same satellites.
+
+    """
+
+    pd_df_xl = pd.read_csv(derived_path_xl)
+    derived_xl = android.AndroidDerived2021(derived_path_xl,
+                               remove_timing_outliers=False)
+
+    pd_svid_groups = []
+    for _, group in pd_df_xl.groupby("millisSinceGpsEpoch"):
+        pd_svid_groups.append(group["svid"].tolist())
+    pd_svid_groups.pop(0)
+
+    navdata_svid_groups = []
+    for _, _, group in derived_xl.loop_time("gps_millis"):
+        navdata_svid_groups.append(group["sv_id"].astype(int).tolist())
+
+    assert len(pd_svid_groups) == len(navdata_svid_groups)
+
+    for pd_ids, navdata_ids in zip(pd_svid_groups,navdata_svid_groups):
+        assert pd_ids == navdata_ids
+
 
 def test_shape_update(derived):
     """Test that shape gets updated after adding a row.
@@ -416,7 +440,7 @@ def fixture_gtruth_path(root_path):
     return gtruth_path
 
 @pytest.fixture(name="gtruth")
-def fixture_load_gtruth(gtruth_path):
+def fixture_load_gtruth(android_gtruth_path):
     """Load instance of AndroidGroundTruth2021
 
     Parameters
@@ -429,32 +453,24 @@ def fixture_load_gtruth(gtruth_path):
     gtruth : AndroidGroundTruth2021
         Instance of AndroidGroundTruth2021 for testing
     """
-    gtruth = android.AndroidGroundTruth2021(gtruth_path)
+    gtruth = android.AndroidGroundTruth2021(android_gtruth_path)
+
     return gtruth
 
-def test_android_gtruth(android_gtruth_path):
-    """Test that AndroidGroungTruth initialization
+def test_android_gtruth(gtruth):
+    """Test AndroidGroundTruth initialization
 
     Parameters
     ----------
-    android_gtruth_path : pytest.fixture
-        Path to Android Ground Truth text log file
+    gtruth : AndroidGroundTruth2021
+        Instance of AndroidGroundTruth2021 for testing
+
     """
-    test_gtruth = android.AndroidGroundTruth2021(android_gtruth_path)
-    isinstance(test_gtruth, NavData)
 
+    isinstance(gtruth, NavData)
+    isinstance(gtruth, android.AndroidGroundTruth2021)
 
-def test_gt_2022(root_path):
-    """Testing that Android ground truth 2022 is created without errors.
-
-    Parameters
-    ----------
-    gt_2022_path : string
-        Location for the unit_test Android ground truth 2022 measurements
-    """
-    gt_path = os.path.join(root_path, 'ground_truth.csv')
-    gt_2021 = android.AndroidGroundTruth2021(gt_path)
-    assert isinstance(gt_2021, NavData)
+    assert int(gtruth["gps_millis",3]) == 1273529466442
 
 
 ######################################################################

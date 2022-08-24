@@ -46,6 +46,7 @@ class AndroidDerived2021(NavData):
         # for correspondance with ground truth and Raw data
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
         mapper = dict(zip(derived_timestamps[1:],derived_timestamps[:-1]))
+        pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != derived_timestamps[0]]
         pd_df.replace({"millisSinceGpsEpoch" : mapper},inplace=True)
 
         # Correction 5 implemented verbatim from competition tips

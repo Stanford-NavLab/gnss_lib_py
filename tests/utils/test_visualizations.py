@@ -106,7 +106,6 @@ def fixture_root_path_2022():
                 os.path.dirname(
                 os.path.realpath(__file__))))
     root_path = os.path.join(root_path, 'data/unit_test/android_2022')
-    # root_path = "/home/derek/datasets/google-decimeter-2022/train/2020-05-15-US-MTV-1/GooglePixel4XL/"
     return root_path
 
 
@@ -314,8 +313,8 @@ def test_plot_metrics_by_constellation(derived):
 
 @pytest.mark.parametrize('navdata',[
                                     lazy_fixture('derived_2022'),
-                                    lazy_fixture('derived'),
-                                    lazy_fixture('derived_xl'),
+                                    # lazy_fixture('derived'),
+                                    # lazy_fixture('derived_xl'),
                                     ])
 def test_plot_skyplot(navdata):
     """Test for plotting skyplot.
@@ -340,8 +339,6 @@ def test_plot_skyplot(navdata):
 
     # don't save figures
     fig = viz.plot_skyplot(navdata, state_estimate, save=False)
-    import matplotlib.pyplot as plt
-    plt.show()
     viz.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
