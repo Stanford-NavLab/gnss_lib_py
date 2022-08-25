@@ -39,8 +39,8 @@ STANFORD_COLORS = [
                    ]
 MARKERS = ["o","*","P","v","s","^","p","<","h",">","H","X","D"]
 
-mpl.rcParams['axes.prop_cycle'] = cycler(color=STANFORD_COLORS)
-
+mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
+                                +  cycler(marker=MARKERS))
 TIMESTAMP = fo.get_timestamp()
 
 def plot_metric(navdata, *args, groupby=None, title=None, save=True,
