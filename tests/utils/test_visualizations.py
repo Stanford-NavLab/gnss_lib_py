@@ -6,8 +6,10 @@ __authors__ = "D. Knowles"
 __date__ = "22 Jun 2022"
 
 import os
+import random
 
 import pytest
+import numpy as np
 from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.visualizations as viz
@@ -15,6 +17,8 @@ from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.parsers.android import AndroidDerived2022
 from gnss_lib_py.algorithms.residuals import solve_residuals
+
+# pylint: disable=protected-access
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -408,3 +412,25 @@ def test_get_label():
     assert viz._get_label({"signal_type" : "BDS_B1I"}) == "BDS B1i"
     # shouldn't do lowercase 'i' trick if not signal_type
     assert viz._get_label({"random" : "BDS_B1I"}) == "BDS B1I"
+
+def test_sort_gnss_ids():
+    """Test sorting GNSS IDs.
+
+    """
+
+    unsorted_ids = ["galileo","beta","beidou","irnss","gps","unkown","glonass",
+                "alpha","qzss","sbas"]
+    sorted_ids = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
+                  "unkown", "alpha", "beta"]
+
+    assert viz._sort_gnss_ids(unsorted_ids) == sorted_ids
+    assert viz._sort_gnss_ids(np.array(unsorted_ids)) == sorted_ids
+    assert viz._sort_gnss_ids(set(unsorted_ids)) == sorted_ids
+    assert viz._sort_gnss_ids(tuple(unsorted_ids)) == sorted_ids
+
+    for _ in range(100):
+        random.shuffle(unsorted_ids)
+        assert viz._sort_gnss_ids(unsorted_ids) == sorted_ids
+        assert viz._sort_gnss_ids(np.array(unsorted_ids)) == sorted_ids
+        assert viz._sort_gnss_ids(set(unsorted_ids)) == sorted_ids
+        assert viz._sort_gnss_ids(tuple(unsorted_ids)) == sorted_ids

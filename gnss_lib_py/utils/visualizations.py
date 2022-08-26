@@ -13,7 +13,6 @@ from cycler import cycler
 import plotly.express as px
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
 from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgb, ListedColormap
 
@@ -38,6 +37,9 @@ STANFORD_COLORS = [
                    # "#008566",   # digital green
                    ]
 MARKERS = ["o","*","P","v","s","^","p","<","h",">","H","X","D"]
+
+GNSS_ORDER = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
+              "unkown"]
 
 mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
                                 +  cycler(marker=MARKERS))
@@ -92,28 +94,31 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=True,
                 subset = navdata.where(groupby,group)
                 y_data = np.atleast_1d(subset[y_metric])
                 axes.plot(range(len(y_data)), y_data,
-                          markersize=5.,
                           label=_get_label({groupby:group}), **kwargs)
         else:
             y_data = np.atleast_1d(navdata[y_metric])
             axes.plot(range(len(y_data)), y_data,
-                         markersize=5., **kwargs)
+                         **kwargs)
     else:
         if title is None:
             title = _get_label({x_metric:x_metric}) + " vs. " \
                   + _get_label({y_metric:y_metric})
         plt.xlabel(_get_label({x_metric:x_metric}))
         if groupby is not None:
-            for group in np.unique(navdata[groupby]):
+            all_groups = np.unique(navdata[groupby])
+            if groupby == "gnss_id":
+                all_groups = _sort_gnss_ids(all_groups)
+            for group in all_groups:
                 subset = navdata.where(groupby,group)
                 x_data = np.atleast_1d(subset[x_metric])
                 y_data = np.atleast_1d(subset[y_metric])
-                axes.plot(x_data, y_data, markersize=5.,
+                axes.plot(x_data, y_data,
                           label=_get_label({groupby:group}),**kwargs)
         else:
             x_data = np.atleast_1d(navdata[x_metric])
             y_data = np.atleast_1d(navdata[y_metric])
-            axes.plot(x_data, y_data, markersize=5.,**kwargs)
+            axes.plot(x_data, y_data,
+                      **kwargs)
 
     handles, _ = axes.get_legend_handles_labels()
     if len(handles) > 0:
@@ -175,7 +180,7 @@ def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
                      + " the plot_metric() function call instead")
 
     figs = []
-    for constellation in np.unique(navdata["gnss_id"]):
+    for constellation in _sort_gnss_ids(np.unique(navdata["gnss_id"])):
         const_subset = navdata.where("gnss_id",constellation)
 
         if prefix is None:
@@ -227,19 +232,15 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
     First adds ``el_sv_deg`` and ``az_sv_deg`` rows to navdata if they
     do not yet exist.
 
-    Breaks up satellites by constellation names in ``gnss_id`` and will
-    label the ``sv_id`` if the row is present in navdata.
-
-    Will automatically combine data across ``signal_type`` to show only
-    one instance for each ``sv_id`` if ``sv_id`` is present.
+    Breaks up satellites by constellation names in ``gnss_id`` and the
+    ``sv_id`` if the row is present in navdata.
 
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class. Must include ``gps_millis`` as
-        well as satellite ECEF positions as ``x_sv_m``, ``y_sv_m``, and
-        ``z_sv_m``. Optionally can include ``gnss_id`` and ``sv_id`` for
-        increased labelling.
+        well as satellite ECEF positions as ``x_sv_m``, ``y_sv_m``,
+        ``z_sv_m``, ``gnss_id`` and ``sv_id``.
     receiver_state : gnss_lib_py.parsers.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters as an instance of the NavData class with the
@@ -264,7 +265,8 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
     # check for missing rows
-    navdata.in_rows(["gps_millis","x_sv_m","y_sv_m","z_sv_m"])
+    navdata.in_rows(["gps_millis","x_sv_m","y_sv_m","z_sv_m",
+                     "gnss_id","sv_id"])
     receiver_state.in_rows(["gps_millis"])
 
     # check for receiver_state indexes
@@ -317,45 +319,50 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
 
     navdata = navdata.copy()
     navdata["az_sv_rad"] = np.radians(navdata["az_sv_deg"])
-    if "gnss_id" in navdata.rows:
-        for c_idx, constellation in enumerate(np.unique(navdata["gnss_id"])):
-            const_subset = navdata.where("gnss_id",constellation)
-            color = "C" + str(c_idx % len(STANFORD_COLORS))
-            cmap = _new_cmap(to_rgb(color))
-            marker = MARKERS[c_idx % len(MARKERS)]
-            if "sv_id" in const_subset.rows:
-                # iterate through each satellite
-                for sv_idx, sv_name in enumerate(np.unique(const_subset["sv_id"])):
-                    sv_subset = const_subset.where("sv_id",sv_name)
-                    # only plot ~ 50 points for each sat to decrease time
-                    # it takes to plot these line collections
-                    step = max(1,int(len(sv_subset)/50.))
-                    points = np.array([np.atleast_1d(sv_subset["az_sv_rad"])[::step],
-                                       np.atleast_1d(sv_subset["el_sv_deg"])[::step]]).T
-                    points = np.reshape(points,(-1, 1, 2))
-                    segments = np.concatenate([points[:-1], points[1:]], axis=1)
-                    norm = plt.Normalize(0,len(segments))
-                    local_coord = LineCollection(segments, cmap=cmap,
-                                    norm=norm, linewidths=(4,),
-                                    array = range(len(segments)))
-                    axes.add_collection(local_coord)
-                    if sv_idx == 0:
-                        # plot with label
-                        axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
-                                  np.atleast_1d(sv_subset["el_sv_deg"])[-1],
-                                  c=color, marker=marker, markersize=8,
-                            label=_get_label({"gnss_id":constellation}))
-                    else:
-                        # plot without label
-                        axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
-                                  np.atleast_1d(sv_subset["el_sv_deg"])[-1],
-                                  c=color, marker=marker, markersize=8)
-                    axes.text(np.atleast_1d(sv_subset["az_sv_rad"])[-1]\
-                            + 3.*np.radians(np.cos(np.atleast_1d(sv_subset["az_sv_rad"])[-1])),
-                              np.atleast_1d(sv_subset["el_sv_deg"])[-1]\
-                            - 3.*np.sin(np.atleast_1d(sv_subset["az_sv_rad"])[-1]),
-                              str(int(sv_name)),
-                              backgroundcolor=(1.,1.,1.,0.2))
+
+    for c_idx, constellation in enumerate(_sort_gnss_ids(np.unique(navdata["gnss_id"]))):
+        const_subset = navdata.where("gnss_id",constellation)
+        color = "C" + str(c_idx % len(STANFORD_COLORS))
+        cmap = _new_cmap(to_rgb(color))
+        marker = MARKERS[c_idx % len(MARKERS)]
+
+        # iterate through each satellite
+        for sv_idx, sv_name in enumerate(np.unique(const_subset["sv_id"])):
+            sv_subset = const_subset.where("sv_id",sv_name)
+            # remove np.nan values caused by potentially faulty data
+            sv_subset = sv_subset.where("az_sv_rad",np.nan,"neq")
+            sv_subset = sv_subset.where("el_sv_deg",np.nan,"neq")
+            if len(sv_subset) == 0:
+                continue
+            # only plot ~ 50 points for each sat to decrease time
+            # it takes to plot these line collections
+            step = max(1,int(len(sv_subset)/50.))
+            points = np.array([np.atleast_1d(sv_subset["az_sv_rad"])[::step],
+                               np.atleast_1d(sv_subset["el_sv_deg"])[::step]]).T
+            points = np.reshape(points,(-1, 1, 2))
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            norm = plt.Normalize(0,len(segments))
+            local_coord = LineCollection(segments, cmap=cmap,
+                            norm=norm, linewidths=(4,),
+                            array = range(len(segments)))
+            axes.add_collection(local_coord)
+            if sv_idx == 0:
+                # plot with label
+                axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
+                          np.atleast_1d(sv_subset["el_sv_deg"])[-1],
+                          c=color, marker=marker, markersize=8,
+                    label=_get_label({"gnss_id":constellation}))
+            else:
+                # plot without label
+                axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
+                          np.atleast_1d(sv_subset["el_sv_deg"])[-1],
+                          c=color, marker=marker, markersize=8)
+            axes.text(np.atleast_1d(sv_subset["az_sv_rad"])[-1]\
+                    + 3.*np.radians(np.cos(np.atleast_1d(sv_subset["az_sv_rad"])[-1])),
+                      np.atleast_1d(sv_subset["el_sv_deg"])[-1]\
+                    - 3.*np.sin(np.atleast_1d(sv_subset["az_sv_rad"])[-1]),
+                      str(int(sv_name)),
+                      backgroundcolor=(1.,1.,1.,0.2))
 
     # updated axes for skyplot graph specifics
     axes.set_theta_zero_location('N')
@@ -481,12 +488,11 @@ def _get_new_fig():
 
     """
 
-    fig = plt.figure(figsize=(5,3))
+    fig = plt.figure()
     axes = plt.gca()
 
     axes.ticklabel_format(useOffset=False)
     fig.autofmt_xdate() # rotate x labels automatically
-    # axes.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
 
     return fig, axes
 
@@ -543,7 +549,34 @@ def _get_label(inputs):
 
     return label
 
-def _save_figure(figures, titles, prefix, fnames): # pragma: no cover
+def _sort_gnss_ids(unsorted_gnss_ids):
+    """Sort constellations by chronological availability.
+
+    Order defined by `GNSS_ORDER` variable in header.
+
+    Parameters
+    ----------
+    unsorted_gnss_ids : list or array-like of strings.
+        Unsorted constellation names.
+
+    Returns
+    -------
+    sorted_gnss_ids : list or array-like of strings.
+        Sorted constellation names.
+
+    """
+
+    sorted_gnss_ids = []
+    unsorted_gnss_ids = list(unsorted_gnss_ids)
+    for gnss in GNSS_ORDER:
+        if gnss in unsorted_gnss_ids:
+            unsorted_gnss_ids.remove(gnss)
+            sorted_gnss_ids.append(gnss)
+    sorted_gnss_ids += sorted(unsorted_gnss_ids)
+
+    return sorted_gnss_ids
+
+def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cover
     """Saves figures to file.
 
     Parameters
@@ -561,11 +594,11 @@ def _save_figure(figures, titles, prefix, fnames): # pragma: no cover
 
     """
 
-    if isinstance(figures, mpl.Figure):
+    if isinstance(figures, plt.Figure):
         figures = [figures]
-    if isinstance(titles,str):
+    if isinstance(titles,str) or titles is None:
         titles = [titles]
-    if type(fnames) in (str, pathlib.Path):
+    if type(fnames) in (str, pathlib.Path) or fnames is None:
         fnames = [fnames]
 
     for fig_idx, figure in enumerate(figures):
