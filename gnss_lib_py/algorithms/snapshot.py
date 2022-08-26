@@ -91,6 +91,9 @@ def solve_wls(measurements, weight_type = None,
 
     states = np.array(states)
 
+    if states.size == 0:
+        return None
+
     state_estimate = NavData()
     state_estimate["gps_millis"] = states[:,0]
     state_estimate["x_rx_m"] = states[:,1]

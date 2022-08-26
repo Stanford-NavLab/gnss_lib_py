@@ -456,3 +456,38 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
     with pytest.raises(TypeError):
         wls(rx_est_m, pos_sv_m, noisy_pr_m,
             weights=np.ones(pos_sv_m.shape[0]+1,1))
+
+def test_wls_fails(capsys):
+    """Test expected fails
+
+    Parameters
+    ----------
+    capsys : error
+        The capsys fixture allows access to stdout/stderr output created
+        during test execution.
+
+    """
+
+    pos_sv_m = 5.*np.ones((5,3))
+    pos_sv_m[0,0] = np.nan
+
+    wls(np.ones((4,1)),pos_sv_m,np.ones((5,1)))
+    captured = capsys.readouterr()
+    assert captured.out == "SVD did not converge\n"
+
+def test_solve_wls_fails(capsys, derived):
+    """Test expected fails
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+
+    """
+
+    navdata = derived.remove(cols=list(range(3,len(derived))))
+
+    solve_wls(navdata)
+    captured = capsys.readouterr()
+    assert "gps_millis" in captured.out
+    assert "four satellites" in captured.out
