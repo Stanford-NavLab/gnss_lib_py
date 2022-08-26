@@ -17,7 +17,7 @@ from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 
 
 # Defining test fixtures
-TEST_REPEAT_COUNT = 20
+TEST_REPEAT_COUNT = 10
 
 @pytest.fixture(name="tolerance")
 def fixture_tolerance():

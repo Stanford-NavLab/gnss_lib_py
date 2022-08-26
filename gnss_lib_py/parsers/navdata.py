@@ -187,6 +187,8 @@ class NavData():
         # Do so by adding a parameter for less than inequality, equality and
         # greater than inequality
         new_cols = self.argwhere(key_idx, value, condition)
+        if new_cols.size == 0:
+            return self.remove(cols=list(range(len(self))))
         new_navdata = self.copy(cols=new_cols)
         return new_navdata
 
@@ -218,31 +220,34 @@ class NavData():
             raise NotImplementedError(error_msg)
         row = row_list[0]
         row_str = row_str[0]
+        new_cols = None
         if row_str:
             # Values in row are strings
             if condition not in ("eq","neq"):
                 raise ValueError("Inequality comparison not valid for strings")
             key = inv_map[row]
             for str_key, str_value in self.str_map[key].items():
-                if str_value==value:
+                if str_value==str(value):
                     if condition == "eq":
                         new_cols = np.argwhere(self.array[row, :]==str_key)
                         break
                     # condition == "neq"
                     new_cols = np.argwhere(self.array[row, :]!=str_key)
                     break
+            if new_cols is None:
+                new_cols = np.array([])
             # Extract columns where condition holds true and return new NavData
         else:
             # Values in row are numerical
             # Find columns where value can be found and return new NavData
             if condition=="eq":
                 if not isinstance(value,str) and np.isnan(value):
-                    new_cols = np.isnan(self.array[row, :])
+                    new_cols = np.argwhere(np.isnan(self.array[row, :]))
                 else:
                     new_cols = np.argwhere(self.array[row, :]==value)
             elif condition=="neq":
                 if not isinstance(value,str) and np.isnan(value):
-                    new_cols = ~np.isnan(self.array[row, :])
+                    new_cols = np.argwhere(~np.isnan(self.array[row, :]))
                 else:
                     new_cols = np.argwhere(self.array[row, :]!=value)
             elif condition == "leq":
@@ -675,8 +680,6 @@ class NavData():
         if np.all(row_str):
             # Return sliced strings
             arr_slice = np.atleast_2d(np.empty_like(self.array[rows, cols], dtype=object))
-            if len(arr_slice) == 0: # can't index into empty slice
-                return arr_slice
             for row_num, row in enumerate(row_list):
                 str_arr = self._get_strings(self.inv_map[row])
                 arr_slice[row_num, :] = str_arr[cols]
@@ -977,6 +980,7 @@ class NavData():
             Columns to extract from the array
         """
         if isinstance(key_idx, str):
+            self.in_rows(key_idx)
             rows = [self.map[key_idx]]
             cols = slice(None, None)
         elif isinstance(key_idx, list) and isinstance(key_idx[0], str):

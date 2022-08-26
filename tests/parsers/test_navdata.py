@@ -927,8 +927,6 @@ def test_get_all_numpy(numpy_array):
     np.testing.assert_array_almost_equal(data[:], numpy_array)
     np.testing.assert_array_almost_equal(data[:, :], numpy_array)
 
-
-
 @pytest.fixture(name="new_string")
 def fixture_new_string():
     """String to test for value assignment
@@ -1254,7 +1252,7 @@ def test_add_numpy_1d():
 
 def test_add_csv(df_simple, csv_simple):
     """Test adding a csv.
-    
+
     """
     # Create and add to NavData
     data = NavData(csv_path=csv_simple)
@@ -1533,6 +1531,48 @@ def test_where_str(csv_simple):
     compare_df = compare_df[compare_df['strings']!="gps"].reset_index(drop=True)
     pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
 
+def test_where_empty(df_simple):
+    """Verify empty slices.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Simple pd.DataFrame with which to initialize NavData.
+
+    """
+    navdata = NavData(pandas_df=df_simple)
+    for row in navdata.rows:
+        if navdata.is_str(row):
+            # verify where doesn't break on empty call
+            subset = navdata.where(row,"not_here!")
+            assert subset.shape == (4,0)
+
+@pytest.mark.parametrize('csv_path',
+                        [
+                         lazy_fixture("csv_missing"),
+                         lazy_fixture("csv_nan"),
+                        ])
+def test_argwhere_nan(csv_path):
+    """Test where options on nan values.
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+
+    """
+    navdata = NavData(csv_path=csv_path)
+    pd_df = pd.read_csv(csv_path)
+
+    for row in navdata.rows:
+        navdata_where = navdata.argwhere(row,np.nan,"eq")
+        pd_where = np.argwhere(pd.isnull(pd_df[row]).to_numpy())
+        np.testing.assert_array_equal(navdata_where,np.squeeze(pd_where))
+
+        navdata_where = navdata.argwhere(row,np.nan,"neq")
+        pd_where = np.argwhere(~pd.isnull(pd_df[row]).to_numpy())
+        np.testing.assert_array_equal(navdata_where,np.squeeze(pd_where))
+
 def test_where_numbers(csv_simple):
     """Testing implementation of NavData.where for numeric values
 
@@ -1601,7 +1641,6 @@ def test_time_looping(csv_simple):
         pd.testing.assert_frame_equal(small_df, expected_df,
                                       check_index_type=False)
         count += 1
-
 
 def test_col_looping(csv_simple):
     """Testing implementation to loop over columns in NavData

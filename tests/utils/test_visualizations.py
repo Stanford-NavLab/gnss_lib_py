@@ -300,8 +300,6 @@ def test_plot_metrics_by_constellation(derived):
 
     test_rows = [
                  "raw_pr_m",
-                 "raw_pr_sigma_m",
-                 "tropo_delay_m",
                  ]
 
     for row in derived.rows:
@@ -327,20 +325,12 @@ def test_plot_metrics_by_constellation(derived):
                                          save=False)
     assert "gnss_id" in str(excinfo.value)
 
-    derived_no_sv_id = derived.remove(rows="signal_type")
-    viz.plot_metric_by_constellation(derived_no_sv_id,
-                                     "raw_pr_m", save=False)
-
-    derived_no_signal_type = derived.remove(rows="signal_type")
-    viz.plot_metric_by_constellation(derived_no_signal_type,
-                                     "raw_pr_m", save=False)
-
 @pytest.mark.parametrize('navdata',[
                                     # lazy_fixture('derived_2022'),
-                                    # lazy_fixture('derived'),
-                                    lazy_fixture('derived_xl'),
+                                    lazy_fixture('derived'),
+                                    # lazy_fixture('derived_xl'),
                                     ])
-def test_plot_skyplot(navdata, state_estimate_xl):
+def test_plot_skyplot(navdata, state_estimate):
     """Test for plotting skyplot.
 
     Parameters
@@ -355,16 +345,14 @@ def test_plot_skyplot(navdata, state_estimate_xl):
 
     """
 
-    if isinstance(navdata, AndroidDerived2022):
-        row_map = {
-                   "WlsPositionXEcefMeters" : "x_rx_m",
-                   "WlsPositionYEcefMeters" : "y_rx_m",
-                   "WlsPositionZEcefMeters" : "z_rx_m",
-                    }
-        navdata.rename(row_map,inplace=True)
-        state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
-    else:
-        state_estimate = state_estimate_xl
+    # if isinstance(navdata, AndroidDerived2022):
+    #     row_map = {
+    #                "WlsPositionXEcefMeters" : "x_rx_m",
+    #                "WlsPositionYEcefMeters" : "y_rx_m",
+    #                "WlsPositionZEcefMeters" : "z_rx_m",
+    #                 }
+    #     navdata.rename(row_map,inplace=True)
+    #     state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
 
     # don't save figures
     fig = viz.plot_skyplot(navdata, state_estimate, save=False)
@@ -379,28 +367,6 @@ def test_plot_skyplot(navdata, state_estimate_xl):
         with pytest.raises(KeyError) as excinfo:
             viz.plot_skyplot(derived_removed, state_estimate, save=False)
         assert row in str(excinfo.value)
-
-def test_plot_residuals(derived_xl, state_estimate_xl):
-    """Test for plotting residuals.
-
-    Parameters
-    ----------
-    derived : AndroidDerived2021
-        Instance of AndroidDerived2021 for testing.
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        Estimated receiver position in ECEF frame in meters and the
-        estimated receiver clock bias also in meters as an instance of
-        the NavData class with shape (4 x # unique timesteps) and
-        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
-
-    """
-
-    solve_residuals(derived_xl, state_estimate_xl, inplace=True)
-
-    # don't save figures
-    figs = viz.plot_metric_by_constellation(derived_xl, "gps_millis",
-                                            "residuals", save=False)
-    viz.close_figures(figs)
 
 def test_get_label():
     """Test for getting nice labels.
