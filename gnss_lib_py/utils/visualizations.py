@@ -382,7 +382,7 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
         _save_figure(fig, "skyplot", prefix=prefix, fnames=fname)
     return fig
 
-def map_lla(*args, save=True, prefix="", **kwargs):
+def plot_map(*args, save=True, prefix="", **kwargs):
     """Map trajectories.
 
     Parameters
@@ -410,53 +410,66 @@ def map_lla(*args, save=True, prefix="", **kwargs):
     """
     # TODO: add description about what NavData objects should include
 
-    if save: # pragma: no cover
-        root_path = os.path.dirname(
-                    os.path.dirname(
-                    os.path.dirname(
-                    os.path.realpath(__file__))))
-        log_path = os.path.join(root_path,"results",TIMESTAMP)
-        fo.make_dir(log_path)
-
     fig = None
 
     for traj_data in args:
-        lat_row_name = [s for s in traj_data.rows if "lat" in s]
-        lon_row_name = [s for s in traj_data.rows if "lon" in s]
-        # TODO: raise warning if non existent lat or if more than one.
+        # check for lat/lon indexes
+        traj_idxs = {"lat_*_deg" : [],
+                     "lon_*_deg" : [],
+                     }
+        for name, indexes in traj_idxs.items():
+            indexes = [row for row in traj_data.rows
+                          if row.startswith(name.split("*",maxsplit=1)[0])
+                           and row.endswith(name.split("*",maxsplit=1)[1])]
+            if len(indexes) > 1:
+                raise KeyError("Multiple possible row indexes for " \
+                             + name \
+                             + ". Unable to resolve for plot_map().")
+            if len(indexes) == 0:
+                raise KeyError("Missing required " + name + " row for " \
+                            + "plot_skyplot().")
+            # must call dictionary to avoid pass by value
+            traj_idxs[name] = indexes[0]
+
 
         if fig is None:
             fig = px.scatter_mapbox(traj_data,
-                                    lat=traj_data[lat_row_name],
-                                    lon=traj_data[lon_row_name],
-                                    size=1*np.ones(traj_data[lat_row_name].size, dtype=np.int),
-
+                                    lat=traj_data[traj_idxs["lat_*_deg"]],
+                                    lon=traj_data[traj_idxs["lon_*_deg"]],
+                                    # size=np.ones(traj_data[lat_row_name].size, dtype=np.int),
+                                    # size_max = 5,
                                     )
         else:
             fig2 = px.scatter_mapbox(traj_data,
-                                    lat=traj_data[lat_row_name],
-                                    lon=traj_data[lon_row_name],
+                                    lat=traj_data[traj_idxs["lat_*_deg"]],
+                                    lon=traj_data[traj_idxs["lon_*_deg"]],
                                     color=traj_data['gps_millis'],
-                                    size=5*np.ones(traj_data[lat_row_name].size, dtype=np.int),
-                                    # color= "b",
+                                    # size=np.ones(traj_data[lat_row_name].size, dtype=np.int),
+                                    # size_max = 5
                                     )
             fig.add_trace(fig2.data[0])
 
     fig.update_layout(mapbox_style="open-street-map")
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
     fig.update_layout(**kwargs)
+
+    fig.show()
 #     fig.update_layout(title_text="Ground Truth Tracks of Android Smartphone GNSS Dataset")
 #     fig.legend()
 
 
-    if save: # pragma: no cover
-        if prefix != "" and not prefix.endswith('_'):
-            prefix += "_"
-        plt_file = os.path.join(log_path, prefix + "map.png")
+    # if save: # pragma: no cover
+    #     _save_figure(fig, "skyplot", prefix=prefix, fnames=fname)
+    # return fig
 
-        fig.write_image(plt_file)
-
-        return None
+    # if save: # pragma: no cover
+    #     if prefix != "" and not prefix.endswith('_'):
+    #         prefix += "_"
+    #     plt_file = os.path.join(log_path, prefix + "map.png")
+    #
+    #     fig.write_image(plt_file)
+    #
+    #     return None
 
     return fig
 
@@ -576,7 +589,7 @@ def _sort_gnss_ids(unsorted_gnss_ids):
 
     return sorted_gnss_ids
 
-def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cover
+def _save_figure(figures, titles=None, prefix="", fnames=None):
     """Saves figures to file.
 
     Parameters
