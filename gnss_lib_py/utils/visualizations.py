@@ -183,7 +183,7 @@ def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
     for constellation in _sort_gnss_ids(np.unique(navdata["gnss_id"])):
         const_subset = navdata.where("gnss_id",constellation)
 
-        if prefix is None:
+        if prefix == "":
             prefix = constellation + "_"
         else:
             if prefix != "" and not prefix.endswith('_'):

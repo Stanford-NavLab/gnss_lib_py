@@ -246,15 +246,15 @@ def test_plot_metrics(derived):
 
     test_rows = [
                  "raw_pr_m",
-                 "raw_pr_sigma_m",
-                 "tropo_delay_m",
                  ]
 
     for row in derived.rows:
         if not derived.is_str(row):
             if row in test_rows:
-                fig = viz.plot_metric(derived, row, save=False)
-                viz.close_figures(fig)
+                for groupby in ["gnss_id",None]:
+                    fig = viz.plot_metric(derived, row, groupby=groupby,
+                                          save=False)
+                    viz.close_figures(fig)
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
@@ -269,8 +269,10 @@ def test_plot_metrics(derived):
     for row in derived.rows:
         if not derived.is_str(row):
             if row in test_rows:
-                fig = viz.plot_metric(derived, "raw_pr_m", row, save=False)
-                viz.close_figures(fig)
+                for groupby in ["gnss_id",None]:
+                    fig = viz.plot_metric(derived, "raw_pr_m", row,
+                                          groupby=groupby, save=False)
+                    viz.close_figures(fig)
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
@@ -305,12 +307,15 @@ def test_plot_metrics_by_constellation(derived):
     for row in derived.rows:
         if not derived.is_str(row):
             if row in test_rows:
-                fig = viz.plot_metric_by_constellation(derived, row, save=False)
-                viz.close_figures(fig)
+                for prefix in ["","test"]:
+                    fig = viz.plot_metric_by_constellation(derived, row,
+                                               prefix=prefix,save=False)
+                    viz.close_figures(fig)
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
-                fig = viz.plot_metric_by_constellation(derived, row, save=False)
+                fig = viz.plot_metric_by_constellation(derived, row,
+                                                        save=False)
                 viz.close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
@@ -324,6 +329,12 @@ def test_plot_metrics_by_constellation(derived):
         viz.plot_metric_by_constellation(derived_no_gnss_id, "raw_pr_m",
                                          save=False)
     assert "gnss_id" in str(excinfo.value)
+
+    for optional_row in ["sv_id","signal_type",["sv_id","signal_type"]]:
+        derived_partial = derived.remove(rows=optional_row)
+        figs = viz.plot_metric_by_constellation(derived_partial,
+                                                "raw_pr_m", save=False)
+        viz.close_figures(figs)
 
 @pytest.mark.parametrize('navdata',[
                                     # lazy_fixture('derived_2022'),
@@ -345,14 +356,21 @@ def test_plot_skyplot(navdata, state_estimate):
 
     """
 
-    # if isinstance(navdata, AndroidDerived2022):
-    #     row_map = {
-    #                "WlsPositionXEcefMeters" : "x_rx_m",
-    #                "WlsPositionYEcefMeters" : "y_rx_m",
-    #                "WlsPositionZEcefMeters" : "z_rx_m",
-    #                 }
-    #     navdata.rename(row_map,inplace=True)
-    #     state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
+    if isinstance(navdata, AndroidDerived2022):
+        row_map = {
+                   "WlsPositionXEcefMeters" : "x_rx_m",
+                   "WlsPositionYEcefMeters" : "y_rx_m",
+                   "WlsPositionZEcefMeters" : "z_rx_m",
+                    }
+        navdata.rename(row_map,inplace=True)
+        state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
+
+    sv_nan = np.unique(navdata["sv_id"])[0]
+    for col_idx, col in enumerate(navdata):
+        if col["sv_id"] == sv_nan:
+            navdata["x_sv_m",col_idx] = np.nan
+        # print(col_idx, col)
+
 
     # don't save figures
     fig = viz.plot_skyplot(navdata, state_estimate, save=False)
@@ -368,16 +386,42 @@ def test_plot_skyplot(navdata, state_estimate):
             viz.plot_skyplot(derived_removed, state_estimate, save=False)
         assert row in str(excinfo.value)
 
+    for row in ["x_rx_m","y_rx_m","z_rx_m"]:
+        state_removed = state_estimate.remove(rows=row)
+        with pytest.raises(KeyError) as excinfo:
+            viz.plot_skyplot(navdata, state_removed, save=False)
+        assert row.replace("rx","*") in str(excinfo.value)
+        assert "Missing" in str(excinfo.value)
+
+    for row in ["x_rx_m","y_rx_m","z_rx_m"]:
+        state_double = state_estimate.copy()
+        state_double[row.replace("rx","get")] = state_double[row]
+        with pytest.raises(KeyError) as excinfo:
+            viz.plot_skyplot(navdata, state_double, save=False)
+        assert row.replace("rx","*") in str(excinfo.value)
+        assert "Multiple" in str(excinfo.value)
+
 def test_get_label():
     """Test for getting nice labels.
 
     """
 
-    assert viz._get_label({"signal_type" : "GPS_L1"}) == "GPS L1"
-    assert viz._get_label({"signal_type" : "GLO_G1"}) == "GLO G1"
-    assert viz._get_label({"signal_type" : "BDS_B1I"}) == "BDS B1i"
+    assert viz._get_label({"signal_type" : "l1"}) == "L1"
+    assert viz._get_label({"signal_type" : "g1"}) == "G1"
+    assert viz._get_label({"signal_type" : "b1i"}) == "B1i"
     # shouldn't do lowercase 'i' trick if not signal_type
     assert viz._get_label({"random" : "BDS_B1I"}) == "BDS B1I"
+
+    assert viz._get_label({"gnss_id" : "beidou"}) == "BeiDou"
+    assert viz._get_label({"gnss_id" : "gps"}) == "GPS"
+    assert viz._get_label({"gnss_id" : "galileo"}) == "Galileo"
+
+    assert viz._get_label({"gnss_id" : "galileo",
+                           "signal_type" : "b1i"}) == "Galileo B1i"
+
+    with pytest.raises(TypeError) as excinfo:
+        viz._get_label(["should","fail"])
+    assert "dictionary" in str(excinfo.value)
 
 def test_sort_gnss_ids():
     """Test sorting GNSS IDs.
@@ -400,3 +444,14 @@ def test_sort_gnss_ids():
         assert viz._sort_gnss_ids(np.array(unsorted_ids)) == sorted_ids
         assert viz._sort_gnss_ids(set(unsorted_ids)) == sorted_ids
         assert viz._sort_gnss_ids(tuple(unsorted_ids)) == sorted_ids
+
+def test_close_figures_fail():
+    """Test expected fail conditions.
+
+    """
+
+    viz.close_figures([])
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.close_figures(0.)
+    assert "figure" in str(excinfo.value)

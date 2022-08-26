@@ -774,7 +774,7 @@ class NavData():
                 self.array[rows, cols] = new_str_vals
             else:
                 if not isinstance(new_value, int):
-                    assert not isinstance(np.asarray(new_value)[0], str), \
+                    assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Please use dtype=object for string assignments"
                 self.array[rows, cols] = new_value
 
