@@ -421,13 +421,13 @@ def ecef_to_el_az(rx_pos, sv_pos):
     if rx_pos.shape == (3,1):
         rx_pos = rx_pos.T
     if rx_pos.shape != (1,3):
-        assert RuntimeError("Receiver ECEF position must be a " \
+        raise RuntimeError("Receiver ECEF position must be a " \
                           + "np.ndarray of shape 1x3.")
 
     # conform satellite position to correct shape
     sv_pos = np.atleast_2d(sv_pos)
     if sv_pos.shape[1] != 3:
-        assert RuntimeError("Satellite ECEF position(s) must be a " \
+        raise RuntimeError("Satellite ECEF position(s) must be a " \
                           + "np.ndarray of shape Nx3.")
 
     # Convert the receiver location to WGS84
