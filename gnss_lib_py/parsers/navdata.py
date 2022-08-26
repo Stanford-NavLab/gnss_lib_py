@@ -220,19 +220,31 @@ class NavData():
         row_str = row_str[0]
         if row_str:
             # Values in row are strings
-            if condition != "eq":
+            if condition not in ("eq","neq"):
                 raise ValueError("Inequality comparison not valid for strings")
             key = inv_map[row]
             for str_key, str_value in self.str_map[key].items():
                 if str_value==value:
-                    new_cols = np.argwhere(self.array[row, :]==str_key)
+                    if condition == "eq":
+                        new_cols = np.argwhere(self.array[row, :]==str_key)
+                        break
+                    # condition == "neq"
+                    new_cols = np.argwhere(self.array[row, :]!=str_key)
                     break
             # Extract columns where condition holds true and return new NavData
         else:
             # Values in row are numerical
             # Find columns where value can be found and return new NavData
             if condition=="eq":
-                new_cols = np.argwhere(self.array[row, :]==value)
+                if not isinstance(value,str) and np.isnan(value):
+                    new_cols = np.isnan(self.array[row, :])
+                else:
+                    new_cols = np.argwhere(self.array[row, :]==value)
+            elif condition=="neq":
+                if not isinstance(value,str) and np.isnan(value):
+                    new_cols = ~np.isnan(self.array[row, :])
+                else:
+                    new_cols = np.argwhere(self.array[row, :]!=value)
             elif condition == "leq":
                 new_cols = np.argwhere(self.array[row, :]<=value)
             elif condition == "geq":

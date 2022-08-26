@@ -1524,6 +1524,10 @@ def test_where_str(csv_simple):
     compare_df = compare_df[compare_df['strings']=="gps"].reset_index(drop=True)
     pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
 
+    data_small = data.where('strings', 'gps','neq')
+    compare_df = data.pandas_df()
+    compare_df = compare_df[compare_df['strings']!="gps"].reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
 
 def test_where_numbers(csv_simple):
     """Testing implementation of NavData.where for numeric values
@@ -1534,15 +1538,14 @@ def test_where_numbers(csv_simple):
         Path to csv file used to create NavData
     """
     data = NavData(csv_path=csv_simple)
-    conditions = ["eq", "leq", "geq", "greater", "lesser", "between"]
-    values = [98, 10, 250, 67, 45, [30, 80]]
-    pd_rows = [[4], [0,1], [5], [4, 5], [0, 1], [2, 3]]
+    conditions = ["eq", "neq", "leq", "geq", "greater", "lesser", "between"]
+    values = [98, 98, 10, 250, 67, 45, [30, 80]]
+    pd_rows = [[4], [0,1,2,3,5], [0,1], [5], [4, 5], [0, 1], [2, 3]]
     for idx, condition in enumerate(conditions):
         data_small = data.where("integers", values[idx], condition=condition)
         compare_df = data.pandas_df()
         compare_df = compare_df.iloc[pd_rows[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
-
 
 def test_where_errors(csv_simple):
     """Testing error cases for NavData.where
@@ -1559,11 +1562,9 @@ def test_where_errors(csv_simple):
     # Test non-equality condition with strings
     with pytest.raises(ValueError):
         _ = data.where("names", "ab", condition="leq")
+    # Test condition that is not defined
     with pytest.raises(ValueError):
         _ = data.where("integers", 10, condition="eq_sqrt")
-
-    # Test condition that is not defined
-
 
 def test_time_looping(csv_simple):
     """Testing implementation to loop over times
