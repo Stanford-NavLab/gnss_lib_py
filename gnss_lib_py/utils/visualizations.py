@@ -45,7 +45,7 @@ mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
                                 +  cycler(marker=MARKERS))
 TIMESTAMP = fo.get_timestamp()
 
-def plot_metric(navdata, *args, groupby=None, title=None, save=True,
+def plot_metric(navdata, *args, groupby=None, title=None, save=False,
                 prefix="", fname=None, **kwargs):
     """Plot specific metric from a row of the NavData class.
 
@@ -88,7 +88,7 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=True,
     if x_metric is None:
         if title is None:
             title = _get_label({y_metric:y_metric})
-        plt.xlabel("Index")
+        plt.xlabel("INDEX")
         if groupby is not None:
             for group in np.unique(navdata[groupby]):
                 subset = navdata.where(groupby,group)
@@ -133,7 +133,7 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=True,
         _save_figure(fig, title, prefix, fname)
     return fig
 
-def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
+def plot_metric_by_constellation(navdata, *args, save=False, prefix="",
                                  fname=None, **kwargs):
     """Plot specific metric from a row of the NavData class.
 
@@ -225,7 +225,7 @@ def plot_metric_by_constellation(navdata, *args, save=True, prefix="",
 
     return figs
 
-def plot_skyplot(navdata, receiver_state, save=True, prefix="",
+def plot_skyplot(navdata, receiver_state, save=False, prefix="",
                  fname=None, **kwargs):
     """Skyplot of satellite positions relative to receiver.
 
@@ -382,7 +382,7 @@ def plot_skyplot(navdata, receiver_state, save=True, prefix="",
         _save_figure(fig, "skyplot", prefix=prefix, fnames=fname)
     return fig
 
-def plot_map(*args, save=True, prefix="", **kwargs):
+def plot_map(*args, save=False, prefix="", **kwargs):
     """Map trajectories.
 
     Parameters
