@@ -63,6 +63,11 @@ def parse_sp3(input_path, constellation = 'G'):
     (1) Should the other ephemeris python file be called
     broadcast_ephemeris for consistency and clarity?
     (2) Should there be a history sub-heading as well, for better clarity?
+    (3) Not sure how to fix this pylint error:
+    precise_ephemerides.py:74:37: R1732: Consider using 'with' for
+    resource-allocating operations (consider-using-with)
+    precise_ephemerides.py:74:37: W1514: Using open without explicitly
+    specifying an encoding (unspecified-encoding)
 
     References
     ----------
@@ -126,6 +131,12 @@ def parse_sp3(input_path, constellation = 'G'):
 class Clk:
     """Class handling biases in satellite clock (precise ephemerides)
     from .clk dataset.
+
+    Notes
+    -----
+    (1) Not sure how to fix these pylint errors:
+    precise_ephemerides.py:126:0: R0903: Too few public methods
+    (0/2) (too-few-public-methods)
     """
     def __init__(self):
         self.clk_bias = []
@@ -157,7 +168,12 @@ def parse_clockfile(input_path, constellation = 'G'):
     AE 456, Global Navigation Sat Systems, University of Illinois
     Urbana-Champaign. Fall 2015
 
+    Not sure how to fix the pylint error:
+    precise_ephemerides.py:197:11: W1514: Using open without explicitly
+    specifying an encoding (unspecified-encoding)
+
     References
+    -----
     .. [1]  https://files.igs.org/pub/data/format/rinex_clock300.txt
             Accessed as of August 24, 2022
     ----------
@@ -179,12 +195,12 @@ def parse_clockfile(input_path, constellation = 'G'):
 
     # Create a CLK class for each expected satellite
     clkdata = []
-    for i in np.arange(0, nsvs+1):
+    for _ in np.arange(0, nsvs+1):
         clkdata.append(Clk())
 
     # Read Clock file
-    fval = open(input_path)
-    clk = fval.readlines()
+    file_input = open(input_path)
+    clk = file_input.readlines()
     line = 0
 
     while True:
@@ -204,26 +220,26 @@ def parse_clockfile(input_path, constellation = 'G'):
             break
 
     timelist = []
-    for i in range(len(clk)):
-        if clk[i][0:2]=='AS':
-            timelist.append(clk[i].split())
+    for _, clk_val in enumerate(clk):
+        if clk_val[0:2]=='AS':
+            timelist.append(clk_val.split())
 
-    for i in range(len(timelist)):
-        dval = timelist[i][1]
+    for _, timelist_val in enumerate(timelist):
+        dval = timelist_val[1]
 
         if dval[0]==constellation:
             prn = int(dval[1:])
-            curr_time = datetime(year = int(timelist[i][2]), \
-                                 month = int(timelist[i][3]), \
-                                 day = int(timelist[i][4]), \
-                                 hour = int(timelist[i][5]), \
-                                 minute = int(timelist[i][6]), \
-                                 second = int(float(timelist[i][7])))
+            curr_time = datetime(year = int(timelist_val[2]), \
+                                 month = int(timelist_val[3]), \
+                                 day = int(timelist_val[4]), \
+                                 hour = int(timelist_val[5]), \
+                                 minute = int(timelist_val[6]), \
+                                 second = int(float(timelist_val[7])))
             _, gps_tym = datetime_to_tow(curr_time, convert_gps = False)
             clkdata[prn].utc_time.append(curr_time)
             clkdata[prn].tym.append(gps_tym)
-            clkdata[prn].clk_bias.append(float(timelist[i][9]))
+            clkdata[prn].clk_bias.append(float(timelist_val[9]))
 
-    fval.close() # close the file
+    file_input.close() # close the file
 
     return clkdata

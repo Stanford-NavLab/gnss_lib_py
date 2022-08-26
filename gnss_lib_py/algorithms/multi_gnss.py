@@ -35,7 +35,7 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, method = 'CubicSpline'):
 
     Returns
     -------
-    func_satxyz : 3-D array of scipy.interpolate.interpolate.interp1d
+    func_satpos : 3-D array of scipy.interpolate.interpolate.interp1d
         Each element of 3-D array represents the interpolated function
         associated with loaded .sp3 data
 
@@ -47,8 +47,8 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, method = 'CubicSpline'):
     ----------
     """
 
-    func_satxyz = np.empty((3,), dtype=object)
-    func_satxyz[:] = np.nan
+    func_satpos = np.empty((3,), dtype=object)
+    func_satpos[:] = np.nan
 
     if method=='CubicSpline':
         low_i = (sidx - ipos) if (sidx - ipos) >= 0 else 0
@@ -57,22 +57,22 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, method = 'CubicSpline'):
         print('Nearest sp3: ', sidx, sp3data.tym[sidx], \
                                sp3data.xpos[sidx], sp3data.ypos[sidx], sp3data.zpos[sidx])
 
-        func_satxyz[0] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
+        func_satpos[0] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
                                                  sp3data.xpos[low_i:high_i])
-        func_satxyz[1] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
+        func_satpos[1] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
                                                  sp3data.ypos[low_i:high_i])
-        func_satxyz[2] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
+        func_satpos[2] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
                                                  sp3data.zpos[low_i:high_i])
 
-    return func_satxyz
+    return func_satpos
 
-def compute_sp3_snapshot(func_satxyz, cxtime, hstep = 1e-5, method='CubicSpline'):
+def compute_sp3_snapshot(func_satpos, cxtime, hstep = 1e-5, method='CubicSpline'):
     """Compute the satellite 3-D position and velocity via central differencing,
     given an associated 3-D array of interpolation function
 
     Parameters
     ----------
-    func_satxyz : 3-D array of scipy.interpolate.interpolate.interp1d
+    func_satpos : 3-D array of scipy.interpolate.interpolate.interp1d
         Each element of 3-D array represents the interpolated function
         associated with loaded .sp3 data.
     cxtime : float
@@ -99,9 +99,9 @@ def compute_sp3_snapshot(func_satxyz, cxtime, hstep = 1e-5, method='CubicSpline'
     ----------
     """
     if method=='CubicSpline':
-        sat_x = func_satxyz[0]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
-        sat_y = func_satxyz[1]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
-        sat_z = func_satxyz[2]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+        sat_x = func_satpos[0]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+        sat_y = func_satpos[1]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+        sat_z = func_satpos[2]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
 
     satpos_sp3 = np.array([sat_x[1], sat_y[1], sat_z[1]])
     satvel_sp3 = np.array([ (sat_x[2]-sat_x[0]) / hstep, \
@@ -310,18 +310,18 @@ def compute_sv_sp3clk_gps_glonass(navdata, sp3_path, clk_path, multi_gnss):
                 # Carry out .sp3 processing by first checking if
                 # previous interpolated function holds
                 if sp3_iref == sp3_iref_old[gnss][prn]:
-                    func_satxyz = satfunc_xyz_old[gnss][prn]
+                    func_satpos = satfunc_xyz_old[gnss][prn]
                 else:
                     # if does not hold, recompute the interpolation function based on current iref
                     print('SP3: Computing new interpolation!')
-                    func_satxyz = extract_sp3_func(sp3_parsed_file[gnss][prn], \
+                    func_satpos = extract_sp3_func(sp3_parsed_file[gnss][prn], \
                                                    sp3_iref, method = interp_method)
                     # Update the relevant interp function and iref values
-                    satfunc_xyz_old[gnss][prn] = func_satxyz
+                    satfunc_xyz_old[gnss][prn] = func_satpos
                     sp3_iref_old[gnss][prn] = sp3_iref
 
                 # Compute satellite position and velocity using interpolated function
-                satpos_sp3, satvel_sp3 = compute_sp3_snapshot(func_satxyz, \
+                satpos_sp3, satvel_sp3 = compute_sp3_snapshot(func_satpos, \
                                                               (timestep-navdata_offset), \
                                                               method = interp_method)
                 print('before sp3:', satpos_sp3, satvel_sp3)
