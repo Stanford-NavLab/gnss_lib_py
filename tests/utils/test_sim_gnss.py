@@ -19,6 +19,8 @@ from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.parsers.ephemeris import EphemerisManager
 from gnss_lib_py.utils.time_conversions import datetime_to_tow
 
+# pylint: disable=protected-access
+
 T = 0.1
 
 def timestamp():

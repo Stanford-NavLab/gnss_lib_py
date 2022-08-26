@@ -14,6 +14,7 @@ import pandas as pd
 from gnss_lib_py.parsers import android
 from gnss_lib_py.parsers.navdata import NavData
 
+# pylint: disable=protected-access
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():

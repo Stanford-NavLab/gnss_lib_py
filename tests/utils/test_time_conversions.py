@@ -14,6 +14,8 @@ import numpy as np
 import gnss_lib_py.utils.time_conversions as tc
 from gnss_lib_py.utils.constants import GPS_EPOCH_0
 
+# pylint: disable=protected-access
+
 @pytest.fixture(name="check_leapseconds")
 def leapseconds_table():
     """Table with reference for when leapseconds were added

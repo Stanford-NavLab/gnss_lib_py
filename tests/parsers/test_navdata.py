@@ -1182,12 +1182,13 @@ def test_multi_set_changing_type(data,new_string):
     np.testing.assert_array_equal(data_temp1["integers"], new_string)
     np.testing.assert_array_equal(data_temp1["floats"], new_string)
 
-    data_temp2 = data.copy()
-
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
                         8])
-def test_wrong_init_set(data, row_idx):
+def test_wrong_init_set(row_idx):
+    """ Test init with unkown set.
+
+    """
     empty_data = NavData()
     with pytest.raises(KeyError):
         empty_data[row_idx] = np.zeros([1, 6])
@@ -1252,6 +1253,9 @@ def test_add_numpy_1d():
     np.testing.assert_array_equal(data_empty[:,:],np.ones((8,8)))
 
 def test_add_csv(df_simple, csv_simple):
+    """Test adding a csv.
+    
+    """
     # Create and add to NavData
     data = NavData(csv_path=csv_simple)
     data.add(csv_path=csv_simple)

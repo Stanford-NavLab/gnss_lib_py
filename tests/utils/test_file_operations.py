@@ -5,8 +5,6 @@
 __authors__ = "D. Knowles"
 __date__ = "01 Jul 2022"
 
-import os
-
 import gnss_lib_py.utils.file_operations as fo
 
 # test_make_dir

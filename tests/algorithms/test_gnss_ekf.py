@@ -63,9 +63,9 @@ def gnss_run_params():
 @pytest.mark.parametrize('motion_type', ['stationary',
                                         'constant_velocity'])
 def test_stationary_filter(init_dict, params_dict, motion_type):
-    """Test if solution of EKF with small measurement noise is submeter 
+    """Test if solution of EKF with small measurement noise is submeter
     close to truth
-    
+
     Parameters
     ----------
     init_dict : Dict
