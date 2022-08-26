@@ -58,12 +58,18 @@ def solve_wls(measurements, weight_type = None,
 
     states = []
 
+    position = np.zeros((4,1))
     for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
 
         pos_sv_m = np.hstack((measurement_subset["x_sv_m"].reshape(-1,1),
                               measurement_subset["y_sv_m"].reshape(-1,1),
                               measurement_subset["z_sv_m"].reshape(-1,1)))
         corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
+
+        # remove NaN indexes
+        nan_indexes = ~np.isnan(pos_sv_m).any(axis=1)
+        pos_sv_m = pos_sv_m[nan_indexes]
+        corr_pr_m = corr_pr_m[nan_indexes]
 
         if weight_type is not None:
             if isinstance(weight_type,str) and weight_type in measurements.rows:
@@ -74,10 +80,14 @@ def solve_wls(measurements, weight_type = None,
         else:
             weights = None
 
-        position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m, weights,
-                       only_bias, tol, max_count)
+        try:
+            position = wls(position, pos_sv_m, corr_pr_m, weights,
+                           only_bias, tol, max_count)
 
-        states.append([timestamp] + np.squeeze(position).tolist())
+            states.append([timestamp] + np.squeeze(position).tolist())
+        except RuntimeError as error:
+            print("RuntimeWarning: " + "gps_millis: " + str(int(timestamp)) \
+                        + ", " + str(error))
 
     states = np.array(states)
 
@@ -175,8 +185,12 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
 
 
         pr_delta = corr_pr_m - gt_r_m - rx_est_m[3,0]
-        pos_x_delta = np.linalg.pinv(geometry_matrix.T @ weight_matrix @ geometry_matrix) \
-                    @ geometry_matrix.T @ weight_matrix @ pr_delta
+        try:
+            pos_x_delta = np.linalg.pinv(geometry_matrix.T @ weight_matrix @ geometry_matrix) \
+                        @ geometry_matrix.T @ weight_matrix @ pr_delta
+        except np.linalg.LinAlgError as exception:
+            print(exception)
+            break
 
         if only_bias:
             rx_est_m[3,0] += pos_x_delta[0,0]
