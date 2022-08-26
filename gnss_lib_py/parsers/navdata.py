@@ -663,6 +663,8 @@ class NavData():
         if np.all(row_str):
             # Return sliced strings
             arr_slice = np.atleast_2d(np.empty_like(self.array[rows, cols], dtype=object))
+            if len(arr_slice) == 0: # can't index into empty slice
+                return arr_slice
             for row_num, row in enumerate(row_list):
                 str_arr = self._get_strings(self.inv_map[row])
                 arr_slice[row_num, :] = str_arr[cols]
