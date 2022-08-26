@@ -111,7 +111,7 @@ GNSS measurement naming conventions are as follows:
   estimated true signal transmission time.
 * :code:`el_sv_deg` : Elevation of satellite in relation to the
   receiver's position.
-* :code:`el_sv_deg` : Azimuth of satellite in relation to the receiver's
+* :code:`az_sv_deg` : Azimuth of satellite in relation to the receiver's
   position.
 * :code:`vx_sv_mps` : (float) satellite ECEF x velocity in meters per
   second at estimated true signal transmission time.
