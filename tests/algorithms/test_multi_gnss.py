@@ -1,4 +1,7 @@
 """Tests for multi_gnss codes.
+Notes
+----------
+(1) Probably should test with another android, sp3, clk dataset?
 
 """
 
@@ -298,21 +301,24 @@ def test_gps_func(sp3data_gps, clkdata_gps):
 
     for prn in range(1, NUMSATS_GPS+1):
         for sidx, _ in enumerate(sp3data_gps[prn].tym):
-            func_satpos = extract_sp3_func(sp3data_gps[prn], sidx, ipos = 10, method='CubicSpline')
+            func_satpos = extract_sp3_func(sp3data_gps[prn], sidx, \
+                                           ipos = 10, method='CubicSpline')
             cxtime = sp3data_gps[prn].tym[sidx]
             satpos_sp3, _ = compute_sp3_snapshot(func_satpos, cxtime, \
                                                  hstep = 1e-5, method='CubicSpline')
             satpos_sp3_exact = np.array([ sp3data_gps[prn].xpos[sidx], \
                                           sp3data_gps[prn].ypos[sidx], \
                                           sp3data_gps[prn].zpos[sidx] ])
-            assert np.linalg.norm(satpos_sp3-satpos_sp3_exact) < 150.0
+            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 150.0
 
         for sidx, _ in enumerate(clkdata_gps[prn].tym):
-            func_satbias = extract_clk_func(clkdata_gps[prn], sidx, ipos = 10, method='CubicSpline')
+            func_satbias = extract_clk_func(clkdata_gps[prn], sidx, \
+                                            ipos = 10, method='CubicSpline')
             cxtime = clkdata_gps[prn].tym[sidx]
             satbias_clk, _ = compute_clk_snapshot(func_satbias, cxtime, \
                                                   hstep = 1e-5, method='CubicSpline')
-            assert consts.C * np.linalg.norm(satbias_clk - clkdata_gps[prn].clk_bias[sidx]) < 1.0
+            assert consts.C * np.linalg.norm(satbias_clk - \
+                                             clkdata_gps[prn].clk_bias[sidx]) < 1.0
 
 def test_glonass_func(sp3data_glonass, clkdata_glonass):
     """Tests that extract_sp3_func and compute_sp3_snapshot functions
@@ -341,7 +347,7 @@ def test_glonass_func(sp3data_glonass, clkdata_glonass):
             satpos_sp3_exact = np.array([ sp3data_glonass[prn].xpos[sidx], \
                                           sp3data_glonass[prn].ypos[sidx], \
                                           sp3data_glonass[prn].zpos[sidx] ])
-            assert np.linalg.norm(satpos_sp3-satpos_sp3_exact) < 160.0
+            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 160.0
 
         for sidx, _ in enumerate(clkdata_glonass[prn].tym):
             func_satbias = extract_clk_func(clkdata_glonass[prn], sidx, \
@@ -349,7 +355,8 @@ def test_glonass_func(sp3data_glonass, clkdata_glonass):
             cxtime = clkdata_glonass[prn].tym[sidx]
             satbias_clk, _ = compute_clk_snapshot(func_satbias, cxtime, \
                                                   hstep = 1e-5, method='CubicSpline')
-            assert consts.C * np.linalg.norm(satbias_clk - clkdata_glonass[prn].clk_bias[sidx]) < 1.0
+            assert consts.C * np.linalg.norm(satbias_clk - \
+                                             clkdata_glonass[prn].clk_bias[sidx]) < 1.0
 
 def test_compute_sv_sp3clk_gps_glonass(navdata, sp3_path, clk_path):
     """Tests that compute_sv_sp3clk_gps_glonass does not fail

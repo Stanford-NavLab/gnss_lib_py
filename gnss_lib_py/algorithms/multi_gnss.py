@@ -239,17 +239,17 @@ def compute_sv_sp3clk_gps_glonass(navdata, sp3_path, clk_path, multi_gnss):
     ----------
     """
 
-    # Initial checks for loading sp3_path
-    if not isinstance(sp3_path, str):
-        raise TypeError("sp3_path must be string")
-    if not os.path.exists(sp3_path):
-        raise OSError("file not found")
+#     # Initial checks for loading sp3_path
+#     if not isinstance(sp3_path, str):
+#         raise TypeError("sp3_path must be string")
+#     if not os.path.exists(sp3_path):
+#         raise OSError("file not found")
 
-    # Initial checks for loading clk_path
-    if not isinstance(clk_path, str):
-        raise TypeError("clk_path must be string")
-    if not os.path.exists(clk_path):
-        raise OSError("file not found")
+#     # Initial checks for loading clk_path
+#     if not isinstance(clk_path, str):
+#         raise TypeError("clk_path must be string")
+#     if not os.path.exists(clk_path):
+#         raise OSError("file not found")
 
     if not np.array_equal( np.unique(navdata["gnss_id"]), \
                            [multi_gnss[gnss][0] for gnss in multi_gnss.keys()] ):

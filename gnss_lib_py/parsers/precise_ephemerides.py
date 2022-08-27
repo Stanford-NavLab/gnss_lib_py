@@ -5,6 +5,7 @@
 __authors__ = "Sriramya Bhamidipati"
 __date__ = "09 June 2022"
 
+import os
 from datetime import datetime
 import numpy as np
 
@@ -64,8 +65,6 @@ def parse_sp3(input_path, constellation = 'G'):
     broadcast_ephemeris for consistency and clarity?
     (2) Should there be a history sub-heading as well, for better clarity?
     (3) Not sure how to fix this pylint error:
-    precise_ephemerides.py:74:37: R1732: Consider using 'with' for
-    resource-allocating operations (consider-using-with)
     precise_ephemerides.py:74:37: W1514: Using open without explicitly
     specifying an encoding (unspecified-encoding)
 
@@ -75,8 +74,17 @@ def parse_sp3(input_path, constellation = 'G'):
             Accessed as of August 20, 2022
 
     """
+    # Initial checks for loading sp3_path
+    if not isinstance(input_path, str):
+        raise TypeError("input_path must be string")
+    if not os.path.exists(input_path):
+        raise OSError("file not found")
+
     # Load in the file
-    data = [line.strip() for line in open(input_path)]
+    with open(input_path, 'r') as infile:
+        data = [line.strip() for line in infile]
+
+#     data = [line.strip() for line in open(input_path)]
 
     # Poll the total no. of satellites based on constellation specified
     if constellation == 'G':
@@ -171,6 +179,7 @@ def parse_clockfile(input_path, constellation = 'G'):
     Not sure how to fix the pylint error:
     precise_ephemerides.py:197:11: W1514: Using open without explicitly
     specifying an encoding (unspecified-encoding)
+    Maybe this link: https://peps.python.org/pep-0597/#id11
 
     References
     -----
@@ -178,6 +187,12 @@ def parse_clockfile(input_path, constellation = 'G'):
             Accessed as of August 24, 2022
     ----------
     """
+
+    # Initial checks for loading sp3_path
+    if not isinstance(input_path, str):
+        raise TypeError("input_path must be string")
+    if not os.path.exists(input_path):
+        raise OSError("file not found")
 
     # Poll the total no. of satellites based on constellation specified
     if constellation == 'G':
@@ -199,10 +214,13 @@ def parse_clockfile(input_path, constellation = 'G'):
         clkdata.append(Clk())
 
     # Read Clock file
-    file_input = open(input_path)
-    clk = file_input.readlines()
-    line = 0
+    with open(input_path, 'r') as infile:
+        clk = infile.readlines()
 
+#     infile = open(input_path)
+#     clk = infile.readlines()
+
+    line = 0
     while True:
         if 'OF SOLN SATS' not in clk[line]:
             del clk[line]
@@ -240,6 +258,6 @@ def parse_clockfile(input_path, constellation = 'G'):
             clkdata[prn].tym.append(gps_tym)
             clkdata[prn].clk_bias.append(float(timelist_val[9]))
 
-    file_input.close() # close the file
+    infile.close() # close the file
 
     return clkdata
