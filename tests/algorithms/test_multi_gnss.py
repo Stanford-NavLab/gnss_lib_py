@@ -153,10 +153,6 @@ def fixture_load_navdata_gps(navdata_path):
     -------
     navdata_gps : AndroidDerived
         Instance of AndroidDerived (GPS) for testing
-
-    Notes
-    ----------
-
     """
     navdata_full = AndroidDerived(navdata_path)
     gps_idxs = np.where( (navdata_full["gnss_id",:] == 1) )[1]
@@ -177,9 +173,6 @@ def fixture_load_sp3data_gps(sp3_path):
     -------
     sp3data_gps : Array of Sp3 classes with len == # GPS sats
         Instance of GPS-only Sp3 class array for testing
-
-    Notes
-    ----------
     """
     sp3data_gps = parse_sp3(sp3_path, constellation = 'G')
 
@@ -198,9 +191,6 @@ def fixture_load_clkdata_gps(clk_path):
     -------
     clkdata_gps : Array of Clk classes with len == # GPS sats
         Instance of GPS-only Clk class array for testing
-
-    Notes
-    ----------
     """
     clkdata_gps = parse_clockfile(clk_path, constellation = 'G')
 
@@ -222,8 +212,8 @@ def fixture_load_sp3data_glonass(sp3_path):
 
     Notes
     ----------
-    (1) does precise ephemerides file require to be navdata format? 
-    (2) Any ideas on unit tests for sp3 and clk files
+    (1) Is it okay for sp3 and clk to be their own classe, or does
+    precise ephemerides file require to be navdata class?
     """
     sp3data_glonass = parse_sp3(sp3_path, constellation = 'R')
 
@@ -242,9 +232,6 @@ def fixture_load_clkdata_glonass(clk_path):
     -------
     clkdata_glonass : Array of Clk classes with len == # GLONASS sats
         Instance of GLONASS-only Clk class array for testing
-
-    Notes
-    ----------
     """
     clkdata_glonass = parse_clockfile(clk_path, constellation = 'R')
 
@@ -259,9 +246,6 @@ def test_sp3_eph(navdata_gps, sp3_path, clk_path):
     navdata_gps : pytest.fixture
         Instance of the NavData class that depicts android derived
         dataset for GPS-only constellation
-
-    Notes
-    ----------
     """
 
     multi_gnss = {'G': (1, 'GPS_L1') }
@@ -372,11 +356,10 @@ def test_compute_sv_sp3clk_gps_glonass(navdata, sp3_path, clk_path):
 
     Notes
     ----------
-    (1) Need to check if setting a threshold of 300, 5e-2, 15, 5e-3
-    heuristically is acceptable or not; need investigation
-    (2) Need to shorten the data being loaded for unit tests
-    (3) Think if the multi_gnss needs to be anything different
-
+    (1) Need to check if heuristically setting a threshold of
+    300, 5e-2, 15, 5e-3 is oka or not
+    (3) The structure of multi_gnss is different for this and next function
+    Think if this variable needs to be defined differently or this is okay
     """
     multi_gnss = {'G': (1, 'GPS_L1'), \
                   'R': (3, 'GLO_G1')}
@@ -424,10 +407,6 @@ def test_compute_sv_eph_gps(navdata, navdata_gps):
         Instance of NavData class that depicts entire android derived dataset
     navdata : pytest.fixture
         Instance of NavData class that depicts GPS-only android derived dataset
-
-    Notes
-    ----------
-
     """
 
     multi_gnss = (1, 'GPS_L1')

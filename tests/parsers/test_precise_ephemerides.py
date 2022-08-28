@@ -3,7 +3,7 @@
 Notes
 ----------
 (1) Can probably add unit tests to confirm sp3 and clk
-data correspond to same time instants? -> maybe not 
+data have the same time instant fields? -> maybe not
 necessary, overkill?
 """
 
@@ -73,7 +73,7 @@ def fixture_clk_path(root_path):
     Notes
     ----------
     (1) Need to shorten the data being loaded for unit tests; 34 MB
-    for clock file, can I just cut lines at the end?
+    for clock file, can I just open file and cut lines at the end?
 
     References
     ----------
@@ -90,14 +90,6 @@ def fixture_sp3_path_missing(root_path):
     -------
     sp3_path : string
         String with location for the unit_test sp3 measurements
-
-    Notes
-    ----------
-    (1) Need to shorten the data being loaded for unit tests
-
-    References
-    ----------
-    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     """
     sp3_path_missing = os.path.join(root_path, 'grg21553_missing.sp3')
     return sp3_path_missing
@@ -114,7 +106,8 @@ def fixture_clk_path_missing(root_path):
     Notes
     ----------
     (1) Need to shorten the data being loaded for unit tests; 34 MB
-    for clock file, can I just cut lines at the end?
+    for clock file, can I just cut lines at the end? I didn't currently
+    push this .clk file to github because of its size.
 
     References
     ----------
@@ -136,9 +129,6 @@ def fixture_load_sp3data_gps(sp3_path):
     -------
     sp3data_gps : Array of Sp3 classes with len == # GPS sats
         Instance of GPS-only Sp3 class array for testing
-
-    Notes
-    ----------
     """
     sp3data_gps = parse_sp3(sp3_path, constellation = 'G')
 
@@ -157,9 +147,6 @@ def fixture_load_clkdata_gps(clk_path):
     -------
     clkdata_gps : Array of Clk classes with len == # GPS sats
         Instance of GPS-only Clk class array for testing
-
-    Notes
-    ----------
     """
     clkdata_gps = parse_clockfile(clk_path, constellation = 'G')
 
@@ -178,11 +165,6 @@ def fixture_load_sp3data_glonass(sp3_path):
     -------
     sp3data_glonass : Array of Sp3 classes with len == # GLONASS sats
         Instance of GLONASS-only Sp3 class array for testing
-
-    Notes
-    ----------
-    (1) does precise ephemerides file require to be navdata format? 
-    (2) Any ideas on unit tests for sp3 and clk files
     """
     sp3data_glonass = parse_sp3(sp3_path, constellation = 'R')
 
@@ -201,9 +183,6 @@ def fixture_load_clkdata_glonass(clk_path):
     -------
     clkdata_glonass : Array of Clk classes with len == # GLONASS sats
         Instance of GLONASS-only Clk class array for testing
-
-    Notes
-    ----------
     """
     clkdata_glonass = parse_clockfile(clk_path, constellation = 'R')
 
@@ -216,7 +195,7 @@ def fixture_load_sp3data_gps_missing(sp3_path_missing):
     Parameters
     ----------
     sp3_path_missing : pytest.fixture
-        String with invalid location for unit_test sp3 
+        String with invalid location for unit_test sp3
         measurements
     """
     return parse_sp3(sp3_path_missing, constellation = 'G')
@@ -228,8 +207,8 @@ def fixture_load_clkdata_gps_missing(clk_path_missing):
     Parameters
     ----------
     clk_path_missing : pytest.fixture
-        String with invalid location for unit_test clk 
-        measurements        
+        String with invalid location for unit_test clk
+        measurements
     """
     return parse_clockfile(clk_path_missing, constellation = 'G')
 
@@ -241,7 +220,7 @@ def fixture_load_clkdata_gps_missing(clk_path_missing):
                          ('utc_time', 12, 3, datetime(2021, 4, 28, 0, 15)) ]
                         )
 def test_sp3gps_value_check(sp3data_gps, prn, row_name, index, exp_value):
-    """Check Sp3 array entries of GPS constellation 
+    """Check Sp3 array entries of GPS constellation
     against known values using test matrix
 
     Parameters
@@ -263,7 +242,7 @@ def test_sp3gps_value_check(sp3data_gps, prn, row_name, index, exp_value):
     assert np.size(sp3data_gps[0].tym) == 0
     assert np.size(sp3data_gps[0].utc_time) == 0
     assert len(sp3data_gps) == NUMSATS_GPS + 1
-    
+
     curr_value = getattr(sp3data_gps[prn], row_name)[index]
     np.testing.assert_equal(curr_value, exp_value)
 
@@ -275,7 +254,7 @@ def test_sp3gps_value_check(sp3data_gps, prn, row_name, index, exp_value):
                          ('utc_time', 9, 34, datetime(2021, 4, 28, 2, 50)) ]
                         )
 def test_sp3glonass_value_check(sp3data_glonass, prn, row_name, index, exp_value):
-    """Check Sp3 array entries of GLONASS constellation against 
+    """Check Sp3 array entries of GLONASS constellation against
     known/expected values using test matrix
 
     Parameters
@@ -297,7 +276,7 @@ def test_sp3glonass_value_check(sp3data_glonass, prn, row_name, index, exp_value
     assert np.size(sp3data_glonass[0].tym) == 0
     assert np.size(sp3data_glonass[0].utc_time) == 0
     assert len(sp3data_glonass) == NUMSATS_GLONASS + 1
-    
+
     curr_value = getattr(sp3data_glonass[prn], row_name)[index]
     np.testing.assert_equal(curr_value, exp_value)
 
@@ -307,7 +286,7 @@ def test_sp3glonass_value_check(sp3data_glonass, prn, row_name, index, exp_value
                          ('utc_time', 32, 4, datetime(2021, 4, 28, 0, 2)) ]
                         )
 def test_clkgps_value_check(clkdata_gps, prn, row_name, index, exp_value):
-    """Check Clk array entries of GPS constellation against 
+    """Check Clk array entries of GPS constellation against
     known/expected values using test matrix
 
     Parameters
@@ -327,7 +306,7 @@ def test_clkgps_value_check(clkdata_gps, prn, row_name, index, exp_value):
     assert np.size(clkdata_gps[0].clk_bias) == 0
     assert np.size(clkdata_gps[0].utc_time) == 0
     assert len(clkdata_gps) == NUMSATS_GPS + 1
-    
+
     curr_value = getattr(clkdata_gps[prn], row_name)[index]
     np.testing.assert_equal(curr_value, exp_value)
 
@@ -337,7 +316,7 @@ def test_clkgps_value_check(clkdata_gps, prn, row_name, index, exp_value):
                          ('utc_time', 4, 4, datetime(2021, 4, 28, 0, 2)) ]
                         )
 def test_clkglonass_value_check(clkdata_glonass, prn, row_name, index, exp_value):
-    """Check Clk array entries of GLONASS constellation against 
+    """Check Clk array entries of GLONASS constellation against
     known/expected values using test matrix
 
     Parameters
@@ -357,6 +336,6 @@ def test_clkglonass_value_check(clkdata_glonass, prn, row_name, index, exp_value
     assert np.size(clkdata_glonass[0].clk_bias) == 0
     assert np.size(clkdata_glonass[0].utc_time) == 0
     assert len(clkdata_glonass) == NUMSATS_GLONASS + 1
-    
+
     curr_value = getattr(clkdata_glonass[prn], row_name)[index]
     np.testing.assert_equal(curr_value, exp_value)

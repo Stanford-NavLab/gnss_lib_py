@@ -61,18 +61,22 @@ def parse_sp3(input_path, constellation = 'G'):
     Urbana-Champaign. Fall 2015
 
     TOCLARIFY:
-    (1) Should the other ephemeris python file be called
+    (1) Should the other GPS ephemeris python file be called
     broadcast_ephemeris for consistency and clarity?
-    (2) Should there be a history sub-heading as well, for better clarity?
+    (2) Should there be a history sub-heading in function descriptions
+    as well, for better clarity on when was that function last updated?
     (3) Not sure how to fix this pylint error:
     precise_ephemerides.py:74:37: W1514: Using open without explicitly
     specifying an encoding (unspecified-encoding)
+    precise_ephemerides.py:38:0: R0912: Too many branches (14/12)
+    (too-many-branches)
+    (4) Do we want automatic downloading of relevant .sp3 and .clk files,
+    similar to what EphemerisManager does?
 
     References
     ----------
     .. [1]  https://files.igs.org/pub/data/format/sp3d.pdf
             Accessed as of August 20, 2022
-
     """
     # Initial checks for loading sp3_path
     if not isinstance(input_path, str):
@@ -176,16 +180,17 @@ def parse_clockfile(input_path, constellation = 'G'):
     AE 456, Global Navigation Sat Systems, University of Illinois
     Urbana-Champaign. Fall 2015
 
-    Not sure how to fix the pylint error:
+    (1) Not sure how to fix the pylint error:
     precise_ephemerides.py:197:11: W1514: Using open without explicitly
     specifying an encoding (unspecified-encoding)
+    precise_ephemerides.py:156:0: R0912: Too many branches (19/12)
+    (too-many-branches)
     Maybe this link: https://peps.python.org/pep-0597/#id11
 
     References
     -----
     .. [1]  https://files.igs.org/pub/data/format/rinex_clock300.txt
             Accessed as of August 24, 2022
-    ----------
     """
 
     # Initial checks for loading sp3_path
