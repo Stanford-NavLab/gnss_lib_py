@@ -14,7 +14,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.android import AndroidDerived
+from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.parsers.precise_ephemerides import parse_sp3, parse_clockfile
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.multi_gnss import compute_sv_sp3clk_gps_glonass, compute_sv_eph_gps
@@ -42,7 +42,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
+    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
     return root_path
 
 @pytest.fixture(name="navdata_path")
@@ -115,7 +115,7 @@ def fixture_clk_path(root_path):
 
 @pytest.fixture(name="navdata")
 def fixture_load_navdata(navdata_path):
-    """Load instance of AndroidDerived
+    """Load instance of AndroidDerived2021
 
     Parameters
     ----------
@@ -124,8 +124,8 @@ def fixture_load_navdata(navdata_path):
 
     Returns
     -------
-    navdata : AndroidDerived
-        Instance of AndroidDerived (GPS and GLONASS) for testing
+    navdata : AndroidDerived2021
+        Instance of AndroidDerived2021 (GPS and GLONASS) for testing
 
     Notes
     ----------
@@ -133,7 +133,7 @@ def fixture_load_navdata(navdata_path):
     maybe TU chemnitz one has all of them.
 
     """
-    navdata_full = AndroidDerived(navdata_path)
+    navdata_full = AndroidDerived2021(navdata_path)
     multi_gnss_idxs = np.where( (navdata_full["gnss_id",:] == 1) | \
                                 (navdata_full["gnss_id",:] == 3) )[1]
     navdata = navdata_full.copy(cols = multi_gnss_idxs)
@@ -142,7 +142,7 @@ def fixture_load_navdata(navdata_path):
 
 @pytest.fixture(name="navdata_gps")
 def fixture_load_navdata_gps(navdata_path):
-    """Load instance of AndroidDerived
+    """Load instance of AndroidDerived2021
 
     Parameters
     ----------
@@ -151,12 +151,11 @@ def fixture_load_navdata_gps(navdata_path):
 
     Returns
     -------
-    navdata_gps : AndroidDerived
+    navdata_gps : AndroidDerived2021
         Instance of AndroidDerived (GPS) for testing
     """
-    navdata_full = AndroidDerived(navdata_path)
-    gps_idxs = np.where( (navdata_full["gnss_id",:] == 1) )[1]
-    navdata_gps = navdata_full.copy(cols = gps_idxs)
+    navdata_full = AndroidDerived2021(navdata_path)
+    navdata_gps = navdata_full.where("gnss_id","gps")
 
     return navdata_gps
 
