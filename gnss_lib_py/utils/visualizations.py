@@ -49,7 +49,8 @@ mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
 TIMESTAMP = fo.get_timestamp()
 
 def plot_metric(navdata, *args, groupby=None, title=None, save=False,
-                prefix="", fname=None, **kwargs):
+                prefix="", fname=None, markeredgecolor="k",
+                markeredgewidth=0.2, **kwargs):
     """Plot specific metric from a row of the NavData class.
 
     Parameters
@@ -61,7 +62,9 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
         value is plotted on the y-axis. If two values are given, the
         first is plotted on the x-axis and the second on the y-axis.
     grouby : string
-        Row name by which to groub and label plots
+        Row name by which to groub and label plots.
+    title : string
+        Title for the plot.
     save : bool
         Saves figure if true to file specified by fname or defaults
         to the Results folder otherwise.
@@ -71,6 +74,10 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
         Path to save figure. If not None, fname is passed directly
         to matplotlib's savefig fname parameter and prefix will be
         overwritten.
+    markeredgecolor : color
+        Marker edge color.
+    markeredgewidth : float
+        Marker edge width.
 
     Returns
     -------
@@ -97,11 +104,15 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
                 subset = navdata.where(groupby,group)
                 y_data = np.atleast_1d(subset[y_metric])
                 axes.plot(range(len(y_data)), y_data,
+                          markeredgecolor = markeredgecolor,
+                          markeredgewidth = markeredgewidth,
                           label=_get_label({groupby:group}), **kwargs)
         else:
             y_data = np.atleast_1d(navdata[y_metric])
             axes.plot(range(len(y_data)), y_data,
-                         **kwargs)
+                      markeredgecolor = markeredgecolor,
+                      markeredgewidth = markeredgewidth,
+                      **kwargs)
     else:
         if title is None:
             title = _get_label({x_metric:x_metric}) + " vs. " \
@@ -116,11 +127,16 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
                 x_data = np.atleast_1d(subset[x_metric])
                 y_data = np.atleast_1d(subset[y_metric])
                 axes.plot(x_data, y_data,
-                          label=_get_label({groupby:group}),**kwargs)
+                          label=_get_label({groupby:group}),
+                          markeredgecolor = markeredgecolor,
+                          markeredgewidth = markeredgewidth,
+                          **kwargs)
         else:
             x_data = np.atleast_1d(navdata[x_metric])
             y_data = np.atleast_1d(navdata[y_metric])
             axes.plot(x_data, y_data,
+                      markeredgecolor = markeredgecolor,
+                      markeredgewidth = markeredgewidth,
                       **kwargs)
 
     handles, _ = axes.get_legend_handles_labels()

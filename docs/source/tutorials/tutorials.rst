@@ -52,6 +52,7 @@ This tutorial illustrates a few of the most common utility functions
 available in the :code:`utils` directory.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
+   tutorials_visualizations_notebook
    tutorials_utilities_notebook

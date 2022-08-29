@@ -381,7 +381,6 @@ def test_android_ecef_to_el_az(navdata):
 
         pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_rx_m = navdata_subset[["x_rx_m","y_rx_m","z_rx_m"],0].reshape(1,-1)
-        pos_rx_m = navdata_subset[["x_rx_m","y_rx_m","z_rx_m"],0].reshape(1,-1)
 
         calculated_el_az = ecef_to_el_az(pos_rx_m,pos_sv_m)
         truth_el_az = navdata_subset[["el_sv_deg","az_sv_deg"]].T
