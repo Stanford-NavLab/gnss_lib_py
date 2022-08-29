@@ -1,4 +1,4 @@
-"""Visualization functions of GNSS data.
+"""Visualization functions for GNSS data.
 
 """
 
@@ -68,7 +68,7 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
     prefix : string
         File prefix to add to filename.
     fname : string or path-like
-        Path to save figure to. If not None, fname is passed directly
+        Path to save figure. If not None, fname is passed directly
         to matplotlib's savefig fname parameter and prefix will be
         overwritten.
 
@@ -264,7 +264,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
     Returns
     -------
     fig : matplotlib.pyplot.figure
-        Figure object of skyplot, returns None if save set to True.
+        Figure object of skyplot.
 
     """
 
@@ -320,7 +320,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         navdata["az_sv_deg"] = sv_el_az[1,:]
 
     # create new figure
-    fig = plt.figure(figsize=(8,6))
+    fig = plt.figure(figsize=(6,4.5))
     axes = fig.add_subplot(111, projection='polar')
 
     navdata = navdata.copy()
@@ -331,9 +331,10 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         color = "C" + str(c_idx % len(STANFORD_COLORS))
         cmap = _new_cmap(to_rgb(color))
         marker = MARKERS[c_idx % len(MARKERS)]
+        const_label_created = False
 
         # iterate through each satellite
-        for sv_idx, sv_name in enumerate(np.unique(const_subset["sv_id"])):
+        for sv_name in np.unique(const_subset["sv_id"]):
             sv_subset = const_subset.where("sv_id",sv_name)
             # remove np.nan values caused by potentially faulty data
             sv_subset = sv_subset.where("az_sv_rad",np.nan,"neq")
@@ -352,12 +353,13 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
                             norm=norm, linewidths=(4,),
                             array = range(len(segments)))
             axes.add_collection(local_coord)
-            if sv_idx == 0:
+            if not const_label_created:
                 # plot with label
                 axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
                           np.atleast_1d(sv_subset["el_sv_deg"])[-1],
                           c=color, marker=marker, markersize=8,
                     label=_get_label({"gnss_id":constellation}))
+                const_label_created = True
             else:
                 # plot without label
                 axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
@@ -393,8 +395,11 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
     return fig
 
 def plot_map(*args, sections=0, save=False, prefix="",
-             fname=None,**kwargs):
-    """Map trajectories.
+             fname=None, width=730, height=520, **kwargs):
+    """Map lat/lon trajectories on map.
+
+    By increasing the ``sections`` parameter, it is possible to output
+    multiple zoom sections of the trajectories to see finer details.
 
     Parameters
     ----------
@@ -405,8 +410,8 @@ def plot_map(*args, sections=0, save=False, prefix="",
         Must also include ``gps_millis`` if sections >= 2.
     sections : int
         Number of zoomed in sections to make of data. Will only output
-        additional plots if sections >= 2. Sections by equal timestamps
-        using the ``gps_millis`` row.
+        additional plots if sections >= 2. Creates sections by equal
+        timestamps using the ``gps_millis`` row.
     save : bool
         Save figure if true. Defaults to saving the figure in the
         Results folder.
@@ -437,9 +442,6 @@ def plot_map(*args, sections=0, save=False, prefix="",
 
     figure_df = None        # plotly works best passing in DataFrame
     color_discrete_map = {} # discrete color map
-
-    width = 730             # figure width
-    height = 520            # figure height
 
     for idx, traj_data in enumerate(args):
         if not isinstance(traj_data, NavData):
@@ -552,13 +554,16 @@ def close_figures(figs):
         plt.close(figs)
     elif isinstance(figs, list):
         for fig in figs:
-            plt.close(fig)
+            if isinstance(fig, plt.Figure):
+                plt.close(fig)
     else:
         raise TypeError("Must be either a single figure or list of figures.")
 
 def _get_new_fig():
-    """
+    """Creates new default figure and axes.
 
+    Returns
+    -------
     fig : matplotlib.pyplot.figure
         Default NavData figure.
     axes : matplotlib.pyplot.axes
@@ -579,7 +584,6 @@ def _get_label(inputs):
 
     Parameters
     ----------
-
     inputs : dict
         Dictionary of {row_name : row_value} pairs to create name from.
 
@@ -681,7 +685,8 @@ def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cov
 
     for fig_idx, figure in enumerate(figures):
 
-        if fnames[fig_idx] is None:
+        if (len(fnames) == 1 and fnames[0] is None) \
+            or fnames[fig_idx] is None:
             # create results folder if it does not yet exist.
             root_path = os.path.dirname(
                         os.path.dirname(
@@ -795,8 +800,6 @@ def _zoom_center(lats, lons, width_to_height = 1.25):
         Latitude component of each location.
     width_to_height: float, expected ratio of final graph's width to
         height, used to select the constrained axis.
-    projection: str, only accepting 'mercator' at the moment,
-        raises `NotImplementedError` if other is passed
 
     Returns
     -------

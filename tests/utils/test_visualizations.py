@@ -178,7 +178,7 @@ def fixture_load_derived_xl(derived_path_xl):
 
 @pytest.fixture(name="derived_2022")
 def fixture_load_derived_2022(derived_2022_path):
-    """Load instance of AndroidDerived2021
+    """Load instance of AndroidDerived2022
 
     Parameters
     ----------
@@ -231,27 +231,6 @@ def fixture_solve_wls(derived):
 
     """
     state_estimate = solve_wls(derived)
-    return state_estimate
-
-@pytest.fixture(name="state_estimate_xl")
-def fixture_solve_wls_xl(derived_xl):
-    """Fixture of WLS state estimate.
-
-    Parameters
-    ----------
-    derived : AndroidDerived2021
-        Instance of AndroidDerived2021 for testing.
-
-    Returns
-    -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        Estimated receiver position in ECEF frame in meters and the
-        estimated receiver clock bias also in meters as an instance of
-        the NavData class with shape (4 x # unique timesteps) and
-        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
-
-    """
-    state_estimate = solve_wls(derived_xl)
     return state_estimate
 
 def test_plot_metrics(derived):
@@ -311,7 +290,7 @@ def test_plot_metrics(derived):
         viz.plot_metric(derived, 'raw_pr_m', row, row, save=False)
 
 def test_plot_metrics_by_constellation(derived):
-    """Test for plotting metrics.
+    """Test for plotting metrics by constellation.
 
     Parameters
     ----------
@@ -359,7 +338,6 @@ def test_plot_metrics_by_constellation(derived):
 @pytest.mark.parametrize('navdata',[
                                     # lazy_fixture('derived_2022'),
                                     lazy_fixture('derived'),
-                                    # lazy_fixture('derived_xl'),
                                     ])
 def test_plot_skyplot(navdata, state_estimate):
     """Test for plotting skyplot.
@@ -389,11 +367,9 @@ def test_plot_skyplot(navdata, state_estimate):
     for col_idx, col in enumerate(navdata):
         if col["sv_id"] == sv_nan:
             navdata["x_sv_m",col_idx] = np.nan
-        # print(col_idx, col)
-
 
     # don't save figures
-    fig = viz.plot_skyplot(navdata, state_estimate, save=False)
+    fig = viz.plot_skyplot(navdata, state_estimate, save=True)
     viz.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
