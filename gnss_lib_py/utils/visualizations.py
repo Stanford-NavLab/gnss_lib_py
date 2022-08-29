@@ -132,7 +132,7 @@ def plot_metric(navdata, *args, save=True, prefix=""):
         plt_title = y_metric
         plt.title(plt_title)
         data = navdata[y_metric]
-        axes.scatter(range(data.shape[1]),data,s=5.)
+        axes.scatter(range(data.shape[0]),data,s=5.)
         plt.xlabel("index")
         plt.ylabel(y_metric)
     else:
@@ -212,19 +212,19 @@ def plot_metric_by_constellation(navdata, metric, save=True, prefix=""):
 
     data = {}
 
-    signal_types = navdata.get_strings("signal_type")
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = navdata._get_strings("signal_type")
+    sv_ids = navdata._get_strings("sv_id")
 
-    time0 = navdata["millisSinceGpsEpoch",0]/1000.
+    time0 = navdata["gps_millis",0]/1000.
 
     for m_idx in range(navdata.shape[1]):
         if signal_types[m_idx] not in data:
             data[signal_types[m_idx]] = {}
         if sv_ids[m_idx] not in data[signal_types[m_idx]]:
-            data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["millisSinceGpsEpoch",m_idx]/1000. - time0],
+            data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["gps_millis",m_idx]/1000. - time0],
                                                   [navdata[metric,m_idx]]]
         else:
-            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["gps_millis",m_idx]/1000. - time0)
             data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata[metric,m_idx])
 
     ####################################################################
@@ -291,35 +291,22 @@ def plot_skyplot(navdata, state_estimate, save=True, prefix=""):
 
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    if "signal_type" not in navdata.rows:
-        raise KeyError("signal_type missing")
-    if "sv_id" not in navdata.rows:
-        raise KeyError("sv_id missing")
-    if "x_sv_m" not in navdata.rows:
-        raise KeyError("x_sv_m missing")
-    if "y_sv_m" not in navdata.rows:
-        raise KeyError("y_sv_m missing")
-    if "z_sv_m" not in navdata.rows:
-        raise KeyError("z_sv_m missing")
-    if "x_rx_m" not in state_estimate.rows:
-        raise KeyError("x_rx_m missing")
-    if "y_rx_m" not in state_estimate.rows:
-        raise KeyError("y_rx_m missing")
-    if "z_rx_m" not in state_estimate.rows:
-        raise KeyError("z_rx_m missing")
+    # check for missing rows
+    navdata.in_rows(["signal_type","sv_id","x_sv_m","y_sv_m","z_sv_m"])
+    state_estimate.in_rows(["x_rx_m","y_rx_m","z_rx_m"])
 
     local_coord = None
 
     skyplot_data = {}
-    signal_types = list(navdata.get_strings("signal_type"))
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = list(navdata._get_strings("signal_type"))
+    sv_ids = navdata._get_strings("sv_id")
 
     pos_sv_m = np.hstack((navdata["x_sv_m",:].reshape(-1,1),
                           navdata["y_sv_m",:].reshape(-1,1),
                           navdata["z_sv_m",:].reshape(-1,1)))
 
-    for t_idx, timestep in enumerate(np.unique(navdata["millisSinceGpsEpoch",:])):
-        idxs = np.where(navdata["millisSinceGpsEpoch",:] == timestep)[1]
+    for t_idx, timestep in enumerate(np.unique(navdata["gps_millis",:])):
+        idxs = np.where(navdata["gps_millis",:] == timestep)[0]
         for m_idx in idxs:
 
             if signal_types[m_idx] not in skyplot_data:
@@ -432,10 +419,8 @@ def plot_residuals(navdata, save=True, prefix=""):
         raise KeyError("residuals missing, run solve_residuals().")
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    if "signal_type" not in navdata.rows:
-        raise KeyError("signal_type missing")
-    if "sv_id" not in navdata.rows:
-        raise KeyError("sv_id missing")
+    # check for missing rows
+    navdata.in_rows(["signal_type","sv_id"])
     if save: # pragma: no cover
         root_path = os.path.dirname(
                     os.path.dirname(
@@ -447,19 +432,19 @@ def plot_residuals(navdata, save=True, prefix=""):
         figs = []
 
     residual_data = {}
-    signal_types = navdata.get_strings("signal_type")
-    sv_ids = navdata.get_strings("sv_id")
+    signal_types = navdata._get_strings("signal_type")
+    sv_ids = navdata._get_strings("sv_id")
 
-    time0 = navdata["millisSinceGpsEpoch",0]/1000.
+    time0 = navdata["gps_millis",0]/1000.
 
     for m_idx in range(navdata.shape[1]):
         if signal_types[m_idx] not in residual_data:
             residual_data[signal_types[m_idx]] = {}
         if sv_ids[m_idx] not in residual_data[signal_types[m_idx]]:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["millisSinceGpsEpoch",m_idx]/1000. - time0],
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]] = [[navdata["gps_millis",m_idx]/1000. - time0],
                         [navdata["residuals",m_idx]]]
         else:
-            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["millisSinceGpsEpoch",m_idx]/1000. - time0)
+            residual_data[signal_types[m_idx]][sv_ids[m_idx]][0].append(navdata["gps_millis",m_idx]/1000. - time0)
             residual_data[signal_types[m_idx]][sv_ids[m_idx]][1].append(navdata["residuals",m_idx])
 
     ####################################################################

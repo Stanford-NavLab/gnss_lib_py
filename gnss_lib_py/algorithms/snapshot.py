@@ -51,21 +51,16 @@ def solve_wls(measurements, weight_type = None,
 
     """
 
-    if "x_sv_m" not in measurements.rows:
-        raise KeyError("x_sv_m (ECEF x position of sv) missing.")
-    if "y_sv_m" not in measurements.rows:
-        raise KeyError("y_sv_m (ECEF y position of sv) missing.")
-    if "z_sv_m" not in measurements.rows:
-        raise KeyError("z_sv_m (ECEF z position of sv) missing.")
-    if "b_sv_m" not in measurements.rows:
-        raise KeyError("b_sv_m (clock bias of sv) missing.")
+    # check that all necessary rows exist
+    measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","b_sv_m",
+                          "gps_millis"])
 
-    unique_timesteps = np.unique(measurements["gps_tow",:])
+    unique_timesteps = np.unique(measurements["gps_millis",:])
 
     states = np.nan*np.ones((4,len(unique_timesteps)))
 
     for t_idx, timestep in enumerate(unique_timesteps):
-        idxs = np.where(measurements["gps_tow",:] == timestep)[1]
+        idxs = np.where(measurements["gps_millis",:] == timestep)[0]
         pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
                               measurements["y_sv_m",idxs].reshape(-1,1),
                               measurements["z_sv_m",idxs].reshape(-1,1)))
