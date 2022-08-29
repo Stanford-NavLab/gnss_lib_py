@@ -42,7 +42,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
+    root_path = os.path.join(root_path, 'data/unit_test/sp3/')
     return root_path
 
 @pytest.fixture(name="navdata_path")
@@ -133,7 +133,7 @@ def fixture_load_navdata(navdata_path):
     maybe TU chemnitz one has all of them.
 
     """
-    navdata_full = AndroidDerived2021(navdata_path)
+    navdata_full = AndroidDerived2021(navdata_path,remove_timing_outliers=False)
     multi_gnss_idxs = np.where( (navdata_full["gnss_id",:] == 1) | \
                                 (navdata_full["gnss_id",:] == 3) )[1]
     navdata = navdata_full.copy(cols = multi_gnss_idxs)
@@ -154,7 +154,7 @@ def fixture_load_navdata_gps(navdata_path):
     navdata_gps : AndroidDerived2021
         Instance of AndroidDerived (GPS) for testing
     """
-    navdata_full = AndroidDerived2021(navdata_path)
+    navdata_full = AndroidDerived2021(navdata_path,remove_timing_outliers=False)
     navdata_gps = navdata_full.where("gnss_id","gps")
 
     return navdata_gps
@@ -247,10 +247,10 @@ def test_sp3_eph(navdata_gps, sp3_path, clk_path):
         dataset for GPS-only constellation
     """
 
-    multi_gnss = {'G': (1, 'GPS_L1') }
+    multi_gnss = {'G': ('gps', 'l1') }
     navdata_sp3_result = compute_sv_sp3clk_gps_glonass(navdata_gps, sp3_path, \
                                                        clk_path, multi_gnss = multi_gnss)
-    multi_gnss = (1, 'GPS_L1')
+    multi_gnss = ('gps', 'l1')
     navdata_eph_result = compute_sv_eph_gps(navdata_gps, \
                                             multi_gnss = multi_gnss)
 
