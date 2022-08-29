@@ -10,13 +10,14 @@ import random
 
 import pytest
 import numpy as np
+import plotly.graph_objects as go
 from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.parsers.android import AndroidDerived2022
-from gnss_lib_py.algorithms.residuals import solve_residuals
+from gnss_lib_py.parsers.android import AndroidGroundTruth2021
 
 # pylint: disable=protected-access
 
@@ -191,6 +192,25 @@ def fixture_load_derived_2022(derived_2022_path):
     """
     derived = AndroidDerived2022(derived_2022_path)
     return derived
+
+
+@pytest.fixture(name="gtruth")
+def fixture_load_gtruth(root_path):
+    """Load instance of AndroidGroundTruth2021
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    gtruth : AndroidGroundTruth2021
+        Instance of AndroidGroundTruth2021 for testing
+    """
+    gtruth = AndroidGroundTruth2021(os.path.join(root_path,
+                                 'Pixel4_ground_truth.csv'))
+    return gtruth
 
 @pytest.fixture(name="state_estimate")
 def fixture_solve_wls(derived):
@@ -455,3 +475,46 @@ def test_close_figures_fail():
     with pytest.raises(TypeError) as excinfo:
         viz.close_figures(0.)
     assert "figure" in str(excinfo.value)
+
+
+def test_plot_map(gtruth, state_estimate):
+    """Test for plotting map.
+
+    Parameters
+    ----------
+    gtruth : AndroidGroundTruth2021
+        Instance of AndroidGroundTruth2021 for testing
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Estimated receiver position in ECEF frame in meters and the
+        estimated receiver clock bias also in meters as an instance of
+        the NavData class with shape (4 x # unique timesteps) and
+        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+
+    """
+
+    fig = viz.plot_map(gtruth, state_estimate, save=False)
+    assert isinstance(fig, go.Figure)
+
+    figs = viz.plot_map(gtruth, state_estimate,sections=3, save=False)
+    for fig in figs:
+        assert isinstance(fig, go.Figure)
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_map([], state_estimate, save=False)
+    assert "NavData" in str(excinfo.value)
+    assert "Input" in str(excinfo.value)
+
+    for row in ["lat_rx_deg","lon_rx_deg"]:
+        state_removed = state_estimate.remove(rows=row)
+        with pytest.raises(KeyError) as excinfo:
+            viz.plot_map(gtruth, state_removed, save=False)
+        assert row.replace("rx","*") in str(excinfo.value)
+        assert "Missing" in str(excinfo.value)
+
+    for row in ["lat_rx_deg","lon_rx_deg"]:
+        state_double = state_estimate.copy()
+        state_double[row.replace("rx","2")] = state_double[row]
+        with pytest.raises(KeyError) as excinfo:
+            viz.plot_map(gtruth, state_double, save=False)
+        assert row.replace("rx","*") in str(excinfo.value)
+        assert "Multiple" in str(excinfo.value)
