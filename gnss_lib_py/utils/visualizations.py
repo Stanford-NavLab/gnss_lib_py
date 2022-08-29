@@ -229,7 +229,7 @@ def plot_metric_by_constellation(navdata, *args, save=False, prefix="",
     return figs
 
 def plot_skyplot(navdata, receiver_state, save=False, prefix="",
-                 fname=None):
+                 fname=None, add_sv_id_label=True):
     """Skyplot of satellite positions relative to receiver.
 
     First adds ``el_sv_deg`` and ``az_sv_deg`` rows to navdata if they
@@ -257,6 +257,9 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         Path to save figure to. If not None, ``fname`` is passed
         directly to matplotlib's savefig fname parameter and prefix will
         be overwritten.
+    add_sv_id_label : bool
+        If the ``sv_id`` row is available, will add SV ID label near the
+        satellite trail.
 
     Returns
     -------
@@ -360,12 +363,16 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
                 axes.plot(np.atleast_1d(sv_subset["az_sv_rad"])[-1],
                           np.atleast_1d(sv_subset["el_sv_deg"])[-1],
                           c=color, marker=marker, markersize=8)
-            axes.text(np.atleast_1d(sv_subset["az_sv_rad"])[-1]\
-                    + 3.*np.radians(np.cos(np.atleast_1d(sv_subset["az_sv_rad"])[-1])),
-                      np.atleast_1d(sv_subset["el_sv_deg"])[-1]\
-                    - 3.*np.sin(np.atleast_1d(sv_subset["az_sv_rad"])[-1]),
-                      str(int(sv_name)),
-                      backgroundcolor=(1.,1.,1.,0.2))
+            if add_sv_id_label:
+                # offsets move label to the right of marker
+                az_offset = 3.*np.radians(np.cos(np.atleast_1d(sv_subset["az_sv_rad"])[-1]))
+                el_offset = -3.*np.sin(np.atleast_1d(sv_subset["az_sv_rad"])[-1])
+                axes.text(np.atleast_1d(sv_subset["az_sv_rad"])[-1] \
+                          + az_offset,
+                          np.atleast_1d(sv_subset["el_sv_deg"])[-1] \
+                          + el_offset,
+                          str(int(sv_name)),
+                          backgroundcolor=(1.,1.,1.,0.2))
 
     # updated axes for skyplot graph specifics
     axes.set_theta_zero_location('N')
@@ -377,7 +384,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
     handles, _ = axes.get_legend_handles_labels()
     if len(handles) > 0:
         axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
-                   title=_get_label({"sv_id":"sv_id"}))
+                   title=_get_label({"constellation":"constellation"}))
 
     fig.tight_layout()
 
