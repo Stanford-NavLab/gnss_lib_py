@@ -81,18 +81,6 @@ In the directory organization above:
   * The `utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite
     simulation, file operations, etc.
-  * Currently, the following data visualization tools are available in the
-    `utils` directory:
-
-        * Skyplot: showing the movement of GNSS satellites during the
-          elapsed time of the provided `NavData` class.
-        * Metric plotting: allows you to plot a specific array of data
-          from the `NavData` class
-        * Metric plotting by constellation: allows you to plot a specific
-          array of data but broken up by individual constellations and
-          signal types.
-        * Residual plotting: specifically optimized for plotting residuals.
-
 
 Installation
 ------------
