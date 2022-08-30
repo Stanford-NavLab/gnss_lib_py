@@ -101,10 +101,13 @@ def test_residuals_inplace(derived):
     assert len(derived) == len(derived_original)
 
     # derived should include new residuals rows but not its copy
-    assert "residuals" in derived.rows
-    assert "residuals" not in derived_original.rows
+    assert "residuals_m" in derived.rows
+    assert "residuals_m" not in derived_original.rows
 
-    assert not np.any(np.isinf(derived["residuals"]))
+    assert not np.any(np.isinf(derived["residuals_m"]))
+
+    # max is 47.814594604074955
+    assert max(derived["residuals_m"]) < 50.
 
 def test_residuals(derived):
     """Test that solving for residuals doesn't fail
@@ -124,14 +127,17 @@ def test_residuals(derived):
     assert isinstance(residuals,type(NavData()))
 
     # derived should have one more row but same number of cols
-    for row in ["residuals","gps_millis","gnss_id","sv_id","signal_type"]:
+    for row in ["residuals_m","gps_millis","gnss_id","sv_id","signal_type"]:
         assert row in residuals.rows
     assert len(residuals) == len(derived)
 
     # derived should not include new residuals row
-    assert "residuals" not in derived.rows
+    assert "residuals_m" not in derived.rows
 
-    assert not np.any(np.isinf(residuals["residuals"]))
+    assert not np.any(np.isinf(residuals["residuals_m"]))
+
+    # max is 47.814594604074955
+    assert max(residuals["residuals_m"]) < 50.
 
 def test_residuals_fails(derived):
     """Test that solving for residuals fails when it should

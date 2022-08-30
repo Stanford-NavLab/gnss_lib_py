@@ -23,7 +23,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         following rows: x_*_m, y_*_m, z_*_m, b_*_m.
     inplace : bool
         If False, will return new NavData instance with gps_millis and
-        reisuals. If True, will add a "residuals" rows in the
+        reisuals. If True, will add a "residuals_m" rows in the
         current NavData instance.
 
     Returns
@@ -63,6 +63,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
     for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
 
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
+        pos_sv_m = np.atleast_2d(pos_sv_m)
 
         num_svs = pos_sv_m.shape[0]
 
@@ -74,8 +75,8 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         rx_pos = receiver_state[[rx_idxs["x_*_m"],
                                  rx_idxs["y_*_m"],
                                  rx_idxs["z_*_m"]],
-                                 rx_t_idx].reshape(-1,1)
-        pos_rx_m = np.tile(rx_pos.T, (num_svs, 1))
+                                 rx_t_idx].reshape(1,-1)
+        pos_rx_m = np.tile(rx_pos, (num_svs, 1))
 
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                                  keepdims = True) \
@@ -83,17 +84,16 @@ def solve_residuals(measurements, receiver_state, inplace=True):
 
         # calculate residual
         residuals_epoch = corr_pr_m - gt_pr_m
-
-        residuals += np.squeeze(residuals_epoch).tolist()
+        residuals += residuals_epoch.reshape(-1).tolist()
 
     if inplace:
         # add measurements to measurement class
-        measurements["residuals"] = residuals
+        measurements["residuals_m"] = residuals
         return None
 
     # if not inplace, create new NavData instance to return
     residual_navdata = NavData()
-    residual_navdata["residuals"] = residuals
+    residual_navdata["residuals_m"] = residuals
     residual_navdata["gps_millis"]= measurements["gps_millis"]
     for row in ["gnss_id","sv_id","signal_type"]:
         if row in measurements.rows:
