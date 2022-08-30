@@ -202,16 +202,8 @@ def plot_metric_by_constellation(navdata, *args, save=False, prefix="",
     for constellation in _sort_gnss_ids(np.unique(navdata["gnss_id"])):
         const_subset = navdata.where("gnss_id",constellation)
 
-        if prefix == "":
-            prefix = constellation + "_"
-        else:
-            if prefix != "" and not prefix.endswith('_'):
-                prefix += "_"
-            prefix += constellation + "_"
-
         if "signal_type" in const_subset.rows:
             for signal in np.unique(const_subset["signal_type"]):
-                prefix += signal + "_"
                 title = _get_label({"gnss_id":constellation,"signal_type":signal})
                 signal_subset = navdata.where("signal_type",signal)
                 if "sv_id" in signal_subset.rows:
@@ -713,9 +705,9 @@ def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cov
 
             # make name path friendly
             title = titles[fig_idx]
-            title.replace(" ","_")
-            title.replace(".","")
-            title.replace("vs","")
+            title = title.replace(" ","_")
+            title = title.replace(".","")
+            title = title.replace("vs","")
 
             if prefix != "" and not prefix.endswith('_'):
                 prefix += "_"
@@ -900,9 +892,9 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
 
             # make name path friendly
             title = titles[fig_idx]
-            title.replace(" ","_")
-            title.replace(".","")
-            title.replace("vs","")
+            title = title.replace(" ","_")
+            title = title.replace(".","")
+            title = title.replace("vs","")
 
             if prefix != "" and not prefix.endswith('_'):
                 prefix += "_"
