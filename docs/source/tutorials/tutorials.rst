@@ -55,4 +55,5 @@ available in the :code:`utils` directory.
    :maxdepth: 2
 
    tutorials_visualizations_notebook
+   tutorials_coordinates_notebook
    tutorials_utilities_notebook
