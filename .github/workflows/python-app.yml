@@ -66,3 +66,28 @@ jobs:
     - name: Test if docs are building
       run: |
         ./build_docs.sh
+  readme:
+    runs-on: ubuntu-latest
+    name: Check if index.rst and README.md weren't changed together
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files since last remote commit
+        id: changed-files
+        uses: tj-actions/changed-files@v27
+        with:
+          since_last_remote_commit: "true"
+
+      - name: Check if index.rst changed when README.md file changes
+        if: contains(steps.changed-files.outputs.modified_files, 'README.md') && !contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst')
+        run: |
+          echo "README.md has changed but index.rst has not!"
+          exit 1
+
+      - name: Check if README.md changed when index.rst file changes
+        if: contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst') && !contains(steps.changed-files.outputs.modified_files, 'README.md')
+        run: |
+          echo "index.rst has changed but README.md has not!"
+          exit 1

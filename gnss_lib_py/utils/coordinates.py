@@ -88,14 +88,19 @@ def ecef_to_geodetic(ecef, radians=False):
     Parameters
     ----------
     ecef : np.ndarray
-        Float with ECEF coordinates
+        array where ECEF x, ECEF y, and ECEF z are either independent
+        rows or independent columns, values should be floats
     radians : bool
-        Flag of whether output should be in radians
+        If False (default), output of lat/lon is returned in degrees.
+        If True, output of lat/lon is returned in radians.
 
     Returns
     -------
     geodetic : np.ndarray
-        Float with WGS-84 LLA coordinates corresponding to input ECEF
+        Float with WGS-84 LLA coordinates corresponding to input ECEF.
+        Order is returned as (lat, lon, h) and is returned in the same
+        shape as the input. Height is in meters above the the WGS-84
+        ellipsoid.
 
     Notes
     -----

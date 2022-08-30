@@ -1,9 +1,20 @@
 [tool.poetry]
 name = "gnss-lib-py"
-version = "0.1.0"
-description = "Python code to process, simulate and demonstrate using GNSS measurements"
-authors = ["Ashwin Kanhere"]
+version = "0.1.6"
+description = "Modular Python tool for parsing, analyzing, and visualizing Global Navigation Satellite Systems (GNSS) data and state estimates"
+authors = ["Derek Knowles <dcknowles@stanford.edu>",
+           "Ashwin Kanhere <akanhere@stanford.edu>",
+           ]
 license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/Stanford-NavLab/gnss_lib_py"
+documentation = "https://gnss-lib-py.readthedocs.io/en/latest/"
+keywords = ["gnss"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8, < 3.11"

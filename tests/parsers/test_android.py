@@ -64,6 +64,38 @@ def fixture_derived_path(root_path):
     derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
     return derived_path
 
+@pytest.fixture(name="derived_path_xl")
+def fixture_derived_path_xl(root_path):
+    """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [6]_,
+    particularly the train/2020-05-14-US-MTV-1/Pixel4XL trace. The
+    dataset was retrieved from
+    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
+    References
+    ----------
+    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'Pixel4XL_derived.csv')
+    return derived_path
+
 
 @pytest.fixture(name="android_raw_path")
 def fixture_raw_path(root_path):
@@ -165,6 +197,22 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
     derived = android.AndroidDerived2021(derived_path,
                                remove_timing_outliers=False)
     measure_df = derived.pandas_df()
+    measure_df.replace({'gnss_id',"gps"},1,inplace=True)
+    measure_df.replace({'gnss_id',"glonass"},3,inplace=True)
+    measure_df.replace({'gnss_id',"galileo"},6,inplace=True)
+    signal_map = {"GPS_L1" : "l1",
+                  "GPS_L5" : "l5",
+                  "GAL_E1" : "e1",
+                  "GAL_E5A" : "e5a",
+                  "GLO_G1" : "g1",
+                  "QZS_J1" : "j1",
+                  "QZS_J5" : "j5",
+                  "BDS_B1I" : "b1i",
+                  "BDS_B1C" : "b1c",
+                  "BDS_B2A" : "b2a",
+                 }
+    for s_key, s_value in signal_map.items():
+        measure_df.replace({'signal_type',s_value},s_key,inplace=True)
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
@@ -181,7 +229,7 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
                          ('vz_sv_mps', 0, 3559.812),
                          ('b_dot_sv_mps', 0, 0.001),
                          ('signal_type', 0,
-                          np.asarray([['GLO_G1']], dtype=object))]
+                          np.asarray([['g1']], dtype=object))]
                         )
 def test_derived_value_check(derived, row_name, index, value):
     """Check AndroidDerived2021 entries against known values.
@@ -338,6 +386,7 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         df_slice = test_df[col_name].values
         np.testing.assert_almost_equal(measure_slice, df_slice)
     os.remove(csv_loc)
+    os.rmdir(output_directory)
 
 @pytest.fixture(name="android_gtruth_path")
 def fixture_gtruth_path(root_path):
@@ -525,3 +574,19 @@ def test_gt_alt_nan(root_path_2022):
         gt_2022 = android.AndroidGroundTruth2022(gt_2022_nan)
         np.testing.assert_almost_equal(gt_2022['alt_gt_m'],
                                        np.zeros(len(gt_2022)))
+
+def test_remove_all_data(derived_path_xl):
+    """Test what happens when remove_timing_outliers removes all data.
+
+    Parameters
+    ----------
+    derived_path : string
+        Location for the unit_test Android 2021 derived measurements.
+
+    """
+    # Also tests if strings are being converted back correctly
+    with pytest.warns(RuntimeWarning):
+        derived = android.AndroidDerived2021(derived_path_xl,
+                                   remove_timing_outliers=True)
+
+    assert derived.shape == (21,0)
