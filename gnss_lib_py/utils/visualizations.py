@@ -382,7 +382,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
                           np.atleast_1d(sv_subset["el_sv_deg"])[-1] \
                           + el_offset,
                           str(int(sv_name)),
-                          backgroundcolor=(1.,1.,1.,0.2))
+                          )
 
     # updated axes for skyplot graph specifics
     axes.set_theta_zero_location('N')
@@ -707,7 +707,6 @@ def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cov
             title = titles[fig_idx]
             title = title.replace(" ","_")
             title = title.replace(".","")
-            title = title.replace("vs","")
 
             if prefix != "" and not prefix.endswith('_'):
                 prefix += "_"
@@ -894,7 +893,6 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
             title = titles[fig_idx]
             title = title.replace(" ","_")
             title = title.replace(".","")
-            title = title.replace("vs","")
 
             if prefix != "" and not prefix.endswith('_'):
                 prefix += "_"
@@ -911,6 +909,6 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
                 break
             except ValueError as error:
                 figure.layout.mapbox.zoom -= 1
-                if figure.layout.mapbox.zoom <= 1:
+                if figure.layout.mapbox.zoom < 1:
                     print(error)
                     break
