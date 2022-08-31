@@ -85,7 +85,7 @@ class AndroidDerived2021(NavData):
         self['corr_pr_m'] = pr_corrected
 
         # rename gnss_id column to constellation type
-        constellation_map = {0.:"unkown",
+        constellation_map = {0.:"unknown",
                              1.:"gps",
                              2.:"sbas",
                              3.:"glonass",
@@ -177,7 +177,7 @@ class AndroidDerived2022(NavData):
         self['corr_pr_m'] = pr_corrected
 
         # rename gnss_id column to constellation type
-        constellation_map = {0.:"unkown",
+        constellation_map = {0.:"unknown",
                              1.:"gps",
                              2.:"sbas",
                              3.:"glonass",

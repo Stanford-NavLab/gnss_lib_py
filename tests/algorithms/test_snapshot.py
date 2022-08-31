@@ -475,7 +475,7 @@ def test_wls_fails(capsys):
     captured = capsys.readouterr()
     assert captured.out == "SVD did not converge\n"
 
-def test_solve_wls_fails(capsys, derived):
+def test_solve_wls_fails(derived):
     """Test expected fails
 
     Parameters
@@ -487,7 +487,21 @@ def test_solve_wls_fails(capsys, derived):
 
     navdata = derived.remove(cols=list(range(3,len(derived))))
 
-    solve_wls(navdata)
-    captured = capsys.readouterr()
-    assert "gps_millis" in captured.out
-    assert "four satellites" in captured.out
+    with pytest.warns(RuntimeWarning) as warns:
+        solve_wls(navdata)
+
+    # verify RuntimeWarning
+    assert len(warns) == 2
+
+    caught_four_sats = False
+    caught_empty_state = False
+    for warn in warns:
+        assert issubclass(warn.category, RuntimeWarning)
+        assert "WLS" in str(warn.message)
+        if "four satellites" in str(warn.message):
+            caught_four_sats = True
+        elif "No valid state" in str(warn.message):
+            caught_empty_state = True
+
+    assert caught_four_sats
+    assert caught_empty_state

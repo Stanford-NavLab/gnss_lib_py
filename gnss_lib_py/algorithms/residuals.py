@@ -78,6 +78,8 @@ def solve_residuals(measurements, receiver_state, inplace=True):
                                  rx_t_idx].reshape(1,-1)
         pos_rx_m = np.tile(rx_pos, (num_svs, 1))
 
+        # assumes the use of corrected pseudoranges with the satellite
+        # clock bias already removed
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                                  keepdims = True) \
                 + receiver_state[rx_idxs["b_*_m"],rx_t_idx]

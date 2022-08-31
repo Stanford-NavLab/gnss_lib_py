@@ -424,10 +424,10 @@ def test_sort_gnss_ids():
 
     """
 
-    unsorted_ids = ["galileo","beta","beidou","irnss","gps","unkown","glonass",
+    unsorted_ids = ["galileo","beta","beidou","irnss","gps","unknown","glonass",
                 "alpha","qzss","sbas"]
     sorted_ids = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
-                  "unkown", "alpha", "beta"]
+                  "unknown", "alpha", "beta"]
 
     assert viz._sort_gnss_ids(unsorted_ids) == sorted_ids
     assert viz._sort_gnss_ids(np.array(unsorted_ids)) == sorted_ids

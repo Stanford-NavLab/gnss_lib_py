@@ -1184,7 +1184,7 @@ def test_multi_set_changing_type(data,new_string):
                         [slice(7, 8),
                         8])
 def test_wrong_init_set(row_idx):
-    """ Test init with unkown set.
+    """ Test init with unknown set.
 
     """
     empty_data = NavData()

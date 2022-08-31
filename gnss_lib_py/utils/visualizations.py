@@ -42,7 +42,7 @@ STANFORD_COLORS = [
 MARKERS = ["o","*","P","v","s","^","p","<","h",">","H","X","D"]
 
 GNSS_ORDER = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
-              "unkown"]
+              "unknown"]
 
 mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
                                 +  cycler(marker=MARKERS))
@@ -61,8 +61,8 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
         Tuple of row names that are to be plotted. If one is given, that
         value is plotted on the y-axis. If two values are given, the
         first is plotted on the x-axis and the second on the y-axis.
-    grouby : string
-        Row name by which to groub and label plots.
+    groupby : string
+        Row name by which to group and label plots.
     title : string
         Title for the plot.
     save : bool
@@ -688,7 +688,7 @@ def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cov
         figures = [figures]
     if isinstance(titles,str) or titles is None:
         titles = [titles]
-    if type(fnames) in (str, pathlib.Path) or fnames is None:
+    if isinstance(fnames, (str, pathlib.Path)) or fnames is None:
         fnames = [fnames]
 
     for fig_idx, figure in enumerate(figures):
@@ -874,7 +874,7 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
         figures = [figures]
     if isinstance(titles,str) or titles is None:
         titles = [titles]
-    if type(fnames) in (str, pathlib.Path) or fnames is None:
+    if isinstance(fnames, (str, pathlib.Path)) or fnames is None:
         fnames = [fnames]
 
     for fig_idx, figure in enumerate(figures):

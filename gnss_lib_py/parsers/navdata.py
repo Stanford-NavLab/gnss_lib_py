@@ -183,9 +183,6 @@ class NavData():
             NavData with columns where given condition is satisfied
             for specified row
         """
-        # Add a condition here instead of just comparing to a value.
-        # Do so by adding a parameter for less than inequality, equality and
-        # greater than inequality
         new_cols = self.argwhere(key_idx, value, condition)
         if new_cols.size == 0:
             return self.remove(cols=list(range(len(self))))
@@ -242,11 +239,13 @@ class NavData():
             # Find columns where value can be found and return new NavData
             if condition=="eq":
                 if not isinstance(value,str) and np.isnan(value):
+                    # check isinstance b/c np.isnan can't handle strings
                     new_cols = np.argwhere(np.isnan(self.array[row, :]))
                 else:
                     new_cols = np.argwhere(self.array[row, :]==value)
             elif condition=="neq":
                 if not isinstance(value,str) and np.isnan(value):
+                    # check isinstance b/c np.isnan can't handle strings
                     new_cols = np.argwhere(~np.isnan(self.array[row, :]))
                 else:
                     new_cols = np.argwhere(self.array[row, :]!=value)
@@ -563,7 +562,7 @@ class NavData():
 
         if isinstance(rows,str):
             rows = [rows]
-        if type(rows) in (list, np.ndarray, tuple):
+        if isinstance(rows, (list, np.ndarray, tuple)):
             if isinstance(rows,np.ndarray):
                 rows = np.atleast_1d(rows)
             missing_rows = ["'"+row+"'" for row in rows
@@ -716,8 +715,8 @@ class NavData():
         if isinstance(key_idx, str) and key_idx not in self.map:
             #Creating an entire new row
             if isinstance(new_value, np.ndarray) \
-                    and (new_value.dtype in (object,str) \
-                    or np.issubdtype(new_value.dtype,np.dtype('U'))):
+            and (new_value.dtype in (object,str) \
+            or np.issubdtype(new_value.dtype,np.dtype('U'))):
                 # Adding string values
                 new_value = new_value.astype(str)
                 new_str_vals = len(np.unique(new_value))*np.ones(np.shape(new_value),
@@ -759,9 +758,9 @@ class NavData():
                 "Cannot assign/return combination of strings and numbers"
             if np.all(row_str):
                 assert isinstance(new_value, np.ndarray) \
-                   and (new_value.dtype in (object,str) \
-                     or np.issubdtype(new_value.dtype,np.dtype('U'))), \
-                        "String assignment only supported for ndarray of type object"
+                and (new_value.dtype in (object,str) \
+                or np.issubdtype(new_value.dtype,np.dtype('U'))), \
+                    "String assignment only supported for ndarray of type object"
                 inv_map = self.inv_map
                 new_value = np.atleast_2d(new_value)
                 new_str_vals = np.ones_like(new_value, dtype=self.arr_dtype)
@@ -882,7 +881,7 @@ class NavData():
 
         if isinstance(new_value, np.ndarray) and (new_value.dtype in (object,str) \
                         or np.issubdtype(new_value.dtype,np.dtype('U'))):
-            if type(new_value.item(0)) in (int, float):
+            if isinstance(new_value.item(0), (int, float)):
                 row_str_new = [False]*len(row_list)
             else:
                 row_str_new = [True]*len(row_list)

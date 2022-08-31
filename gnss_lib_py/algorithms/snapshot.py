@@ -61,15 +61,15 @@ def solve_wls(measurements, weight_type = None,
     position = np.zeros((4,1))
     for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
 
-        pos_sv_m = np.hstack((measurement_subset["x_sv_m"].reshape(-1,1),
-                              measurement_subset["y_sv_m"].reshape(-1,1),
-                              measurement_subset["z_sv_m"].reshape(-1,1)))
+        pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
+        pos_sv_m = np.atleast_2d(pos_sv_m)
+
         corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
 
         # remove NaN indexes
-        nan_indexes = ~np.isnan(pos_sv_m).any(axis=1)
-        pos_sv_m = pos_sv_m[nan_indexes]
-        corr_pr_m = corr_pr_m[nan_indexes]
+        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=1)
+        pos_sv_m = pos_sv_m[not_nan_indexes]
+        corr_pr_m = corr_pr_m[not_nan_indexes]
 
         if weight_type is not None:
             if isinstance(weight_type,str) and weight_type in measurements.rows:
@@ -86,12 +86,14 @@ def solve_wls(measurements, weight_type = None,
 
             states.append([timestamp] + np.squeeze(position).tolist())
         except RuntimeError as error:
-            print("RuntimeWarning: " + "gps_millis: " + str(int(timestamp)) \
-                        + ", " + str(error))
-
+            warnings.warn("RuntimeError encountered at gps_millis: " \
+                        + str(int(timestamp)) + " RuntimeError: " \
+                        + str(error), RuntimeWarning)
     states = np.array(states)
 
     if states.size == 0:
+        warnings.warn("No valid state estimate computed in WLS, "\
+                    + "returning None.", RuntimeWarning)
         return None
 
     state_estimate = NavData()
@@ -186,7 +188,8 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
             geometry_matrix[:,:3] = np.divide(pos_rx_m - pos_sv_m,
                                               gt_r_m.reshape(-1,1))
 
-
+        # assumes the use of corrected pseudoranges with the satellite
+        # clock bias already removed
         pr_delta = corr_pr_m - gt_r_m - rx_est_m[3,0]
         try:
             pos_x_delta = np.linalg.pinv(geometry_matrix.T @ weight_matrix @ geometry_matrix) \
