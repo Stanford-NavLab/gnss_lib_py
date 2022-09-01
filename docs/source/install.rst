@@ -6,7 +6,7 @@ Install
 Prerequisites
 -------------
 
-| **Python:** >=3.7.1, <3.11
+| **Python:** >=3.7.2, <3.11
 | **Operating System:** Linux, Windows, MacOS
 
 All :code:`gnss_lib_py` classes and methods are tested in Python 3.7,
