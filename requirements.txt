@@ -38,6 +38,7 @@ jupyter-core==4.11.1; python_version >= "3.7"
 jupyter==1.0.0
 jupyterlab-pygments==0.2.2; python_version >= "3.7"
 jupyterlab-widgets==3.0.2; python_version >= "3.7"
+kaleido==0.2.1
 kiwisolver==1.4.4; python_version >= "3.7"
 lazy-object-proxy==1.7.1; python_version >= "3.6" and python_full_version >= "3.6.2"
 lxml==4.9.1; python_version >= "3.7" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.7"
