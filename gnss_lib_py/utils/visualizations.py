@@ -521,17 +521,22 @@ def plot_map(*args, sections=0, save=False, prefix="",
                      width=width, height=height)
     return figs
 
-def close_figures(figs):
+def close_figures(figs=None):
     """Closes figures.
+
+    If figs is None, then will attempt to close all matplotlib figures
+    with plt.close('all')
 
     Parameters
     ----------
-    figs : list or matplotlib.pyplot.figure
+    figs : list or matplotlib.pyplot.figure or None
         List of figures or single matplotlib figure object.
 
     """
 
-    if isinstance(figs,plt.Figure):
+    if figs is None:
+        plt.close('all')
+    elif isinstance(figs,plt.Figure):
         plt.close(figs)
     elif isinstance(figs, list):
         for fig in figs:

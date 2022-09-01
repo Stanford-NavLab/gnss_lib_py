@@ -309,7 +309,7 @@ def test_plot_metrics_by_constellation(derived):
                 for prefix in ["","test"]:
                     fig = viz.plot_metric_by_constellation(derived, row,
                                                prefix=prefix,save=False)
-                    viz.close_figures(fig)
+                    viz.close_figures()
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
