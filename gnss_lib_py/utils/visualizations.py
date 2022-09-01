@@ -7,6 +7,7 @@ __date__ = "27 Jan 2022"
 
 import os
 import pathlib
+from multiprocessing import Process
 
 import numpy as np
 import pandas as pd
@@ -411,7 +412,7 @@ def plot_map(*args, sections=0, save=False, prefix="",
         be overwritten.
     width : int
         Figure width in pixels.
-    height = int
+    height : int
         Figure height in pixels.
     mapbox_style : str
         Can optionally be included as one of the ``**kwargs``
@@ -838,7 +839,7 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
         be overwritten.
     width : int
         Figure width in pixels.
-    height = int
+    height : int
         Figure height in pixels.
 
     """
@@ -873,15 +874,53 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
                                                   + ".png")
         else:
             fname = fnames[fig_idx]
+
         while True:
-            try:
-                figure.write_image(fname,
-                                   width = width,
-                                   height = height,
-                                   )
+            # sometimes writing a plotly image hanges for an unknown
+            # reason. Hence, we call write_image in a process that is
+            # automatically terminated after 180 seconds if nothing
+            # happens.
+            process = Process(target=_write_plotly,
+                               name="write_plotly",
+                               args=(figure,fname,width,height))
+            process.start()
+
+            process.join(180)
+            if process.is_alive():
+                process.terminate()
+                process.join()
+                continue
+            break
+
+
+def _write_plotly(figure, fname, width, height): # pragma: no cover
+    """Saves figure to file.
+
+    Automatically zooms out if plotly throws a ValueError when trying
+    to zoom in too much.
+
+    Parameters
+    ----------
+    figure : plotly.graph_objects.Figure
+        Object to save.
+    fname : string or path-like
+        Path to save figure to.
+    width : int
+        Figure width in pixels.
+    height : int
+        Figure height in pixels.
+
+    """
+
+    while True:
+        try:
+            figure.write_image(fname,
+                               width = width,
+                               height = height,
+                               )
+            break
+        except ValueError as error:
+            figure.layout.mapbox.zoom -= 1
+            if figure.layout.mapbox.zoom < 1:
+                print(error)
                 break
-            except ValueError as error:
-                figure.layout.mapbox.zoom -= 1
-                if figure.layout.mapbox.zoom < 1:
-                    print(error)
-                    break
