@@ -7,6 +7,7 @@ attrs==22.1.0; python_version >= "3.7"
 backcall==0.2.0; python_version >= "3.7"
 beautifulsoup4==4.11.1; python_full_version >= "3.6.0" and python_version >= "3.7"
 bleach==5.0.1; python_version >= "3.7"
+certifi==2022.6.15; python_version >= "3.7"
 cffi==1.15.1; implementation_name == "pypy" and python_version >= "3.7"
 colorama==0.4.5; sys_platform == "win32" and python_version >= "3.6" and python_full_version >= "3.7.2" and (python_version >= "3.6" and python_full_version < "3.0.0" and sys_platform == "win32" or sys_platform == "win32" and python_version >= "3.6" and python_full_version >= "3.5.0") and (python_version >= "3.7" and python_full_version < "3.0.0" and sys_platform == "win32" or sys_platform == "win32" and python_version >= "3.7" and python_full_version >= "3.5.0")
 coverage==6.4.4; python_version >= "3.7"
@@ -74,6 +75,7 @@ pygments==2.13.0; python_version >= "3.7"
 pylint==2.15.0; python_full_version >= "3.7.2"
 pynmea2==1.18.0
 pyparsing==3.0.9; python_full_version >= "3.6.8" and python_version >= "3.7"
+pyproj==3.1.0; python_version >= "3.7"
 pyrsistent==0.18.1; python_version >= "3.7"
 pytest-cov==3.0.0; python_version >= "3.6"
 pytest-lazy-fixture==0.6.3
