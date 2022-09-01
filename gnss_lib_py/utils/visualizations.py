@@ -96,48 +96,42 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
     fig, axes = _get_new_fig()
 
     if x_metric is None:
+        x_data = None
+        xlabel = "INDEX"
         if title is None:
             title = _get_label({y_metric:y_metric})
-        plt.xlabel("INDEX")
-        if groupby is not None:
-            for group in np.unique(navdata[groupby]):
-                subset = navdata.where(groupby,group)
-                y_data = np.atleast_1d(subset[y_metric])
-                axes.plot(range(len(y_data)), y_data,
-                          markeredgecolor = markeredgecolor,
-                          markeredgewidth = markeredgewidth,
-                          label=_get_label({groupby:group}), **kwargs)
-        else:
-            y_data = np.atleast_1d(navdata[y_metric])
-            axes.plot(range(len(y_data)), y_data,
-                      markeredgecolor = markeredgecolor,
-                      markeredgewidth = markeredgewidth,
-                      **kwargs)
     else:
         if title is None:
             title = _get_label({x_metric:x_metric}) + " vs. " \
                   + _get_label({y_metric:y_metric})
-        plt.xlabel(_get_label({x_metric:x_metric}))
-        if groupby is not None:
-            all_groups = np.unique(navdata[groupby])
-            if groupby == "gnss_id":
-                all_groups = _sort_gnss_ids(all_groups)
-            for group in all_groups:
-                subset = navdata.where(groupby,group)
+        xlabel = _get_label({x_metric:x_metric})
+
+    if groupby is not None:
+        all_groups = np.unique(navdata[groupby])
+        if groupby == "gnss_id":
+            all_groups = _sort_gnss_ids(all_groups)
+        for group in all_groups:
+            subset = navdata.where(groupby,group)
+            y_data = np.atleast_1d(subset[y_metric])
+            if x_metric is None:
+                x_data = range(len(y_data))
+            else:
                 x_data = np.atleast_1d(subset[x_metric])
-                y_data = np.atleast_1d(subset[y_metric])
-                axes.plot(x_data, y_data,
-                          label=_get_label({groupby:group}),
-                          markeredgecolor = markeredgecolor,
-                          markeredgewidth = markeredgewidth,
-                          **kwargs)
-        else:
-            x_data = np.atleast_1d(navdata[x_metric])
-            y_data = np.atleast_1d(navdata[y_metric])
             axes.plot(x_data, y_data,
+                      label=_get_label({groupby:group}),
                       markeredgecolor = markeredgecolor,
                       markeredgewidth = markeredgewidth,
                       **kwargs)
+    else:
+        y_data = np.atleast_1d(navdata[y_metric])
+        if x_metric is None:
+            x_data = range(len(y_data))
+        else:
+            x_data = np.atleast_1d(navdata[x_metric])
+        axes.plot(x_data, y_data,
+                  markeredgecolor = markeredgecolor,
+                  markeredgewidth = markeredgewidth,
+                  **kwargs)
 
     handles, _ = axes.get_legend_handles_labels()
     if len(handles) > 0:
@@ -145,6 +139,7 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
                    title=_get_label({groupby:groupby}))
 
     plt.title(title)
+    plt.xlabel(xlabel)
     plt.ylabel(_get_label({y_metric:y_metric}))
     fig.tight_layout()
 
