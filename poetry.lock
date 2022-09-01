@@ -136,7 +136,7 @@ dev = ["build (==0.8.0)", "flake8 (==4.0.1)", "hashin (==0.17.0)", "pip-tools (=
 name = "certifi"
 version = "2022.6.15"
 description = "Python package for providing Mozilla's CA Bundle."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -1115,9 +1115,9 @@ diagrams = ["railroad-diagrams", "jinja2"]
 
 [[package]]
 name = "pyproj"
-version = "3.2.1"
+version = "3.2.0"
 description = "Python interface to PROJ (cartographic projections and coordinate transformations library)"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -1691,7 +1691,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.9, < 3.11"
-content-hash = "62b74265cddf9813daa95161917ddf22c941bfcd5faecc51cb61176173052212"
+content-hash = "832eeccb591785e9a16fcdc9374d7e4e399bcb3fd5ee18937edb5d19081a993e"
 
 [metadata.files]
 alabaster = [
