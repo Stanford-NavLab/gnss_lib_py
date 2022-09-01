@@ -395,7 +395,7 @@ def test_plot_skyplot(navdata, state_estimate):
         with pytest.raises(KeyError) as excinfo:
             viz.plot_skyplot(navdata, state_double, save=False)
         assert row.replace("rx","*") in str(excinfo.value)
-        assert "Multiple" in str(excinfo.value)
+        assert "More than 1" in str(excinfo.value)
 
 def test_get_label():
     """Test for getting nice labels.
@@ -493,4 +493,4 @@ def test_plot_map(gtruth, state_estimate):
         with pytest.raises(KeyError) as excinfo:
             viz.plot_map(gtruth, state_double, save=False)
         assert row.replace("rx","*") in str(excinfo.value)
-        assert "Multiple" in str(excinfo.value)
+        assert "More than 1" in str(excinfo.value)

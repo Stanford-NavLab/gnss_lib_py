@@ -575,6 +575,63 @@ class NavData():
             raise KeyError(", ".join(missing_rows) + " row(s) are" \
                            + " missing from NavData object.")
 
+    def find_wildcard_indexes(self, wildcards, max_allow = None):
+        """Searches for indexes matching wildcard search input.
+
+        For example, a search for ``x_*_m`` would find ``x_rx_m`` or
+        ``x_sv_m`` or ``x_alpha_beta_gamma_m`` depending on the rows
+        existing in the NavData instance.
+
+        Will return an error no index is found matching the wildcard or
+        if more than ``max_allow`` indexes are found.
+
+        Currently only allows for a single wildcard per index.
+
+        Parameters
+        ----------
+        wildcards : array-like or str
+            List/tuple/np.ndarray/set of indexes for which to search.
+        max_allow : int or None
+            Maximum number of valid indexes to allow before throwing an
+            error. If None, then no limit is placed.
+
+        Returns
+        -------
+        wildcard_indexes : dict
+            Dictionary of the form {"search_term", [indexes,...]},
+
+        """
+
+        if isinstance(wildcards,str):
+            wildcards = [wildcards]
+        if not isinstance(wildcards, (list,tuple,np.ndarray,set)):
+            raise TypeError("wildcards input in find_wildcard_indexes" \
+                         +  " must be array-like or single string")
+        if not (isinstance(max_allow,int) or max_allow is None):
+            raise TypeError("max_allow input in find_wildcard_indexes" \
+                          + " must be an integer or None.")
+
+        wildcard_indexes = {}
+
+        for wildcard in wildcards:
+            if not isinstance(wildcard,str):
+                raise TypeError("wildcards must be strings")
+            if wildcard.count("*") != 1:
+                raise RuntimeError("One wildcard '*' and only one "\
+                          + "wildcard must be present in search string")
+            indexes = [row for row in self.rows
+                   if row.startswith(wildcard.split("*",maxsplit=1)[0])
+                    and row.endswith(wildcard.split("*",maxsplit=1)[1])]
+            if max_allow is not None and len(indexes) > max_allow:
+                raise KeyError("More than " + str(max_allow) \
+                             + " possible row indexes for "  + wildcard)
+            if len(indexes) == 0:
+                raise KeyError("Missing " + wildcard + " row.")
+
+            wildcard_indexes[wildcard] = indexes
+
+        return wildcard_indexes
+
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
 

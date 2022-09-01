@@ -284,23 +284,8 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
     receiver_state.in_rows(["gps_millis"])
 
     # check for receiver_state indexes
-    rx_idxs = {"x_*_m" : [],
-               "y_*_m" : [],
-               "z_*_m" : [],
-               }
-    for name, indexes in rx_idxs.items():
-        indexes = [row for row in receiver_state.rows
-                      if row.startswith(name.split("*",maxsplit=1)[0])
-                       and row.endswith(name.split("*",maxsplit=1)[1])]
-        if len(indexes) > 1:
-            raise KeyError("Multiple possible row indexes for " \
-                         + name \
-                         + ". Unable to resolve for plot_skyplot().")
-        if len(indexes) == 0:
-            raise KeyError("Missing required " + name + " row for " \
-                        + "plot_skyplot().")
-        # must call dictionary to avoid pass by value
-        rx_idxs[name] = indexes[0]
+    rx_idxs = receiver_state.find_wildcard_indexes(["x_*_m","y_*_m",
+                                                    "z_*_m"],max_allow=1)
 
     if "el_sv_deg" not in navdata.rows or "az_sv_deg" not in navdata.rows:
         sv_el_az = None
@@ -312,9 +297,9 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
             # find time index for receiver_state NavData instance
             rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
 
-            pos_rx_m = receiver_state[[rx_idxs["x_*_m"],
-                                       rx_idxs["y_*_m"],
-                                       rx_idxs["z_*_m"]],
+            pos_rx_m = receiver_state[[rx_idxs["x_*_m"][0],
+                                       rx_idxs["y_*_m"][0],
+                                       rx_idxs["z_*_m"][0]],
                                        rx_t_idx].reshape(1,-1)
 
             timestep_el_az = ecef_to_el_az(pos_rx_m, pos_sv_m)
@@ -457,26 +442,14 @@ def plot_map(*args, sections=0, save=False, prefix="",
                           + "NavData.")
 
         # check for lat/lon indexes
-        traj_idxs = {}
-        traj_idxs_possibilities = ["lat_*_deg", "lon_*_deg"]
-        for name in traj_idxs_possibilities:
-            indexes = [row for row in traj_data.rows
-                          if row.startswith(name.split("*",maxsplit=1)[0])
-                           and row.endswith(name.split("*",maxsplit=1)[1])]
-            if len(indexes) > 1:
-                raise KeyError("Multiple possible row indexes for " \
-                             + name \
-                             + ". Unable to resolve for plot_map().")
-            if len(indexes) == 0:
-                raise KeyError("Missing required " + name + " row for " \
-                            + "plot_map().")
-            # must call dictionary to avoid pass by value
-            traj_idxs[name] = indexes[0]
+        traj_idxs = traj_data.find_wildcard_indexes(["lat_*_deg",
+                                                     "lon_*_deg"],
+                                                     max_allow=1)
 
-        label_name = _get_label({"":"_".join((traj_idxs["lat_*_deg"].split("_"))[1:-1])})
+        label_name = _get_label({"":"_".join((traj_idxs["lat_*_deg"][0].split("_"))[1:-1])})
 
-        data = {"latitude" : traj_data[traj_idxs["lat_*_deg"]],
-                "longitude" : traj_data[traj_idxs["lon_*_deg"]],
+        data = {"latitude" : traj_data[traj_idxs["lat_*_deg"][0]],
+                "longitude" : traj_data[traj_idxs["lon_*_deg"][0]],
                 "Trajectory" : [label_name] * len(traj_data),
                 }
         if sections >= 2:

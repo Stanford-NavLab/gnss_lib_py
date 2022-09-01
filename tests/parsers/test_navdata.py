@@ -1877,3 +1877,91 @@ def test_large_int():
     navdata["numbers"] = test_list
 
     np.testing.assert_array_equal(navdata["numbers"], test_list)
+
+def test_find_wildcard_indexes(data):
+    """Tests find_wildcard_indexes
+
+    """
+
+    all_matching = data.rename({"names" : "x_alpha_m",
+                                "integers" : "x_beta_m",
+                                "floats" : "x_gamma_m",
+                                "strings" : "x_zeta_m"})
+    expected = ["x_alpha_m","x_beta_m","x_gamma_m","x_zeta_m"]
+
+    indexes = all_matching.find_wildcard_indexes("x_*_m")
+    assert indexes["x_*_m"] == expected
+    expect_pass_allows = [None,12,4]
+    for max_allow in expect_pass_allows:
+        indexes = all_matching.find_wildcard_indexes("x_*_m",max_allow)
+        assert indexes["x_*_m"] == expected
+
+    expect_fail_allows = [0,-1,3,2,1]
+    for max_allow in expect_fail_allows:
+        with pytest.raises(KeyError) as excinfo:
+            all_matching.find_wildcard_indexes("x_*_m",max_allow)
+        assert "More than " + str(max_allow) in str(excinfo.value)
+        assert "x_*_m" in str(excinfo.value)
+
+    multi = data.rename({"names" : "x_alpha_m",
+                         "integers" : "x_beta_m",
+                         "floats" : "y_alpha_deg",
+                         "strings" : "x_zeta_deg"})
+    expected = {"x_*_m" : ["x_alpha_m","x_beta_m"],
+                "y_*_deg" : ["y_alpha_deg"]}
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                               max_allow)
+        assert indexes == expected
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(tuple(["x_*_m","y_*_deg"]),
+                                                     max_allow)
+        assert indexes == expected
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(set(["x_*_m","y_*_deg"]),
+                                                     max_allow)
+        assert indexes == expected
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(np.array(["x_*_m",
+                                                        "y_*_deg"]),
+                                                        max_allow)
+        assert indexes == expected
+
+    expect_fail_allows = [0,-1,1]
+    for max_allow in expect_fail_allows:
+        with pytest.raises(KeyError) as excinfo:
+            multi.find_wildcard_indexes(["x_*_m","y_*_deg"],max_allow)
+        assert "More than " + str(max_allow) in str(excinfo.value)
+        assert "x_*_m" in str(excinfo.value)
+
+    with pytest.raises(KeyError) as excinfo:
+        multi.find_wildcard_indexes(["z_*_m"])
+    assert "Missing " in str(excinfo.value)
+    assert "z_*_m" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(1.0)
+    assert "find_wildcard_indexes " in str(excinfo.value)
+    assert "array-like" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes([1.0])
+    assert "wildcards must be strings" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        multi.find_wildcard_indexes("x_*_*")
+    assert "One wildcard" in str(excinfo.value)
+
+    incorrect_max_allow = [3.,"hi",[]]
+    for max_allow in incorrect_max_allow:
+        with pytest.raises(TypeError) as excinfo:
+            multi.find_wildcard_indexes("x_*_m",max_allow)
+        assert "max_allow" in str(excinfo.value)
