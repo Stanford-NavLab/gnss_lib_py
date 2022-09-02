@@ -12,10 +12,11 @@ from scipy import interpolate
 
 from gnss_lib_py.utils.sim_gnss import find_sat
 from gnss_lib_py.parsers.ephemeris import EphemerisManager
-from gnss_lib_py.parsers.precise_ephemerides import parse_sp3, parse_clockfile
 import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 
-def extract_sp3_func(sp3data, sidx, ipos = 10, method = 'CubicSpline'):
+def extract_sp3_func(sp3data, sidx, ipos = 10, \
+                     method = 'CubicSpline', verbose = False):
     """Computing an interpolated function that represents sp3data
     around desired index and for any GNSS constellation
 
@@ -38,11 +39,6 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, method = 'CubicSpline'):
         Each element of 3-D array represents the interpolated function
         associated with loaded .sp3 data
 
-    Notes
-    -----
-    (1) Need to add more interpolation functions; Will incorporate them after
-    all kinks for one interpolation are figured out and merged to main branch
-
     References
     ----------
     """
@@ -54,8 +50,9 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, method = 'CubicSpline'):
         low_i = (sidx - ipos) if (sidx - ipos) >= 0 else 0
         high_i = (sidx + ipos) if (sidx + ipos) <= len(sp3data.tym) else -1
 
-#         print('Nearest sp3: ', sidx, sp3data.tym[sidx], \
-#                                sp3data.xpos[sidx], sp3data.ypos[sidx], sp3data.zpos[sidx])
+        if verbose:
+            print('Nearest sp3: ', sidx, sp3data.tym[sidx], \
+                                   sp3data.xpos[sidx], sp3data.ypos[sidx], sp3data.zpos[sidx])
 
         func_satpos[0] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
                                                  sp3data.xpos[low_i:high_i])
@@ -66,7 +63,7 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, method = 'CubicSpline'):
 
     return func_satpos
 
-def compute_sp3_snapshot(func_satpos, cxtime, hstep = 1e-5, method='CubicSpline'):
+def compute_sp3_snapshot(func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'):
     """Compute the satellite 3-D position and velocity via central differencing,
     given an associated 3-D array of interpolation function
 
@@ -98,12 +95,13 @@ def compute_sp3_snapshot(func_satpos, cxtime, hstep = 1e-5, method='CubicSpline'
 
     satpos_sp3 = np.array([sat_x[1], sat_y[1], sat_z[1]])
     satvel_sp3 = np.array([ (sat_x[2]-sat_x[0]) / hstep, \
-                               (sat_y[2]-sat_y[0]) / hstep, \
-                               (sat_z[2]-sat_z[0]) / hstep ])
+                            (sat_y[2]-sat_y[0]) / hstep, \
+                            (sat_z[2]-sat_z[0]) / hstep ])
 
-    return satpos_sp3, satvel_sp3
+    return satpos_sp3, (satvel_sp3 * 1e3)
 
-def extract_clk_func(clkdata, sidx, ipos = 10, method='CubicSpline'):
+def extract_clk_func(clkdata, sidx, ipos = 10, \
+                     method='CubicSpline', verbose = False):
     """Computing an interpolated function that represents clkdata
     around desired index and for any GNSS constellation
 
@@ -130,14 +128,15 @@ def extract_clk_func(clkdata, sidx, ipos = 10, method='CubicSpline'):
         low_i = (sidx - ipos) if (sidx - ipos) >= 0 else 0
         high_i = (sidx + ipos) if (sidx + ipos) <= len(clkdata.tym) else -1
 
-#         print('Nearest clk: ', sidx, clkdata.tym[sidx], clkdata.clk_bias[sidx])
+        if verbose:
+            print('Nearest clk: ', sidx, clkdata.tym[sidx], clkdata.clk_bias[sidx])
 
         func_satbias = interpolate.CubicSpline(clkdata.tym[low_i:high_i], \
-                                            clkdata.clk_bias[low_i:high_i])
+                                               clkdata.clk_bias[low_i:high_i])
 
     return func_satbias
 
-def compute_clk_snapshot(func_satbias, cxtime, hstep = 1e-5, method='CubicSpline'):
+def compute_clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline'):
     """Compute the satellite clock bias and drift via central differencing,
     given an associated interpolation function
 
@@ -168,9 +167,10 @@ def compute_clk_snapshot(func_satbias, cxtime, hstep = 1e-5, method='CubicSpline
     satbias_clk = sat_t[1]
     satdrift_clk = (sat_t[2]-sat_t[0]) / hstep
 
-    return satbias_clk, satdrift_clk
+    return satbias_clk, (satdrift_clk * 1e3)
 
-def compute_sv_sp3clk_gps_glonass(navdata, sp3_path, clk_path, multi_gnss):
+def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
+                                     clk_parsed_file, verbose = False):
     """Populate navdata class with satellite position, velocity,
     clock bias and drift, which is computed via .sp3 and .clk files
 
@@ -178,217 +178,210 @@ def compute_sv_sp3clk_gps_glonass(navdata, sp3_path, clk_path, multi_gnss):
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
-    sp3_path : string
-        Location for the unit_test sp3 measurements
-    clk_path : string
-        Location for the unit_test clk measurements
-    multi_gnss : dict (example: {'G': (1, 'GPS_L1')} )
-        Dictionary with key specifying the string specifying constellation in
-        sp3 (i.e., 'G': GPS, 'R': GLONASS, 'E': Galileo). The value for each
-        key depicts two values: gnss_id and signal_type defined in navdata
+    sp3_parsed_file : Array of gnss_lib_py.parsers.precise_ephemerides.Sp3 classes
+        Instance of Sp3 class array associated with any one constellation
+    clk_parsed_file : Array of gnss_lib_py.parsers.precise_ephemerides.Clk classes
+        Instance of Clk class array associated with any one constellation
+    verbose : bool (dafault: False)
+        Flag (True/False) for whether to print intermediate steps useful
+        for debugging/reviewing
 
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Modified instance of NavData class that computes satellite position,
         velocity, clock bias and drift using precise ephemerides
-
-    Notes
-    -----
-    (1) so far the functionality for gps and glonass is specified based on
-    multi-gnss variable; find a better way to structure this, especially if
-    we want to use multiple frequencies of same constellation -> no provision
-    (2) forgot which website to use for downloading multi-gnss data that has
-    Galileo and Beidou as well. Maybe TU chemnitz or HongKong dataset has
-    other constellations, but didn't do that as no provision for loading
-    measurement data for those datasets
-    (3) Need to check if this function works for non L1/G1 values of GPS
-    and GLONASS constellation, i.e., can it handle duplicate satellites
-    entries of the same constellation
-    (4) Need to check if this function works for navdata class with no
-    satellite position, velocity, bias and drift fields to begin with, for
-    example with my pyubx2 parser.
-    (5) Need to check if these functions work for non-android datasets
-    (6) Update multi-gnss variable with other constellation keys
-    (7) Not sure how to address this pylint warning, any ideas on how to split
-    this function into two? Maybe I can make this function specific to each
-    constellation itself, i.e., if three constellation three times this function
-    would be run. This will cut down on gnss -> for loops
-    multi_gnss.py:414:0: R0914: Too many local variables (23/15) (too-many-locals)
-    multi_gnss.py:414:0: R0912: Too many branches (13/12) (too-many-branches)
-    multi_gnss.py:414:0: R0915: Too many statements (56/50) (too-many-statements)
-    (8) Need to add unit test for detecting if func_satbias is valid for
-    cxtime specified; No such test now.
-
-    References
-    ----------
     """
 
-    if not np.array_equal( np.unique(navdata["gnss_id"]), \
-                           [multi_gnss[gnss][0] for gnss in multi_gnss.keys()] ):
-        raise RuntimeError("Inconsistency in multi-gnss inputs")
+    navdata_offset = 0 #1000 # Set this to zero, when android errors get fixed
+    unique_gnss_id = np.unique(navdata['gnss_id'])
+    if not len(unique_gnss_id)==1:
+        raise RuntimeError("Input error: Multiple constellations " + \
+                           "cannot be updated simultaneously")
 
-    navdata_offset = 1 # Not sure why this offset exists
+    if not len(sp3_parsed_file) == len(clk_parsed_file):
+        raise RuntimeError("Input error: Max no. of PRNs in sp3 and clk " + \
+                           "parsed files do not match")
+
+    if not sp3_parsed_file[0].const == clk_parsed_file[0].const:
+        raise RuntimeError("Input error: Constellations associated with " + \
+                           "sp3 and clk parsed files do not match")
+
+    # add another if condition here that checks if navdata, sp3, clk all same
+    # constellation -> after constellation flag changed in precise_ephemerides
+
     interp_method = 'CubicSpline' # Currently only one functionality
 
-    # Parse the sp3 and clk files for relevant constellations
-    sp3_parsed_file, clk_parsed_file = {}, {}
-
-    for gnss in multi_gnss.keys():
-        sp3_parsed_file[gnss] = parse_sp3(sp3_path, constellation = gnss)
-        clk_parsed_file[gnss] = parse_clockfile(clk_path, constellation = gnss)
-
-        if not len(sp3_parsed_file[gnss]) == len(clk_parsed_file[gnss]):
-            raise RuntimeError("Lengths of sp3 and clk parsed files do not match")
-
     # Initialize the sp3 and clk iref arrays
-    sp3_iref_old, clk_iref_old = {}, {}
-    satfunc_xyz_old, satfunc_t_old = {}, {}
+    sp3_iref_old = -1 * np.ones( (len(sp3_parsed_file),))
+    satfunc_xyz_old = np.empty( (len(sp3_parsed_file),), dtype=object)
+    satfunc_xyz_old[:] = np.nan
 
-    for gnss in multi_gnss.keys():
-        sp3_iref_old[gnss] = -1 * np.ones( (len(sp3_parsed_file[gnss]),))
-        satfunc_xyz_old[gnss] = np.empty( (len(sp3_parsed_file[gnss]),), dtype=object)
-        satfunc_xyz_old[gnss][:] = np.nan
-
-        clk_iref_old[gnss] = -1 * np.ones( (len(clk_parsed_file[gnss]),))
-        satfunc_t_old[gnss] = np.empty( (len(clk_parsed_file[gnss]),), dtype=object)
-        satfunc_t_old[gnss][:] = np.nan
+    clk_iref_old = -1 * np.ones( (len(clk_parsed_file),))
+    satfunc_t_old = np.empty( (len(clk_parsed_file),), dtype=object)
+    satfunc_t_old[:] = np.nan
 
     # Compute satellite information for desired time steps
-    unique_timesteps = np.unique(navdata["gps_tow"])
+    unique_timesteps = np.unique(navdata["gps_millis"])
 
-    for _, timestep in enumerate(unique_timesteps[:-1]): #t_idx
+    for t_idx, timestep in enumerate(unique_timesteps[:-1]):
 
-        for gnss in multi_gnss.keys():
+        # Compute indices where gps_millis match, sort them
+        # sorting is done for consistency across all satellite pos. estimation
+        # algorithms as ephemerismanager inherently sorts based on prns
+        idxs = np.where(navdata["gps_millis"] == timestep)[0]
+        sorted_idxs = idxs[np.argsort(navdata["sv_id", idxs], axis = 0)]
 
-            idxs = np.where( (navdata["gps_tow",:] == timestep) & \
-                             (navdata["gnss_id",:] == multi_gnss[gnss][0]) & \
-                             (navdata["signal_type",:] == multi_gnss[gnss][1]) )[1]
+        if verbose:
+            print(t_idx, timestep, idxs, sorted_idxs)
+            print('misc: ', navdata['gps_millis', sorted_idxs], \
+                            navdata['gnss_id', sorted_idxs], \
+                            navdata['sv_id', sorted_idxs], \
+                            navdata['signal_type', sorted_idxs])
 
-            sorted_idxs = idxs[np.argsort(navdata["sv_id", idxs], axis = 0)]
+        # this if else condition can be removed later after navdata has been
+        # fixed to represent one data point as an array as well
+        if len(sorted_idxs)==1:
+            visible_sats = np.array([navdata["sv_id", sorted_idxs]])
+        else:
+            visible_sats = navdata["sv_id", sorted_idxs]
 
-            for sv_idx, prn in enumerate(navdata["sv_id", sorted_idxs]):
+        for sv_idx, prn in enumerate(visible_sats):
 
-                prn = int(prn)
+            prn = int(prn)
 
-                # Perform nearest time step search to compute iref values for sp3 and clk
-                sp3_iref = np.argmin(abs(np.array(sp3_parsed_file[gnss][prn].tym) - \
-                                         (timestep-navdata_offset)))
-                clk_iref = np.argmin(abs(np.array(clk_parsed_file[gnss][prn].tym) - \
-                                         (timestep-navdata_offset)))
+            # Perform nearest time step search to compute iref values for sp3 and clk
+            sp3_iref = np.argmin(abs(np.array(sp3_parsed_file[prn].tym) - \
+                                     (timestep - navdata_offset) ))
+            clk_iref = np.argmin(abs(np.array(clk_parsed_file[prn].tym) - \
+                                     (timestep - navdata_offset) ))
 
-#                 print('Stats: ', t_idx, timestep, gnss, prn, idxs, sorted_idxs)
-#                 print('sp3 stats: ', sp3_iref, sp3_iref_old[gnss][prn])
-#                 print('clk stats: ', clk_iref, clk_iref_old[gnss][prn])
+            if verbose:
+                print('Stats: ', t_idx, timestep, prn, idxs, sorted_idxs)
+                print('sp3 stats: ', sp3_iref, sp3_iref_old[prn])
+                print('clk stats: ', clk_iref, clk_iref_old[prn])
 
-                # Carry out .sp3 processing by first checking if
-                # previous interpolated function holds
-                if sp3_iref == sp3_iref_old[gnss][prn]:
-                    func_satpos = satfunc_xyz_old[gnss][prn]
-                else:
-                    # if does not hold, recompute the interpolation function based on current iref
-#                     print('SP3: Computing new interpolation!')
-                    func_satpos = extract_sp3_func(sp3_parsed_file[gnss][prn], \
-                                                   sp3_iref, method = interp_method)
-                    # Update the relevant interp function and iref values
-                    satfunc_xyz_old[gnss][prn] = func_satpos
-                    sp3_iref_old[gnss][prn] = sp3_iref
+            # Carry out .sp3 processing by first checking if
+            # previous interpolated function holds
+            if sp3_iref == sp3_iref_old[prn]:
+                func_satpos = satfunc_xyz_old[prn]
+            else:
+                # if does not hold, recompute the interpolation function based on current iref
+                if verbose:
+                    print('SP3: Computing new interpolation!')
+                func_satpos = extract_sp3_func(sp3_parsed_file[prn], \
+                                               sp3_iref, method = interp_method)
+                # Update the relevant interp function and iref values
+                satfunc_xyz_old[prn] = func_satpos
+                sp3_iref_old[prn] = sp3_iref
 
-                # Compute satellite position and velocity using interpolated function
-                satpos_sp3, satvel_sp3 = compute_sp3_snapshot(func_satpos, \
-                                                              (timestep-navdata_offset), \
-                                                              method = interp_method)
-#                 print('before sp3:', satpos_sp3, satvel_sp3)
+            # Compute satellite position and velocity using interpolated function
+            satpos_sp3, satvel_sp3 = compute_sp3_snapshot(func_satpos, \
+                                                          (timestep - navdata_offset), \
+                                                          method = interp_method)
 
-                # Adjust the satellite position based on Earth's rotation
-                trans_time = navdata["raw_pr_m", sorted_idxs[sv_idx]] / consts.C
-                del_x = (consts.OMEGA_E_DOT * satpos_sp3[1] * trans_time)
-                del_y = (-consts.OMEGA_E_DOT * satpos_sp3[0] * trans_time)
-                satpos_sp3[0] = satpos_sp3[0] + del_x
-                satpos_sp3[1] = satpos_sp3[1] + del_y
+            # Adjust the satellite position based on Earth's rotation
+            trans_time = navdata["raw_pr_m", sorted_idxs[sv_idx]] / consts.C
+            del_x = (consts.OMEGA_E_DOT * satpos_sp3[1] * trans_time)
+            del_y = (-consts.OMEGA_E_DOT * satpos_sp3[0] * trans_time)
+            satpos_sp3[0] = satpos_sp3[0] + del_x
+            satpos_sp3[1] = satpos_sp3[1] + del_y
 
-                # Carry out .clk processing by first checking if previous interpolated
-                # function holds
-                if clk_iref == clk_iref_old[gnss][prn]:
-                    func_satbias = satfunc_t_old[gnss][prn]
-                else:
-                    # if does not hold, recompute the interpolation function based on current iref
-#                     print('CLK: Computing new interpolation!')
-                    func_satbias = extract_clk_func(clk_parsed_file[gnss][prn], \
-                                                 clk_iref, method = interp_method)
-                    # Update the relevant interp function and iref values
-                    satfunc_t_old[gnss][prn] = func_satbias
-                    clk_iref_old[gnss][prn] = clk_iref
+            # Carry out .clk processing by first checking if previous interpolated
+            # function holds
+            if clk_iref == clk_iref_old[prn]:
+                func_satbias = satfunc_t_old[prn]
+            else:
+                # if does not hold, recompute the interpolation function based on current iref
+                if verbose:
+                    print('CLK: Computing new interpolation!')
+                func_satbias = extract_clk_func(clk_parsed_file[prn], \
+                                                clk_iref, method = interp_method)
+                # Update the relevant interp function and iref values
+                satfunc_t_old[prn] = func_satbias
+                clk_iref_old[prn] = clk_iref
 
-                # Compute satellite clock bias and drift using interpolated function
-                satbias_clk, \
-                satdrift_clk = compute_clk_snapshot(func_satbias, \
-                                                    (timestep-navdata_offset), \
-                                                    method = interp_method)
+            # Compute satellite clock bias and drift using interpolated function
+            satbias_clk, \
+            satdrift_clk = compute_clk_snapshot(func_satbias, \
+                                                (timestep - navdata_offset), \
+                                                method = interp_method)
+            if verbose:
 #                 print('after sp3:', satpos_sp3, \
 #                                     satvel_sp3, \
 #                                     consts.C * satbias_clk, \
 #                                     consts.C * satdrift_clk)
 
-#                 print('Before:' )
-#                 satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
-#                                                 navdata["y_sv_m", sorted_idxs], \
-#                                                 navdata["z_sv_m", sorted_idxs] ])
-#                 print( 'Android-sp3 Pos Error (m): ', \
-#                           np.linalg.norm(satpos_android[sv_idx] - satpos_sp3), \
-#                           navdata["x_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[0], \
-#                           navdata["y_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[1], \
-#                           navdata["z_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[2] )
+                satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
+                                                navdata["y_sv_m", sorted_idxs], \
+                                                navdata["z_sv_m", sorted_idxs] ])
+                print( 'Android-sp3 Pos Error (m): ', \
+                          np.linalg.norm(satpos_android[sv_idx] - satpos_sp3), \
+                          navdata["x_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[0], \
+                          navdata["y_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[1], \
+                          navdata["z_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[2] )
 
-#                 satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
-#                                                    navdata["vy_sv_mps", sorted_idxs], \
-#                                                    navdata["vz_sv_mps", sorted_idxs] ])
-#                 print('Android-sp3 Vel Error (m): ', \
-#                           np.linalg.norm(satvel_android[sv_idx] - satvel_sp3), \
-#                           navdata["vx_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[0], \
-#                           navdata["vy_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[1], \
-#                           navdata["vz_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[2] )
-#                 print('Android-sp3 Clk Error (m): ', \
-#                           navdata["b_sv_m", sorted_idxs[sv_idx]] - consts.C * satbias_clk, \
-#                           navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] - consts.C * satdrift_clk)
-#                 print(' ')
+                satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
+                                                   navdata["vy_sv_mps", sorted_idxs], \
+                                                   navdata["vz_sv_mps", sorted_idxs] ])
+#                 print('android:', satpos_android[sv_idx], satvel_android[sv_idx])
+                print('Android-sp3 Vel Error (m): ', \
+                          np.linalg.norm(satvel_android[sv_idx] - satvel_sp3), \
+                          navdata["vx_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[0], \
+                          navdata["vy_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[1], \
+                          navdata["vz_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[2] )
 
-                # Updating the relevant satellite fields in navdata class
-                # with computed values using .sp3 and .clk files
-                navdata['x_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[0]])
-                navdata['y_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[1]])
-                navdata['z_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[2]])
+                print('Android-sp3 Clk Error (m): ', \
+                          navdata["b_sv_m", sorted_idxs[sv_idx]] - consts.C * satbias_clk, \
+                          navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] - consts.C * satdrift_clk)
 
-                navdata["vx_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[0]])
-                navdata["vy_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[1]])
-                navdata["vz_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[2]])
+            # update x_sv_m of navdata with the estimated values from .sp3 files
+            navdata['x_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[0]])
+            if not (navdata["x_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[0] == 0.0):
+                raise RuntimeError("x_sv_m of navdata not correctly updated")
 
-                navdata["b_sv_m", sorted_idxs[sv_idx]] = np.array([consts.C * satbias_clk])
-                navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] = np.array([consts.C * satdrift_clk])
+            # update y_sv_m of navdata with the estimated values from .sp3 files
+            navdata['y_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[1]])
+            if not (navdata["y_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[1] == 0.0):
+                raise RuntimeError("y_sv_m of navdata not correctly updated")
 
-                if not (navdata["x_sv_m", sorted_idxs[sv_idx]][0] - satpos_sp3[0] == 0.0):
-                    raise RuntimeError("x_sv_m of navdata not correctly updated")
-                if not (navdata["y_sv_m", sorted_idxs[sv_idx]][0] - satpos_sp3[1] == 0.0):
-                    raise RuntimeError("y_sv_m of navdata not correctly updated")
-                if not (navdata["z_sv_m", sorted_idxs[sv_idx]][0] - satpos_sp3[2] == 0.0):
-                    raise RuntimeError("z_sv_m of navdata not correctly updated")
+            # update z_sv_m of navdata with the estimated values from .sp3 files
+            navdata['z_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[2]])
+            if not (navdata["z_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[2] == 0.0):
+                raise RuntimeError("z_sv_m of navdata not correctly updated")
 
-                if not (navdata["vx_sv_mps", sorted_idxs[sv_idx]][0] - satvel_sp3[0] == 0.0):
-                    raise RuntimeError("vx_sv_mps of navdata not correctly updated")
-                if not (navdata["vy_sv_mps", sorted_idxs[sv_idx]][0] - satvel_sp3[1] == 0.0):
-                    raise RuntimeError("vy_sv_mps of navdata not correctly updated")
-                if not (navdata["vz_sv_mps", sorted_idxs[sv_idx]][0] - satvel_sp3[2] == 0.0):
-                    raise RuntimeError("vz_sv_mps of navdata not correctly updated")
+            # update vx_sv_mps of navdata with the estimated values from .sp3 files
+            navdata["vx_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[0]])
+            if not (navdata["vx_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[0] == 0.0):
+                raise RuntimeError("vx_sv_mps of navdata not correctly updated")
 
-                if not (navdata["b_sv_m", sorted_idxs[sv_idx]][0] - consts.C * satbias_clk == 0.0):
-                    raise RuntimeError("b_sv_m of navdata not correctly updated")
-                if not (navdata["b_dot_sv_mps", sorted_idxs[sv_idx]][0] - \
-                                                consts.C * satdrift_clk == 0.0):
-                    raise RuntimeError("b_dot_sv_mps of navdata not correctly updated")
+            # update vy_sv_mps of navdata with the estimated values from .sp3 files
+            navdata["vy_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[1]])
+            if not (navdata["vy_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[1] == 0.0):
+                raise RuntimeError("vy_sv_mps of navdata not correctly updated")
+
+            # update vz_sv_mps of navdata with the estimated values from .sp3 files
+            navdata["vz_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[2]])
+            if not (navdata["vz_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[2] == 0.0):
+                raise RuntimeError("vz_sv_mps of navdata not correctly updated")
+
+            # update b_sv_m of navdata with the estimated values from .clk files
+            navdata["b_sv_m", sorted_idxs[sv_idx]] = np.array([consts.C * satbias_clk])
+            if not (navdata["b_sv_m", sorted_idxs[sv_idx]] - consts.C * satbias_clk == 0.0):
+                raise RuntimeError("b_sv_m of navdata not correctly updated")
+
+            # update b_dot_sv_mps of navdata with the estimated values from .clk files
+            navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] = np.array([consts.C * satdrift_clk])
+            if not (navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] - \
+                                            consts.C * satdrift_clk == 0.0):
+                raise RuntimeError("b_dot_sv_mps of navdata not correctly updated")
+
+            if verbose:
+                print(' ')
 
     return navdata
 
-def compute_sv_eph_gps(navdata, multi_gnss):
+def compute_sv_gps_from_brdcst_eph(navdata, verbose = False):
     """Populate navdata class comprising only GPS L1 values with
     satellite position and velocity (which is computed via .n files)
 
@@ -397,128 +390,116 @@ def compute_sv_eph_gps(navdata, multi_gnss):
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
         of only GPS L1 values
-    multi_gnss : tuple (example: (1, 'GPS_L1') )
-        Tuple specifying gnss_id and signal_type within navdata
+    verbose : bool (dafault: False)
+        Flag (True/False) for whether to print intermediate steps useful
+        for debugging/reviewing
 
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Modified instance of NavData class that computes satellite position,
         velocity, clock bias and drift using broadcast ephemerides
-
-    Notes
-    -----
-    (1) Considers only GPS as input, not applicable for other
-    constellations as Ephemeris Manager only works with GPS now. For future,
-    Beidou has a similar ephemeris structure, I have codes that can parse Beidou.
-    (2) Hard coded GPS id as 1.0. Does it needs to be changed?
-    (3) Confirm with ashwin about offset = 1.0 and its reasoning
-    (4) As a side comment, might be useful to have additional functionalities for
-    navdata class: sort and print functionality based on time instants
-    (5) How to handle last outlier, when repeated satellites -> code
-    breaks, i.e., ephemeris manager cannot handle duplicate satellites; as a temp
-    solution specified for loop to run until unique_timesteps[:-1]
-    (6) Not sure how to address this pylint warning:
-    multi_gnss.py:414:0: R0914: Too many local variables (23/15) (too-many-locals)
-    multi_gnss.py:414:0: R0912: Too many branches (13/12) (too-many-branches)
-    multi_gnss.py:414:0: R0915: Too many statements (56/50) (too-many-statements)
-
-    References
-    ----------
     """
+    navdata_offset = 0 #1000 # Set this to zero, when android errors get fixed
+    unique_gnss_id = np.unique(navdata['gnss_id'])
+    if len(unique_gnss_id)==1:
+        if unique_gnss_id == 'gps':
+            # Need this string to create sv_id strings for ephemeris manager
+            unique_gnss_id_str = 'G'
+        else:
+            raise RuntimeError("No non-GPS capability yet")
+    else:
+        raise RuntimeError("Multi-GNSS constellations cannot be updated simultaneously")
 
     repo = EphemerisManager()
-    navdata_offset = 1 # Not sure why this offset exists
+    unique_timesteps = np.unique(navdata["gps_millis"])
 
-    if all(x == navdata['gnss_id',0][0] for x in navdata['gnss_id'][0]):
-        unique_gnss_id = navdata['gnss_id', 0][0]
-    else:
-        raise RuntimeError("No multi-GNSS capability yet")
-
-    if unique_gnss_id == multi_gnss[0]:
-        unique_gnss_id_str = 'G'
-    else:
-        raise RuntimeError("No non-GPS capability yet")
-
-    if all(x == navdata['gps_week',0][0] for x in navdata['gps_week'][0]):
-        unique_gps_week = navdata['gps_week', 0][0]
-    else:
-        raise RuntimeError("Cannot handle GPS week transition")
-
-    unique_timesteps = np.unique(navdata["gps_tow"])
-
-    for _, timestep in enumerate(unique_timesteps[:-1]): #t_idx
-        idxs = np.where( (navdata["gps_tow"] == timestep) & \
-                         (navdata["signal_type",:] == multi_gnss[1]) )[1]
+    for t_idx, timestep in enumerate(unique_timesteps[:-1]):
+        # Compute indices where gps_millis match, sort them
+        # sorting is done for consistency across all satellite pos. estimation
+        # algorithms as ephemerismanager inherently sorts based on prns
+        idxs = np.where(navdata["gps_millis"] == timestep)[0]
         sorted_idxs = idxs[np.argsort(navdata["sv_id", idxs], axis = 0)]
 
-#         print(t_idx, timestep, idxs, sorted_idxs)
-#         print('misc: ', navdata['gps_tow', sorted_idxs], \
-#               navdata['millisSinceGpsEpoch', sorted_idxs], \
-#               navdata['gps_week', sorted_idxs], \
-#               navdata['gnss_id', sorted_idxs], \
-#               navdata['sv_id', sorted_idxs],
-#               navdata['signal_type', sorted_idxs] )
-
-#         satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
-#                                         navdata["y_sv_m", sorted_idxs], \
-#                                         navdata["z_sv_m", sorted_idxs] ])
-#         satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
-#                                            navdata["vy_sv_mps", sorted_idxs], \
-#                                            navdata["vz_sv_mps", sorted_idxs] ])
-#         print('android:', satpos_android, satvel_android)
-
+        # compute ephem information using desired_sats, rxdatetime
         desired_sats = [unique_gnss_id_str + str(int(i)).zfill(2) \
                                            for i in navdata["sv_id", sorted_idxs]]
-#         print(desired_sats)
-
         rxdatetime = datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc) + \
-                     timedelta( seconds = (unique_gps_week * 7 * 86400 + \
-                                          (timestep-navdata_offset) ) )
-#         print(rxdatetime, unique_gps_week)
+                     timedelta( seconds = (timestep - navdata_offset) * 1e-3 )
         ephem = repo.get_ephemeris(rxdatetime, satellites = desired_sats)
-        get_sat_from_ephem = find_sat(ephem, (timestep-navdata_offset), unique_gps_week)
+
+        if verbose:
+            print(t_idx, timestep, idxs, sorted_idxs)
+            print('misc: ', navdata['gps_millis', sorted_idxs], \
+                            navdata['gnss_id', sorted_idxs], \
+                            navdata['sv_id', sorted_idxs], \
+                            navdata['signal_type', sorted_idxs], \
+                            desired_sats, rxdatetime)
+
+            satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
+                                            navdata["y_sv_m", sorted_idxs], \
+                                            navdata["z_sv_m", sorted_idxs] ])
+            satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
+                                               navdata["vy_sv_mps", sorted_idxs], \
+                                               navdata["vz_sv_mps", sorted_idxs] ])
+            print('android:', satpos_android, satvel_android)
+
+        # compute satellite position and velocity based on ephem and gps_time
+        # Transform satellite position to account for earth's rotation
+        gps_week, gps_tow = gps_millis_to_tow(timestep - navdata_offset)
+        get_sat_from_ephem = find_sat(ephem, gps_tow, gps_week)
         satpos_ephemeris = np.transpose([get_sat_from_ephem.x.values, \
                                          get_sat_from_ephem.y.values, \
                                          get_sat_from_ephem.z.values])
         satvel_ephemeris = np.transpose([get_sat_from_ephem.vx.values, \
-                                            get_sat_from_ephem.vy.values, \
-                                            get_sat_from_ephem.vz.values])
-#         print('before ephemeris:', satpos_ephemeris, satvel_ephemeris)
+                                         get_sat_from_ephem.vy.values, \
+                                         get_sat_from_ephem.vz.values])
+#         if verbose:
+#             print('before ephemeris:', satpos_ephemeris, satvel_ephemeris)
         trans_time = navdata["raw_pr_m", sorted_idxs] / consts.C
         del_x = (consts.OMEGA_E_DOT * satpos_ephemeris[:,1] * trans_time)
         del_y = (-consts.OMEGA_E_DOT * satpos_ephemeris[:,0] * trans_time)
         satpos_ephemeris[:,0] = satpos_ephemeris[:,0] + del_x
         satpos_ephemeris[:,1] = satpos_ephemeris[:,1] + del_y
 
-#         print('after ephemeris:', satpos_ephemeris, satvel_ephemeris)
+        if verbose:
+#             print('after ephemeris:', satpos_ephemeris, satvel_ephemeris)
+            print('nav-android Pos Error: ', \
+                      np.linalg.norm(satpos_ephemeris - satpos_android, axis=1) )
+            print('nav-android Vel Error: ', \
+                      np.linalg.norm(satvel_ephemeris - satvel_android, axis=1) )
 
-#         print('nav-android Pos Error: ', \
-#                   np.linalg.norm(satpos_ephemeris - satpos_android, axis=1) )
-#         print('nav-android Vel Error: ', \
-#                   np.linalg.norm(satvel_ephemeris - satvel_android, axis=1) )
-
-        navdata["x_sv_m", sorted_idxs] = satpos_ephemeris[:,0] #get_sat_from_ephem.x.values
-        navdata["y_sv_m", sorted_idxs] = satpos_ephemeris[:,1] #get_sat_from_ephem.y.values
-        navdata["z_sv_m", sorted_idxs] = satpos_ephemeris[:,2] #get_sat_from_ephem.z.values
-        navdata["vx_sv_mps", sorted_idxs] = satvel_ephemeris[:,0] #get_sat_from_ephem.vx.values
-        navdata["vy_sv_mps", sorted_idxs] = satvel_ephemeris[:,1] #get_sat_from_ephem.vy.values
-        navdata["vz_sv_mps", sorted_idxs] = satvel_ephemeris[:,2] #get_sat_from_ephem.vz.values
-
+        # update x_sv_m of navdata with the estimated values from .n files
+        navdata["x_sv_m", sorted_idxs] = satpos_ephemeris[:,0]
         if not max(abs(navdata["x_sv_m", sorted_idxs] - satpos_ephemeris[:,0])) == 0.0:
             raise RuntimeError("x_sv_m of navdata not correctly updated")
+
+        # update y_sv_m of navdata with the estimated values from .n files
+        navdata["y_sv_m", sorted_idxs] = satpos_ephemeris[:,1]
         if not max(abs(navdata["y_sv_m", sorted_idxs] - satpos_ephemeris[:,1])) == 0.0:
             raise RuntimeError("y_sv_m of navdata not correctly updated")
+
+        # update z_sv_m of navdata with the estimated values from .n files
+        navdata["z_sv_m", sorted_idxs] = satpos_ephemeris[:,2]
         if not max(abs(navdata["z_sv_m", sorted_idxs] - satpos_ephemeris[:,2])) == 0.0:
             raise RuntimeError("z_sv_m of navdata not correctly updated")
 
+        # update vx_sv_mps of navdata with the estimated values from .n files
+        navdata["vx_sv_mps", sorted_idxs] = satvel_ephemeris[:,0]
         if not max(abs(navdata["vx_sv_mps", sorted_idxs] - satvel_ephemeris[:,0])) == 0.0:
             raise RuntimeError("vx_sv_mps of navdata not correctly updated")
+
+        # update vy_sv_mps of navdata with the estimated values from .n files
+        navdata["vy_sv_mps", sorted_idxs] = satvel_ephemeris[:,1]
         if not max(abs(navdata["vy_sv_mps", sorted_idxs] - satvel_ephemeris[:,1])) == 0.0:
             raise RuntimeError("vy_sv_mps of navdata not correctly updated")
+
+        # update vz_sv_mps of navdata with the estimated values from .n files
+        navdata["vz_sv_mps", sorted_idxs] = satvel_ephemeris[:,2]
         if not max(abs(navdata["vz_sv_mps", sorted_idxs] - satvel_ephemeris[:,2])) == 0.0:
             raise RuntimeError("vz_sv_mps of navdata not correctly updated")
 
-#         print(' ')
+        if verbose:
+            print(' ')
 
     return navdata

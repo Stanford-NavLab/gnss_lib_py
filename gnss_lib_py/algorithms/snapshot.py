@@ -80,7 +80,6 @@ def solve_wls(measurements, weight_type = None,
         states[:,t_idx:t_idx+1] = position
 
     state_estimate = NavData()
-    state_estimate["gps_tow"] = unique_timesteps
     state_estimate["x_rx_m"] = states[0,:]
     state_estimate["y_rx_m"] = states[1,:]
     state_estimate["z_rx_m"] = states[2,:]

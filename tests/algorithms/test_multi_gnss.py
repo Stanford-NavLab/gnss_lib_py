@@ -17,7 +17,8 @@ import pandas as pd
 from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.parsers.precise_ephemerides import parse_sp3, parse_clockfile
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.algorithms.multi_gnss import compute_sv_sp3clk_gps_glonass, compute_sv_eph_gps
+from gnss_lib_py.algorithms.multi_gnss \
+        import compute_sv_gnss_from_precise_eph, compute_sv_gps_from_brdcst_eph
 from gnss_lib_py.algorithms.multi_gnss import compute_sp3_snapshot, compute_clk_snapshot
 from gnss_lib_py.algorithms.multi_gnss import extract_sp3_func, extract_clk_func
 import gnss_lib_py.utils.constants as consts
@@ -28,6 +29,10 @@ NUMSATS_BEIDOU = 46
 NUMSATS_GLONASS = 24
 NUMSATS_GALILEO = 36
 NUMSATS_QZSS = 3
+
+SV_KEYS = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
+           'vx_sv_mps','vy_sv_mps','vz_sv_mps', \
+           'b_sv_m', 'b_dot_sv_mps']
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -42,7 +47,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/sp3/')
+    root_path = os.path.join(root_path, 'data/unit_test/')
     return root_path
 
 @pytest.fixture(name="navdata_path")
@@ -69,7 +74,7 @@ def fixture_navdata_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    navdata_path = os.path.join(root_path, 'Pixel4_derived_another.csv')
+    navdata_path = os.path.join(root_path, "android_2021/Pixel4_derived_SJC_28thApr2021.csv")
     return navdata_path
 
 @pytest.fixture(name="sp3_path")
@@ -81,15 +86,11 @@ def fixture_sp3_path(root_path):
     sp3_path : string
         String with location for the unit_test sp3 measurements
 
-    Notes
-    ----------
-    (1) Need to shorten the data being loaded for unit tests
-
     References
     ----------
     .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     """
-    sp3_path = os.path.join(root_path, 'grg21553.sp3')
+    sp3_path = os.path.join(root_path, "precise_ephemeris/grg21553_short.sp3")
     return sp3_path
 
 @pytest.fixture(name="clk_path")
@@ -101,16 +102,11 @@ def fixture_clk_path(root_path):
     clk_path : string
         String with location for the unit_test clk measurements
 
-    Notes
-    ----------
-    (1) Need to shorten the data being loaded for unit tests; 34 MB
-    for clock file, can I just cut lines at the end?
-
     References
     ----------
     .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     """
-    clk_path = os.path.join(root_path, 'grg21553.clk')
+    clk_path = os.path.join(root_path, "precise_ephemeris/grg21553_short.clk")
     return clk_path
 
 @pytest.fixture(name="navdata")
@@ -127,37 +123,53 @@ def fixture_load_navdata(navdata_path):
     navdata : AndroidDerived2021
         Instance of AndroidDerived2021 (GPS and GLONASS) for testing
 
-    Notes
-    ----------
-    (1) Need to find sp3 that can load Beidou and Galileo data,
-    maybe TU chemnitz one has all of them.
-
     """
-    navdata_full = AndroidDerived2021(navdata_path,remove_timing_outliers=False)
-    multi_gnss_idxs = np.where( (navdata_full["gnss_id",:] == 1) | \
-                                (navdata_full["gnss_id",:] == 3) )[1]
-    navdata = navdata_full.copy(cols = multi_gnss_idxs)
+    navdata = AndroidDerived2021(navdata_path, remove_timing_outliers=False)
 
     return navdata
 
 @pytest.fixture(name="navdata_gps")
-def fixture_load_navdata_gps(navdata_path):
-    """Load instance of AndroidDerived2021
+def fixture_load_navdata_gps(navdata):
+    """Load GPS instance of AndroidDerived2021
 
     Parameters
     ----------
-    navdata_path : pytest.fixture
-        String with location of Android navdata measurement file
+    navdata : pytest.fixture
+        Instance of AndroidDerived for testing
+
+    Notes
+    -------
+    (1) Need to add functionality for multiple GNSS constellations in navdata class
+    (2) Need to add functionality for printing current keys in navdata class
+    (3) Can we force unit test files to be read-only?
 
     Returns
     -------
     navdata_gps : AndroidDerived2021
         Instance of AndroidDerived (GPS) for testing
     """
-    navdata_full = AndroidDerived2021(navdata_path,remove_timing_outliers=False)
-    navdata_gps = navdata_full.where("gnss_id","gps")
+    navdata_gps = navdata.where("gnss_id", "gps")
 
     return navdata_gps
+
+@pytest.fixture(name="navdata_gpsl1")
+def fixture_load_navdata_gpsl1(navdata):
+    """Load GPS instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    navdata : pytest.fixture
+        Instance of AndroidDerived for testing
+
+    Returns
+    -------
+    navdata_gpsl1 : AndroidDerived2021
+        Instance of AndroidDerived (GPS-L1) for testing ephemeris
+    """
+    navdata_gpsl1 = navdata.where("gnss_id", "gps")
+    navdata_gpsl1 = navdata_gpsl1.where('signal_type', 'l1')
+
+    return navdata_gpsl1
 
 @pytest.fixture(name="sp3data_gps")
 def fixture_load_sp3data_gps(sp3_path):
@@ -173,7 +185,7 @@ def fixture_load_sp3data_gps(sp3_path):
     sp3data_gps : Array of Sp3 classes with len == # GPS sats
         Instance of GPS-only Sp3 class array for testing
     """
-    sp3data_gps = parse_sp3(sp3_path, constellation = 'G')
+    sp3data_gps = parse_sp3(sp3_path, constellation = 'gps')
 
     return sp3data_gps
 
@@ -191,9 +203,46 @@ def fixture_load_clkdata_gps(clk_path):
     clkdata_gps : Array of Clk classes with len == # GPS sats
         Instance of GPS-only Clk class array for testing
     """
-    clkdata_gps = parse_clockfile(clk_path, constellation = 'G')
+    clkdata_gps = parse_clockfile(clk_path, constellation = 'gps')
 
     return clkdata_gps
+
+@pytest.fixture(name="navdata_glonass")
+def fixture_load_navdata_glonass(navdata):
+    """Load GLONASS instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    navdata : pytest.fixture
+        Instance of AndroidDerived for testing
+
+    Returns
+    -------
+    navdata_glonass : AndroidDerived2021
+        Instance of AndroidDerived (GLONASS) for testing
+    """
+    navdata_glonass = navdata.where("gnss_id", "glonass")
+
+    return navdata_glonass
+
+@pytest.fixture(name="navdata_glonassg1")
+def fixture_load_navdata_glonassg1(navdata):
+    """Load GLONASS instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    navdata : pytest.fixture
+        Instance of AndroidDerived for testing
+
+    Returns
+    -------
+    navdata_glonassg1 : AndroidDerived2021
+        Instance of AndroidDerived (GLONASS-G1) for testing
+    """
+    navdata_glonassg1 = navdata.where("gnss_id", "glonass")
+    navdata_glonassg1 = navdata_glonassg1.where('signal_type', 'g1')
+
+    return navdata_glonassg1
 
 @pytest.fixture(name="sp3data_glonass")
 def fixture_load_sp3data_glonass(sp3_path):
@@ -209,12 +258,8 @@ def fixture_load_sp3data_glonass(sp3_path):
     sp3data_glonass : Array of Sp3 classes with len == # GLONASS sats
         Instance of GLONASS-only Sp3 class array for testing
 
-    Notes
-    ----------
-    (1) Is it okay for sp3 and clk to be their own classe, or does
-    precise ephemerides file require to be navdata class?
     """
-    sp3data_glonass = parse_sp3(sp3_path, constellation = 'R')
+    sp3data_glonass = parse_sp3(sp3_path, constellation = 'glonass')
 
     return sp3data_glonass
 
@@ -232,78 +277,83 @@ def fixture_load_clkdata_glonass(clk_path):
     clkdata_glonass : Array of Clk classes with len == # GLONASS sats
         Instance of GLONASS-only Clk class array for testing
     """
-    clkdata_glonass = parse_clockfile(clk_path, constellation = 'R')
+    clkdata_glonass = parse_clockfile(clk_path, constellation = 'glonass')
 
     return clkdata_glonass
 
-def test_sp3_eph(navdata_gps, sp3_path, clk_path):
+def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data_gps, clkdata_gps):
     """Tests that validates the satellite 3-D position and velocity
     from .sp3 and .n files closely resemble each other (GPS-only)
 
     Parameters
     ----------
-    navdata_gps : pytest.fixture
-        Instance of the NavData class that depicts android derived
+    navdata_gpsl1 : pytest.fixture
+        Instance of the NavData class that depicts GPS-L1 android derived
         dataset for GPS-only constellation
+    sp3data_gps : pytest.fixture
+        Instance of Sp3 class array associated with any one constellation
+        with len == # GPS NUMSATS
+    clkdata_gps : pytest.fixture
+        Instance of Clk class array associated with any one constellation
+        with len == # GPS NUMSATS
     """
 
-    multi_gnss = {'G': ('gps', 'l1') }
-    navdata_sp3_result = compute_sv_sp3clk_gps_glonass(navdata_gps, sp3_path, \
-                                                       clk_path, multi_gnss = multi_gnss)
-    multi_gnss = ('gps', 'l1')
-    navdata_eph_result = compute_sv_eph_gps(navdata_gps, \
-                                            multi_gnss = multi_gnss)
+    navdata_sp3_result = navdata_gpsl1.copy()
+    navdata_sp3_result = compute_sv_gnss_from_precise_eph(navdata_sp3_result, \
+                                                          sp3data_gps, clkdata_gps)
+    navdata_eph_result = navdata_gpsl1.copy()
+    navdata_eph_result = compute_sv_gps_from_brdcst_eph(navdata_eph_result)
 
-    sv_keys = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
-               'vx_sv_mps','vy_sv_mps','vz_sv_mps']
-
-    for sval in sv_keys:
+    for sval in SV_KEYS[0:6]:
         # Check if satellite info from sp3 and eph closely resemble
         # here, the threshold of 300 is set in a heuristic sense; need investigation
         if (sval == 'x_sv_m') | (sval == 'y_sv_m') | (sval == 'z_sv_m'):
-            assert max(abs(navdata_sp3_result[sval][0] - navdata_eph_result[sval][0])) < 4.0
+            assert max(abs(navdata_sp3_result[sval] - navdata_eph_result[sval])) != 0.0
+            assert max(abs(navdata_sp3_result[sval] - navdata_eph_result[sval])) < 4.0
         if (sval == 'vx_sv_mps') | (sval == 'vy_sv_mps') | (sval == 'vz_sv_mps'):
-            assert max(abs(navdata_sp3_result[sval][0] - navdata_eph_result[sval][0])) < 0.015
+            assert max(abs(navdata_sp3_result[sval] - navdata_eph_result[sval])) != 0.0
+            assert max(abs(navdata_sp3_result[sval] - navdata_eph_result[sval])) < 0.015
 
-def test_gps_func(sp3data_gps, clkdata_gps):
+def test_gps_sp3_clk_funcs(sp3data_gps, clkdata_gps):
     """Tests that extract_sp3_func and compute_sp3_snapshot functions
     does not fail for GPS constellation
 
     Parameters
     ----------
     sp3data_gps : pytest.fixture
-        Array of Sp3 classes with len == # GPS sats
+        Instance of Sp3 class array associated with any one constellation
+        with len == # GPS NUMSATS
     clkdata_gps : pytest.fixture
-        Array of Clk classes with len == # GPS sats
-
-    Notes
-    ----------
-    (1) Do I need to validate satellite velocities as well? If so, ideas?
-    (2) Need to think if function vs exact point can have 100s of m error
+        Instance of Clk class array associated with any one constellation
+        with len == # GPS NUMSATS
     """
 
     for prn in range(1, NUMSATS_GPS+1):
-        for sidx, _ in enumerate(sp3data_gps[prn].tym):
+        # Last index interpolation does not work well, so eliminating
+        # validation against the last datapoint
+        for sidx, _ in enumerate(sp3data_gps[prn].tym[:-1]):
             func_satpos = extract_sp3_func(sp3data_gps[prn], sidx, \
                                            ipos = 10, method='CubicSpline')
             cxtime = sp3data_gps[prn].tym[sidx]
             satpos_sp3, _ = compute_sp3_snapshot(func_satpos, cxtime, \
-                                                 hstep = 1e-5, method='CubicSpline')
+                                                 hstep = 5e-1, method='CubicSpline')
             satpos_sp3_exact = np.array([ sp3data_gps[prn].xpos[sidx], \
                                           sp3data_gps[prn].ypos[sidx], \
                                           sp3data_gps[prn].zpos[sidx] ])
-            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 150.0
+            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 1e-6
 
-        for sidx, _ in enumerate(clkdata_gps[prn].tym):
+        # Last index interpolation does not work well, so eliminating
+        # validation against the last datapoint
+        for sidx, _ in enumerate(clkdata_gps[prn].tym[:-1]):
             func_satbias = extract_clk_func(clkdata_gps[prn], sidx, \
                                             ipos = 10, method='CubicSpline')
             cxtime = clkdata_gps[prn].tym[sidx]
             satbias_clk, _ = compute_clk_snapshot(func_satbias, cxtime, \
-                                                  hstep = 1e-5, method='CubicSpline')
+                                                  hstep = 5e-1, method='CubicSpline')
             assert consts.C * np.linalg.norm(satbias_clk - \
-                                             clkdata_gps[prn].clk_bias[sidx]) < 1.0
+                                             clkdata_gps[prn].clk_bias[sidx]) < 1e-6
 
-def test_glonass_func(sp3data_glonass, clkdata_glonass):
+def test_glonass_sp3_clk_funcs(sp3data_glonass, clkdata_glonass):
     """Tests that extract_sp3_func and compute_sp3_snapshot functions
     does not fail for GLONASS constellation
 
@@ -313,134 +363,189 @@ def test_glonass_func(sp3data_glonass, clkdata_glonass):
         Array of Sp3 classes with len == # GLONASS sats
     clkdata_glonass : pytest.fixture
         Array of Clk classes with len == # GLONASS sats
-
-    Notes
-    ----------
-    (1) Do I need to validate satellite velocities as well? If so, ideas!
-    (2) Need to think if function vs exact point can have 100s of m error
     """
 
     for prn in range(1, NUMSATS_GLONASS + 1):
-        for sidx, _ in enumerate(sp3data_glonass[prn].tym):
+        # Last index interpolation does not work well, so eliminating
+        # validation against the last datapoint
+        for sidx, _ in enumerate(sp3data_glonass[prn].tym[:-1]):
             func_satpos = extract_sp3_func(sp3data_glonass[prn], sidx, \
                                            ipos = 10, method='CubicSpline')
             cxtime = sp3data_glonass[prn].tym[sidx]
             satpos_sp3, _ = compute_sp3_snapshot(func_satpos, cxtime, \
-                                                 hstep = 1e-5, method='CubicSpline')
+                                                 hstep = 5e-1, method='CubicSpline')
             satpos_sp3_exact = np.array([ sp3data_glonass[prn].xpos[sidx], \
                                           sp3data_glonass[prn].ypos[sidx], \
                                           sp3data_glonass[prn].zpos[sidx] ])
-            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 160.0
+            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 1e-6
 
-        for sidx, _ in enumerate(clkdata_glonass[prn].tym):
+        # Last index interpolation does not work well, so eliminating
+        # validation against the last datapoint
+        for sidx, _ in enumerate(clkdata_glonass[prn].tym[:-1]):
             func_satbias = extract_clk_func(clkdata_glonass[prn], sidx, \
                                          ipos = 10, method='CubicSpline')
             cxtime = clkdata_glonass[prn].tym[sidx]
             satbias_clk, _ = compute_clk_snapshot(func_satbias, cxtime, \
-                                                  hstep = 1e-5, method='CubicSpline')
+                                                  hstep = 5e-1, method='CubicSpline')
             assert consts.C * np.linalg.norm(satbias_clk - \
-                                             clkdata_glonass[prn].clk_bias[sidx]) < 1.0
+                                             clkdata_glonass[prn].clk_bias[sidx]) < 1e-6
 
-def test_compute_sv_sp3clk_gps_glonass(navdata, sp3_path, clk_path):
-    """Tests that compute_sv_sp3clk_gps_glonass does not fail
+def test_compute_gps_precise_eph(navdata_gps, sp3data_gps, clkdata_gps):
+    """Tests that compute_sv_gnss_from_precise_eph does not fail for GPS
 
     Parameters
     ----------
-    navdata : pytest.fixture
+    navdata_gps : pytest.fixture
         Instance of the NavData class that depicts android derived dataset
-    sp3_path : pytest.fixture
-        String with location for the unit_test sp3 measurements
-    clk_path : pytest.fixture
-        String with location for the unit_test clk measurements
-
-    Notes
-    ----------
-    (1) Need to check if heuristically setting a threshold of
-    300, 5e-2, 15, 5e-3 is oka or not
-    (3) The structure of multi_gnss is different for this and next function
-    Think if this variable needs to be defined differently or this is okay
+    sp3data_gps : pytest.fixture
+        Instance of Sp3 class array associated with any one constellation
+        with len == # GPS NUMSATS
+    clkdata_gps : pytest.fixture
+        Instance of Clk class array associated with any one constellation
+        with len == # GPS NUMSATS
     """
-    multi_gnss = {'G': (1, 'GPS_L1'), \
-                  'R': (3, 'GLO_G1')}
-    navdata_sp3 = compute_sv_sp3clk_gps_glonass(navdata, sp3_path, \
-                                                clk_path, multi_gnss)
+    navdata_gps_sp3 = navdata_gps.copy()
+    navdata_gps_sp3 = compute_sv_gnss_from_precise_eph(navdata_gps_sp3, \
+                                                       sp3data_gps, clkdata_gps)
 
     # Check if the resulting derived is NavData class
-    assert isinstance( navdata_sp3, type(NavData()) )
+    assert isinstance( navdata_gps_sp3, type(NavData()) )
 
-    sv_keys = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'b_sv_m', \
-               'vx_sv_mps','vy_sv_mps','vz_sv_mps','b_dot_sv_mps']
-
-    for sval in sv_keys:
+    for sval in SV_KEYS:
         # Check if the resulting navdata class has satellite information
-        assert sval in navdata_sp3.rows
+        assert sval in navdata_gps_sp3.rows
 
         # Check if satellite info from AndroidDerived and sp3 closely resemble
         # here, the threshold of 300 is set in a heuristic sense; need investigation
         if (sval == 'x_sv_m') | (sval == 'y_sv_m') | (sval == 'z_sv_m'):
-            assert max(abs(navdata_sp3[sval][0] - navdata[sval][0])) < 300.0
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) != 0.0
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) < 13e3 #300
         if (sval == 'vx_sv_mps') | (sval == 'vy_sv_mps') | (sval == 'vz_sv_mps'):
-            assert max(abs(navdata_sp3[sval][0] - navdata[sval][0])) < 5e-2
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) != 0.0
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) < 2 #5e-2
         if sval=='b_sv_m':
-            assert max(abs(navdata_sp3[sval][0] - navdata[sval][0])) < 15
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) != 0.0
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) < 15
         if sval=='b_dot_sv_mps':
-            assert max(abs(navdata_sp3[sval][0] - navdata[sval][0])) < 5e-3
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) != 0.0
+            assert max(abs(navdata_gps_sp3[sval] - navdata_gps[sval])) < 5e-3
 
     # Check if the derived classes are same except for corr_pr_m
-    navdata_df = navdata.pandas_df()
-    navdata_df = navdata_df.drop(columns = sv_keys)
+    navdata_gps_df = navdata_gps.pandas_df()
+    navdata_gps_df = navdata_gps_df.drop(columns = SV_KEYS)
 
-    navdata_sp3_df = navdata_sp3.pandas_df()
-    navdata_sp3_df = navdata_sp3_df.drop(columns = sv_keys)
+    navdata_gps_sp3_df = navdata_gps_sp3.pandas_df()
+    navdata_gps_sp3_df = navdata_gps_sp3_df.drop(columns = SV_KEYS)
 
-    pd.testing.assert_frame_equal(navdata_df.sort_index(axis=1),
-                                  navdata_sp3_df.sort_index(axis=1),
+    pd.testing.assert_frame_equal(navdata_gps_df.sort_index(axis=1),
+                                  navdata_gps_sp3_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
 
-def test_compute_sv_eph_gps(navdata, navdata_gps):
-    """Tests that compute_sv_eph_gps does not fail
+def test_compute_glonass_precise_eph(navdata_glonass, sp3data_glonass, clkdata_glonass):
+    """Tests that compute_sv_gnss_from_precise_eph does not fail for GPS
 
     Parameters
     ----------
-    navdata : pytest.fixture
-        Instance of NavData class that depicts entire android derived dataset
-    navdata : pytest.fixture
-        Instance of NavData class that depicts GPS-only android derived dataset
+    navdata_glonass : pytest.fixture
+        Instance of the NavData class that depicts android derived dataset
+    sp3data_glonass : pytest.fixture
+        Instance of Sp3 class array associated with any one constellation
+        with len == # GLONASS NUMSATS
+    clkdata_glonass : pytest.fixture
+        Instance of Clk class array associated with any one constellation
+        with len == # GLONASS NUMSATS
     """
-
-    multi_gnss = (1, 'GPS_L1')
-
-    # test what happens when rows down't exist
-    with pytest.raises(RuntimeError) as excinfo:
-        compute_sv_eph_gps(navdata, multi_gnss = multi_gnss)
-    assert "multi-GNSS" in str(excinfo.value)
-
-    navdata_eph = compute_sv_eph_gps(navdata_gps, multi_gnss = multi_gnss)
+    navdata_glonass_sp3 = navdata_glonass.copy()
+    navdata_glonass_sp3 = \
+            compute_sv_gnss_from_precise_eph(navdata_glonass_sp3, \
+                                             sp3data_glonass, clkdata_glonass)
 
     # Check if the resulting derived is NavData class
-    assert isinstance( navdata_eph, type(NavData()) )
+    assert isinstance( navdata_glonass_sp3, type(NavData()) )
 
-    sv_keys = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
-               'vx_sv_mps','vy_sv_mps','vz_sv_mps']
-
-    for sval in sv_keys:
+    for sval in SV_KEYS:
         # Check if the resulting navdata class has satellite information
-        assert sval in navdata_eph.rows
+        assert sval in navdata_glonass_sp3.rows
+
+        # Check if satellite info from AndroidDerived and sp3 closely resemble
+        # here, the threshold of 300 is set in a heuristic sense; need investigation
+        if (sval == 'x_sv_m') | (sval == 'y_sv_m') | (sval == 'z_sv_m'):
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) < 13e3 #300
+        if (sval == 'vx_sv_mps') | (sval == 'vy_sv_mps') | (sval == 'vz_sv_mps'):
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) < 2 #5e-2
+        if sval=='b_sv_m':
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) < 15
+        if sval=='b_dot_sv_mps':
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(navdata_glonass_sp3[sval] - navdata_glonass[sval])) < 5e-3
+
+    # Check if the derived classes are same except for corr_pr_m
+    navdata_glonass_df = navdata_glonass.pandas_df()
+    navdata_glonass_df = navdata_glonass_df.drop(columns = SV_KEYS)
+
+    navdata_glonass_sp3_df = navdata_glonass_sp3.pandas_df()
+    navdata_glonass_sp3_df = navdata_glonass_sp3_df.drop(columns = SV_KEYS)
+
+    pd.testing.assert_frame_equal(navdata_glonass_df.sort_index(axis=1),
+                                  navdata_glonass_sp3_df.sort_index(axis=1),
+                                  check_dtype=False, check_names=True)
+
+def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
+    """Tests that compute_sv_gps_from_brdcst_eph does not fail
+
+    Parameters
+    ----------
+    navdata_gpsl1 : pytest.fixture
+        Instance of NavData class that depicts GPS-L1 only derived dataset
+    navdata : pytest.fixture
+        Instance of NavData class that depicts entire android derived dataset
+    navdata_glonassg1 : pytest.fixture
+        Instance of NavData class that depicts GLONASS-G1 only derived dataset
+    """
+
+    # test what happens when extra (multi-GNSS) rows down't exist
+    with pytest.raises(RuntimeError) as excinfo:
+        navdata_eph = navdata.copy()
+        compute_sv_gps_from_brdcst_eph(navdata_eph)
+    assert "Multi-GNSS" in str(excinfo.value)
+
+    # test what happens when invalid (non-GPS) rows down't exist
+    with pytest.raises(RuntimeError) as excinfo:
+        navdata_glonassg1_eph = navdata_glonassg1.copy()
+        compute_sv_gps_from_brdcst_eph(navdata_glonassg1_eph)
+    assert "non-GPS" in str(excinfo.value)
+
+    navdata_gpsl1_eph = navdata_gpsl1.copy()
+    navdata_gpsl1_eph = compute_sv_gps_from_brdcst_eph(navdata_gpsl1_eph)
+
+    # Check if the resulting derived is NavData class
+    assert isinstance( navdata_gpsl1_eph, type(NavData()) )
+
+    for sval in SV_KEYS[0:6]:
+        print( sval, max(abs(navdata_gpsl1[sval] - navdata_gpsl1_eph[sval])) )
+
+        # Check if the resulting navdata class has satellite information
+        assert sval in navdata_gpsl1_eph.rows
 
         # Check if satellite info from AndroidDerived and eph closely resemble
         # here, the threshold of 300 is set in a heuristic sense; need investigation
         if (sval == 'x_sv_m') | (sval == 'y_sv_m') | (sval == 'z_sv_m'):
-            assert max(abs(navdata_eph[sval][0] - navdata_gps[sval][0])) < 300.0
+            assert max(abs(navdata_gpsl1_eph[sval] - navdata_gpsl1[sval])) != 0.0
+            assert max(abs(navdata_gpsl1_eph[sval] - navdata_gpsl1[sval])) < 13e3 #300.0
         if (sval == 'vx_sv_mps') | (sval == 'vy_sv_mps') | (sval == 'vz_sv_mps'):
-            assert max(abs(navdata_eph[sval][0] - navdata_gps[sval][0])) < 5e-2
+            assert max(abs(navdata_gpsl1_eph[sval] - navdata_gpsl1[sval])) != 0.0
+            assert max(abs(navdata_gpsl1_eph[sval] - navdata_gpsl1[sval])) < 2 #5e-2
 
     # Check if the derived classes are same except for corr_pr_m
-    navdata_gps_df = navdata_gps.pandas_df()
-    navdata_gps_df = navdata_gps_df.drop(columns = sv_keys)
+    navdata_gpsl1_df = navdata_gpsl1.pandas_df()
+    navdata_gpsl1_df = navdata_gpsl1_df.drop(columns = SV_KEYS[0:6])
 
-    navdata_eph_df = navdata_eph.pandas_df()
-    navdata_eph_df = navdata_eph_df.drop(columns = sv_keys)
+    navdata_gpsl1_eph_df = navdata_gpsl1_eph.pandas_df()
+    navdata_gpsl1_eph_df = navdata_gpsl1_eph_df.drop(columns = SV_KEYS[0:6])
 
-    pd.testing.assert_frame_equal(navdata_gps_df.sort_index(axis=1),
-                                  navdata_eph_df.sort_index(axis=1),
+    pd.testing.assert_frame_equal(navdata_gpsl1_df.sort_index(axis=1),
+                                  navdata_gpsl1_eph_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)

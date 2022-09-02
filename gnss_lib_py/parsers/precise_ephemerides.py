@@ -6,17 +6,25 @@ __authors__ = "Sriramya Bhamidipati"
 __date__ = "09 June 2022"
 
 import os
-from datetime import datetime
+import warnings
+
+from datetime import datetime, timezone
 import numpy as np
 
-from gnss_lib_py.utils.time_conversions import datetime_to_tow
+from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 
 # Define the number of sats to create arrays for
-NUMSATS_GPS = 32
-NUMSATS_BEIDOU = 46
-NUMSATS_GLONASS = 24
-NUMSATS_GALILEO = 36
-NUMSATS_QZSS = 3
+# NUMSATS_GPS = 32
+# NUMSATS_BEIDOU = 46
+# NUMSATS_GLONASS = 24
+# NUMSATS_GALILEO = 36
+# NUMSATS_QZSS = 3
+
+NUMSATS = {'gps': (32, 'G'),
+           'galileo': (36, 'E'),
+           'beidou': (46, 'C'),
+           'glonass': (24, 'R'),
+           'qzss': (3, 'J')}
 
 class Sp3:
     """Class handling satellite position data (precise ephemerides)
@@ -29,19 +37,38 @@ class Sp3:
     (0/2) (too-few-public-methods)
     """
     def __init__(self):
+        self.const = None
         self.xpos = []
         self.ypos = []
         self.zpos = []
         self.tym = []
         self.utc_time = []
 
-def parse_sp3(input_path, constellation = 'G'):
+    def __eq__(self, other):
+        """Checks if two Sp3() classes are equal to each other
+
+        Parameters
+        ----------
+        other : gnss_lib_py.parsers.precise_ephemerides.Sp3
+            Sp3 object that stores .sp3 parsed information
+        """
+        return (self.const == other.const) & \
+               (self.xpos == other.xpos) & \
+               (self.ypos == other.ypos) & \
+               (self.zpos == other.zpos) & \
+               (self.tym == other.tym) & \
+               (self.utc_time == other.utc_time)
+
+def parse_sp3(input_path, constellation = 'gps'):
     """sp3 specific loading and preprocessing for any GNSS constellation
 
     Parameters
     ----------
     input_path : string
         Path to sp3 file
+    constellation : string (default: gps)
+        Key from among {gps, galileo, glonass, beidou, qzss, etc} that
+        specifies which GNSS constellation to be parsed from .sp3 file
 
     Returns
     -------
@@ -69,9 +96,9 @@ def parse_sp3(input_path, constellation = 'G'):
     precise_ephemerides.py:74:37: W1514: Using open without explicitly
     specifying an encoding (unspecified-encoding)
     precise_ephemerides.py:38:0: R0912: Too many branches (14/12)
-    (too-many-branches)
+    (too-many-branches) -Ans: list format/ignore.
     (4) Do we want automatic downloading of relevant .sp3 and .clk files,
-    similar to what EphemerisManager does?
+    similar to what EphemerisManager does? --> task for later
 
     References
     ----------
@@ -85,22 +112,14 @@ def parse_sp3(input_path, constellation = 'G'):
         raise OSError("file not found")
 
     # Load in the file
-    with open(input_path, 'r') as infile:
+    with open(input_path, 'r', encoding="utf-8") as infile:
         data = [line.strip() for line in infile]
 
 #     data = [line.strip() for line in open(input_path)]
 
     # Poll the total no. of satellites based on constellation specified
-    if constellation == 'G':
-        nsvs = NUMSATS_GPS
-    elif constellation == 'C':
-        nsvs = NUMSATS_BEIDOU
-    elif constellation == 'R':
-        nsvs = NUMSATS_GLONASS
-    elif constellation == 'E':
-        nsvs = NUMSATS_GALILEO
-    elif constellation == 'J':
-        nsvs = NUMSATS_QZSS
+    if constellation in NUMSATS.keys():
+        nsvs = NUMSATS[constellation][0]
     else:
         raise RuntimeError("No support exists for specified constellation")
 
@@ -108,6 +127,7 @@ def parse_sp3(input_path, constellation = 'G'):
     sp3data = []
     for _ in np.arange(0, nsvs+1):
         sp3data.append(Sp3())
+        sp3data[-1].const = constellation
 
     # Loop through each line
     for dval in data:
@@ -121,22 +141,29 @@ def parse_sp3(input_path, constellation = 'G'):
             temp = dval.split()
             curr_time = datetime( int(temp[1]), int(temp[2]), \
                                   int(temp[3]), int(temp[4]), \
-                                  int(temp[5]),int(float(temp[6])) )
-            _, gps_tym = datetime_to_tow(curr_time, convert_gps = False)
+                                  int(temp[5]),int(float(temp[6])), \
+                                  tzinfo=timezone.utc )
+            gps_millis = datetime_to_gps_millis(curr_time, add_leap_secs = False)
 
         if 'P' in dval[0]:
             # A satellite record.  Get the satellite number, and coordinate (X,Y,Z) info
             temp = dval.split()
 
-            if temp[0][1]==constellation:
-                #print(temp[0][1])
+            if temp[0][1] == NUMSATS[constellation][1]:
                 prn = int(temp[0][2:])
-                #print(prn)
                 sp3data[prn].utc_time.append(curr_time)
-                sp3data[prn].tym.append(gps_tym)
+                sp3data[prn].tym.append(gps_millis)
                 sp3data[prn].xpos.append(float(temp[1])*1e3)
                 sp3data[prn].ypos.append(float(temp[2])*1e3)
                 sp3data[prn].zpos.append(float(temp[3])*1e3)
+
+    # Add warning in case any satellite PRN does not have data
+    no_data_arrays = []
+    for prn in np.arange(1, nsvs+1):
+        if len(sp3data[prn].tym) == 0:
+            no_data_arrays.append(prn)
+    if len(no_data_arrays) == nsvs:
+        warnings.warn("No sp3 data found for PRNs: "+str(no_data_arrays), RuntimeWarning)
 
     return sp3data
 
@@ -151,17 +178,34 @@ class Clk:
     (0/2) (too-few-public-methods)
     """
     def __init__(self):
+        self.const = None
         self.clk_bias = []
         self.utc_time = []
         self.tym = []
 
-def parse_clockfile(input_path, constellation = 'G'):
+    def __eq__(self, other):
+        """Checks if two Clk() classes are equal to each other
+
+        Parameters
+        ----------
+        other : gnss_lib_py.parsers.precise_ephemerides.Clk
+            Clk object that stores .clk parsed information
+        """
+        return (self.const == other.const) & \
+               (self.clk_bias == other.clk_bias) & \
+               (self.tym == other.tym) & \
+               (self.utc_time == other.utc_time)
+
+def parse_clockfile(input_path, constellation = 'gps'):
     """Clk specific loading and preprocessing for any GNSS constellation
 
     Parameters
     ----------
     input_path : string
         Path to clk file
+    constellation : string (default: gps)
+        Key from among {gps, galileo, glonass, beidou, qzss, etc} that
+        specifies which GNSS constellation to be parsed from .sp3 file
 
     Returns
     -------
@@ -200,16 +244,8 @@ def parse_clockfile(input_path, constellation = 'G'):
         raise OSError("file not found")
 
     # Poll the total no. of satellites based on constellation specified
-    if constellation == 'G':
-        nsvs = NUMSATS_GPS
-    elif constellation == 'C':
-        nsvs = NUMSATS_BEIDOU
-    elif constellation == 'R':
-        nsvs = NUMSATS_GLONASS
-    elif constellation == 'E':
-        nsvs = NUMSATS_GALILEO
-    elif constellation == 'J':
-        nsvs = NUMSATS_QZSS
+    if constellation in NUMSATS.keys():
+        nsvs = NUMSATS[constellation][0]
     else:
         raise RuntimeError("No support exists for specified constellation")
 
@@ -217,20 +253,17 @@ def parse_clockfile(input_path, constellation = 'G'):
     clkdata = []
     for _ in np.arange(0, nsvs+1):
         clkdata.append(Clk())
+        clkdata[-1].const = constellation
 
     # Read Clock file
-    with open(input_path, 'r') as infile:
+    with open(input_path, 'r', encoding="utf-8") as infile:
         clk = infile.readlines()
-
-#     infile = open(input_path)
-#     clk = infile.readlines()
 
     line = 0
     while True:
         if 'OF SOLN SATS' not in clk[line]:
             del clk[line]
         else:
-#             noprn = int(clk[line][4:6])
             line +=1
             break
 
@@ -250,19 +283,28 @@ def parse_clockfile(input_path, constellation = 'G'):
     for _, timelist_val in enumerate(timelist):
         dval = timelist_val[1]
 
-        if dval[0]==constellation:
+        if dval[0] == NUMSATS[constellation][1]:
             prn = int(dval[1:])
             curr_time = datetime(year = int(timelist_val[2]), \
                                  month = int(timelist_val[3]), \
                                  day = int(timelist_val[4]), \
                                  hour = int(timelist_val[5]), \
                                  minute = int(timelist_val[6]), \
-                                 second = int(float(timelist_val[7])))
-            _, gps_tym = datetime_to_tow(curr_time, convert_gps = False)
+                                 second = int(float(timelist_val[7])), \
+                                 tzinfo=timezone.utc)
             clkdata[prn].utc_time.append(curr_time)
-            clkdata[prn].tym.append(gps_tym)
+            gps_millis = datetime_to_gps_millis(curr_time, add_leap_secs = False)
+            clkdata[prn].tym.append(gps_millis)
             clkdata[prn].clk_bias.append(float(timelist_val[9]))
 
     infile.close() # close the file
+
+    # Add warning in case any satellite PRN does not have data
+    no_data_arrays = []
+    for prn in np.arange(1, nsvs+1):
+        if len(clkdata[prn].tym) == 0:
+            no_data_arrays.append(prn)
+    if len(no_data_arrays) == nsvs:
+        warnings.warn("No clk data found for PRNs: " + str(no_data_arrays), RuntimeWarning)
 
     return clkdata

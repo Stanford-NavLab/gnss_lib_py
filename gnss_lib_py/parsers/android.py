@@ -42,14 +42,22 @@ class AndroidDerived2021(NavData):
 
         """
         pd_df = pd.read_csv(input_path)
+
         # Correction 1: Mapping _derived timestamps to previous timestamp
         # for correspondance with ground truth and Raw data
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
-        indexes = np.searchsorted(derived_timestamps, derived_timestamps)
-        map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
-        pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v],
-                                                pd_df['millisSinceGpsEpoch'])))
-
+        mapper = dict(zip(derived_timestamps[1:],derived_timestamps[:-1]))
+        pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != derived_timestamps[0]]
+        pd_df.replace({"millisSinceGpsEpoch" : mapper},inplace=True)
+        
+#         # Correction 1: Mapping _derived timestamps to previous timestamp
+#         # for correspondance with ground truth and Raw data
+#         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
+#         indexes = np.searchsorted(derived_timestamps, derived_timestamps)
+#         map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
+#         pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v],
+#                                                 pd_df['millisSinceGpsEpoch'])))
+        
         # Correction 5 implemented verbatim from competition tips
         if remove_timing_outliers:
             delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
@@ -84,7 +92,7 @@ class AndroidDerived2021(NavData):
                      - self['tropo_delay_m'] \
                      - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
-
+        
         # rename gnss_id column to constellation type
         constellation_map = {0.:"unkown",
                              1.:"gps",
