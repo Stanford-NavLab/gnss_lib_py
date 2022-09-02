@@ -215,6 +215,8 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
         measure_df.replace({'signal_type',s_value},s_key,inplace=True)
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
+    pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
+    pd_df.reset_index(drop=True, inplace=True)
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
                                   measure_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
