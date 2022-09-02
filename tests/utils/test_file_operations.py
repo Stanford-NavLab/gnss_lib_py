@@ -20,3 +20,10 @@ def test_get_timestamp():
 
     # timestamp should all be numeric characters
     assert timestamp.isnumeric()
+
+def test_directory_printing():
+    """Test directory printing functions.
+    
+    """
+    fo.print_directory_levels()
+    fo.print_cwd()
