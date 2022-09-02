@@ -33,6 +33,12 @@ We provide standard row names for :code:`NavData` elements on the
 These names ensure cross compatability between different datasets and
 algorithms.
 
+Source Code
+-----------
+All source code is available on GitHub at
+`github.com/stanford-navlab/gnss_lib_py <https://github.com/stanford-navlab/gnss_lib_py>`__.
+
+
 .. _organization:
 
 Code Organization
@@ -87,7 +93,15 @@ In the directory organization above:
 
 Installation
 ------------
-For directions on how to install the :code:`gnss_lib_py` project, please
+
+``gnss_lib_py`` is available through ``pip`` installation with:
+
+.. code-block:: bash
+
+   pip install gnss-lib-py
+
+For directions on how to install an editable or developer installation
+of ``gnss_lib_py`` on Linux, MacOS, and Windows, please
 see the :ref:`install instructions<install>`.
 
 Tutorials

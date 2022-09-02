@@ -84,7 +84,14 @@ In the directory organization above:
 
 Installation
 ------------
-For directions on how to install the `gnss_lib_py` project, please
+
+`gnss_lib_py` is available through `pip` installation with:
+
+```
+pip install gnss-lib-py
+```
+
+For directions on how to install an editable or developer installation of `gnss_lib_py` on Linux, MacOS, and Windows, please
 see the [install instructions](https://gnss-lib-py.readthedocs.io/en/latest/install.html).
 
 Tutorials
