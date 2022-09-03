@@ -345,14 +345,18 @@ def test_init_only_header(csv_only_header, csv_simple):
     csv_data = NavData(csv_path=csv_only_header)
     assert csv_data.shape == (4,0)
     # test adding new data to empty NavData with column names
-    csv_data.add(csv_path=csv_simple)
+    csv_data.concat(NavData(csv_path=csv_simple),axis=1,inplace=True)
     assert csv_data.shape == (4,6)
+    pd.testing.assert_frame_equal(csv_data.pandas_df().sort_index(axis=1),
+                                  pd.read_csv(csv_simple).sort_index(axis=1),
+                                  check_dtype=False, check_names=True)
 
     # should work when DataFrame is passed
     pd_data = NavData(pandas_df=pd.read_csv(csv_only_header))
     assert pd_data.shape == (4,0)
     # test adding new data to empty NavData with column names
-    pd_data.add(pandas_df=pd.read_csv(csv_simple))
+    pd_data.concat(NavData(pandas_df=pd.read_csv(csv_simple)),axis=1,
+                   inplace=True)
     assert pd_data.shape == (4,6)
 
 @pytest.mark.parametrize('pandas_df',
@@ -1232,7 +1236,7 @@ def test_add_numpy(numpy_array, add_array):
         Array to add to NavData
     """
     data = NavData(numpy_array=numpy_array)
-    data.add(numpy_array=add_array)
+    data.concat(NavData(numpy_array=add_array),axis=1,inplace=True)
     new_col_num = np.shape(add_array)[1]
     np.testing.assert_array_equal(data[:, -new_col_num:], add_array)
 
@@ -1241,13 +1245,14 @@ def test_add_numpy_1d():
     """Test addition of a 1D numpy array to NavData with single row
     """
     data = NavData(numpy_array=np.zeros([1,6]))
-    data.add(numpy_array=np.ones(8))
+    data.concat(NavData(numpy_array=np.ones(8)),axis=1, inplace=True)
     np.testing.assert_array_equal(data[0, :], np.hstack((np.zeros(6),
                                   np.ones(8))))
 
     # test adding to empty NavData
     data_empty = NavData()
-    data_empty.add(numpy_array=np.ones((8,8)))
+    data_empty.concat(NavData(numpy_array=np.ones((8,8))),axis=1,
+                      inplace=True)
     np.testing.assert_array_equal(data_empty[:,:],np.ones((8,8)))
 
 def test_add_csv(df_simple, csv_simple):
@@ -1256,21 +1261,22 @@ def test_add_csv(df_simple, csv_simple):
     """
     # Create and add to NavData
     data = NavData(csv_path=csv_simple)
-    data.add(csv_path=csv_simple)
+    data.concat(NavData(csv_path=csv_simple),axis=1,inplace=True)
     data_df = data.pandas_df()
     # Set up dataframe for comparison
     df_types = {'names': object, 'integers': np.float64,
                 'floats': np.float64, 'strings': object}
     expected_df = pd.concat((df_simple,df_simple)).reset_index(drop=True)
     expected_df = expected_df.astype(df_types)
-    pd.testing.assert_frame_equal(data_df, expected_df,
+    pd.testing.assert_frame_equal(data_df.sort_index(axis=1),
+                                  expected_df.sort_index(axis=1),
                                   check_index_type=False)
 
     # test adding to empty NavData
     data_empty = NavData()
-    data_empty.add(csv_path=csv_simple)
-    pd.testing.assert_frame_equal(data_empty.pandas_df(),
-                                  df_simple.astype(df_types),
+    data_empty.concat(NavData(csv_path=csv_simple),axis=1,inplace=True)
+    pd.testing.assert_frame_equal(data_empty.pandas_df().sort_index(axis=1),
+                                  df_simple.astype(df_types).sort_index(axis=1),
                                   check_index_type=False)
 
 def test_add_pandas_df(df_simple, add_df):
@@ -1284,18 +1290,81 @@ def test_add_pandas_df(df_simple, add_df):
         pd.DataFrame to add to NavData
     """
     data = NavData(pandas_df=df_simple)
-    data.add(pandas_df=add_df)
+    data.concat(NavData(pandas_df=add_df),axis=1,inplace=True)
     new_df = data.pandas_df()
     add_row_num = add_df.shape[0]
     subset_df = new_df.iloc[-add_row_num:, :].reset_index(drop=True)
-    pd.testing.assert_frame_equal(subset_df, add_df,
+    pd.testing.assert_frame_equal(subset_df.sort_index(axis=1),
+                                  add_df.sort_index(axis=1),
                                   check_index_type=False)
 
     # test adding to empty NavData
     data_empty = NavData()
-    data_empty.add(pandas_df=add_df)
-    pd.testing.assert_frame_equal(add_df, data_empty.pandas_df(),
+    data_empty.concat(NavData(pandas_df=add_df),axis=1,inplace=True)
+    pd.testing.assert_frame_equal(add_df.sort_index(axis=1),
+                                  data_empty.pandas_df().sort_index(axis=1),
                                   check_index_type=False)
+
+def test_concat(df_simple):
+    """Test concat functionaltiy.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Simple pd.DataFrame with which to initialize NavData.
+
+    """
+
+    navdata_1 = NavData(pandas_df=df_simple)
+    navdata_2 = navdata_1.copy()
+    navdata_2.rename(mapper={"floats": "decimals", "names": "words"},
+                    inplace = True)
+
+    # add new columns
+    navdata = navdata_1.concat(navdata_1)
+    assert navdata.shape == (4,12)
+    # add new rows
+    navdata = navdata_1.concat(navdata_1,axis=0)
+    assert navdata.shape == (8,6)
+
+    # test multiple rows with the same name
+    navdata_long = navdata_1.copy()
+    for count in range(13):
+        navdata_long.concat(navdata_1,axis=0,inplace=True)
+        for word in ["names","integers","floats","strings"]:
+            assert word + "_" + str(count) in navdata_long.rows
+
+    # add semi new columns
+    navdata = navdata_1.concat(navdata_2)
+    assert navdata.shape == (6,12)
+
+    # add as new rows
+    navdata_b = navdata_1.concat(navdata_2,axis=0)
+    assert navdata_b.shape == (8,6)
+
+def test_concat_fails(df_simple):
+    """Test when concat should fail.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Simple pd.DataFrame with which to initialize NavData.
+
+    """
+
+    navdata_1 = NavData(pandas_df=df_simple)
+
+    with pytest.raises(TypeError) as excinfo:
+        navdata_1.concat(np.array([]))
+    assert "concat" in str(excinfo.value)
+    assert "NavData" in str(excinfo.value)
+
+    navdata_2 = navdata_1.remove(cols=[0])
+
+    with pytest.raises(RuntimeError) as excinfo:
+        navdata_1.concat(navdata_2,axis=0)
+    assert "same length" in str(excinfo.value)
+    assert "concat" in str(excinfo.value)
 
 @pytest.mark.parametrize("rows",
                         [None,

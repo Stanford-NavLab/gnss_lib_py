@@ -116,50 +116,104 @@ class NavData():
 
         """
 
+
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
 
+
         self._build_navdata()
 
+        numpy_array = np.atleast_2d(numpy_array)
         for row_num in range(numpy_array.shape[0]):
             self[str(row_num)] = numpy_array[row_num,:]
 
-    def add(self, csv_path=None, pandas_df=None, numpy_array=None):
-        """Add new timesteps to existing array
+    def concat(self, navdata=None, axis=1, inplace=False):
+        """Concatenates new rows or new columns to existing NavData.
+
+        Each type of data is included in a row, so adding new rows with
+        ``axis=0``, means adding new types of data. Concat requires that
+        the new NavData matches the length of the existing NavData. Row
+        concatenation assumes the same ordering across both NavData
+        instances (e.g. sorted by timestamp) and does not perform any
+        matching/sorting itself.
+
+        You can also concatenate new columns ``axis=1``. If the row
+        names of the new NavData instance don't match the row names of
+        the existing NavData instance, the mismatched values will be
+        filled with np.nan.
 
         Parameters
         ----------
-        csv_path : string
-            Path to csv file containing data to add
-        pandas_df : pd.DataFrame
-            DataFrame containing data to add
-        numpy_array : np.ndarray
-            Array containing only numeric data to add
+        navdata : gnss_lib_py.parsers.navdata.NavData
+            Navdata instance to concatenate.
+        axis : int
+            Either add new rows (type) of data ``axis=0`` or new columns
+            (e.g. timesteps) of data ``axis=1``.
+        inplace : bool
+            If False, will return new concatenated NavData instance.
+            If True, will concatenate data to the current NavData
+            instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after renaming
+            specified rows. If inplace is True, returns
+            None.
+
         """
-        old_row_num = len(self.map)
-        old_len = len(self)
-        new_data_cols = slice(old_len, None)
-        if numpy_array is not None:
-            if old_row_num == 0:
-                self.from_numpy_array(numpy_array)
-            else:
-                if len(numpy_array.shape)==1:
-                    numpy_array = np.reshape(numpy_array, [1, -1])
-                self.array = np.hstack((self.array, np.empty_like(numpy_array,
-                                        dtype=self.arr_dtype)))
-                self[:, new_data_cols] = numpy_array
-        if csv_path is not None:
-            if old_row_num == 0:
-                self.from_csv_path(csv_path)
-            else:
-                pandas_df = pd.read_csv(csv_path)
-        if pandas_df is not None:
-            if old_row_num == 0:
-                self.from_pandas_df(pandas_df)
-            else:
-                self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
-                for col in pandas_df.columns:
-                    self[col, new_data_cols] = np.asarray(pandas_df[col].values)
+
+        if not isinstance(navdata,NavData):
+            raise TypeError("new concat data must be a NavData instance.")
+
+        if axis == 0: # concatenate new rows
+            if len(self) != len(navdata):
+                raise RuntimeError("new concat data must be same " \
+                                 + "length to concatenate new rows.")
+            if not inplace:
+                new_navdata = self.copy()
+            for row in navdata.rows:
+                new_row_name = row
+                suffix = None
+                while new_row_name in self.rows:
+                    if suffix is None:
+                        suffix = 0
+                    else:
+                        suffix += 1
+                    new_row_name = row + "_" + str(suffix)
+                if inplace:
+                    self[new_row_name] = navdata[row]
+                else:
+                    new_navdata[new_row_name] = navdata[row]
+
+        elif axis == 1: # concatenate new columns
+            new_navdata = NavData()
+            # get unique list of row names
+            combined_rows = set(self.rows + navdata.rows)
+
+            for row in combined_rows:
+                combined_row = np.array([])
+                # combine data from existing and new instance
+                for data in [self, navdata]:
+                    if row in data.rows:
+                        new_row = data[row]
+                    elif len(data) == 0:
+                        continue
+                    else:
+                        # add np.nan for missing values
+                        new_row = np.empty((len(data),))
+                        new_row.fill(np.nan)
+                    combined_row = np.concatenate((combined_row,
+                                                   new_row))
+                new_navdata[row] = combined_row
+            if inplace:
+                self.array = new_navdata.array
+                self.map = new_navdata.map
+                self.str_map = new_navdata.str_map
+
+        if inplace:
+            return None
+        return new_navdata
 
     def where(self, key_idx, value, condition="eq"):
         """Return NavData where conditions are met for the given row
