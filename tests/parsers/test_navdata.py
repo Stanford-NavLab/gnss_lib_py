@@ -1323,9 +1323,27 @@ def test_concat(df_simple):
     # add new columns
     navdata = navdata_1.concat(navdata_1)
     assert navdata.shape == (4,12)
+    pandas_equiv = pd.concat((df_simple,df_simple),axis=0)
+    pandas_equiv.reset_index(drop=True, inplace=True)
+    pd.testing.assert_frame_equal(pandas_equiv.sort_index(axis=1),
+                                  navdata.pandas_df().sort_index(axis=1),
+                                  check_index_type=False,
+                                  check_dtype=False)
+
     # add new rows
     navdata = navdata_1.concat(navdata_1,axis=0)
     assert navdata.shape == (8,6)
+    mapper = {"names":"names_0",
+              "floats":"floats_0",
+              "integers":"integers_0",
+              "strings":"strings_0"}
+    df_simple_2 = df_simple.rename(mapper,axis=1)
+    pandas_equiv = pd.concat((df_simple,df_simple_2),axis=1)
+    pandas_equiv.reset_index(drop=True, inplace=True)
+    pd.testing.assert_frame_equal(pandas_equiv.sort_index(axis=1),
+                                  navdata.pandas_df().sort_index(axis=1),
+                                  check_index_type=False,
+                                  check_dtype=False)
 
     # test multiple rows with the same name
     navdata_long = navdata_1.copy()
@@ -1337,10 +1355,33 @@ def test_concat(df_simple):
     # add semi new columns
     navdata = navdata_1.concat(navdata_2)
     assert navdata.shape == (6,12)
+    assert np.all(np.isnan(navdata["floats"][-6:]))
+    assert np.all(navdata["names"][-6:] == np.array([np.nan]).astype(str)[0])
+    assert np.all(np.isnan(navdata["decimals"][:6]))
+    assert np.all(navdata["words"][:6] == np.array([np.nan]).astype(str)[0])
+
+    # add semi new columns in opposite order
+    navdata = navdata_2.concat(navdata_1)
+    assert navdata.shape == (6,12)
+    assert np.all(np.isnan(navdata["floats"][:6]))
+    assert np.all(navdata["names"][:6] == np.array([np.nan]).astype(str)[0])
+    assert np.all(np.isnan(navdata["decimals"][-6:]))
+    assert np.all(navdata["words"][-6:] == np.array([np.nan]).astype(str)[0])
 
     # add as new rows
-    navdata_b = navdata_1.concat(navdata_2,axis=0)
-    assert navdata_b.shape == (8,6)
+    navdata = navdata_1.concat(navdata_2,axis=0)
+    assert navdata.shape == (8,6)
+    mapper = {"names":"words",
+              "floats":"decimals",
+              "integers":"integers_0",
+              "strings":"strings_0"}
+    df_simple_2 = df_simple.rename(mapper,axis=1)
+    pandas_equiv = pd.concat((df_simple,df_simple_2),axis=1)
+    pandas_equiv.reset_index(drop=True, inplace=True)
+    pd.testing.assert_frame_equal(pandas_equiv.sort_index(axis=1),
+                                  navdata.pandas_df().sort_index(axis=1),
+                                  check_index_type=False,
+                                  check_dtype=False)
 
 def test_concat_fails(df_simple):
     """Test when concat should fail.

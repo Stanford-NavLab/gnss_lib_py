@@ -291,6 +291,37 @@ def test_get_and_set_str(derived):
 
     np.testing.assert_equal(derived[key, :], value)
 
+def test_android_concat(derived, pd_df):
+    """Test concat on Android data.
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+    pd_df : pytest.fixture
+        pd.DataFrame for testing measurements
+    """
+
+    # remove first timestamp to match
+    pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
+
+    # extract and combine gps and glonass data
+    gps_data = derived.where("gnss_id","gps")
+    glonass_data = derived.where("gnss_id","glonass")
+    combined_navdata = gps_data.concat(glonass_data)
+
+    # combine using pandas
+    gps_df = pd_df[pd_df["constellationType"]==1]
+    glonass_df = pd_df[pd_df["constellationType"]==3]
+    combined_df = pd.concat((gps_df,glonass_df))
+
+    # check a few rows to make sure they're equal
+    np.testing.assert_array_equal(combined_navdata["raw_pr_m"],
+                                  combined_df["rawPrM"])
+    np.testing.assert_array_equal(combined_navdata["raw_pr_sigma_m"],
+                                  combined_df["rawPrUncM"])
+    np.testing.assert_array_equal(combined_navdata["intersignal_bias_m"],
+                                  combined_df["isrbM"])
 
 def test_imu_raw(android_raw_path):
     """Test that AndroidRawImu initialization
