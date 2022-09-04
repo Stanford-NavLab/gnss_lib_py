@@ -157,8 +157,8 @@ class NavData():
         Returns
         -------
         new_navdata : gnss_lib_py.parsers.navdata.NavData or None
-            If inplace is False, returns NavData instance after renaming
-            specified rows. If inplace is True, returns
+            If inplace is False, returns NavData instance after
+            concatenating specified data. If inplace is True, returns
             None.
 
         """
