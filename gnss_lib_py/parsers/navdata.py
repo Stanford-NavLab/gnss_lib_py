@@ -15,7 +15,25 @@ import pandas as pd
 
 class NavData():
     """gnss_lib_py specific class for handling data.
-    Uses numpy for speed combined with pandas like intuitive indexing
+
+    Uses numpy for speed combined with pandas like intuitive indexing.
+
+    Can either be initialized empty, with a csv file by setting
+    ``csv_path``, a Pandas DataFrame by setting ``pandas_df`` or by a
+    Numpy array by setting ``numpy_array``.
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+    pandas_df : pd.DataFrame
+        Data used to initialize NavData instance.
+    numpy_array : np.ndarray
+        Numpy array containing data used to initialize NavData
+        instance.
+    **kwargs : args
+        Additional arguments (e.g. ``sep`` or ``header``) passed into
+        ``pd.read_csv`` if csv_path is not None.
 
     Attributes
     ----------
@@ -89,7 +107,8 @@ class NavData():
 
         Parameters
         ----------
-        pandas_df : pd.DataFrame of data
+        pandas_df : pd.DataFrame
+            Data used to initialize NavData instance.
         """
 
         if not isinstance(pandas_df, pd.DataFrame):
@@ -112,7 +131,8 @@ class NavData():
         Parameters
         ----------
         numpy_array : np.ndarray
-            Numpy array containing data
+            Numpy array containing data used to initialize NavData
+            instance.
 
         """
 
@@ -128,7 +148,10 @@ class NavData():
             self[str(row_num)] = numpy_array[row_num,:]
 
     def concat(self, navdata=None, axis=1, inplace=False):
-        """Concatenates new rows or new columns to existing NavData.
+        """Concatenates second NavData instance by row or column.
+
+        Concatenates a second NavData instance to the existing NavData
+        instance by either row or column.
 
         Each type of data is included in a row, so adding new rows with
         ``axis=0``, means adding new types of data. Concat requires that
@@ -164,11 +187,11 @@ class NavData():
         """
 
         if not isinstance(navdata,NavData):
-            raise TypeError("new concat data must be a NavData instance.")
+            raise TypeError("concat input data must be a NavData instance.")
 
         if axis == 0: # concatenate new rows
             if len(self) != len(navdata):
-                raise RuntimeError("new concat data must be same " \
+                raise RuntimeError("concat input data must be same " \
                                  + "length to concatenate new rows.")
             if not inplace:
                 new_navdata = self.copy()

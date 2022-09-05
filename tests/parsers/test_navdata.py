@@ -1345,6 +1345,18 @@ def test_concat(df_simple):
                                   check_index_type=False,
                                   check_dtype=False)
 
+    # concatenate empty NavData
+    navdata = NavData().concat(navdata_1,axis=1)
+    pd.testing.assert_frame_equal(df_simple.sort_index(axis=1),
+                                  navdata.pandas_df().sort_index(axis=1),
+                                  check_index_type=False,
+                                  check_dtype=False)
+    navdata = navdata_1.concat(NavData(),axis=1)
+    pd.testing.assert_frame_equal(df_simple.sort_index(axis=1),
+                                  navdata.pandas_df().sort_index(axis=1),
+                                  check_index_type=False,
+                                  check_dtype=False)
+
     # test multiple rows with the same name
     navdata_long = navdata_1.copy()
     for count in range(13):
@@ -1404,6 +1416,16 @@ def test_concat_fails(df_simple):
 
     with pytest.raises(RuntimeError) as excinfo:
         navdata_1.concat(navdata_2,axis=0)
+    assert "same length" in str(excinfo.value)
+    assert "concat" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        navdata_1.concat(NavData(),axis=0)
+    assert "same length" in str(excinfo.value)
+    assert "concat" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        NavData().concat(navdata_1,axis=0)
     assert "same length" in str(excinfo.value)
     assert "concat" in str(excinfo.value)
 
