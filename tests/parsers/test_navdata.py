@@ -927,8 +927,6 @@ def test_get_all_numpy(numpy_array):
     np.testing.assert_array_almost_equal(data[:], numpy_array)
     np.testing.assert_array_almost_equal(data[:, :], numpy_array)
 
-
-
 @pytest.fixture(name="new_string")
 def fixture_new_string():
     """String to test for value assignment
@@ -1182,12 +1180,13 @@ def test_multi_set_changing_type(data,new_string):
     np.testing.assert_array_equal(data_temp1["integers"], new_string)
     np.testing.assert_array_equal(data_temp1["floats"], new_string)
 
-    data_temp2 = data.copy()
-
 @pytest.mark.parametrize("row_idx",
                         [slice(7, 8),
                         8])
-def test_wrong_init_set(data, row_idx):
+def test_wrong_init_set(row_idx):
+    """ Test init with unknown set.
+
+    """
     empty_data = NavData()
     with pytest.raises(KeyError):
         empty_data[row_idx] = np.zeros([1, 6])
@@ -1252,6 +1251,9 @@ def test_add_numpy_1d():
     np.testing.assert_array_equal(data_empty[:,:],np.ones((8,8)))
 
 def test_add_csv(df_simple, csv_simple):
+    """Test adding a csv.
+
+    """
     # Create and add to NavData
     data = NavData(csv_path=csv_simple)
     data.add(csv_path=csv_simple)
@@ -1524,6 +1526,52 @@ def test_where_str(csv_simple):
     compare_df = compare_df[compare_df['strings']=="gps"].reset_index(drop=True)
     pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
 
+    data_small = data.where('strings', 'gps','neq')
+    compare_df = data.pandas_df()
+    compare_df = compare_df[compare_df['strings']!="gps"].reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
+
+def test_where_empty(df_simple):
+    """Verify empty slices.
+
+    Parameters
+    ----------
+    df_simple : pd.DataFrame
+        Simple pd.DataFrame with which to initialize NavData.
+
+    """
+    navdata = NavData(pandas_df=df_simple)
+    for row in navdata.rows:
+        if navdata.is_str(row):
+            # verify where doesn't break on empty call
+            subset = navdata.where(row,"not_here!")
+            assert subset.shape == (4,0)
+
+@pytest.mark.parametrize('csv_path',
+                        [
+                         lazy_fixture("csv_missing"),
+                         lazy_fixture("csv_nan"),
+                        ])
+def test_argwhere_nan(csv_path):
+    """Test where options on nan values.
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+
+    """
+    navdata = NavData(csv_path=csv_path)
+    pd_df = pd.read_csv(csv_path)
+
+    for row in navdata.rows:
+        navdata_where = navdata.argwhere(row,np.nan,"eq")
+        pd_where = np.argwhere(pd.isnull(pd_df[row]).to_numpy())
+        np.testing.assert_array_equal(navdata_where,np.squeeze(pd_where))
+
+        navdata_where = navdata.argwhere(row,np.nan,"neq")
+        pd_where = np.argwhere(~pd.isnull(pd_df[row]).to_numpy())
+        np.testing.assert_array_equal(navdata_where,np.squeeze(pd_where))
 
 def test_where_numbers(csv_simple):
     """Testing implementation of NavData.where for numeric values
@@ -1534,15 +1582,14 @@ def test_where_numbers(csv_simple):
         Path to csv file used to create NavData
     """
     data = NavData(csv_path=csv_simple)
-    conditions = ["eq", "leq", "geq", "greater", "lesser", "between"]
-    values = [98, 10, 250, 67, 45, [30, 80]]
-    pd_rows = [[4], [0,1], [5], [4, 5], [0, 1], [2, 3]]
+    conditions = ["eq", "neq", "leq", "geq", "greater", "lesser", "between"]
+    values = [98, 98, 10, 250, 67, 45, [30, 80]]
+    pd_rows = [[4], [0,1,2,3,5], [0,1], [5], [4, 5], [0, 1], [2, 3]]
     for idx, condition in enumerate(conditions):
         data_small = data.where("integers", values[idx], condition=condition)
         compare_df = data.pandas_df()
         compare_df = compare_df.iloc[pd_rows[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
-
 
 def test_where_errors(csv_simple):
     """Testing error cases for NavData.where
@@ -1559,11 +1606,9 @@ def test_where_errors(csv_simple):
     # Test non-equality condition with strings
     with pytest.raises(ValueError):
         _ = data.where("names", "ab", condition="leq")
+    # Test condition that is not defined
     with pytest.raises(ValueError):
         _ = data.where("integers", 10, condition="eq_sqrt")
-
-    # Test condition that is not defined
-
 
 def test_time_looping(csv_simple):
     """Testing implementation to loop over times
@@ -1581,7 +1626,7 @@ def test_time_looping(csv_simple):
                             1.499999*np.ones([1,1])))
     compare_df = data.pandas_df()
     count = 0
-    for delta_t, measure in data.loop_time('times'):
+    for _, delta_t, measure in data.loop_time('times'):
         if count == 0:
             np.testing.assert_almost_equal(delta_t, 0)
             row_num = [0,1]
@@ -1596,7 +1641,6 @@ def test_time_looping(csv_simple):
         pd.testing.assert_frame_equal(small_df, expected_df,
                                       check_index_type=False)
         count += 1
-
 
 def test_col_looping(csv_simple):
     """Testing implementation to loop over columns in NavData
@@ -1817,3 +1861,107 @@ def test_pandas_df(df_simple, df_only_header):
     pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
                                   pd.DataFrame().sort_index(axis=1),
                                   check_names=True)
+
+def test_large_int():
+    """Test get/set for large integers.
+
+    """
+
+    test_list = np.array([1e12 + 1,
+                          1e12 + 2,
+                          1e12 + 3,
+                          1e12 + 4,
+                          1e12 + 5,
+                          ])
+    navdata = NavData()
+    navdata["numbers"] = test_list
+
+    np.testing.assert_array_equal(navdata["numbers"], test_list)
+
+def test_find_wildcard_indexes(data):
+    """Tests find_wildcard_indexes
+
+    """
+
+    all_matching = data.rename({"names" : "x_alpha_m",
+                                "integers" : "x_beta_m",
+                                "floats" : "x_gamma_m",
+                                "strings" : "x_zeta_m"})
+    expected = ["x_alpha_m","x_beta_m","x_gamma_m","x_zeta_m"]
+
+    indexes = all_matching.find_wildcard_indexes("x_*_m")
+    assert indexes["x_*_m"] == expected
+    expect_pass_allows = [None,12,4]
+    for max_allow in expect_pass_allows:
+        indexes = all_matching.find_wildcard_indexes("x_*_m",max_allow)
+        assert indexes["x_*_m"] == expected
+
+    expect_fail_allows = [0,-1,3,2,1]
+    for max_allow in expect_fail_allows:
+        with pytest.raises(KeyError) as excinfo:
+            all_matching.find_wildcard_indexes("x_*_m",max_allow)
+        assert "More than " + str(max_allow) in str(excinfo.value)
+        assert "x_*_m" in str(excinfo.value)
+
+    multi = data.rename({"names" : "x_alpha_m",
+                         "integers" : "x_beta_m",
+                         "floats" : "y_alpha_deg",
+                         "strings" : "x_zeta_deg"})
+    expected = {"x_*_m" : ["x_alpha_m","x_beta_m"],
+                "y_*_deg" : ["y_alpha_deg"]}
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                               max_allow)
+        assert indexes == expected
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(tuple(["x_*_m","y_*_deg"]),
+                                                     max_allow)
+        assert indexes == expected
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(set(["x_*_m","y_*_deg"]),
+                                                     max_allow)
+        assert indexes == expected
+
+    expect_pass_allows = [None,2,4]
+    for max_allow in expect_pass_allows:
+        indexes = multi.find_wildcard_indexes(np.array(["x_*_m",
+                                                        "y_*_deg"]),
+                                                        max_allow)
+        assert indexes == expected
+
+    expect_fail_allows = [0,-1,1]
+    for max_allow in expect_fail_allows:
+        with pytest.raises(KeyError) as excinfo:
+            multi.find_wildcard_indexes(["x_*_m","y_*_deg"],max_allow)
+        assert "More than " + str(max_allow) in str(excinfo.value)
+        assert "x_*_m" in str(excinfo.value)
+
+    with pytest.raises(KeyError) as excinfo:
+        multi.find_wildcard_indexes(["z_*_m"])
+    assert "Missing " in str(excinfo.value)
+    assert "z_*_m" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(1.0)
+    assert "find_wildcard_indexes " in str(excinfo.value)
+    assert "array-like" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes([1.0])
+    assert "wildcards must be strings" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        multi.find_wildcard_indexes("x_*_*")
+    assert "One wildcard" in str(excinfo.value)
+
+    incorrect_max_allow = [3.,"hi",[]]
+    for max_allow in incorrect_max_allow:
+        with pytest.raises(TypeError) as excinfo:
+            multi.find_wildcard_indexes("x_*_m",max_allow)
+        assert "max_allow" in str(excinfo.value)
