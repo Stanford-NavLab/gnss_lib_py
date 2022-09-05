@@ -670,11 +670,7 @@ def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cov
         if (len(fnames) == 1 and fnames[0] is None) \
             or fnames[fig_idx] is None:
             # create results folder if it does not yet exist.
-            root_path = os.path.dirname(
-                        os.path.dirname(
-                        os.path.dirname(
-                        os.path.realpath(__file__))))
-            log_path = os.path.join(root_path,"results",TIMESTAMP)
+            log_path = os.path.join(os.getcwd(),"results",TIMESTAMP)
             fo.make_dir(log_path)
 
             # make name path friendly
@@ -856,11 +852,7 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
         if (len(fnames) == 1 and fnames[0] is None) \
             or fnames[fig_idx] is None:
             # create results folder if it does not yet exist.
-            root_path = os.path.dirname(
-                        os.path.dirname(
-                        os.path.dirname(
-                        os.path.realpath(__file__))))
-            log_path = os.path.join(root_path,"results",TIMESTAMP)
+            log_path = os.path.join(os.getcwd(),"results",TIMESTAMP)
             fo.make_dir(log_path)
 
             # make name path friendly
