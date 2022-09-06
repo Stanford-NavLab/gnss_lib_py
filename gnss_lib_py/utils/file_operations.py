@@ -37,22 +37,3 @@ def get_timestamp():
     """
     timestamp =  time.strftime("%Y%m%d%H%M%S")
     return timestamp
-
-def print_directory_levels():
-    """Prints out file directory levels.
-
-    """
-
-    printed_path = os.path.realpath(__file__)
-
-    for level in range(5):
-        print(f"{level} level(s) up: {printed_path}")
-        printed_path = os.path.dirname(printed_path)
-
-def print_cwd():
-    """Prints out file directory levels.
-
-    """
-
-    print("cwd:",os.getcwd())
-    print("dir above cwd:",os.path.dirname(os.getcwd()))
