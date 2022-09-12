@@ -27,7 +27,7 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, \
         Nearest index within sp3 time series around which interpolated
         function needs to be centered
     ipos : int
-        No. of data points from sp3 data on either side of sidx 
+        No. of data points from sp3 data on either side of sidx
         that will be used for computing interpolated function
     method : string
         Type of interpolation method used for sp3 data (the default is
@@ -35,8 +35,8 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, \
 
     Returns
     -------
-    func_satpos : np.ndarray 
-        Instance with 3-D array of scipy.interpolate.interpolate.interp1d 
+    func_satpos : np.ndarray
+        Instance with 3-D array of scipy.interpolate.interpolate.interp1d
         that is loaded with .sp3 data
     """
 
@@ -72,7 +72,7 @@ def extract_clk_func(clkdata, sidx, ipos = 10, \
         Nearest index within sp3 time series around which interpolated
         function needs to be centered
     ipos : int
-        No. of data points from sp3 data on either side of sidx 
+        No. of data points from sp3 data on either side of sidx
         that will be used for computing interpolated function
     method : string
         Type of interpolation method used for sp3 data (the default is
@@ -80,7 +80,7 @@ def extract_clk_func(clkdata, sidx, ipos = 10, \
 
     Returns
     -------
-    func_satbias : np.ndarray 
+    func_satbias : np.ndarray
         Instance with 1-D array of scipy.interpolate.interpolate.interp1d
         that is loaded with .clk data
     """
@@ -102,8 +102,8 @@ def compute_sp3_snapshot(func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'
 
     Parameters
     ----------
-    func_satpos : np.ndarray 
-        Instance with 3-D array of scipy.interpolate.interpolate.interp1d 
+    func_satpos : np.ndarray
+        Instance with 3-D array of scipy.interpolate.interpolate.interp1d
         that is loaded with .sp3 data
     cxtime : float
         Time at which the satellite 3-D position and velocity needs to be
@@ -139,7 +139,7 @@ def compute_clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline
 
     Parameters
     ----------
-    func_satbias : scipy.interpolate._cubic.CubicSpline 
+    func_satbias : scipy.interpolate._cubic.CubicSpline
         Instance with interpolated function for satellite bias from .clk data
     cxtime : float
         Time at which satellite clock bias and drift is to be computed
@@ -174,9 +174,9 @@ def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
-    sp3_parsed_file : np.ndarray 
+    sp3_parsed_file : np.ndarray
         Instance with array of gnss_lib_py.parsers.precise_ephemerides.Sp3
-    clk_parsed_file : np.ndarray 
+    clk_parsed_file : np.ndarray
         Instance with array of gnss_lib_py.parsers.precise_ephemerides.Clk
     verbose : bool
         Flag (True/False) for whether to print intermediate steps useful

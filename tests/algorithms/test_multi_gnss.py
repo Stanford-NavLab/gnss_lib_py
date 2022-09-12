@@ -97,6 +97,7 @@ def fixture_sp3_path(root_path):
     ----------
     .. [2]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     .. [3]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
     """
     sp3_path = os.path.join(root_path, "precise_ephemeris/grg21553_short.sp3")
     return sp3_path
@@ -119,6 +120,7 @@ def fixture_clk_path(root_path):
     ----------
     .. [2]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     .. [3]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
     """
     clk_path = os.path.join(root_path, "precise_ephemeris/grg21553_short.clk")
     return clk_path
@@ -370,7 +372,7 @@ def test_gps_clk_funcs(clkdata_gps):
                                                       hstep = 5e-1, method='CubicSpline')
                 assert consts.C * np.linalg.norm(satbias_clk - \
                                                  clkdata_gps[prn].clk_bias[sidx]) < 1e-6
-            
+
 def test_glonass_sp3_funcs(sp3data_glonass):
     """Tests extract_sp3_func, compute_sp3_snapshot for GLONASS-Sp3
 
@@ -425,7 +427,7 @@ def test_glonass_clk_funcs(clkdata_glonass):
                                                       hstep = 5e-1, method='CubicSpline')
                 assert consts.C * np.linalg.norm(satbias_clk - \
                                                  clkdata_glonass[prn].clk_bias[sidx]) < 1e-6
-            
+
 def test_compute_gps_precise_eph(navdata_gps, sp3data_gps, clkdata_gps):
     """Tests that compute_sv_gnss_from_precise_eph does not fail for GPS
 
@@ -433,7 +435,7 @@ def test_compute_gps_precise_eph(navdata_gps, sp3data_gps, clkdata_gps):
     ----------
     The threshold for assertion checks are set heuristically; not applicable if
     input unit test files are changed.
-    
+
     Parameters
     ----------
     navdata_gps : pytest.fixture
@@ -486,7 +488,7 @@ def test_compute_glonass_precise_eph(navdata_glonass, sp3data_glonass, clkdata_g
     ----------
     The threshold for assertion checks are set heuristically; not applicable if
     input unit test files are changed.
-    
+
     Parameters
     ----------
     navdata_glonass : pytest.fixture

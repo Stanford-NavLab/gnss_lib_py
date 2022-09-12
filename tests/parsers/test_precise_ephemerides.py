@@ -54,6 +54,7 @@ def fixture_sp3_path(root_path):
     ----------
     .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
     """
     sp3_path = os.path.join(root_path, 'grg21553_short.sp3')
     return sp3_path
@@ -76,6 +77,7 @@ def fixture_clk_path(root_path):
     ----------
     .. [2]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     .. [3]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
     """
     clk_path = os.path.join(root_path, 'grg21553_short.clk')
     return clk_path

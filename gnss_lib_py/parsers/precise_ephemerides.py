@@ -51,7 +51,7 @@ class Sp3:
                      (self.zpos == other.zpos) & \
                      (self.tym == other.tym) & \
                      (self.utc_time == other.utc_time)
-        
+
         return bool_check
 
 def parse_sp3(input_path, constellation = 'gps'):
@@ -76,7 +76,7 @@ def parse_sp3(input_path, constellation = 'gps'):
     Notes
     -----
     The format for .sp3 files can be viewed in [1]_.
-    
+
     This parser function does not process all available GNSS constellations
     at once, i.e., needs to be independently called for each desired one
 
