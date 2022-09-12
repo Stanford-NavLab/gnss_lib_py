@@ -74,11 +74,14 @@ In the directory organization above:
 
       * Weighted Least Squares
       * Calculating pseudorange residuals
+      * Calculating multi-GNSS satellite PVT information
   * The data parsers in the :code:`parsers` directory allow for loading
-    GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class.
+    GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class
+    or parsing precise ephemerides data.
     Currently, the following datasets and types are supported:
 
       * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
+      * `Precise Ephemeris Dataset <https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html>`__
 
   * The :code:`utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite

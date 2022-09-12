@@ -17,30 +17,27 @@ from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 
 def extract_sp3_func(sp3data, sidx, ipos = 10, \
                      method = 'CubicSpline', verbose = False):
-    """Computing an interpolated function that represents sp3data
-    around desired index and for any GNSS constellation
+    """Computing interpolated function over sp3 data for any GNSS
 
     Parameters
     ----------
-    sp3data : Array of Sp3 classes with len == # sats
-        Instance of GPS-only Sp3 class array for testing
+    sp3data : np.ndarray
+        Instance of GPS-only Sp3 class array with len == # sats
     sidx : int
-        Nearest index within the Sp3 time series centered around which the
-        interpolated function needs to be computed
-    ipos : int (Default: 10)
-        No. of data points related to sp3data on either side of sidx value
-        that will be used for computing the interpolated function
-    method : string (Default: CubicSpline)
-        Type of interpolation method used for interpolating sp3 data
+        Nearest index within sp3 time series around which interpolated
+        function needs to be centered
+    ipos : int
+        No. of data points from sp3 data on either side of sidx 
+        that will be used for computing interpolated function
+    method : string
+        Type of interpolation method used for sp3 data (the default is
+        CubicSpline, which depicts third-order polynomial)
 
     Returns
     -------
-    func_satpos : 3-D array of scipy.interpolate.interpolate.interp1d
-        Each element of 3-D array represents the interpolated function
-        associated with loaded .sp3 data
-
-    References
-    ----------
+    func_satpos : np.ndarray 
+        Instance with 3-D array of scipy.interpolate.interpolate.interp1d 
+        that is loaded with .sp3 data
     """
 
     func_satpos = np.empty((3,), dtype=object)
@@ -63,65 +60,29 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, \
 
     return func_satpos
 
-def compute_sp3_snapshot(func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'):
-    """Compute the satellite 3-D position and velocity via central differencing,
-    given an associated 3-D array of interpolation function
-
-    Parameters
-    ----------
-    func_satpos : 3-D array of scipy.interpolate.interpolate.interp1d
-        Each element of 3-D array represents the interpolated function
-        associated with loaded .sp3 data.
-    cxtime : float
-        Time at which the satellite 3-D position and velocity needs to be
-        computed, given 3-D array of interpolated functions
-    hstep : float (Default: 1e-5)
-        Step size in seconds that will be used for computing 3-D velocity of
-        any given satellite
-    method : string (Default: CubicSpline)
-        Type of interpolation method used for interpolating sp3 data
-
-    Returns
-    -------
-    satpos_sp3 : 3-D array
-        3-D satellite position in ECEF frame (Earth's rotation not included)
-    satvel_sp3 : 3-D array
-        3-D satellite velocity in ECEF frame (Earth's rotation not included)
-    """
-    if method=='CubicSpline':
-        sat_x = func_satpos[0]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
-        sat_y = func_satpos[1]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
-        sat_z = func_satpos[2]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
-
-    satpos_sp3 = np.array([sat_x[1], sat_y[1], sat_z[1]])
-    satvel_sp3 = np.array([ (sat_x[2]-sat_x[0]) / hstep, \
-                            (sat_y[2]-sat_y[0]) / hstep, \
-                            (sat_z[2]-sat_z[0]) / hstep ])
-
-    return satpos_sp3, (satvel_sp3 * 1e3)
-
 def extract_clk_func(clkdata, sidx, ipos = 10, \
                      method='CubicSpline', verbose = False):
-    """Computing an interpolated function that represents clkdata
-    around desired index and for any GNSS constellation
+    """Computing interpolated function over clk data for any GNSS
 
     Parameters
     ----------
-    clkdata : Array of Clk classes with len == # sats
-        Instance of GPS-only Clk class array for testing
+    clkdata : np.ndarray
+        Instance of GPS-only Sp3 class array with len == # sats
     sidx : int
-        Nearest index within the Clk time series centered around which the
-        interpolated function needs to be computed
-    ipos : int (Default: 10)
-        No. of data points related to clkdata on either side of sidx value
-        that will be used for computing the interpolated function
-    method : string (Default: CubicSpline)
-        Type of interpolation method used for interpolating clk data
+        Nearest index within sp3 time series around which interpolated
+        function needs to be centered
+    ipos : int
+        No. of data points from sp3 data on either side of sidx 
+        that will be used for computing interpolated function
+    method : string
+        Type of interpolation method used for sp3 data (the default is
+        CubicSpline, which depicts third-order polynomial)
 
     Returns
     -------
-    func_satbias : scipy.interpolate.interpolate.interp1d
-        Interpolated function associated with loaded .clk data
+    func_satbias : np.ndarray 
+        Instance with 1-D array of scipy.interpolate.interpolate.interp1d
+        that is loaded with .clk data
     """
 
     if method=='CubicSpline':
@@ -136,29 +97,65 @@ def extract_clk_func(clkdata, sidx, ipos = 10, \
 
     return func_satbias
 
-def compute_clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline'):
-    """Compute the satellite clock bias and drift via central differencing,
-    given an associated interpolation function
+def compute_sp3_snapshot(func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'):
+    """Compute satellite 3-D position and velocity from sp3 interpolated function
 
     Parameters
     ----------
-    func_satbias : scipy.interpolate.interpolate.interp1d
-        Interpolated function associated with loaded .clk data
+    func_satpos : np.ndarray 
+        Instance with 3-D array of scipy.interpolate.interpolate.interp1d 
+        that is loaded with .sp3 data
     cxtime : float
-        Time at which the satellite 3-D clock bias and drift needs to be
-        computed, given the interpolated function
-    hstep : float (Default: 1e-5)
-        Step size in seconds that will be used for computing 1-D drift of
-        any given satellite clock
-    method : string (Default: CubicSpline)
-        Type of interpolation method used for interpolating clk data
+        Time at which the satellite 3-D position and velocity needs to be
+        computed, given 3-D array of interpolated functions
+    hstep : float
+        Step size in milliseconds used to computing 3-D velocity of any
+        given satellite using central differencing the default is 5e-1)
+    method : string
+        Type of interpolation method used for sp3 data (the default is
+        CubicSpline, which depicts third-order polynomial)
+
+    Returns
+    -------
+    satpos_sp3 : 3-D array
+        Computed satellite position in ECEF frame (Earth's rotation not included)
+    satvel_sp3 : 3-D array
+        Computed satellite velocity in ECEF frame (Earth's rotation not included)
+    """
+    if method=='CubicSpline':
+        sat_x = func_satpos[0]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+        sat_y = func_satpos[1]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+        sat_z = func_satpos[2]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+
+    satpos_sp3 = np.array([sat_x[1], sat_y[1], sat_z[1]])
+    satvel_sp3 = np.array([ (sat_x[2]-sat_x[0]) / hstep, \
+                            (sat_y[2]-sat_y[0]) / hstep, \
+                            (sat_z[2]-sat_z[0]) / hstep ])
+
+    return satpos_sp3, (satvel_sp3 * 1e3)
+
+def compute_clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline'):
+    """Compute satellite clock bias and drift from clk interpolated function
+
+    Parameters
+    ----------
+    func_satbias : scipy.interpolate._cubic.CubicSpline 
+        Instance with interpolated function for satellite bias from .clk data
+    cxtime : float
+        Time at which satellite clock bias and drift is to be computed
+    hstep : float
+        Step size in milliseconds used to computing clock drift using
+        central differencing (the default is 5e-1)
+    method : string
+        Type of interpolation method used for sp3 data (the default is
+        CubicSpline, which depicts third-order polynomial)
 
     Returns
     -------
     satbias_clk : float
-        Satellite clock bias in seconds
+        Computed satellite clock bias (in seconds)
     satdrift_clk : float
-        Satellite clock drift in seconds/seconds
+        Computed satellite clock drift (in seconds/seconds)
     """
 
     if method=='CubicSpline':
@@ -171,26 +168,25 @@ def compute_clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline
 
 def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                                      clk_parsed_file, verbose = False):
-    """Populate navdata class with satellite position, velocity,
-    clock bias and drift, which is computed via .sp3 and .clk files
+    """Compute satellite information using .sp3 and .clk for any GNSS constellation
 
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
-    sp3_parsed_file : Array of gnss_lib_py.parsers.precise_ephemerides.Sp3 classes
-        Instance of Sp3 class array associated with any one constellation
-    clk_parsed_file : Array of gnss_lib_py.parsers.precise_ephemerides.Clk classes
-        Instance of Clk class array associated with any one constellation
-    verbose : bool (dafault: False)
+    sp3_parsed_file : np.ndarray 
+        Instance with array of gnss_lib_py.parsers.precise_ephemerides.Sp3
+    clk_parsed_file : np.ndarray 
+        Instance with array of gnss_lib_py.parsers.precise_ephemerides.Clk
+    verbose : bool
         Flag (True/False) for whether to print intermediate steps useful
-        for debugging/reviewing
+        for debugging/reviewing (the default is False)
 
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Modified instance of NavData class that computes satellite position,
-        velocity, clock bias and drift using precise ephemerides
+        Updated NavData class with satellite information computed using
+        precise ephemerides from .sp3 and .clk files
     """
 
     navdata_offset = 0 #1000 # Set this to zero, when android errors get fixed
@@ -307,10 +303,10 @@ def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                                                 (timestep - navdata_offset), \
                                                 method = interp_method)
             if verbose:
-#                 print('after sp3:', satpos_sp3, \
-#                                     satvel_sp3, \
-#                                     consts.C * satbias_clk, \
-#                                     consts.C * satdrift_clk)
+                print('after sp3:', satpos_sp3, \
+                                    satvel_sp3, \
+                                    consts.C * satbias_clk, \
+                                    consts.C * satdrift_clk)
 
                 satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
                                                 navdata["y_sv_m", sorted_idxs], \
@@ -324,7 +320,7 @@ def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                 satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
                                                    navdata["vy_sv_mps", sorted_idxs], \
                                                    navdata["vz_sv_mps", sorted_idxs] ])
-#                 print('android:', satpos_android[sv_idx], satvel_android[sv_idx])
+                print('android:', satpos_android[sv_idx], satvel_android[sv_idx])
                 print('Android-sp3 Vel Error (m): ', \
                           np.linalg.norm(satvel_android[sv_idx] - satvel_sp3), \
                           navdata["vx_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[0], \
@@ -334,6 +330,7 @@ def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                 print('Android-sp3 Clk Error (m): ', \
                           navdata["b_sv_m", sorted_idxs[sv_idx]] - consts.C * satbias_clk, \
                           navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] - consts.C * satdrift_clk)
+                print(' ')
 
             # update x_sv_m of navdata with the estimated values from .sp3 files
             navdata['x_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[0]])
@@ -376,29 +373,24 @@ def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                                             consts.C * satdrift_clk == 0.0):
                 raise RuntimeError("b_dot_sv_mps of navdata not correctly updated")
 
-            if verbose:
-                print(' ')
-
     return navdata
 
 def compute_sv_gps_from_brdcst_eph(navdata, verbose = False):
-    """Populate navdata class comprising only GPS L1 values with
-    satellite position and velocity (which is computed via .n files)
+    """Compute satellite information using .n for any GNSS constellation
 
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
-        of only GPS L1 values
-    verbose : bool (dafault: False)
+    verbose : bool
         Flag (True/False) for whether to print intermediate steps useful
-        for debugging/reviewing
+        for debugging/reviewing (the default is False)
 
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Modified instance of NavData class that computes satellite position,
-        velocity, clock bias and drift using broadcast ephemerides
+        Updated NavData class with satellite information computed using
+        broadcast ephemerides from .n files
     """
     navdata_offset = 0 #1000 # Set this to zero, when android errors get fixed
     unique_gnss_id = np.unique(navdata['gnss_id'])
@@ -454,8 +446,6 @@ def compute_sv_gps_from_brdcst_eph(navdata, verbose = False):
         satvel_ephemeris = np.transpose([get_sat_from_ephem.vx.values, \
                                          get_sat_from_ephem.vy.values, \
                                          get_sat_from_ephem.vz.values])
-#         if verbose:
-#             print('before ephemeris:', satpos_ephemeris, satvel_ephemeris)
         trans_time = navdata["raw_pr_m", sorted_idxs] / consts.C
         del_x = (consts.OMEGA_E_DOT * satpos_ephemeris[:,1] * trans_time)
         del_y = (-consts.OMEGA_E_DOT * satpos_ephemeris[:,0] * trans_time)
@@ -463,11 +453,12 @@ def compute_sv_gps_from_brdcst_eph(navdata, verbose = False):
         satpos_ephemeris[:,1] = satpos_ephemeris[:,1] + del_y
 
         if verbose:
-#             print('after ephemeris:', satpos_ephemeris, satvel_ephemeris)
+            print('after ephemeris:', satpos_ephemeris, satvel_ephemeris)
             print('nav-android Pos Error: ', \
                       np.linalg.norm(satpos_ephemeris - satpos_android, axis=1) )
             print('nav-android Vel Error: ', \
                       np.linalg.norm(satvel_ephemeris - satvel_android, axis=1) )
+            print(' ')
 
         # update x_sv_m of navdata with the estimated values from .n files
         navdata["x_sv_m", sorted_idxs] = satpos_ephemeris[:,0]
@@ -498,8 +489,5 @@ def compute_sv_gps_from_brdcst_eph(navdata, verbose = False):
         navdata["vz_sv_mps", sorted_idxs] = satvel_ephemeris[:,2]
         if not max(abs(navdata["vz_sv_mps", sorted_idxs] - satvel_ephemeris[:,2])) == 0.0:
             raise RuntimeError("vz_sv_mps of navdata not correctly updated")
-
-        if verbose:
-            print(' ')
 
     return navdata

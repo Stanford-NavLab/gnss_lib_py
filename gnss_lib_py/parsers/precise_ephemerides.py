@@ -14,12 +14,6 @@ import numpy as np
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 
 # Define the number of sats to create arrays for
-# NUMSATS_GPS = 32
-# NUMSATS_BEIDOU = 46
-# NUMSATS_GLONASS = 24
-# NUMSATS_GALILEO = 36
-# NUMSATS_QZSS = 3
-
 NUMSATS = {'gps': (32, 'G'),
            'galileo': (36, 'E'),
            'beidou': (46, 'C'),
@@ -27,14 +21,8 @@ NUMSATS = {'gps': (32, 'G'),
            'qzss': (3, 'J')}
 
 class Sp3:
-    """Class handling satellite position data (precise ephemerides)
-    from .sp3 dataset.
+    """Class handling satellite position data from precise ephemerides
 
-    Notes
-    -----
-    (1) Not sure how to fix these pylint errors:
-    precise_ephemerides.py:20:0: R0903: Too few public methods
-    (0/2) (too-few-public-methods)
     """
     def __init__(self):
         self.const = None
@@ -51,13 +39,20 @@ class Sp3:
         ----------
         other : gnss_lib_py.parsers.precise_ephemerides.Sp3
             Sp3 object that stores .sp3 parsed information
+
+        Returns
+        ----------
+        bool_check : bool
+            Flag (True/False) that indicates if Sp3 classes are equal
         """
-        return (self.const == other.const) & \
-               (self.xpos == other.xpos) & \
-               (self.ypos == other.ypos) & \
-               (self.zpos == other.zpos) & \
-               (self.tym == other.tym) & \
-               (self.utc_time == other.utc_time)
+        bool_check = (self.const == other.const) & \
+                     (self.xpos == other.xpos) & \
+                     (self.ypos == other.ypos) & \
+                     (self.zpos == other.zpos) & \
+                     (self.tym == other.tym) & \
+                     (self.utc_time == other.utc_time)
+        
+        return bool_check
 
 def parse_sp3(input_path, constellation = 'gps'):
     """sp3 specific loading and preprocessing for any GNSS constellation
@@ -66,18 +61,22 @@ def parse_sp3(input_path, constellation = 'gps'):
     ----------
     input_path : string
         Path to sp3 file
-    constellation : string (default: gps)
+    constellation : string
         Key from among {gps, galileo, glonass, beidou, qzss, etc} that
         specifies which GNSS constellation to be parsed from .sp3 file
+        (the default is 'gps')
 
     Returns
     -------
-    sp3data : Sp3
-        Array of Sp3 classes where each corresponds to a satellite with the
-        specified constellation and is populated with parsed sp3 information
+    sp3data : np.ndarray
+        Array of gnss_lib_py.parsers.precise_ephemerides.Sp3 with len = NUMSATS,
+        where each element corresponds to a satellite with specified constellation
+        and is populated with parsed sp3 information
 
     Notes
     -----
+    The format for .sp3 files can be viewed in [1]_.
+    
     This parser function does not process all available GNSS constellations
     at once, i.e., needs to be independently called for each desired one
 
@@ -86,19 +85,6 @@ def parse_sp3(input_path, constellation = 'gps'):
     Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois
     Urbana-Champaign. Fall 2015
-
-    TOCLARIFY:
-    (1) Should the other GPS ephemeris python file be called
-    broadcast_ephemeris for consistency and clarity?
-    (2) Should there be a history sub-heading in function descriptions
-    as well, for better clarity on when was that function last updated?
-    (3) Not sure how to fix this pylint error:
-    precise_ephemerides.py:74:37: W1514: Using open without explicitly
-    specifying an encoding (unspecified-encoding)
-    precise_ephemerides.py:38:0: R0912: Too many branches (14/12)
-    (too-many-branches) -Ans: list format/ignore.
-    (4) Do we want automatic downloading of relevant .sp3 and .clk files,
-    similar to what EphemerisManager does? --> task for later
 
     References
     ----------
@@ -114,8 +100,6 @@ def parse_sp3(input_path, constellation = 'gps'):
     # Load in the file
     with open(input_path, 'r', encoding="utf-8") as infile:
         data = [line.strip() for line in infile]
-
-#     data = [line.strip() for line in open(input_path)]
 
     # Poll the total no. of satellites based on constellation specified
     if constellation in NUMSATS.keys():
@@ -168,14 +152,8 @@ def parse_sp3(input_path, constellation = 'gps'):
     return sp3data
 
 class Clk:
-    """Class handling biases in satellite clock (precise ephemerides)
-    from .clk dataset.
+    """Class handling satellite clock bias data from precise ephemerides
 
-    Notes
-    -----
-    (1) Not sure how to fix these pylint errors:
-    precise_ephemerides.py:126:0: R0903: Too few public methods
-    (0/2) (too-few-public-methods)
     """
     def __init__(self):
         self.const = None
@@ -190,6 +168,11 @@ class Clk:
         ----------
         other : gnss_lib_py.parsers.precise_ephemerides.Clk
             Clk object that stores .clk parsed information
+
+        Returns
+        ----------
+        bool_check : bool
+            Flag (True/False) indicating if Clk classes are equal
         """
         return (self.const == other.const) & \
                (self.clk_bias == other.clk_bias) & \
@@ -203,18 +186,22 @@ def parse_clockfile(input_path, constellation = 'gps'):
     ----------
     input_path : string
         Path to clk file
-    constellation : string (default: gps)
+    constellation : string
         Key from among {gps, galileo, glonass, beidou, qzss, etc} that
-        specifies which GNSS constellation to be parsed from .sp3 file
+        specifies which GNSS constellation to be parsed from .clk file
+        (the default is 'gps')
 
     Returns
     -------
-    clkdata : Clk
-        Array of Clk classes where each corresponds to a satellite with the
-        specified constellation and is populated with parsed clk information
+    clkdata : np.ndarray
+        Array of gnss_lib_py.parsers.precise_ephemerides.Clk with len = NUMSATS,
+        where each element corresponds to a satellite with specified constellation
+        and is populated with parsed clk information
 
     Notes
     -----
+    The format for .sp3 files can be viewed in [2]_.
+
     This parser function does not process all available GNSS constellations
     at once, i.e., needs to be independently called for each desired one
 
@@ -224,16 +211,9 @@ def parse_clockfile(input_path, constellation = 'gps'):
     AE 456, Global Navigation Sat Systems, University of Illinois
     Urbana-Champaign. Fall 2015
 
-    (1) Not sure how to fix the pylint error:
-    precise_ephemerides.py:197:11: W1514: Using open without explicitly
-    specifying an encoding (unspecified-encoding)
-    precise_ephemerides.py:156:0: R0912: Too many branches (19/12)
-    (too-many-branches)
-    Maybe this link: https://peps.python.org/pep-0597/#id11
-
     References
     -----
-    .. [1]  https://files.igs.org/pub/data/format/rinex_clock300.txt
+    .. [2]  https://files.igs.org/pub/data/format/rinex_clock300.txt
             Accessed as of August 24, 2022
     """
 
