@@ -220,7 +220,7 @@ def compute_sv_gnss_from_precise_eph(navdata, sp3_parsed_file, \
     # Compute satellite information for desired time steps
     unique_timesteps = np.unique(navdata["gps_millis"])
 
-    for t_idx, timestep in enumerate(unique_timesteps[:-1]):
+    for t_idx, timestep in enumerate(unique_timesteps):
 
         # Compute indices where gps_millis match, sort them
         # sorting is done for consistency across all satellite pos. estimation
@@ -406,7 +406,7 @@ def compute_sv_gps_from_brdcst_eph(navdata, verbose = False):
     repo = EphemerisManager()
     unique_timesteps = np.unique(navdata["gps_millis"])
 
-    for t_idx, timestep in enumerate(unique_timesteps[:-1]):
+    for t_idx, timestep in enumerate(unique_timesteps):
         # Compute indices where gps_millis match, sort them
         # sorting is done for consistency across all satellite pos. estimation
         # algorithms as ephemerismanager inherently sorts based on prns
