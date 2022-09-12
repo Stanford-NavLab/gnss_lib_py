@@ -15,7 +15,25 @@ import pandas as pd
 
 class NavData():
     """gnss_lib_py specific class for handling data.
-    Uses numpy for speed combined with pandas like intuitive indexing
+
+    Uses numpy for speed combined with pandas like intuitive indexing.
+
+    Can either be initialized empty, with a csv file by setting
+    ``csv_path``, a Pandas DataFrame by setting ``pandas_df`` or by a
+    Numpy array by setting ``numpy_array``.
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+    pandas_df : pd.DataFrame
+        Data used to initialize NavData instance.
+    numpy_array : np.ndarray
+        Numpy array containing data used to initialize NavData
+        instance.
+    **kwargs : args
+        Additional arguments (e.g. ``sep`` or ``header``) passed into
+        ``pd.read_csv`` if csv_path is not None.
 
     Attributes
     ----------
@@ -33,7 +51,7 @@ class NavData():
                  **kwargs):
         # For a Pythonic implementation,
         # including all attributes as None in the beginning
-        self.arr_dtype = np.float32 # default value
+        self.arr_dtype = np.float64 # default value
         self.array = None
         self.map = {}
         self.str_map = {}
@@ -89,7 +107,8 @@ class NavData():
 
         Parameters
         ----------
-        pandas_df : pd.DataFrame of data
+        pandas_df : pd.DataFrame
+            Data used to initialize NavData instance.
         """
 
         if not isinstance(pandas_df, pd.DataFrame):
@@ -112,54 +131,112 @@ class NavData():
         Parameters
         ----------
         numpy_array : np.ndarray
-            Numpy array containing data
+            Numpy array containing data used to initialize NavData
+            instance.
 
         """
+
 
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
 
+
         self._build_navdata()
 
+        numpy_array = np.atleast_2d(numpy_array)
         for row_num in range(numpy_array.shape[0]):
             self[str(row_num)] = numpy_array[row_num,:]
 
-    def add(self, csv_path=None, pandas_df=None, numpy_array=None):
-        """Add new timesteps to existing array
+    def concat(self, navdata=None, axis=1, inplace=False):
+        """Concatenates second NavData instance by row or column.
+
+        Concatenates a second NavData instance to the existing NavData
+        instance by either row or column.
+
+        Each type of data is included in a row, so adding new rows with
+        ``axis=0``, means adding new types of data. Concat requires that
+        the new NavData matches the length of the existing NavData. Row
+        concatenation assumes the same ordering across both NavData
+        instances (e.g. sorted by timestamp) and does not perform any
+        matching/sorting itself.
+
+        You can also concatenate new columns ``axis=1``. If the row
+        names of the new NavData instance don't match the row names of
+        the existing NavData instance, the mismatched values will be
+        filled with np.nan.
 
         Parameters
         ----------
-        csv_path : string
-            Path to csv file containing data to add
-        pandas_df : pd.DataFrame
-            DataFrame containing data to add
-        numpy_array : np.ndarray
-            Array containing only numeric data to add
+        navdata : gnss_lib_py.parsers.navdata.NavData
+            Navdata instance to concatenate.
+        axis : int
+            Either add new rows (type) of data ``axis=0`` or new columns
+            (e.g. timesteps) of data ``axis=1``.
+        inplace : bool
+            If False, will return new concatenated NavData instance.
+            If True, will concatenate data to the current NavData
+            instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after
+            concatenating specified data. If inplace is True, returns
+            None.
+
         """
-        old_row_num = len(self.map)
-        old_len = len(self)
-        new_data_cols = slice(old_len, None)
-        if numpy_array is not None:
-            if old_row_num == 0:
-                self.from_numpy_array(numpy_array)
-            else:
-                if len(numpy_array.shape)==1:
-                    numpy_array = np.reshape(numpy_array, [1, -1])
-                self.array = np.hstack((self.array, np.empty_like(numpy_array,
-                                        dtype=self.arr_dtype)))
-                self[:, new_data_cols] = numpy_array
-        if csv_path is not None:
-            if old_row_num == 0:
-                self.from_csv_path(csv_path)
-            else:
-                pandas_df = pd.read_csv(csv_path)
-        if pandas_df is not None:
-            if old_row_num == 0:
-                self.from_pandas_df(pandas_df)
-            else:
-                self.array = np.hstack((self.array, np.empty(pandas_df.shape).T))
-                for col in pandas_df.columns:
-                    self[col, new_data_cols] = np.asarray(pandas_df[col].values)
+
+        if not isinstance(navdata,NavData):
+            raise TypeError("concat input data must be a NavData instance.")
+
+        if axis == 0: # concatenate new rows
+            if len(self) != len(navdata):
+                raise RuntimeError("concat input data must be same " \
+                                 + "length to concatenate new rows.")
+            if not inplace:
+                new_navdata = self.copy()
+            for row in navdata.rows:
+                new_row_name = row
+                suffix = None
+                while new_row_name in self.rows:
+                    if suffix is None:
+                        suffix = 0
+                    else:
+                        suffix += 1
+                    new_row_name = row + "_" + str(suffix)
+                if inplace:
+                    self[new_row_name] = navdata[row]
+                else:
+                    new_navdata[new_row_name] = navdata[row]
+
+        elif axis == 1: # concatenate new columns
+            new_navdata = NavData()
+            # get unique list of row names
+            combined_rows = set(self.rows + navdata.rows)
+
+            for row in combined_rows:
+                combined_row = np.array([])
+                # combine data from existing and new instance
+                for data in [self, navdata]:
+                    if row in data.rows:
+                        new_row = data[row]
+                    elif len(data) == 0:
+                        continue
+                    else:
+                        # add np.nan for missing values
+                        new_row = np.empty((len(data),))
+                        new_row.fill(np.nan)
+                    combined_row = np.concatenate((combined_row,
+                                                   new_row))
+                new_navdata[row] = combined_row
+            if inplace:
+                self.array = new_navdata.array
+                self.map = new_navdata.map
+                self.str_map = new_navdata.str_map
+
+        if inplace:
+            return None
+        return new_navdata
 
     def where(self, key_idx, value, condition="eq"):
         """Return NavData where conditions are met for the given row
@@ -183,14 +260,13 @@ class NavData():
             NavData with columns where given condition is satisfied
             for specified row
         """
-        # Add a condition here instead of just comparing to a value.
-        # Do so by adding a parameter for less than inequality, equality and
-        # greater than inequality
         new_cols = self.argwhere(key_idx, value, condition)
+        if new_cols.size == 0:
+            return self.remove(cols=list(range(len(self))))
         new_navdata = self.copy(cols=new_cols)
         return new_navdata
 
-    def argwhere(self, key_idx, value, condition):
+    def argwhere(self, key_idx, value, condition="eq"):
         """Return columns where conditions are met for the given row
 
         Parameters
@@ -218,21 +294,38 @@ class NavData():
             raise NotImplementedError(error_msg)
         row = row_list[0]
         row_str = row_str[0]
+        new_cols = None
         if row_str:
             # Values in row are strings
-            if condition != "eq":
+            if condition not in ("eq","neq"):
                 raise ValueError("Inequality comparison not valid for strings")
             key = inv_map[row]
             for str_key, str_value in self.str_map[key].items():
-                if str_value==value:
-                    new_cols = np.argwhere(self.array[row, :]==str_key)
+                if str_value==str(value):
+                    if condition == "eq":
+                        new_cols = np.argwhere(self.array[row, :]==str_key)
+                        break
+                    # condition == "neq"
+                    new_cols = np.argwhere(self.array[row, :]!=str_key)
                     break
+            if new_cols is None:
+                new_cols = np.array([])
             # Extract columns where condition holds true and return new NavData
         else:
             # Values in row are numerical
             # Find columns where value can be found and return new NavData
             if condition=="eq":
-                new_cols = np.argwhere(self.array[row, :]==value)
+                if not isinstance(value,str) and np.isnan(value):
+                    # check isinstance b/c np.isnan can't handle strings
+                    new_cols = np.argwhere(np.isnan(self.array[row, :]))
+                else:
+                    new_cols = np.argwhere(self.array[row, :]==value)
+            elif condition=="neq":
+                if not isinstance(value,str) and np.isnan(value):
+                    # check isinstance b/c np.isnan can't handle strings
+                    new_cols = np.argwhere(~np.isnan(self.array[row, :]))
+                else:
+                    new_cols = np.argwhere(self.array[row, :]!=value)
             elif condition == "leq":
                 new_cols = np.argwhere(self.array[row, :]<=value)
             elif condition == "geq":
@@ -251,22 +344,26 @@ class NavData():
         return new_cols
 
     def loop_time(self, time_row, tol_decimals=2):
-        """Generator object to loop over columns from same times
+        """Generator object to loop over columns from same times.
 
         Parameters
         ----------
         time_row : string/int
-            Key or index of the row in which times are stored
+            Key or index of the row in which times are stored.
         tol_decimals : int
-            Decimal places after which times are considered equal
+            Decimal places after which times are considered equal.
 
         Yields
         ------
+        timestamp : float
+            Current timestamp.
         delta_t : float
-            Difference between current time and previous time
+            Difference between current time and previous time.
         new_navdata : gnss_lib_py.parsers.navdata.NavData
-            NavData with same time, upto given decimal tolerance
+            NavData with same time, up to given decimal tolerance.
+
         """
+
         times = self[time_row]
         times_unique = np.sort(np.unique(np.around(times,
                                          decimals=tol_decimals)))
@@ -274,11 +371,11 @@ class NavData():
             if time_idx==0:
                 delta_t = 0
             else:
-                delta_t = times_unique[time_idx]-times_unique[time_idx-1]
+                delta_t = time-times_unique[time_idx-1]
             new_navdata = self.where(time_row, [time-10**(-tol_decimals),
                                                 time+10**(-tol_decimals)],
                                                 condition="between")
-            yield delta_t, new_navdata
+            yield time, delta_t, new_navdata
 
     def is_str(self, row_name):
         """Check whether a row contained string values.
@@ -542,10 +639,11 @@ class NavData():
 
         if isinstance(rows,str):
             rows = [rows]
-        if type(rows) in (list, np.ndarray, tuple):
+        if isinstance(rows, (list, np.ndarray, tuple)):
             if isinstance(rows,np.ndarray):
                 rows = np.atleast_1d(rows)
-            missing_rows = ["'"+row+"'" for row in rows if row not in self.rows]
+            missing_rows = ["'"+row+"'" for row in rows
+                            if row not in self.rows]
         else:
             raise KeyError("input to in_rows must be a single row " \
                          + "index or list/np.ndarray/tuple of indexes")
@@ -553,6 +651,63 @@ class NavData():
         if len(missing_rows) > 0:
             raise KeyError(", ".join(missing_rows) + " row(s) are" \
                            + " missing from NavData object.")
+
+    def find_wildcard_indexes(self, wildcards, max_allow = None):
+        """Searches for indexes matching wildcard search input.
+
+        For example, a search for ``x_*_m`` would find ``x_rx_m`` or
+        ``x_sv_m`` or ``x_alpha_beta_gamma_m`` depending on the rows
+        existing in the NavData instance.
+
+        Will return an error no index is found matching the wildcard or
+        if more than ``max_allow`` indexes are found.
+
+        Currently only allows for a single wildcard per index.
+
+        Parameters
+        ----------
+        wildcards : array-like or str
+            List/tuple/np.ndarray/set of indexes for which to search.
+        max_allow : int or None
+            Maximum number of valid indexes to allow before throwing an
+            error. If None, then no limit is placed.
+
+        Returns
+        -------
+        wildcard_indexes : dict
+            Dictionary of the form {"search_term", [indexes,...]},
+
+        """
+
+        if isinstance(wildcards,str):
+            wildcards = [wildcards]
+        if not isinstance(wildcards, (list,tuple,np.ndarray,set)):
+            raise TypeError("wildcards input in find_wildcard_indexes" \
+                         +  " must be array-like or single string")
+        if not (isinstance(max_allow,int) or max_allow is None):
+            raise TypeError("max_allow input in find_wildcard_indexes" \
+                          + " must be an integer or None.")
+
+        wildcard_indexes = {}
+
+        for wildcard in wildcards:
+            if not isinstance(wildcard,str):
+                raise TypeError("wildcards must be strings")
+            if wildcard.count("*") != 1:
+                raise RuntimeError("One wildcard '*' and only one "\
+                          + "wildcard must be present in search string")
+            indexes = [row for row in self.rows
+                   if row.startswith(wildcard.split("*",maxsplit=1)[0])
+                    and row.endswith(wildcard.split("*",maxsplit=1)[1])]
+            if max_allow is not None and len(indexes) > max_allow:
+                raise KeyError("More than " + str(max_allow) \
+                             + " possible row indexes for "  + wildcard)
+            if len(indexes) == 0:
+                raise KeyError("Missing " + wildcard + " row.")
+
+            wildcard_indexes[wildcard] = indexes
+
+        return wildcard_indexes
 
     def pandas_df(self):
         """Return pandas DataFrame equivalent to class
@@ -694,9 +849,9 @@ class NavData():
         if isinstance(key_idx, str) and key_idx not in self.map:
             #Creating an entire new row
             if isinstance(new_value, np.ndarray) \
-                    and (new_value.dtype in (object,str) \
-                    or np.issubdtype(new_value.dtype,np.dtype('U'))):                # Adding string values
-                # string values
+            and (new_value.dtype in (object,str) \
+            or np.issubdtype(new_value.dtype,np.dtype('U'))):
+                # Adding string values
                 new_value = new_value.astype(str)
                 new_str_vals = len(np.unique(new_value))*np.ones(np.shape(new_value),
                                     dtype=self.arr_dtype)
@@ -710,9 +865,9 @@ class NavData():
                 self.map[key_idx] = self.shape[0]-1
             else:
                 # numeric values
-                if not isinstance(new_value, int) \
-                and not isinstance(new_value, float) \
-                and new_value.size > 0:
+                if not type(new_value) in (int,float) \
+                and ((not isinstance(new_value, list) and new_value.size > 0)
+                or (isinstance(new_value, list) and len(new_value) > 0)):
                     assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Cannot set a row with list of strings, \
                             please use np.ndarray with dtype=object"
@@ -737,9 +892,9 @@ class NavData():
                 "Cannot assign/return combination of strings and numbers"
             if np.all(row_str):
                 assert isinstance(new_value, np.ndarray) \
-                   and (new_value.dtype in (object,str) \
-                     or np.issubdtype(new_value.dtype,np.dtype('U'))), \
-                        "String assignment only supported for ndarray of type object"
+                and (new_value.dtype in (object,str) \
+                or np.issubdtype(new_value.dtype,np.dtype('U'))), \
+                    "String assignment only supported for ndarray of type object"
                 inv_map = self.inv_map
                 new_value = np.atleast_2d(new_value)
                 new_str_vals = np.ones_like(new_value, dtype=self.arr_dtype)
@@ -752,7 +907,7 @@ class NavData():
                 self.array[rows, cols] = new_str_vals
             else:
                 if not isinstance(new_value, int):
-                    assert not isinstance(np.asarray(new_value)[0], str), \
+                    assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Please use dtype=object for string assignments"
                 self.array[rows, cols] = new_value
 
@@ -860,7 +1015,7 @@ class NavData():
 
         if isinstance(new_value, np.ndarray) and (new_value.dtype in (object,str) \
                         or np.issubdtype(new_value.dtype,np.dtype('U'))):
-            if type(new_value.item(0)) in (int, float):
+            if isinstance(new_value.item(0), (int, float)):
                 row_str_new = [False]*len(row_list)
             else:
                 row_str_new = [True]*len(row_list)
@@ -958,6 +1113,7 @@ class NavData():
             Columns to extract from the array
         """
         if isinstance(key_idx, str):
+            self.in_rows(key_idx)
             rows = [self.map[key_idx]]
             cols = slice(None, None)
         elif isinstance(key_idx, list) and isinstance(key_idx[0], str):

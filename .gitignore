@@ -6,6 +6,7 @@ data/*
 # development folder
 dev/*
 !dev/.gitkeep
+gnss_lib_py_dev/
 
 # development folder
 results/*

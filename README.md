@@ -1,4 +1,4 @@
-[![build](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml/badge.svg)](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml)
+[![build](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml/badge.svg)](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/Stanford-NavLab/gnss_lib_py/branch/main/graph/badge.svg?token=1FBGEWRFM6)](https://codecov.io/gh/Stanford-NavLab/gnss_lib_py)
 [![Documentation Status](https://readthedocs.org/projects/gnss_lib_py/badge/?version=latest)](https://gnss_lib_py.readthedocs.io/en/latest/?badge=latest)
 
@@ -79,27 +79,21 @@ In the directory organization above:
 
       * [2021 Google Android Derived Dataset](https://www.kaggle.com/c/google-smartphone-decimeter-challenge)
       * [2022 Google Android Derived Dataset](https://www.kaggle.com/competitions/smartphone-decimeter-2022)
-      * [Precise Ephemeris Dataset](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html)
 
   * The `utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite
     simulation, file operations, etc.
-  * Currently, the following data visualization tools are available in the
-    `utils` directory:
-
-        * Skyplot: showing the movement of GNSS satellites during the
-          elapsed time of the provided `NavData` class.
-        * Metric plotting: allows you to plot a specific array of data
-          from the `NavData` class
-        * Metric plotting by constellation: allows you to plot a specific
-          array of data but broken up by individual constellations and
-          signal types.
-        * Residual plotting: specifically optimized for plotting residuals.
-
 
 Installation
 ------------
-For directions on how to install the `gnss_lib_py` project, please
+
+`gnss_lib_py` is available through `pip` installation with:
+
+```
+pip install gnss-lib-py
+```
+
+For directions on how to install an editable or developer installation of `gnss_lib_py` on Linux, MacOS, and Windows, please
 see the [install instructions](https://gnss-lib-py.readthedocs.io/en/latest/install.html).
 
 Tutorials
