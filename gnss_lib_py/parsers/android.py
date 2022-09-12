@@ -50,14 +50,6 @@ class AndroidDerived2021(NavData):
         pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != derived_timestamps[0]]
         pd_df.replace({"millisSinceGpsEpoch" : mapper},inplace=True)
         
-#         # Correction 1: Mapping _derived timestamps to previous timestamp
-#         # for correspondance with ground truth and Raw data
-#         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
-#         indexes = np.searchsorted(derived_timestamps, derived_timestamps)
-#         map_derived_time_back = dict(zip(derived_timestamps, derived_timestamps[indexes-1]))
-#         pd_df['millisSinceGpsEpoch'] = np.array(list(map(lambda v: map_derived_time_back[v],
-#                                                 pd_df['millisSinceGpsEpoch'])))
-        
         # Correction 5 implemented verbatim from competition tips
         if remove_timing_outliers:
             delta_millis = pd_df['millisSinceGpsEpoch'] - pd_df['receivedSvTimeInGpsNanos'] / 1e6
