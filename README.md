@@ -79,6 +79,7 @@ In the directory organization above:
 
       * [2021 Google Android Derived Dataset](https://www.kaggle.com/c/google-smartphone-decimeter-challenge)
       * [2022 Google Android Derived Dataset](https://www.kaggle.com/competitions/smartphone-decimeter-2022)
+      * [Precise Ephemeris Dataset](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html)
 
   * The `utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite
