@@ -7,5 +7,11 @@ assignees: ''
 
 ---
 
-**Feedback**
-How has `gnss_lib_py` been helpful to you?
+**Functionality Usage**
+What specific functionalities of `gnss_lib_py ` do you use the most?
+
+**Application Usage**
+Are you using `gnss_lib_py` for a specific application or course?
+
+**Suggested Changes**
+Is there anything about `gnss_lib_py` that you would change?
