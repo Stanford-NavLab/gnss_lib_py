@@ -15,3 +15,6 @@ Are you using `gnss_lib_py` for a specific application or course?
 
 **Suggested Changes**
 Is there anything about `gnss_lib_py` that you would change?
+
+**Usage Intuition**
+Is there anything you find particular confusing about how to use `gnss_lib_py`?
