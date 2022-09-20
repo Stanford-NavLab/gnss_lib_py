@@ -338,7 +338,7 @@ def test_solve_wls(derived):
     # len(np.unique(derived["gps_millis",:]))
 
     # test what happens when rows down't exist
-    for row_index in ["gps_millis","x_sv_m","y_sv_m","z_sv_m","b_sv_m"]:
+    for row_index in ["gps_millis","x_sv_m","y_sv_m","z_sv_m"]:
         derived_no_row = derived.remove(rows=row_index)
         with pytest.raises(KeyError) as excinfo:
             solve_wls(derived_no_row)

@@ -53,8 +53,7 @@ def solve_wls(measurements, weight_type = None,
     """
 
     # check that all necessary rows exist
-    measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","b_sv_m",
-                          "gps_millis"])
+    measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","gps_millis"])
 
     states = []
 
