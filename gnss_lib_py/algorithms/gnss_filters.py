@@ -90,14 +90,14 @@ def solve_gnss_ekf(measurements, init_dict = None,
     states = []
 
     for timestamp, delta_t, measurement_subset in measurements.loop_time("gps_millis"):
-        pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)
 
         corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
 
         # remove NaN indexes
-        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=0)
-        pos_sv_m = pos_sv_m[:,not_nan_indexes]
+        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=1)
+        pos_sv_m = pos_sv_m[not_nan_indexes]
         corr_pr_m = corr_pr_m[not_nan_indexes]
 
         # prediction step
@@ -105,8 +105,8 @@ def solve_gnss_ekf(measurements, init_dict = None,
         gnss_ekf.predict(predict_dict=predict_dict)
 
         # update step
-        update_dict = {"pos_sv_m" : pos_sv_m}
-        update_dict["measurement_noise"] = np.eye(pos_sv_m.shape[1])
+        update_dict = {"pos_sv_m" : pos_sv_m.T}
+        update_dict["measurement_noise"] = np.eye(pos_sv_m.shape[0])
         gnss_ekf.update(corr_pr_m, update_dict=update_dict)
 
         states.append([timestamp] + np.squeeze(gnss_ekf.state).tolist())
