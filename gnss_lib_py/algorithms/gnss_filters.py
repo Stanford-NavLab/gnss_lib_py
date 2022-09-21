@@ -10,11 +10,12 @@ import warnings
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
 
-def solve_ekf_gnss(measurements, init_dict = dict(),
-                   params_dict = dict()):
+def solve_gnss_ekf(measurements, init_dict = None,
+                   params_dict = None):
     """Runs a GNSS Extended Kalman Filter across each timestep.
 
     Runs an Extended Kalman Filter across each timestep and adds a new
@@ -44,21 +45,59 @@ def solve_ekf_gnss(measurements, init_dict = dict(),
                           "x_sv_m","y_sv_m","z_sv_m",
                           ])
 
+    if init_dict is None:
+        init_dict = {}
+
+    if "state_0" not in init_dict:
+        pos_0 = None
+        for _, _, measurement_subset in measurements.loop_time("gps_millis"):
+            pos_0 = solve_wls(measurement_subset)
+            if pos_0 is not None:
+                break
+
+        state_0 = np.zeros((7,1))
+        if pos_0 is not None:
+            state_0[:3,0] = pos_0[["x_rx_m","y_rx_m","z_rx_m"]]
+            state_0[6,0] = pos_0[["b_rx_m"]]
+
+        init_dict["state_0"] = state_0
+
+    if "sigma_0" not in init_dict:
+        sigma_0 = np.eye(init_dict["state_0"].size)
+        init_dict["sigma_0"] = sigma_0
+
+    if "Q" not in init_dict:
+        process_noise = np.eye(init_dict["state_0"].size)
+        init_dict["Q"] = process_noise
+
+    if "R" not in init_dict:
+        measurement_noise = np.eye(1) # gets overwritten
+        init_dict["R"] = measurement_noise
+
+    # initialize parameter dictionary
+    if params_dict is None:
+        params_dict = {}
+
+    if "motion_type" not in params_dict:
+        params_dict["motion_type"] = "constant_velocity"
+
+    if "measure_type" not in params_dict:
+        params_dict["measure_type"] = "pseudorange"
+
     # create initialization parameters.
     gnss_ekf = GNSSEKF(init_dict, params_dict)
 
     states = []
 
     for timestamp, delta_t, measurement_subset in measurements.loop_time("gps_millis"):
-
-        pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
+        pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]]
         pos_sv_m = np.atleast_2d(pos_sv_m)
 
         corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
 
         # remove NaN indexes
-        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=1)
-        pos_sv_m = pos_sv_m[not_nan_indexes]
+        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=0)
+        pos_sv_m = pos_sv_m[:,not_nan_indexes]
         corr_pr_m = corr_pr_m[not_nan_indexes]
 
         # prediction step
@@ -67,6 +106,7 @@ def solve_ekf_gnss(measurements, init_dict = dict(),
 
         # update step
         update_dict = {"pos_sv_m" : pos_sv_m}
+        update_dict["measurement_noise"] = np.eye(pos_sv_m.shape[1])
         gnss_ekf.update(corr_pr_m, update_dict=update_dict)
 
         states.append([timestamp] + np.squeeze(gnss_ekf.state).tolist())
@@ -74,7 +114,7 @@ def solve_ekf_gnss(measurements, init_dict = dict(),
     states = np.array(states)
 
     if states.size == 0:
-        warnings.warn("No valid state estimate computed in solve_ekf_gnss, "\
+        warnings.warn("No valid state estimate computed in solve_gnss_ekf, "\
                     + "returning None.", RuntimeWarning)
         return None
 
@@ -83,11 +123,13 @@ def solve_ekf_gnss(measurements, init_dict = dict(),
     state_estimate["x_rx_m"] = states[:,1]
     state_estimate["y_rx_m"] = states[:,2]
     state_estimate["z_rx_m"] = states[:,3]
-    state_estimate["b_rx_m"] = states[:,4]
+    state_estimate["vx_rx_mps"] = states[:,4]
+    state_estimate["vy_rx_mps"] = states[:,5]
+    state_estimate["vz_rx_mps"] = states[:,6]
+    state_estimate["b_rx_m"] = states[:,7]
 
-    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m",
-                                                   "y_rx_m",
-                                                   "z_rx_m"]])
+    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
+                                   "z_rx_m"]].reshape(3,-1))
     state_estimate["lat_rx_deg"] = lat
     state_estimate["lon_rx_deg"] = lon
     state_estimate["alt_rx_deg"] = alt
@@ -118,7 +160,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         self.motion_type = params_dict.get('motion_type','stationary')
         self.measure_type = params_dict.get('measure_type','pseudorange')
 
-    def dyn_model(self, u, predict_dict=dict()):
+    def dyn_model(self, u, predict_dict=None):
         """Nonlinear dynamics
 
         Parameters
@@ -134,6 +176,9 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         new_x : np.ndarray
             Propagated state
         """
+        if predict_dict is None:
+            predict_dict = {}
+
         A = self.linearize_dynamics(predict_dict)
         new_x = A @ self.state
         return new_x
@@ -178,7 +223,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
             raise NotImplementedError
         return z
 
-    def linearize_dynamics(self, predict_dict=dict()):
+    def linearize_dynamics(self, predict_dict=None):
         """Linearization of dynamics model
 
         Parameters
@@ -193,6 +238,9 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         predict_dict : dict
             Dictionary of prediction parameters.
         """
+
+        if predict_dict is None:
+            predict_dict = {}
 
         # uses delta_t from predict_dict if exists, otherwise delta_t
         # from the class initialization.
@@ -213,12 +261,14 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         Parameters
         ----------
         update_dict : dict
-            Update dictionary containing satellite positions with key 'pos_sv_m'
+            Update dictionary containing satellite positions with key
+            ``pos_sv_m``.
 
         Returns
         -------
         H : np.ndarray
-            Jacobian of measurement model, dimension M x N
+            Jacobian of measurement model, of dimension
+            #measurements x #states
         """
         if self.measure_type == 'pseudorange':
             pos_sv_m = update_dict['pos_sv_m']

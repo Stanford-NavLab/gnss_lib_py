@@ -2,16 +2,18 @@
 
 """
 
-__authors__ = "Ashwin Kanhere"
+__authors__ = "Ashwin Kanhere, Derek Knowles"
 __date__ = "25 January 2022"
+
+import os
 
 import pytest
 import numpy as np
 from numpy.random import default_rng
 
-from gnss_lib_py.algorithms.gnss_filters import GNSSEKF
-
-# TODO: test what happens when you use default parameters for GNSS EKF
+from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.parsers.android import AndroidDerived2021
+from gnss_lib_py.algorithms.gnss_filters import GNSSEKF, solve_gnss_ekf
 
 @pytest.fixture(name='init_dict')
 def gnss_init_params():
@@ -94,3 +96,129 @@ def test_stationary_filter(init_dict, params_dict, motion_type):
         gnss_ekf.update(z, update_dict)
     pos_ekf = gnss_ekf.state[:3]
     np.testing.assert_allclose(pos_ekf, init_dict['state_0'][:3], atol=0.1)
+
+@pytest.fixture(name="root_path")
+def fixture_root_path():
+    """Location of measurements for unit test
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
+    return root_path
+
+
+@pytest.fixture(name="derived_path")
+def fixture_derived_path(root_path):
+    """Filepath of Android Derived measurements
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [2]_,
+    particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
+    References
+    ----------
+    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
+    return derived_path
+
+
+@pytest.fixture(name="derived")
+def fixture_load_derived(derived_path):
+    """Load instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    derived_path : pytest.fixture
+        String with location of Android derived measurement file
+
+    Returns
+    -------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+    """
+    derived = AndroidDerived2021(derived_path)
+    return derived
+
+def test_solve_gnss_ekf(derived):
+    """Test that solving for GNSS EKF doesn't fail
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
+
+    """
+    state_estimate = solve_gnss_ekf(derived)
+
+    # result should be a NavData Class instance
+    assert isinstance(state_estimate,type(NavData()))
+
+    # should have four rows
+    assert len(state_estimate.rows) == 11
+
+    # should have the following contents
+    assert "gps_millis" in state_estimate.rows
+    assert "x_rx_m" in state_estimate.rows
+    assert "y_rx_m" in state_estimate.rows
+    assert "z_rx_m" in state_estimate.rows
+    assert "vx_rx_mps" in state_estimate.rows
+    assert "vy_rx_mps" in state_estimate.rows
+    assert "vz_rx_mps" in state_estimate.rows
+    assert "b_rx_m" in state_estimate.rows
+    assert "lat_rx_deg" in state_estimate.rows
+    assert "lon_rx_deg" in state_estimate.rows
+    assert "alt_rx_deg" in state_estimate.rows
+
+    # should have the same length as the number of unique timesteps
+    assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
+
+    # len(np.unique(derived["gps_millis",:]))
+
+    # test what happens when rows down't exist
+    for row_index in ["gps_millis","x_sv_m","y_sv_m","z_sv_m","corr_pr_m"]:
+        derived_no_row = derived.remove(rows=row_index)
+        with pytest.raises(KeyError) as excinfo:
+            solve_gnss_ekf(derived_no_row)
+        assert row_index in str(excinfo.value)
+
+
+def test_solve_gnss_ekf_fails(derived):
+    """Test expected fails for the GNSS EKF.
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+
+    """
+
+    navdata = derived.remove(cols=list(range(len(derived))))
+
+    with pytest.warns(RuntimeWarning) as warns:
+        solve_gnss_ekf(navdata)
+
+    # verify RuntimeWarning
+    assert len(warns) == 1
+    warn = warns[0]
+    assert issubclass(warn.category, RuntimeWarning)
+    assert "No valid state" in str(warn.message)

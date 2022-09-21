@@ -7,8 +7,8 @@ __date__ = "22 October 2021"
 
 import os
 import warnings
-import pytest
 
+import pytest
 import numpy as np
 
 from gnss_lib_py.parsers.android import AndroidDerived2021

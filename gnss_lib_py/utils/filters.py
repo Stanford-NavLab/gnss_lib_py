@@ -18,7 +18,7 @@ class BaseFilter(ABC):
     ----------
     state_0 : np.ndarray
         Initial state estimate
-    P : np.ndarray
+    sigma_0 : np.ndarray
         Current uncertainty estimated for state estimate (2D covariance)
     """
 
@@ -62,7 +62,7 @@ class BaseExtendedKalmanFilter(BaseFilter):
         self.R = init_dict['R']
         self.params_dict = params_dict
 
-    def predict(self, u=None, predict_dict=dict()):
+    def predict(self, u=None, predict_dict=None):
         """Predict the state of the filter given the control input
 
         Parameters
@@ -73,7 +73,9 @@ class BaseExtendedKalmanFilter(BaseFilter):
             Additional parameters needed to implement predict step
         """
         if u is None:
-            u = np.zeros((1,self.state_dim))
+            u = np.zeros((self.state_dim,1))
+        if predict_dict is None:
+            predict_dict = {}
         assert _check_col_vect(u, np.size(u)), "Control input is not a column vector"
         self.state = self.dyn_model(u, predict_dict)  # Can pass parameters via predict_dict
         A = self.linearize_dynamics(predict_dict)
@@ -81,7 +83,7 @@ class BaseExtendedKalmanFilter(BaseFilter):
         assert _check_col_vect(self.state, self.state_dim), "Incorrect state shape after prediction"
         assert _check_square_mat(self.sigma, self.state_dim), "Incorrect covariance shape after prediction"
 
-    def update(self, z, update_dict=dict()):
+    def update(self, z, update_dict=None):
         """Update the state of the filter given a noisy measurement of the state
 
         Parameters
@@ -91,9 +93,16 @@ class BaseExtendedKalmanFilter(BaseFilter):
         update_dict : dict
             Additional parameters needed to implement update step
         """
+        if update_dict is None:
+            update_dict = {}
+
+        # uses process_noise from update_dict if exists, otherwise use
+        # process_noise from the class initialization.
+        measurement_noise = update_dict.get('measurement_noise', self.R)
+
         assert _check_col_vect(z, np.size(z)), "Measurements are not a column vector"
         H = self.linearize_measurements(update_dict)  # Can pass arguments via update_dict
-        S = H @ self.sigma @ H.T + self.R
+        S = H @ self.sigma @ H.T + measurement_noise
         K = self.sigma @ H.T @ np.linalg.inv(S)
         z_expect = self.measure_model(update_dict)  # Can pass arguments via update_dict
         assert _check_col_vect(z_expect, np.size(z)), "Expected measurements are not a column vector"
@@ -105,25 +114,25 @@ class BaseExtendedKalmanFilter(BaseFilter):
         assert _check_square_mat(self.sigma, self.state_dim), "Incorrect covariance shape after update"
 
     @abstractmethod
-    def linearize_dynamics(self, predict_dict=dict()):
+    def linearize_dynamics(self, predict_dict=None):
         """Linearization of system dynamics, should return A matrix
         """
         raise NotImplementedError
 
     @abstractmethod
-    def linearize_measurements(self, update_dict=dict()):
+    def linearize_measurements(self, update_dict=None):
         """Linearization of measurement model, should return H matrix
         """
         raise NotImplementedError
 
     @abstractmethod
-    def measure_model(self, update_dict=dict()):
+    def measure_model(self, update_dict=None):
         """Non-linear measurement model
         """
         raise NotImplementedError
 
     @abstractmethod
-    def dyn_model(self, u, predict_dict=dict()):
+    def dyn_model(self, u, predict_dict=None):
         """Non-linear dynamics model
         """
         raise NotImplementedError
@@ -135,7 +144,7 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
     model
     """
 
-    def dyn_model(self, u, predict_dict=dict()):
+    def dyn_model(self, u, predict_dict=None):
         """Linear dynamics model
 
         Parameters
@@ -149,12 +158,14 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
         -------
         new_x : State after propagation
         """
+        if predict_dict is None:
+            predict_dict = {}
         A = self.linearize_dynamics(predict_dict)
         B = self.get_B(predict_dict)
         new_x = A @ self.state + B @ u
         return new_x
 
-    def measure_model(self, update_dict=dict()):
+    def measure_model(self, update_dict=None):
         """Linear measurement model
 
         Parameters
@@ -166,12 +177,14 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
         -------
         z_expect : Measurement expected for current state
         """
+        if update_dict is None:
+            update_dict = {}
         H = self.linearize_measurements(update_dict)
         z_expect = H @ self.state
         return z_expect
 
     @abstractmethod
-    def get_B(self, predict_dict=dict()):
+    def get_B(self, predict_dict=None):
         """Map from control to state, should return B matrix
         """
         raise NotImplementedError
@@ -207,7 +220,7 @@ class BaseUnscentedKalmanFilter(BaseFilter):
             self.N_sig = int(2 * self.state_dim + 1)
         self.params_dict = params_dict
 
-    def predict(self, u, predict_dict=dict()):
+    def predict(self, u, predict_dict=None):
         """Predict the state of the filter given the control input
 
         Parameters
@@ -217,6 +230,9 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         predict_dict : dict
             Additional parameters needed to implement predict step
         """
+
+        if predict_dict is None:
+            predict_dict = {}
 
         N = self.state_dim
         N_sig = self.N_sig
@@ -238,7 +254,7 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         assert _check_col_vect(self.state, self.state_dim), "Incorrect state shape after prediction"
         assert _check_square_mat(self.sigma, self.state_dim), "Incorrect covariance shape after prediction"
 
-    def update(self, z, update_dict=dict()):
+    def update(self, z, update_dict=None):
         """Update the state of the filter given a noisy measurement of the state
 
         Parameters
@@ -248,6 +264,9 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         update_dict : dict
             Additional parameters needed to implement update step
         """
+        if update_dict is None:
+            update_dict = {}
+
         assert _check_col_vect(z, np.size(z)), "Measurements are not a column vector"
         N = self.state_dim
         N_sig = self.N_sig
@@ -309,13 +328,13 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         return np.expand_dims(mu, axis=1), S
 
     @abstractmethod
-    def measure_model(self, x, update_dict=dict()):
+    def measure_model(self, x, update_dict=None):
         """Non-linear measurement model
         """
         raise NotImplementedError
 
     @abstractmethod
-    def dyn_model(self, x, u, predict_dict=dict()):
+    def dyn_model(self, x, u, predict_dict=None):
         """Non-linear dynamics model
         """
         raise NotImplementedError
