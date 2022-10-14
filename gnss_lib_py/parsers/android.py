@@ -42,7 +42,6 @@ class AndroidDerived2021(NavData):
 
         """
         pd_df = pd.read_csv(input_path)
-
         # Correction 1: Mapping _derived timestamps to previous timestamp
         # for correspondance with ground truth and Raw data
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
@@ -83,8 +82,7 @@ class AndroidDerived2021(NavData):
                      - self['intersignal_bias_m'] \
                      - self['tropo_delay_m'] \
                      - self['iono_delay_m']
-        self['corr_pr_m'] = pr_corrected
-        
+        self['corr_pr_m'] = pr_corrected        
         # rename gnss_id column to constellation type
         constellation_map = {0.:"unknown",
                              1.:"gps",
