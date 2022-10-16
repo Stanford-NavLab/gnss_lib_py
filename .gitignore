@@ -6,14 +6,16 @@ data/*
 # development folder
 dev/*
 !dev/.gitkeep
+gnss_lib_py_dev/
 
 # development folder
 results/*
 !results/.gitkeep
 
 # ignore downloaded csv files in notebook tutorials
-notebooks/tutorials/Pixel4XL_derived.csv
-docs/source/tutorials/*.csv
+*.csv
+!data/unit_test/*/*.csv
+!notebooks/tutorials/myreceiver.csv
 
 #Excluding VS Code files
 .vscode/*

@@ -33,6 +33,14 @@ Standard GitHub Workflow
 5. Make changes locally and document them appropriately. See the
    :ref:`Documentation<documentation>` section for more details.
 
+   If the feature branch includes new functionality, you must also:
+
+   * update the "Code Organization" section of the :code:`README.md`
+   * update the "Code Organization" section of
+     :code:`docs/source/index.rst` to match the :code:`README.md`
+   * add a section in the appropriate tutorial notebook located in
+     :code:`notebooks/tutorials/*`
+
 6. Add tests for the newly added code and ensure the new code is covered.
    See the :ref:`Testing<testing>` section for more details.
 
@@ -86,6 +94,14 @@ NAVLab GitHub Workflow
 
 4. Make changes locally and document them appropriately. See the
    :ref:`Documentation<documentation>` section for more details.
+
+   If the feature branch includes new functionality, you must also:
+
+   * update the "Code Organization" section of the :code:`README.md`
+   * update the "Code Organization" section of
+     :code:`docs/source/index.rst` to match the :code:`README.md`
+   * add a section in the appropriate tutorial notebook located in
+     :code:`notebooks/tutorials/*`
 
 5. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.sh>`__.
 
@@ -155,6 +171,16 @@ Pull Request Review Workflow
 3. Verify that documentation is complete and updated if necessary. See
    the :ref:`Documentation<documentation>` section for more details on
    what is expected.
+
+   If the feature branch included new functionality, the following
+   should have also been updated:
+   
+   * the "Code Organization" section of the :code:`README.md`
+   * the "Code Organization" section of
+     :code:`docs/source/index.rst` to match the :code:`README.md`
+   * the appropriate tutorial notebook located in
+     :code:`notebooks/tutorials/*` with a simple example of the new
+     functionality
 
 4. Verify that all tests run on your system:
 
