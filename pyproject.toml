@@ -34,6 +34,7 @@ pytest-lazy-fixture = "^0.6.3"
 matplotlib = "^3.5.1"
 plotly = "^5.8.0"
 kaleido = "0.2.1"
+bagpy = "^0.5"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.1.1"
