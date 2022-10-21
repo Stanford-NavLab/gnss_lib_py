@@ -176,7 +176,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         new_x : np.ndarray
             Propagated state
         """
-        if predict_dict is None:
+        if predict_dict is None: #pragma: no cover
             predict_dict = {}
 
         A = self.linearize_dynamics(predict_dict)
@@ -219,7 +219,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
                            + (self.state[2] - pos_sv_m[2, :])**2) \
                            + self.state[6]
             z = np.reshape(pseudo, [-1, 1])
-        else:
+        else: #pragma: no cover
             raise NotImplementedError
         return z
 
@@ -239,7 +239,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
             Dictionary of prediction parameters.
         """
 
-        if predict_dict is None:
+        if predict_dict is None: # pragma: no cover
             predict_dict = {}
 
         # uses delta_t from predict_dict if exists, otherwise delta_t
@@ -251,7 +251,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         elif self.motion_type == 'constant_velocity':
             A = np.eye(7)
             A[:3, -4:-1] = delta_t*np.eye(3)
-        else:
+        else: # pragma: no cover
             raise NotImplementedError
         return A
 
@@ -278,6 +278,6 @@ class GNSSEKF(BaseExtendedKalmanFilter):
             rx_pos = np.reshape(self.state[:3], [-1, 1])
             H[:, :3] = (rx_pos - pos_sv_m).T/pseudo_expect
             H[:, 6] = 1
-        else:
+        else: # pragma: no cover
             raise NotImplementedError
         return H
