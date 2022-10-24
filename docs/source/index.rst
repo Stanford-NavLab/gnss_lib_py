@@ -79,6 +79,7 @@ In the directory organization above:
     algorithms are implemented in the :code:`algorithms`:
 
       * Weighted Least Squares
+      * Extended Kalman Filter
       * Calculating pseudorange residuals
   * The data parsers in the :code:`parsers` directory allow for loading
     GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class.

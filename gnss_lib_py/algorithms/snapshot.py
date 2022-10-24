@@ -53,8 +53,7 @@ def solve_wls(measurements, weight_type = None,
     """
 
     # check that all necessary rows exist
-    measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","b_sv_m",
-                          "gps_millis"])
+    measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","gps_millis"])
 
     states = []
 
@@ -103,9 +102,8 @@ def solve_wls(measurements, weight_type = None,
     state_estimate["z_rx_m"] = states[:,3]
     state_estimate["b_rx_m"] = states[:,4]
 
-    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m",
-                                                   "y_rx_m",
-                                                   "z_rx_m"]])
+    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
+                                   "z_rx_m"]].reshape(3,-1))
     state_estimate["lat_rx_deg"] = lat
     state_estimate["lon_rx_deg"] = lon
     state_estimate["alt_rx_deg"] = alt
