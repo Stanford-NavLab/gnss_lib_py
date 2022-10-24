@@ -296,7 +296,7 @@ def parse_clockfile(input_path, constellation = 'gps'):
 
     return clkdata
 
-def extract_sp3_func(sp3data, sidx, ipos = 10, \
+def extract_sp3(sp3data, sidx, ipos = 10, \
                      method = 'CubicSpline', verbose = False):
     """Computing interpolated function over sp3 data for any GNSS
 
@@ -341,7 +341,7 @@ def extract_sp3_func(sp3data, sidx, ipos = 10, \
 
     return func_satpos
 
-def extract_clk_func(clkdata, sidx, ipos = 10, \
+def extract_clk(clkdata, sidx, ipos = 10, \
                      method='CubicSpline', verbose = False):
     """Computing interpolated function over clk data for any GNSS
 
@@ -378,7 +378,7 @@ def extract_clk_func(clkdata, sidx, ipos = 10, \
 
     return func_satbias
 
-def compute_sp3_snapshot(func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'):
+def sp3_snapshot(func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'):
     """Compute satellite 3-D position and velocity from sp3 interpolated function
 
     Parameters
@@ -415,7 +415,7 @@ def compute_sp3_snapshot(func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'
 
     return satpos_sp3, (satvel_sp3 * 1e3)
 
-def compute_clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline'):
+def clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline'):
     """Compute satellite clock bias and drift from clk interpolated function
 
     Parameters
@@ -447,7 +447,7 @@ def compute_clk_snapshot(func_satbias, cxtime, hstep = 5e-1, method='CubicSpline
 
     return satbias_clk, (satdrift_clk * 1e3)
 
-def compute_single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
+def single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                                          clk_parsed_file, verbose = False):
     """Compute satellite information using .sp3 and .clk for any GNSS constellation
 
@@ -546,14 +546,14 @@ def compute_single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                 # if does not hold, recompute the interpolation function based on current iref
                 if verbose:
                     print('SP3: Computing new interpolation!')
-                func_satpos = extract_sp3_func(sp3_parsed_file[prn], \
+                func_satpos = extract_sp3(sp3_parsed_file[prn], \
                                                sp3_iref, method = interp_method)
                 # Update the relevant interp function and iref values
                 satfunc_xyz_old[prn] = func_satpos
                 sp3_iref_old[prn] = sp3_iref
 
             # Compute satellite position and velocity using interpolated function
-            satpos_sp3, satvel_sp3 = compute_sp3_snapshot(func_satpos, \
+            satpos_sp3, satvel_sp3 = sp3_snapshot(func_satpos, \
                                                           (timestep - navdata_offset), \
                                                           method = interp_method)
 
@@ -572,7 +572,7 @@ def compute_single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                 # if does not hold, recompute the interpolation function based on current iref
                 if verbose:
                     print('CLK: Computing new interpolation!')
-                func_satbias = extract_clk_func(clk_parsed_file[prn], \
+                func_satbias = extract_clk(clk_parsed_file[prn], \
                                                 clk_iref, method = interp_method)
                 # Update the relevant interp function and iref values
                 satfunc_t_old[prn] = func_satbias
@@ -580,7 +580,7 @@ def compute_single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
 
             # Compute satellite clock bias and drift using interpolated function
             satbias_clk, \
-            satdrift_clk = compute_clk_snapshot(func_satbias, \
+            satdrift_clk = clk_snapshot(func_satbias, \
                                                 (timestep - navdata_offset), \
                                                 method = interp_method)
             if verbose:
@@ -656,7 +656,7 @@ def compute_single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
 
     return navdata
 
-def compute_multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
+def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
                                         gnss_consts, verbose = False):
     """Compute satellite information using .sp3 and .clk for multiple GNSS
 
@@ -685,7 +685,7 @@ def compute_multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
 
         sp3_parsed_gnss = parse_sp3(sp3_path, constellation = sv)
         clk_parsed_gnss = parse_clockfile(clk_path, constellation = sv)
-        derived_prcs_gnss = compute_single_gnss_from_precise_eph(navdata_prcs_gnss, \
+        derived_prcs_gnss = single_gnss_from_precise_eph(navdata_prcs_gnss, \
                                                                  sp3_parsed_gnss, \
                                                                  clk_parsed_gnss, \
                                                                  verbose = verbose)
@@ -693,7 +693,7 @@ def compute_multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
 
     return navdata_prcs_merged
 
-def compute_sv_gps_from_brdcst_eph(navdata, verbose = False):
+def sv_gps_from_brdcst_eph(navdata, verbose = False):
     """Compute satellite information using .n for any GNSS constellation
 
     Parameters
