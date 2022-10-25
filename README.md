@@ -70,6 +70,7 @@ In the directory organization above:
     algorithms are implemented in the `algorithms`:
 
       * Weighted Least Squares
+      * Extended Kalman Filter
       * Calculating pseudorange residuals
       * Calculating multi-GNSS satellite PVT information
   * The data parsers in the `parsers` directory allow for either loading
