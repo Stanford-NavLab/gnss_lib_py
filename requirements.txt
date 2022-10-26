@@ -90,7 +90,7 @@ reindent==3.5.1
 scipy==1.7.3; python_version >= "3.7" and python_version < "3.11"
 send2trash==1.8.0; python_version >= "3.7"
 setuptools-scm==6.4.2; python_version >= "3.7"
-six==1.16.0; python_full_version >= "3.7.1" and python_version >= "3.7"
+six==1.16.0; python_full_version >= "3.7.1" and python_version >= "3.7" and (python_version >= "3.7" and python_full_version < "3.0.0" or python_full_version >= "3.3.0" and python_version >= "3.7")
 soupsieve==2.3.2.post1; python_full_version >= "3.6.0" and python_version >= "3.7"
 tenacity==8.0.1; python_version >= "3.6"
 terminado==0.15.0; python_version >= "3.7"

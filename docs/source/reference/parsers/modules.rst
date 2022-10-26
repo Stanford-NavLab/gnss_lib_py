@@ -7,3 +7,4 @@ parsers
    android
    ephemeris
    navdata
+   precise_ephemerides
