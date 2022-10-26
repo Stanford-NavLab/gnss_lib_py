@@ -38,13 +38,13 @@ jobs:
     # Load cached environment, if it exists
     - name: Load cached poetry environment
       id: cached-poetry-dependencies
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
     - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.catch-hit != 'true'
-      run: poetry install
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-interaction
     # Install pandoc for building docs
     - name: Install pandoc for Ubuntu
       if: matrix.os == 'ubuntu-latest'

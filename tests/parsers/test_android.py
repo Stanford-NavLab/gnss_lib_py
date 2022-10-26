@@ -642,4 +642,4 @@ def test_remove_all_data(derived_path_xl):
         derived = android.AndroidDerived2021(derived_path_xl,
                                    remove_timing_outliers=True)
 
-    assert derived.shape == (21,0)
+    assert derived.shape[1] == 0

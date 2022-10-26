@@ -82,8 +82,7 @@ class AndroidDerived2021(NavData):
                      - self['intersignal_bias_m'] \
                      - self['tropo_delay_m'] \
                      - self['iono_delay_m']
-        self['corr_pr_m'] = pr_corrected
-
+        self['corr_pr_m'] = pr_corrected        
         # rename gnss_id column to constellation type
         constellation_map = {0.:"unknown",
                              1.:"gps",
