@@ -14,11 +14,11 @@ results/*
 
 # ignore downloaded csv files in notebook tutorials
 *.csv
+!data/unit_test/*/*.csv
+!notebooks/tutorials/myreceiver.csv
 # Ignore downloaded precise ephimerides files by default
 *.sp3
 *.clk
-!data/unit_test/*/*.csv
-!notebooks/tutorials/myreceiver.csv
 # Include unit test files for precise ephimerides
 !data/unit_test/*/*.sp3
 !data/unit_test/*/*.clk
