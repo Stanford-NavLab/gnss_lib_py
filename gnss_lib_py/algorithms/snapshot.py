@@ -82,15 +82,16 @@ def solve_wls(measurements, weight_type = None,
         try:
             position = wls(position, pos_sv_m, corr_pr_m, weights,
                            only_bias, tol, max_count)
-
-            states.append([timestamp] + np.squeeze(position).tolist())
         except RuntimeError as error:
             warnings.warn("RuntimeError encountered at gps_millis: " \
                         + str(int(timestamp)) + " RuntimeError: " \
                         + str(error), RuntimeWarning)
+            position = np.full((4,1), np.nan)
+        states.append([timestamp] + np.squeeze(position).tolist())
+
     states = np.array(states)
 
-    if states.size == 0:
+    if np.isnan(states[:,1:]).all():
         warnings.warn("No valid state estimate computed in WLS, "\
                     + "returning None.", RuntimeWarning)
         return None
