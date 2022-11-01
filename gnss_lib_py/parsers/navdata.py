@@ -729,16 +729,23 @@ class NavData():
 
         return dframe
 
-    def save_csv(self, output_path="navdata.csv"): #pragma: no cover
+    def to_csv(self, output_path="navdata.csv", **kwargs): #pragma: no cover
         """Save data as csv
 
         Parameters
         ----------
         output_path : string
             Path where csv should be saved
+        index : bool
+            If True (default), will write csv row names (index).
+        header : bool
+            If True (default), will list out names as columns
+        sep : string
+            Delimiter string of length 1, defaults to ‘,’
+
         """
         pd_df = self.pandas_df()
-        pd_df.to_csv(output_path)
+        pd_df.to_csv(output_path, **kwargs)
 
     @property
     def inv_map(self):
