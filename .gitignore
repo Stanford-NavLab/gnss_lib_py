@@ -16,6 +16,12 @@ results/*
 *.csv
 !data/unit_test/*/*.csv
 !notebooks/tutorials/myreceiver.csv
+# Ignore downloaded precise ephimerides files by default
+*.sp3
+*.clk
+# Include unit test files for precise ephimerides
+!data/unit_test/*/*.sp3
+!data/unit_test/*/*.clk
 
 #Excluding VS Code files
 .vscode/*
