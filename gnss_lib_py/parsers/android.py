@@ -82,7 +82,7 @@ class AndroidDerived2021(NavData):
                      - self['intersignal_bias_m'] \
                      - self['tropo_delay_m'] \
                      - self['iono_delay_m']
-        self['corr_pr_m'] = pr_corrected        
+        self['corr_pr_m'] = pr_corrected
         # rename gnss_id column to constellation type
         constellation_map = {0.:"unknown",
                              1.:"gps",
@@ -234,7 +234,10 @@ class AndroidDerived2022(NavData):
                    'TroposphericDelayMeters' : 'tropo_delay_m',
                    'Cn0DbHz': 'cn0_dbhz',
                    'AccumulatedDeltaRangeMeters' : 'accumulated_delta_range_m',
-                   'AccumulatedDeltaRangeUncertaintyMeters': 'accumulated_delta_range_sigma_m'
+                   'AccumulatedDeltaRangeUncertaintyMeters': 'accumulated_delta_range_sigma_m',
+                   'WlsPositionXEcefMeters' : 'x_rx_baseline_m',
+                   'WlsPositionYEcefMeters' : 'y_rx_baseline_m',
+                   'WlsPositionZEcefMeters' : 'z_rx_baseline_m',
                    }
         return row_map
 
