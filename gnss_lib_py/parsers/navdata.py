@@ -212,7 +212,8 @@ class NavData():
         elif axis == 1: # concatenate new columns
             new_navdata = NavData()
             # get unique list of row names
-            combined_rows = set(self.rows + navdata.rows)
+            combined_rows = self.rows  + [row for row in navdata.rows
+                                          if row not in self.rows]
 
             for row in combined_rows:
                 combined_row = np.array([])
