@@ -34,7 +34,7 @@ def prepare_submission(data, state_wls, trip_id):
     output = NavData()
 
     output["tripId"] = np.array([trip_id] * state_wls.shape[1])
-    output["UnixTimeMillis"] = data["unix_millis"]
+    output["UnixTimeMillis"] = np.unique(data["unix_millis"])
     output["LatitudeDegrees"] = state_wls["lat_rx_deg"]
     output["LongitudeDegrees"] = state_wls["lon_rx_deg"]
 
