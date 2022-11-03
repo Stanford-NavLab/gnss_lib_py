@@ -15,7 +15,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      id: setup-python
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Poetry
@@ -26,13 +27,15 @@ jobs:
         installer-parallel: true # default option selected currently
     - name: Load cached poetry environment
       id: cached-poetry-dependencies
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.catch-hit != 'true'
-      run: poetry install
+      run: |
+        poetry install --no-interaction --no-root
+        poetry install --no-interaction
     - name: Analysing the code with pylint
       run: |
         poetry run pylint $(git ls-files 'gnss_lib_py/*.py') || poetry run pylint-exit --error-fail $?
