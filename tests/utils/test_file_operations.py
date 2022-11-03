@@ -5,13 +5,9 @@
 __authors__ = "D. Knowles"
 __date__ = "01 Jul 2022"
 
-import os
-
 import gnss_lib_py.utils.file_operations as fo
 
 # test_make_dir
-# test save_figure
-# test close_figures
 
 def test_get_timestamp():
     """Test for getting timestamp.

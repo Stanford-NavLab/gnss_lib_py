@@ -2,7 +2,7 @@
 
 """
 
-__authors__ = "Ashwin Kanhere"
+__authors__ = "Ashwin Kanhere, Derek Knowles"
 __date__ = "10 Nov 2021"
 
 import os
@@ -14,6 +14,7 @@ import pandas as pd
 from gnss_lib_py.parsers import android
 from gnss_lib_py.parsers.navdata import NavData
 
+# pylint: disable=protected-access
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -179,7 +180,6 @@ def fixture_load_derived(derived_path):
     derived = android.AndroidDerived2021(derived_path)
     return derived
 
-
 def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
     """Test if naive dataframe and AndroidDerived2021 contain same data.
 
@@ -215,6 +215,8 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
         measure_df.replace({'signal_type',s_value},s_key,inplace=True)
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
+    pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
+    pd_df.reset_index(drop=True, inplace=True)
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
                                   measure_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
@@ -289,6 +291,42 @@ def test_get_and_set_str(derived):
 
     np.testing.assert_equal(derived[key, :], value)
 
+def test_android_concat(derived, pd_df):
+    """Test concat on Android data.
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+    pd_df : pytest.fixture
+        pd.DataFrame for testing measurements
+    """
+
+    # remove first timestamp to match
+    pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
+
+    # extract and combine gps and glonass data
+    gps_data = derived.where("gnss_id","gps")
+    glonass_data = derived.where("gnss_id","glonass")
+    gps_glonass_navdata = gps_data.concat(glonass_data)
+    glonass_gps_navdata = glonass_data.concat(gps_data)
+
+    # combine using pandas
+    gps_df = pd_df[pd_df["constellationType"]==1]
+    glonass_df = pd_df[pd_df["constellationType"]==3]
+    gps_glonass_df = pd.concat((gps_df,glonass_df))
+    glonass_gps_df = pd.concat((glonass_df,gps_df))
+
+    for combined_navdata, combined_df in [(gps_glonass_navdata, gps_glonass_df),
+                                          (glonass_gps_navdata, glonass_gps_df)]:
+
+        # check a few rows to make sure they're equal
+        np.testing.assert_array_equal(combined_navdata["raw_pr_m"],
+                                      combined_df["rawPrM"])
+        np.testing.assert_array_equal(combined_navdata["raw_pr_sigma_m"],
+                                      combined_df["rawPrUncM"])
+        np.testing.assert_array_equal(combined_navdata["intersignal_bias_m"],
+                                      combined_df["isrbM"])
 
 def test_imu_raw(android_raw_path):
     """Test that AndroidRawImu initialization
@@ -324,6 +362,29 @@ def test_navdata_type(derived):
     """
     isinstance(derived, NavData)
     isinstance(derived, android.AndroidDerived2021)
+
+def test_timestep_parsing(derived_path_xl):
+    """Test that the timesteps contain the same satellites.
+
+    """
+
+    pd_df_xl = pd.read_csv(derived_path_xl)
+    derived_xl = android.AndroidDerived2021(derived_path_xl,
+                               remove_timing_outliers=False)
+
+    pd_svid_groups = []
+    for _, group in pd_df_xl.groupby("millisSinceGpsEpoch"):
+        pd_svid_groups.append(group["svid"].tolist())
+    pd_svid_groups.pop(0)
+
+    navdata_svid_groups = []
+    for _, _, group in derived_xl.loop_time("gps_millis"):
+        navdata_svid_groups.append(group["sv_id"].astype(int).tolist())
+
+    assert len(pd_svid_groups) == len(navdata_svid_groups)
+
+    for pd_ids, navdata_ids in zip(pd_svid_groups,navdata_svid_groups):
+        assert pd_ids == navdata_ids
 
 
 def test_shape_update(derived):
@@ -416,7 +477,7 @@ def fixture_gtruth_path(root_path):
     return gtruth_path
 
 @pytest.fixture(name="gtruth")
-def fixture_load_gtruth(gtruth_path):
+def fixture_load_gtruth(android_gtruth_path):
     """Load instance of AndroidGroundTruth2021
 
     Parameters
@@ -429,32 +490,24 @@ def fixture_load_gtruth(gtruth_path):
     gtruth : AndroidGroundTruth2021
         Instance of AndroidGroundTruth2021 for testing
     """
-    gtruth = android.AndroidGroundTruth2021(gtruth_path)
+    gtruth = android.AndroidGroundTruth2021(android_gtruth_path)
+
     return gtruth
 
-def test_android_gtruth(android_gtruth_path):
-    """Test that AndroidGroungTruth initialization
+def test_android_gtruth(gtruth):
+    """Test AndroidGroundTruth initialization
 
     Parameters
     ----------
-    android_gtruth_path : pytest.fixture
-        Path to Android Ground Truth text log file
+    gtruth : AndroidGroundTruth2021
+        Instance of AndroidGroundTruth2021 for testing
+
     """
-    test_gtruth = android.AndroidGroundTruth2021(android_gtruth_path)
-    isinstance(test_gtruth, NavData)
 
+    isinstance(gtruth, NavData)
+    isinstance(gtruth, android.AndroidGroundTruth2021)
 
-def test_gt_2022(root_path):
-    """Testing that Android ground truth 2022 is created without errors.
-
-    Parameters
-    ----------
-    gt_2022_path : string
-        Location for the unit_test Android ground truth 2022 measurements
-    """
-    gt_path = os.path.join(root_path, 'ground_truth.csv')
-    gt_2021 = android.AndroidGroundTruth2021(gt_path)
-    assert isinstance(gt_2021, NavData)
+    assert int(gtruth["gps_millis",3]) == 1273529466442
 
 
 ######################################################################
@@ -589,4 +642,4 @@ def test_remove_all_data(derived_path_xl):
         derived = android.AndroidDerived2021(derived_path_xl,
                                    remove_timing_outliers=True)
 
-    assert derived.shape == (21,0)
+    assert derived.shape[1] == 0

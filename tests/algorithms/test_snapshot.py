@@ -7,8 +7,8 @@ __date__ = "22 October 2021"
 
 import os
 import warnings
-import pytest
 
+import pytest
 import numpy as np
 
 from gnss_lib_py.parsers.android import AndroidDerived2021
@@ -17,7 +17,7 @@ from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 
 
 # Defining test fixtures
-TEST_REPEAT_COUNT = 20
+TEST_REPEAT_COUNT = 10
 
 @pytest.fixture(name="tolerance")
 def fixture_tolerance():
@@ -320,37 +320,29 @@ def test_solve_wls(derived):
     assert isinstance(state_estimate,type(NavData()))
 
     # should have four rows
-    assert len(state_estimate.rows) == 4
+    assert len(state_estimate.rows) == 8
 
     # should have the following contents
+    assert "gps_millis" in state_estimate.rows
     assert "x_rx_m" in state_estimate.rows
     assert "y_rx_m" in state_estimate.rows
     assert "z_rx_m" in state_estimate.rows
     assert "b_rx_m" in state_estimate.rows
+    assert "lat_rx_deg" in state_estimate.rows
+    assert "lon_rx_deg" in state_estimate.rows
+    assert "alt_rx_deg" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
-    assert len(state_estimate) == len(np.unique(derived["gps_millis",:]))
+    assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
+
+    # len(np.unique(derived["gps_millis",:]))
 
     # test what happens when rows down't exist
-    derived_no_x_sv_m = derived.remove(rows="x_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_x_sv_m)
-    assert "x_sv_m" in str(excinfo.value)
-
-    derived_no_y_sv_m = derived.remove(rows="y_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_y_sv_m)
-    assert "y_sv_m" in str(excinfo.value)
-
-    derived_no_z_sv_m = derived.remove(rows="z_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_z_sv_m)
-    assert "z_sv_m" in str(excinfo.value)
-
-    derived_no_b_sv_m = derived.remove(rows="b_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_b_sv_m)
-    assert "b_sv_m" in str(excinfo.value)
+    for row_index in ["gps_millis","x_sv_m","y_sv_m","z_sv_m"]:
+        derived_no_row = derived.remove(rows=row_index)
+        with pytest.raises(KeyError) as excinfo:
+            solve_wls(derived_no_row)
+        assert row_index in str(excinfo.value)
 
 def test_solve_wls_weights(derived, tolerance):
     """Tests that weights are working for weighted least squares.
@@ -464,3 +456,52 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
     with pytest.raises(TypeError):
         wls(rx_est_m, pos_sv_m, noisy_pr_m,
             weights=np.ones(pos_sv_m.shape[0]+1,1))
+
+def test_wls_fails(capsys):
+    """Test expected fails
+
+    Parameters
+    ----------
+    capsys : error
+        The capsys fixture allows access to stdout/stderr output created
+        during test execution.
+
+    """
+
+    pos_sv_m = 5.*np.ones((5,3))
+    pos_sv_m[0,0] = np.nan
+
+    wls(np.ones((4,1)),pos_sv_m,np.ones((5,1)))
+    captured = capsys.readouterr()
+    assert captured.out == "SVD did not converge\n"
+
+def test_solve_wls_fails(derived):
+    """Test expected fails
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+
+    """
+
+    navdata = derived.remove(cols=list(range(3,len(derived))))
+
+    with pytest.warns(RuntimeWarning) as warns:
+        solve_wls(navdata)
+
+    # verify RuntimeWarning
+    assert len(warns) == 2
+
+    caught_four_sats = False
+    caught_empty_state = False
+    for warn in warns:
+        assert issubclass(warn.category, RuntimeWarning)
+        assert "WLS" in str(warn.message)
+        if "four satellites" in str(warn.message):
+            caught_four_sats = True
+        elif "No valid state" in str(warn.message):
+            caught_empty_state = True
+
+    assert caught_four_sats
+    assert caught_empty_state

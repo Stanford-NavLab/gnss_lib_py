@@ -13,7 +13,7 @@ import pandas as pd
 from numpy.random import default_rng
 
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils.coordinates import ecef_to_geodetic
+from gnss_lib_py.utils.coordinates import ecef_to_geodetic, ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
@@ -248,7 +248,7 @@ def _find_visible_svs(gpsweek, gpstime, rx_ecef, ephem, el_mask=5.):
 
     # Find elevation and azimuth angles for all satellites
     _, approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
-    approx_el_az = find_elaz(np.reshape(rx_ecef, [1, 3]), approx_pos)
+    approx_el_az = ecef_to_el_az(np.reshape(rx_ecef, [1, 3]), approx_pos)
     # Keep attributes of only those satellites which are visible
     keep_ind = approx_el_az[:,0] > el_mask
     # prns = approx_posvel.index.to_numpy()[keep_ind]
@@ -672,7 +672,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     _, sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
 
     # compute elevation and azimuth
-    el_az = find_elaz(rx_ecef, sv_pos)
+    el_az = ecef_to_el_az(rx_ecef, sv_pos)
     el_r  = np.deg2rad(el_az[:,0])
 
     # Calculate the WGS-84 latitude/longitude of the receiver
@@ -693,81 +693,6 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
 
     print('tropo_delay type in calculate_tropo_delay', type(tropo_delay))
     return tropo_delay
-
-
-def find_elaz(rx_pos, sv_pos):
-    """Calculate the elevation and azimuth from a single receiver to multiple
-    satellites.
-
-    Parameters
-    ----------
-    rx_pos : ndarray
-        1x3 vector containing [X, Y, Z] coordinate of receiver
-    sv_pos : ndarray
-        Nx3 array  containing [X, Y, Z] coordinates of satellites
-
-    Returns
-    -------
-    el_az : ndarray
-        Nx2 array containing the elevation and azimuth from the
-        receiver to the requested satellites. Elevation and azimuth are
-        given in decimal degrees.
-
-    Notes
-    -----
-    Code written by J. Makela.
-    AE 456, Global Navigation Sat Systems, University of Illinois
-    Urbana-Champaign. Fall 2017
-
-    """
-
-    # check for 1D case:
-    dim = len(rx_pos.shape)
-    if dim == 1:
-        rx_pos = np.reshape(rx_pos,(1,3))
-
-    dim = len(sv_pos.shape)
-    if dim == 1:
-        sv_pos = np.reshape(sv_pos,(1,3))
-
-    # Convert the receiver location to WGS84
-    rx_lla = ecef_to_geodetic(rx_pos)
-    assert np.shape(rx_lla)==(1,3)
-
-    # Create variables with the latitude and longitude in radians
-    lat = np.deg2rad(rx_lla[0,0])
-    lon = np.deg2rad(rx_lla[0,1])
-
-    # Create the 3 x 3 transform matrix from ECEF to ecef_to_ven
-    cos_lon = np.cos(lon)
-    cos_lat = np.cos(lat)
-    sin_lon = np.sin(lon)
-    sin_lat = np.sin(lat)
-    ecef_to_ven = np.array([[ cos_lat*cos_lon,  cos_lat*sin_lon, sin_lat],
-                            [-sin_lon        ,  cos_lon        , 0.     ],
-                            [-sin_lat*cos_lon, -sin_lat*sin_lon, cos_lat]])
-
-    # Replicate the rx_pos array to be the same size as the satellite array
-    rx_array = np.ones_like(sv_pos) * rx_pos
-
-    # Calculate the pseudorange for each satellite
-    p = sv_pos - rx_array
-
-    # Calculate the length of this vector
-    n = np.array([np.sqrt(p[:,0]**2 + p[:,1]**2 + p[:,2]**2)])
-
-    # Create the normalized unit vector
-    p = p / (np.ones_like(p) * n.T)
-
-    # Perform the transform of the normalized pseudorange from ECEF to VEN
-    p_ven = np.dot(ecef_to_ven, p.T)
-
-    # Calculate elevation and azimuth in degrees
-    el_az = np.zeros([sv_pos.shape[0],2])
-    el_az[:,0] = np.rad2deg((np.pi/2. - np.arccos(p_ven[0,:])))
-    el_az[:,1] = np.rad2deg(np.arctan2(p_ven[1,:],p_ven[2,:]))
-
-    return el_az
 
 def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
     """Compute the eccentric anomaly from mean anomaly using the Newton-Raphson

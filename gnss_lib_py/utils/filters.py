@@ -1,45 +1,14 @@
-"""Parent classes for Kalman filter algorithms
+"""Parent classes for Kalman filter algorithms.
 
 """
 
 __authors__ = "Ashwin Kanhere, Shivam Soni"
 __date__ = "20 January 2020"
 
-import numpy as np
-from scipy.linalg import sqrtm
 from abc import ABC, abstractmethod
 
-
-def check_col_vect(vect, dim):
-    """Boolean for whether input vector is column shaped or not
-
-    Parameters
-    ----------
-    vect : np.ndarray
-        Input vector
-    dim : int
-        Number of row elements in column vector
-    """
-    check = False
-    if np.shape(vect)[0] == dim and np.shape(vect)[1] == 1:
-        check = True
-    return check
-
-
-def check_square_mat(mat, dim):
-    """Boolean for whether input matrices are square or not
-
-    Parameters
-    ----------
-    vect : np.ndarray
-        Input matrix
-    dim : int
-        Number of elements for row and column = N for N x N
-    """
-    check = False
-    if np.shape(mat)[0] == dim and np.shape(mat)[1] == dim:
-        check = True
-    return check
+import numpy as np
+from scipy.linalg import sqrtm
 
 
 class BaseFilter(ABC):
@@ -47,20 +16,18 @@ class BaseFilter(ABC):
 
     Attributes
     ----------
-    x_dim : int
-        Dimension of the state vector being estimated
-    x : np.ndarray
-        Current state estimate
-    P : np.ndarray
+    state_0 : np.ndarray
+        Initial state estimate
+    sigma_0 : np.ndarray
         Current uncertainty estimated for state estimate (2D covariance)
     """
 
-    def __init__(self, x_dim, x0, P0):
-        self.x_dim = x_dim
-        assert check_col_vect(x0, self.x_dim), "Incorrect initial state shape"
-        assert check_square_mat(P0, self.x_dim), "Incorrect initial cov shape"
-        self.x = x0
-        self.P = P0
+    def __init__(self, state_0, sigma_0):
+        self.state_dim = state_0.size
+        assert _check_col_vect(state_0, self.state_dim), "Incorrect initial state shape"
+        assert _check_square_mat(sigma_0, self.state_dim), "Incorrect initial cov shape"
+        self.state = state_0
+        self.sigma = sigma_0
 
     @abstractmethod
     def predict(self):
@@ -84,33 +51,37 @@ class BaseExtendedKalmanFilter(BaseFilter):
         Process noise covariance, tunable parameter
     R : np.ndarray
         Measurement noise covariance, tunable parameter
-    params_dict : Dict
+    params_dict : dict
         Dictionary of additional parameters required, implementation dependent
     """
 
     def __init__(self, init_dict, params_dict):
-        super().__init__(init_dict['x_dim'], init_dict['x0'], init_dict['P0'])
-        assert check_square_mat(init_dict['Q'], self.x_dim)
+        super().__init__(init_dict['state_0'], init_dict['sigma_0'])
+        assert _check_square_mat(init_dict['Q'], self.state_dim)
         self.Q = init_dict['Q']
         self.R = init_dict['R']
         self.params_dict = params_dict
 
-    def predict(self, u, predict_dict=None):
+    def predict(self, u=None, predict_dict=None):
         """Predict the state of the filter given the control input
 
         Parameters
         ----------
         u : np.ndarray
-            The control signal given to the actual system, dimension x_dim x D
-        predict_dict : Dict
+            The control signal given to the actual system, dimension state_dim x D
+        predict_dict : dict
             Additional parameters needed to implement predict step
         """
-        assert check_col_vect(u, np.size(u)), "Control input is not a column vector"
-        self.x = self.dyn_model(u, predict_dict)  # Can pass parameters via predict_dict
+        if u is None:
+            u = np.zeros((self.state_dim,1))
+        if predict_dict is None:
+            predict_dict = {}
+        assert _check_col_vect(u, np.size(u)), "Control input is not a column vector"
+        self.state = self.dyn_model(u, predict_dict)  # Can pass parameters via predict_dict
         A = self.linearize_dynamics(predict_dict)
-        self.P = A @ self.P @ A.T + self.Q
-        assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after prediction"
-        assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after prediction"
+        self.sigma = A @ self.sigma @ A.T + self.Q
+        assert _check_col_vect(self.state, self.state_dim), "Incorrect state shape after prediction"
+        assert _check_square_mat(self.sigma, self.state_dim), "Incorrect covariance shape after prediction"
 
     def update(self, z, update_dict=None):
         """Update the state of the filter given a noisy measurement of the state
@@ -119,21 +90,28 @@ class BaseExtendedKalmanFilter(BaseFilter):
         ----------
         z : np.ndarray
             Noisy measurement of state, dimension M x 1
-        update_dict : Dict
+        update_dict : dict
             Additional parameters needed to implement update step
         """
-        assert check_col_vect(z, np.size(z)), "Measurements are not a column vector"
+        if update_dict is None:
+            update_dict = {}
+
+        # uses process_noise from update_dict if exists, otherwise use
+        # process_noise from the class initialization.
+        measurement_noise = update_dict.get('measurement_noise', self.R)
+
+        assert _check_col_vect(z, np.size(z)), "Measurements are not a column vector"
         H = self.linearize_measurements(update_dict)  # Can pass arguments via update_dict
-        S = H @ self.P @ H.T + self.R
-        K = self.P @ H.T @ np.linalg.inv(S)
+        S = H @ self.sigma @ H.T + measurement_noise
+        K = self.sigma @ H.T @ np.linalg.inv(S)
         z_expect = self.measure_model(update_dict)  # Can pass arguments via update_dict
-        assert check_col_vect(z_expect, np.size(z)), "Expected measurements are not a column vector"
+        assert _check_col_vect(z_expect, np.size(z)), "Expected measurements are not a column vector"
         # Updating state
-        self.x = self.x + K @ (z - z_expect)
+        self.state = self.state + K @ (z - z_expect)
         # Update covariance
-        self.P = (np.eye(self.x_dim) - K @ H) @ self.P
-        assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after update"
-        assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after update"
+        self.sigma = (np.eye(self.state_dim) - K @ H) @ self.sigma
+        assert _check_col_vect(self.state, self.state_dim), "Incorrect state shape after update"
+        assert _check_square_mat(self.sigma, self.state_dim), "Incorrect covariance shape after update"
 
     @abstractmethod
     def linearize_dynamics(self, predict_dict=None):
@@ -173,16 +151,18 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
         ----------
         u : np.ndarray
             Control input to system
-        predict_dict : Dict
+        predict_dict : dict
             Additional parameters that might be requried for prediction
 
         Returns
         -------
         new_x : State after propagation
         """
+        if predict_dict is None:
+            predict_dict = {}
         A = self.linearize_dynamics(predict_dict)
         B = self.get_B(predict_dict)
-        new_x = A @ self.x + B @ u
+        new_x = A @ self.state + B @ u
         return new_x
 
     def measure_model(self, update_dict=None):
@@ -190,15 +170,17 @@ class BaseKalmanFilter(BaseExtendedKalmanFilter):
 
         Parameters
         ----------
-        update_dict : Dict
+        update_dict : dict
             Additional parameters that might be requried for update
 
         Returns
         -------
         z_expect : Measurement expected for current state
         """
+        if update_dict is None:
+            update_dict = {}
         H = self.linearize_measurements(update_dict)
-        z_expect = H @ self.x
+        z_expect = H @ self.state
         return z_expect
 
     @abstractmethod
@@ -218,13 +200,13 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         Process noise covariance, tunable parameter
     R : np.ndarray
         Measurement noise covariance, tunable parameter
-    params_dict : Dict
+    params_dict : dict
         Dictionary of additional parameters required, implementation dependent
     """
 
     def __init__(self, init_dict, params_dict):
-        super().__init__(init_dict['x_dim'], init_dict['x0'], init_dict['P0'])
-        assert check_square_mat(init_dict['Q'], self.x_dim)
+        super().__init__(init_dict['state_0'], init_dict['sigma_0'])
+        assert _check_square_mat(init_dict['Q'], self.state_dim)
         self.Q = init_dict['Q']
         self.R = init_dict['R']
         if 'lam' in init_dict:
@@ -235,7 +217,7 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         if 'N_sig' in init_dict:
             self.N_sig = init_dict['N_sig']
         else:
-            self.N_sig = int(2 * self.x_dim + 1)
+            self.N_sig = int(2 * self.state_dim + 1)
         self.params_dict = params_dict
 
     def predict(self, u, predict_dict=None):
@@ -244,12 +226,15 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         Parameters
         ----------
         u : np.ndarray
-            The control signal given to the actual system, dimension x_dim x D
-        predict_dict : Dict
+            The control signal given to the actual system, dimension state_dim x D
+        predict_dict : dict
             Additional parameters needed to implement predict step
         """
 
-        N = self.x_dim
+        if predict_dict is None:
+            predict_dict = {}
+
+        N = self.state_dim
         N_sig = self.N_sig
         x_t_tm = np.zeros((N, N_sig))
 
@@ -264,10 +249,10 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         # Compute Inverse U-Transform:
         mu_t_tm, S_t_tm = self.inv_U_transform(W, x_t_tm)
         S_t_tm = S_t_tm + self.Q
-        self.x = mu_t_tm
-        self.P = S_t_tm
-        assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after prediction"
-        assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after prediction"
+        self.state = mu_t_tm
+        self.sigma = S_t_tm
+        assert _check_col_vect(self.state, self.state_dim), "Incorrect state shape after prediction"
+        assert _check_square_mat(self.sigma, self.state_dim), "Incorrect covariance shape after prediction"
 
     def update(self, z, update_dict=None):
         """Update the state of the filter given a noisy measurement of the state
@@ -276,11 +261,14 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         ----------
         z : np.ndarray
             Noisy measurement of state, dimension M x 1
-        update_dict : Dict
+        update_dict : dict
             Additional parameters needed to implement update step
         """
-        assert check_col_vect(z, np.size(z)), "Measurements are not a column vector"
-        N = self.x_dim
+        if update_dict is None:
+            update_dict = {}
+
+        assert _check_col_vect(z, np.size(z)), "Measurements are not a column vector"
+        N = self.state_dim
         N_sig = self.N_sig
 
         y_t_tm = np.zeros((np.shape(self.R)[0], N_sig))
@@ -295,29 +283,29 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         S_y_t_tm = S_y_t_tm + self.R
 
         for ind in range(N_sig):
-            S_xy_t_tm = S_xy_t_tm + W[ind] * np.outer((x_t_tm[:, [ind]] - self.x),  (y_t_tm[:, [ind]] - y_hat_t_tm))
+            S_xy_t_tm = S_xy_t_tm + W[ind] * np.outer((x_t_tm[:, [ind]] - self.state),  (y_t_tm[:, [ind]] - y_hat_t_tm))
 
         meas_res = z - y_hat_t_tm
-        self.x = self.x + S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ meas_res
-        self.P = self.P - S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ S_xy_t_tm.T
+        self.state = self.state + S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ meas_res
+        self.sigma = self.sigma - S_xy_t_tm @ np.linalg.inv(S_y_t_tm) @ S_xy_t_tm.T
 
-        assert check_col_vect(self.x, self.x_dim), "Incorrect state shape after update"
-        assert check_square_mat(self.P, self.x_dim), "Incorrect covariance shape after update"
+        assert _check_col_vect(self.state, self.state_dim), "Incorrect state shape after update"
+        assert _check_square_mat(self.sigma, self.state_dim), "Incorrect covariance shape after update"
 
     def U_transform(self):
         """
         Sigma Point Transform
         """
-        N = self.x_dim
+        N = self.state_dim
         N_sig = self.N_sig
         X = np.zeros([N, N_sig])
         W = np.zeros([N_sig, 1])
-        delta = sqrtm((self.lam + N) * self.P)
-        X[:, 0] = np.squeeze(self.x)
+        delta = sqrtm((self.lam + N) * self.sigma)
+        X[:, 0] = np.squeeze(self.state)
 
         for ind in range(N):
-            X[:, ind + 1] = np.squeeze(self.x) + delta[:, ind]
-            X[:, ind + 1 + N] = np.squeeze(self.x) - delta[:, ind]
+            X[:, ind + 1] = np.squeeze(self.state) + delta[:, ind]
+            X[:, ind + 1 + N] = np.squeeze(self.state) - delta[:, ind]
 
         W[0] = self.lam / (self.lam + N)
         W[1:] = (1 / (2 * (self.lam + N))) * np.ones([2 * N, 1])
@@ -350,3 +338,28 @@ class BaseUnscentedKalmanFilter(BaseFilter):
         """Non-linear dynamics model
         """
         raise NotImplementedError
+
+def _check_col_vect(vect, dim):
+    """Boolean for whether input vector is column shaped or not
+
+    Parameters
+    ----------
+    vect : np.ndarray
+        Input vector
+    dim : int
+        Number of row elements in column vector
+    """
+    return np.shape(vect)[0] == dim and np.shape(vect)[1] == 1
+
+def _check_square_mat(mat, dim):
+    """Boolean for whether input matrices are square or not
+
+    Parameters
+    ----------
+    vect : np.ndarray
+        Input matrix
+    dim : int
+        Number of elements for row and column = N for N x N
+    """
+
+    return np.shape(mat)[0] == dim and np.shape(mat)[1] == dim
