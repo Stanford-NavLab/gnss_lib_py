@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 
 import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 
 
 class EphemerisManager():
@@ -104,10 +106,19 @@ class EphemerisManager():
         data = data.sort_values('time').groupby(
             'sv').last().drop(labels = 'index', axis = 'columns')
         data['Leap Seconds'] = self.leapseconds
-        data_measurement = Measurement(pandas_df=data.reset_index())
-        return data_measurement
+        # Convert data DataFrame to NavData instance
+        # Move sv to DataFrame columns, reset index
+        data = data.reset_index()
+        # Replace datetime with gps_millis
+        gps_millis = [datetime_to_gps_millis(df_row['time']) \
+                        for _, df_row in data.iterrows()]
+        data['gps_millis'] = gps_millis
+        data = data.drop(columns=['time'])
+        data = data.rename(columns={"GPSWeek":"gps_week", "sv":"sv_id"})
+        data_navdata = NavData(pandas_df=data)
+        return data_navdata
 
-    def get_leapseconds(self, timestamp):
+    def get_leapseconds(self):
         """Output saved leapseconds
 
         Returns
@@ -438,9 +449,3 @@ class EphemerisManager():
             'filepath': directory + filename, 'url': 'igs.bkg.bund.de'}
 
         return filepaths
-
-
-if __name__ == '__main__':
-    repo = EphemerisManager()
-    target_time = datetime(2021, 1, 9, 12, 0, 0, tzinfo=timezone.utc)
-    data = repo.get_ephemeris(target_time, ['G01', 'G03'])

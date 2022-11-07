@@ -36,14 +36,14 @@ def svs_from_el_az(elaz_deg):
     svs_ned : np.ndarray
         Nx3 satellite NED positions, simulated at a distance of 20,200 km
     """
-    assert np.shape(elaz_deg)[1] == 2, "elaz_deg should be a Nx2 array"
-    el = np.deg2rad(elaz_deg[:, 0])
-    az = np.deg2rad(elaz_deg[:,1])
-    unit_vect = np.zeros([3, np.shape(elaz_deg)[0]])
-    unit_vect[0, :] = np.sin(az)*np.cos(el)
-    unit_vect[1, :] = np.cos(az)*np.cos(el)
-    unit_vect[2, :] = np.sin(el)
-    svs_ned = np.transpose(20200000*unit_vect)
+    assert np.shape(elaz_deg)[0] == 2, "elaz_deg should be a 2xN array"
+    el_deg = np.deg2rad(elaz_deg[0, :])
+    az_deg = np.deg2rad(elaz_deg[1, :])
+    unit_vect = np.zeros([3, np.shape(elaz_deg)[1]])
+    unit_vect[0, :] = np.sin(az_deg)*np.cos(el_deg)
+    unit_vect[1, :] = np.cos(az_deg)*np.cos(el_deg)
+    unit_vect[2, :] = np.sin(el_deg)
+    svs_ned = 20200000*unit_vect
     return svs_ned
 
 
@@ -54,28 +54,23 @@ def _extract_pos_vel_arr(sv_posvel):
 
     Parameters
     ----------
-    sv_posvel : pd.DataFrame
-        Dataframe with satellite states
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        NavData containing satellite states
 
     Returns
     -------
-    prns : List
-        Satellite PRNs in input DataFrame
-    sv_pos : ndarray
-        ECEF satellite positions #TODO: Add shape of array
-    sv_vel : ndarray
-        ECEF satellite x, y and z velocities #TODO: Add shape of array
+    sv_pos : np.ndarray
+        ECEF satellite positions Nx3 [m]
+    sv_vel : np.ndarray
+        ECEF satellite x, y and z velocities Nx3 [m]
     """
-    prns   = [int(prn[1:]) for prn in sv_posvel['sv'][0, :]]
-    sv_pos = sv_posvel[['x', 'y', 'z']]
-    sv_vel   = sv_posvel[['vx', 'vy', 'vz']]
-    # sv_pos = sv_pos.to_numpy()
-    # sv_vel   = sv_vel.to_numpy()
-    return prns, sv_pos, sv_vel
-    # TODO: Remove prns from function output if not needed
+    sv_pos = sv_posvel[['x_sv_m', 'y_sv_m', 'z_sv_m']]
+    sv_vel   = sv_posvel[['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']]
+    #TODO: Check shapes of returned values and make sure nothing breaks
+    return sv_pos, sv_vel
 
-def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel,
-                      prange_sigma = 6., doppler_sigma=0.1, sv_posvel=None):
+def simulate_measures(gps_week, gps_tow, ephem, pos, bias, b_dot, vel,
+                      noise_dict={}, sv_posvel=None):
     #TODO: Migrate docstring to using Measurement
     #TODO: Migrate codebase to Measurement
     """Simulate GNSS pseudoranges and doppler measurements given receiver state.
@@ -85,39 +80,37 @@ def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel,
 
     Parameters
     ----------
-    gpsweek : int
-        Week in GPS calendar
-    gpstime : float
-        GPS time of the week for simulate measurements [s]
-    ephem : pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and
-        gpstime
-    pos : ndarray
+    gps_week : int
+        GPS week at which measurements and positions are needed
+    gps_tow : float
+        GPS time of week for corresponding GPS week at which
+        measurements are needed
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing satellite ephemeris parameters for a
+        particular time of ephemeris
+    pos : np.ndarray
         1x3 Receiver 3D ECEF position [m]
     bias : float
         Receiver clock bais [m]
     b_dot : float
         Receiver clock drift [m/s]
-    vel : ndarray
+    vel : np.ndarray
         1x3 Receiver 3D ECEF velocity
-    prange_sigma : float
-        Standard deviation of Gaussian error in simulated pseduranges
-    doppler_sigma : float
-        Standard deviation of Gaussian error in simulated doppler measurements
-    sv_posvel : pd.DataFrame
-        Precomputed positions of satellites (if available)
+    noise_dict : dict
+        Dictionary with pseudorange ('prange_sigma') and doppler noise
+        ('doppler_sigma') standard deviation values in [m] and [m/s]
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        Precomputed positions of satellites, set to None if not available
 
     Returns
     -------
-    measurements : pd.DataFrame
-        Pseudorange and doppler measurements indexed by satellite SV with
-        Gaussian noise
-    sv_posvel : pd.DataFrame
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Pseudorange and doppler measurements with satellite SV,
+        Gaussian noise is added to expected measurements for simulation
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Satellite positions and velocities (same as input if provided)
 
     """
-    #TODO: Migrate docstring to using Measurement
-    #TODO: Migrate codebase to Measurement
 
     #TODO: Modify to work with input satellite positions
     #TODO: Add assertions/error handling for sizes of position, bias, b_dot and
@@ -126,25 +119,29 @@ def simulate_measures(gpsweek, gpstime, ephem, pos, bias, b_dot, vel,
     #TODO: Modify to use single dictionary with uncertainty values
     #TODO: Add an option to change elevation mask
     #TODO: Change the default noise values
+    #TODO: Add a condition to check if gps_week and gps_tow are in ephem.
+    # If not, convert gps_millis to use these values
     print('ephem type in simulated_measures', type(ephem))
-    ephem = _find_visible_svs(gpsweek, gpstime, pos, ephem)
+    ephem = _find_visible_svs(gps_week, gps_tow, pos, ephem)
     #TODO: Add elevation mask option here
-    measurements, sv_posvel = expected_measures(gpsweek, gpstime, ephem, pos,
-                                              bias, b_dot, vel, sv_posvel)
+    measurements, sv_posvel = expected_measures(gps_week, gps_tow, ephem, pos,
+                                                bias, b_dot, vel, sv_posvel)
     num_svs   = len(measurements)
     rng = default_rng()
 
+    noise_dict.setdefault('prange_sigma', 6.)
+    noise_dict.setdefault('doppler_sigma', 1.)
+
     measurements['prange']  = (measurements['prange']
-        + prange_sigma *rng.standard_normal(num_svs))
+        + noise_dict['prange_sigma'] *rng.standard_normal(num_svs))
 
     measurements['doppler'] = (measurements['doppler']
-        + doppler_sigma*rng.standard_normal(num_svs))
+        + noise_dict['doppler_sigma']*rng.standard_normal(num_svs))
     print('measurements type in ', type(measurements))
     print('sv_posvel type in simulate_measures', type(sv_posvel))
     return measurements, sv_posvel
 
-def expected_measures(gpsweek, gpstime, ephem, pos,
-                      bias, b_dot, vel, sv_posvel=None):
+def expected_measures(gps_week, gps_tow, ephem, pos, bias, b_dot, vel, sv_posvel=None):
     #TODO: Migrate docstring to using Measurement
     #TODO: Migrate codebase to Measurement
     """Compute expected pseudoranges and doppler measurements given receiver
@@ -152,46 +149,48 @@ def expected_measures(gpsweek, gpstime, ephem, pos,
 
     Parameters
     ----------
-    gpsweek : int
-        Week in GPS calendar
-    gpstime : float
-        GPS time of the week for simulate measurements [s]
-    ephem : pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and
-        gpstime
-    pos : ndarray
+    gps_week : int
+        GPS week at which measurements and positions are needed
+    gps_tow : float
+        GPS time of week for corresponding GPS week at which
+        measurements are needed
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing satellite ephemeris parameters for a
+        particular time of ephemeris
+    pos : np.ndarray
         1x3 Receiver 3D ECEF position [m]
     bias : float
         Receiver clock bais [m]
     b_dot : float
         Receiver clock drift [m/s]
-    vel : ndarray
+    vel : np.ndarray
         1x3 Receiver 3D ECEF velocity
-    sv_posvel : pd.DataFrame
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites (if available)
 
     Returns
     -------
-    measurements : pd.DataFrame
-        Expected pseudorange and doppler measurements indexed by satellite SV
-    sv_posvel : pd.DataFrame
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Pseudorange and doppler measurements with satellite SV,
+        Gaussian noise is added to expected measurements for simulation
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Satellite positions and velocities (same as input if provided)
     """
     # NOTE: When using saved data, pass saved DataFrame with ephemeris in ephem
     # and satellite positions in sv_posvel
     # TODO: Modify this function to use PRNS from measurement in addition to
-    # gpstime from measurement
+    # gps_tow from measurement
     pos = np.reshape(pos, [1, 3])
     vel = np.reshape(vel, [1, 3])
-    sv_posvel, del_pos, true_range = _find_sv_location(gpsweek, gpstime,
+    sv_posvel, del_pos, true_range = _find_sv_location(gps_week, gps_tow,
                                                          ephem, pos, sv_posvel)
     # sv_pos, sv_vel, del_pos are both Nx3
-    _, _, sv_vel = _extract_pos_vel_arr(sv_posvel)
+    _, sv_vel = _extract_pos_vel_arr(sv_posvel)
 
     # Obtain corrected pseudoranges and add receiver clock bias to them
     prange = true_range
     prange += bias
-    # prange = (correct_pseudorange(gpstime, gpsweek, ephem, true_range,
+    # prange = (correct_pseudorange(gps_tow, gps_week, ephem, true_range,
     #                              np.reshape(pos, [-1, 3])) + bias)
     # TODO: Correction should be applied to the received pseudoranges, not
     # modelled/expected pseudorange -- per discussion in meeting on 11/12
@@ -216,35 +215,35 @@ def expected_measures(gpsweek, gpstime, ephem, pos,
     return measurements, sv_posvel
 
 
-def _find_visible_svs(gpsweek, gpstime, rx_ecef, ephem, el_mask=5.):
+def _find_visible_svs(gps_week, gps_tow, rx_ecef, ephem, el_mask=5.):
     #TODO: Migrate docstring to using Measurement
     #TODO: Migrate codebase to Measurement
     """Trim input ephemeris to keep only visible SVs.
 
     Parameters
     ----------
-    gpsweek : int
+    gps_week : int
         Week in GPS calendar
-    gpstime : float
+    gps_tow : float
         GPS time of the week for simulate measurements [s]
-    rx_ecef : ndarray
+    rx_ecef : np.ndarray
         1x3 row rx_pos ECEF position vector [m]
-    ephem  pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and
-        gpstime
+    ephem  gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing satellite ephemeris parameters
+        including gps_week and gps_tow
     el_mask : float
         Minimum elevation of returned satellites
 
     Returns
     -------
-    eph : pd.DataFrame
+    eph : gnss_lib_py.parsers.navdata.NavData
         Ephemeris parameters of visible satellites
 
     """
     print('ephem type in _find_visible_svs', type(ephem))
 
     # Find positions and velocities of all satellites
-    approx_posvel = find_sat(ephem, gpstime - consts.T_TRANS, gpsweek)
+    approx_posvel = find_sat(ephem, gps_tow - consts.T_TRANS, gps_week)
 
     # Find elevation and azimuth angles for all satellites
     _, approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
@@ -255,26 +254,26 @@ def _find_visible_svs(gpsweek, gpstime, rx_ecef, ephem, el_mask=5.):
     # TODO: Remove above statement if superfluous
     # TODO: Check that a copy of the ephemeris is being generated, also if it is
     # needed
-    eph = ephem.copy(cols=np.nonzero(keep_ind))
+    eph = ephem.copy(rows=np.nonzero(keep_ind))
     print('eph type in _find_visible_svs', type(eph))
     return eph
 
 
-def _find_sv_location(gpsweek, gpstime, ephem, pos, sv_posvel=None):
+def _find_sv_location(gps_week, gps_tow, ephem, pos, sv_posvel=None):
     #TODO: Migrate docstring to using Measurement
     #TODO: Migrate codebase to Measurement
     """Return satellite positions, difference from rx_pos position and ranges.
 
     Parameters
     ----------
-    gpsweek : int
+    gps_week : int
         Week in GPS calendar
-    gpstime : float
+    gps_tow : float
         GPS time of the week for simulate measurements [s]
     ephem : pd.DataFrame
-        DataFrame containing all satellite ephemeris parameters for gpsweek and
-        gpstime
-    pos : ndarray
+        DataFrame containing all satellite ephemeris parameters for gps_week and
+        gps_tow
+    pos : np.ndarray
         1x3 Receiver 3D ECEF position [m]
     sv_posvel : pd.DataFrame
         Precomputed positions of satellites (if available)
@@ -283,9 +282,9 @@ def _find_sv_location(gpsweek, gpstime, ephem, pos, sv_posvel=None):
     -------
     sv_posvel : pd.DataFrame
         Satellite position and velocities (same if input)
-    del_pos : ndarray
+    del_pos : np.ndarray
         Difference between satellite positions and receiver position
-    true_range : ndarray
+    true_range : np.ndarray
         Distance between satellite and receiver positions
 
     """
@@ -293,18 +292,18 @@ def _find_sv_location(gpsweek, gpstime, ephem, pos, sv_posvel=None):
     pos = np.reshape(pos, [1, 3])
     if sv_posvel is None:
         satellites = len(ephem.index)
-        sv_posvel = find_sat(ephem, gpstime - consts.T_TRANS, gpsweek)
+        sv_posvel = find_sat(ephem, gps_tow - consts.T_TRANS, gps_week)
         del_pos, true_range = _find_delxyz_range(sv_posvel, pos, satellites)
         t_corr = true_range/consts.C
 
         # Find satellite locations at (a more accurate) time of transmission
-        sv_posvel = find_sat(ephem, gpstime-t_corr, gpsweek)
+        sv_posvel = find_sat(ephem, gps_tow-t_corr, gps_week)
     else:
         satellites = len(sv_posvel.index)
     del_pos, true_range = _find_delxyz_range(sv_posvel, pos, satellites)
     t_corr = true_range/consts.C
     # Corrections for the rotation of the Earth during transmission
-    # _, sv_pos, sv_vel = _extract_pos_vel_arr(sv_posvel)
+    # sv_pos, sv_vel = _extract_pos_vel_arr(sv_posvel)
     del_x = consts.OMEGA_E_DOT*sv_posvel['x'] * t_corr
     del_y = consts.OMEGA_E_DOT*sv_posvel['y'] * t_corr
     sv_posvel['x'] = sv_posvel['x'] + del_x
@@ -315,36 +314,39 @@ def _find_sv_location(gpsweek, gpstime, ephem, pos, sv_posvel=None):
 
 
 
-def _find_delxyz_range(sv_posvel, pos, satellites):
+def _find_delxyz_range(sv_posvel, pos, satellites=None):
     #TODO: Migrate docstring to using Measurement
     #TODO: Migrate codebase to Measurement
     """Return difference of satellite and rx_pos positions and range between them.
 
     Parameters
     ----------
-    sv_posvel : pd.DataFrame
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Satellite position and velocities
-    pos : ndarray
-        1x3 Receiver 3D ECEF position [m]
+    pos : np.ndarray
+        3x1 Receiver 3D ECEF position [m]
     satellites : int
         Number of satellites in sv_posvel
 
     Returns
     -------
-    del_pos : ndarray
+    del_pos : np.ndarray
         Difference between satellite positions and receiver position
-    true_range : ndarray
+    true_range : np.ndarray
         Distance between satellite and receiver positions
     """
     # Repeating computation in find_sv_location
     #NOTE: Input is from satellite finding in AE 456 code
+    #TODO: Do we need satellites or is it enough to use len(sv_posvel)
     print('sv_posvel type in _find_delxyz_range', type(sv_posvel))
-    pos = np.reshape(pos, [1, 3])
+    pos = np.reshape(pos, [3, 1])
+    if satellites is None:
+        satellites = len(sv_posvel)
     if np.size(pos)!=3:
-        raise ValueError('Position is not in XYZ')
-    _, sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
-    del_pos = sv_pos - np.tile(np.reshape(pos, [-1, 3]), (satellites, 1))
-    true_range = np.linalg.norm(del_pos, axis=1)
+        raise ValueError(f'Position not 3D, has size {np.size(pos)}')
+    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    del_pos = sv_pos - np.tile(pos, (1, satellites))
+    true_range = np.linalg.norm(del_pos, axis=0)
     return del_pos, true_range
 
 
@@ -356,18 +358,19 @@ def find_sat(ephem, times, gpsweek):
 
     Parameters
     ----------
-    ephem : pd.DataFrame
-        DataFrame containing ephemeris parameters of satellites for which states
-        are required
-    times : ndarray
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing ephemeris parameters of satellites
+        for which states are required
+    times : np.ndarray
         GPS time of the week at which positions are required [s]
     gpsweek : int
         Week of GPS calendar corresponding to time of clock
 
     Returns
     -------
-    sv_posvel : pd.DataFrame
-        DataFrame indexed by satellite SV containing positions and velocities
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        NavData containing satellite positions, velocities, corresponding
+        time and SV number
 
     Notes
     -----
@@ -406,7 +409,7 @@ def find_sat(ephem, times, gpsweek):
     sma      = sqrt_sma**2      # semi-major axis
 
     sqrt_mu_A = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
-    gpsweek_diff = (np.mod(gpsweek,1024) - np.mod(ephem['GPSWeek'],1024))*604800.
+    gpsweek_diff = (np.mod(gpsweek,1024) - np.mod(ephem['gps_week'],1024))*604800.
 
     # if np.size(times_all)==1:
     #     times_all = times_all*np.ones(len(ephem))
@@ -416,8 +419,11 @@ def find_sat(ephem, times, gpsweek):
     sv_posvel = NavData()
     sv_posvel['sv'] = ephem['sv']
     # sv_posvel.set_index('sv', inplace=True)
-    #TODO: Check if 'dt' or 'times' should be stored in the final DataFrame
-    print(times)
+    # print(times)
+    #TODO: How do you deal with multiple times here?
+    # Deal with times being a single value or a vector with the same
+    # length as the ephemeris
+    # print(times.shape)
     sv_posvel['times'] = times
 
     dt = times - ephem['t_oe'] + gpsweek_diff
@@ -494,9 +500,9 @@ def find_sat(ephem, times, gpsweek):
     cos_i = np.cos(i)
     sin_i = np.sin(i)
 
-    sv_posvel['x'] = xp*cos_omega - yp*cos_i*sin_omega
-    sv_posvel['y'] = xp*sin_omega + yp*cos_i*cos_omega
-    sv_posvel['z'] = yp*sin_i
+    sv_posvel['x_sv_m'] = xp*cos_omega - yp*cos_i*sin_omega
+    sv_posvel['y_sv_m'] = xp*sin_omega + yp*cos_i*cos_omega
+    sv_posvel['z_sv_m'] = yp*sin_i
     # TODO: Add satellite clock bias here using the 'clock corrections' not to
     # be used but compared against SP3 and Android data
 
@@ -504,23 +510,23 @@ def find_sat(ephem, times, gpsweek):
     ######  Lines added for velocity (4)  ######
     ############################################
     omega_dot = ephem['OmegaDot'] - consts.OMEGA_E_DOT
-    sv_posvel['vx'] = (dxp * cos_omega
+    sv_posvel['vx_sv_mps'] = (dxp * cos_omega
                          - dyp * cos_i*sin_omega
                          + yp  * sin_omega*sin_i*di
                          - (xp * sin_omega + yp*cos_i*cos_omega)*omega_dot)
 
-    sv_posvel['vy'] = (dxp * sin_omega
+    sv_posvel['vy_sv_mps'] = (dxp * sin_omega
                          + dyp * cos_i * cos_omega
                          - yp  * sin_i * cos_omega * di
                          + (xp * cos_omega - (yp*cos_i*sin_omega)) * omega_dot)
 
-    sv_posvel['vz'] = dyp*sin_i + yp*cos_i*di
+    sv_posvel['vz_sv_mps'] = dyp*sin_i + yp*cos_i*di
 
     print('sv_posvel in find_sat ', type(sv_posvel))
     return sv_posvel
 
 
-def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
+def correct_pseudorange(gps_tow, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
     #TODO: Migrate docstring to using Measurement
     #TODO: Migrate codebase to Measurement
     """Incorporate corrections in measurements.
@@ -530,20 +536,20 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
 
     Parameters
     ----------
-    gpstime : float
+    gps_tow : float
         Time of clock in seconds of the week
     gpsweek : int
         GPS week for time of clock
     ephem : pd.DataFrame
         Satellite ephemeris parameters for measurement SVs
-    pr_meas : ndarray
+    pr_meas : np.ndarray
         Ranging measurements from satellites [m]
-    rx_ecef : ndarray
+    rx_ecef : np.ndarray
         1x3 array of ECEF rx_pos position [m]
 
     Returns
     -------
-    pr_corr : ndarray
+    pr_corr : np.ndarray
         Array of corrected pseudorange measurements [m]
 
     Notes
@@ -569,16 +575,16 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
 
     sqrt_mu_A = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
 
-    # Make sure gpstime and gpsweek are arrays
-    if not isinstance(gpstime, np.ndarray):
-        gpstime = np.array(gpstime)
+    # Make sure gps_tow and gpsweek are arrays
+    if not isinstance(gps_tow, np.ndarray):
+        gps_tow = np.array(gps_tow)
     if not isinstance(gpsweek, np.ndarray):
         gpsweek = np.array(gpsweek)
 
     # Initialize the correction array
     pr_corr = pr_meas
 
-    dt = gpstime - ephem['t_oe']
+    dt = gps_tow - ephem['t_oe']
     if np.abs(dt).any() > 302400:
         dt = dt - np.sign(dt)*604800
 
@@ -591,7 +597,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
 
     # Determine pseudorange corrections due to satellite clock corrections.
     # Calculate time offset from satellite reference time
-    t_offset = gpstime - ephem['t_oc']
+    t_offset = gps_tow - ephem['t_oc']
     if np.abs(t_offset).any() > 302400:
         t_offset = t_offset-np.sign(t_offset)*604800
 
@@ -616,7 +622,7 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
 
     if rx_ecef[0][0] is not None:
         # Calculate the tropospheric delays
-        tropo_delay = calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef)
+        tropo_delay = _calculate_tropo_delay(gps_tow, gpsweek, ephem, rx_ecef)
         # Calculate total pseudorange correction
         pr_corr -= tropo_delay*consts.C
 
@@ -631,24 +637,24 @@ def correct_pseudorange(gpstime, gpsweek, ephem, pr_meas, rx_ecef=[[None]]):
     return pr_corr
 
 
-def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
+def _calculate_tropo_delay(gps_tow, gpsweek, ephem, rx_ecef):
     #TODO: Migrate codebase to Measurement
     """Calculate tropospheric delay
 
     Parameters
     ----------
-    gpstime : float
+    gps_tow : float
         Time of clock in seconds of the week
     gpsweek : int
         GPS week for time of clock
     ephem : gnss_lib_py.parsers.measurement.Measurement
         Satellite ephemeris parameters for measurement SVs
-    rx_ecef : ndarray
+    rx_ecef : np.ndarray
         1x3 array of ECEF rx_pos position [m]
 
     Returns
     -------
-    tropo_delay : ndarray
+    tropo_delay : np.ndarray
         Tropospheric corrections to pseudorange measurements
 
     Notes
@@ -659,17 +665,17 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
 
     """
 
-    print('ephem.type in calculate_tropo_delay', type(ephem))
+    print('ephem.type in _calculate_tropo_delay', type(ephem))
 
     # Make sure things are arrays
-    if not isinstance(gpstime, np.ndarray):
-        gpstime = np.array(gpstime)
+    if not isinstance(gps_tow, np.ndarray):
+        gps_tow = np.array(gps_tow)
     if not isinstance(gpsweek, np.ndarray):
         gpsweek = np.array(gpsweek)
 
     # Determine the satellite locations
-    sv_posvel = find_sat(ephem, gpstime, gpsweek)
-    _, sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    sv_posvel = find_sat(ephem, gps_tow, gpsweek)
+    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
 
     # compute elevation and azimuth
     el_az = ecef_to_el_az(rx_ecef, sv_pos)
@@ -691,7 +697,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     c_3 = 1.33e-4
     tropo_delay = c_1/(np.sin(el_r)+c_2) * np.exp(-height*c_3)/consts.C
 
-    print('tropo_delay type in calculate_tropo_delay', type(tropo_delay))
+    print('tropo_delay type in _calculate_tropo_delay', type(tropo_delay))
     return tropo_delay
 
 def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
@@ -700,9 +706,9 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
 
     Parameters
     ----------
-    M : np.ndarray
+    mean_anom : np.ndarray
         Mean Anomaly of GNSS satellite orbits
-    e : np.ndarray
+    ecc : np.ndarray
         Eccentricity of GNSS satellite orbits
     tol : float
         Tolerance for Newton-Raphson convergence
@@ -711,17 +717,18 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
 
     Returns
     -------
-    E : np.ndarray
+    ecc_anom : np.ndarray
         Eccentric Anomaly of GNSS satellite orbits
 
     """
-    E = M
+    ecc_anom = mean_anom
     for _ in np.arange(0, max_iter):
-        f    = M - E + e * np.sin(E)
-        dfdE = e*np.cos(E) - 1.
-        dE   = -f / dfdE
-        E    = E + dE
+        fun = mean_anom - ecc_anom + ecc * np.sin(ecc_anom)
+        df_dE = ecc*np.cos(ecc_anom) - 1.
+        delta_E   = -fun / df_dE
+        ecc_anom    = ecc_anom + delta_E
 
-    if np.any(dE > tol):
-        print("Eccentric Anomaly may not have converged: dE = ", dE)
-    return E
+    if np.any(delta_E > tol):
+        raise RuntimeWarning("Eccentric Anomaly may not have converged" \
+                            + f"after {max_iter} steps. : dE = {delta_E}")
+    return ecc_anom
