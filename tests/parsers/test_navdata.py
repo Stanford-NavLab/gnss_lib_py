@@ -90,6 +90,13 @@ def fixture_csv_only_header():
     """
     return fixture_csv_path("navdata_only_header.csv")
 
+@pytest.fixture(name="csv_dtypes")
+def fixture_csv_dtypes():
+    """csv made up of different data types.
+
+    """
+    return fixture_csv_path("navdata_test_dtypes.csv")
+
 def load_test_dataframe(csv_filepath, header="infer"):
     """Create dataframe test fixture.
 
@@ -1218,7 +1225,7 @@ def fixture_add_dataframe():
         Dataframe that will be added to NavData
     """
     add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object),
-                'integers': np.asarray([-2., 45.]),
+                'integers': np.asarray([-2, 45]),
                 'floats': np.asarray([1.4, 1.5869]),
                 'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
     add_df = pd.DataFrame(data=add_data)
@@ -1264,7 +1271,7 @@ def test_add_csv(df_simple, csv_simple):
     data.concat(NavData(csv_path=csv_simple),axis=1,inplace=True)
     data_df = data.pandas_df()
     # Set up dataframe for comparison
-    df_types = {'names': object, 'integers': np.float64,
+    df_types = {'names': object, 'integers': np.int64,
                 'floats': np.float64, 'strings': object}
     expected_df = pd.concat((df_simple,df_simple)).reset_index(drop=True)
     expected_df = expected_df.astype(df_types)
@@ -1275,6 +1282,7 @@ def test_add_csv(df_simple, csv_simple):
     # test adding to empty NavData
     data_empty = NavData()
     data_empty.concat(NavData(csv_path=csv_simple),axis=1,inplace=True)
+    print("data_empty:",data_empty.orig_dtypes)
     pd.testing.assert_frame_equal(data_empty.pandas_df().sort_index(axis=1),
                                   df_simple.astype(df_types).sort_index(axis=1),
                                   check_index_type=False)
@@ -1826,8 +1834,6 @@ def test_str_navdata(df_simple, df_only_header):
     """
     navdata = NavData(pandas_df=df_simple)
     navdata_str = str(navdata)
-    # Conversion from int to float in DataFrame for consistency
-    df_simple = df_simple.astype({'integers': 'float64'})
     df_str = str(df_simple)
     assert navdata_str==df_str
 
@@ -2097,3 +2103,68 @@ def test_find_wildcard_indexes(data):
         with pytest.raises(TypeError) as excinfo:
             multi.find_wildcard_indexes("x_*_m",max_allow)
         assert "max_allow" in str(excinfo.value)
+
+@pytest.mark.parametrize('csv_path',
+                        [
+                         lazy_fixture("csv_dtypes"),
+                         lazy_fixture("csv_simple"),
+                         lazy_fixture("csv_mixed"),
+                         lazy_fixture("csv_inf"),
+                         lazy_fixture("csv_int_first"),
+                        ])
+def test_dtypes_casting(csv_path):
+    """Test dtypes casting from csv back to csv
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+
+    """
+
+    data = NavData(csv_path=csv_path)
+    # check reverse casting
+    assert data.__str__() == pd.read_csv(csv_path).__str__()
+
+
+def test_dtypes_changing(csv_dtypes):
+    """Test changing dtypes
+
+    Parameters
+    ----------
+    csv_dtypes : string
+        Path to csv file containing multiple data types
+
+    """
+
+    data = NavData(csv_path=csv_dtypes)
+    assert data.orig_dtypes["int"] == np.int64
+    assert data.orig_dtypes["float"] == np.float64
+    assert data.orig_dtypes["datetime"] == object
+    assert data.orig_dtypes["string"] == object
+
+    data_changed = data.copy()
+    data_changed["int"] = np.array(["an integer no longer!"])
+    data_changed["float"] = np.array(["a float no longer!"])
+    assert data_changed.orig_dtypes["int"] == object
+    assert data_changed.orig_dtypes["float"] == object
+    assert data_changed.orig_dtypes["datetime"] == object
+    assert data_changed.orig_dtypes["string"] == object
+
+    data_changed = data.copy()
+    data_changed["float"] = 1
+    data_changed["datetime"] = 2
+    data_changed["string"] = 3
+    assert data_changed.orig_dtypes["int"] == np.int64
+    assert data_changed.orig_dtypes["float"] == np.int64
+    assert data_changed.orig_dtypes["datetime"] == np.int64
+    assert data_changed.orig_dtypes["string"] == np.int64
+
+    data_changed = data.copy()
+    data_changed["int"] = 1.
+    data_changed["datetime"] = 2.
+    data_changed["string"] = 3.
+    assert data_changed.orig_dtypes["int"] == np.float64
+    assert data_changed.orig_dtypes["float"] == np.float64
+    assert data_changed.orig_dtypes["datetime"] == np.float64
+    assert data_changed.orig_dtypes["string"] == np.float64
