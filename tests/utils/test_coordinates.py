@@ -369,14 +369,7 @@ def test_android_ecef_to_el_az(navdata):
         Instance of AndroidDerived for testing.
 
     """
-
-    row_map = {
-               "WlsPositionXEcefMeters" : "x_rx_m",
-               "WlsPositionYEcefMeters" : "y_rx_m",
-               "WlsPositionZEcefMeters" : "z_rx_m",
-                }
-    navdata.rename(row_map,inplace=True)
-
+    
     for _, _, navdata_subset in navdata.loop_time("gps_millis"):
 
         pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]].T

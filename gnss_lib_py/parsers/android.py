@@ -235,9 +235,9 @@ class AndroidDerived2022(NavData):
                    'Cn0DbHz': 'cn0_dbhz',
                    'AccumulatedDeltaRangeMeters' : 'accumulated_delta_range_m',
                    'AccumulatedDeltaRangeUncertaintyMeters': 'accumulated_delta_range_sigma_m',
-                   'WlsPositionXEcefMeters' : 'x_rx_baseline_m',
-                   'WlsPositionYEcefMeters' : 'y_rx_baseline_m',
-                   'WlsPositionZEcefMeters' : 'z_rx_baseline_m',
+                   'WlsPositionXEcefMeters' : 'x_rx_m',
+                   'WlsPositionYEcefMeters' : 'y_rx_m',
+                   'WlsPositionZEcefMeters' : 'z_rx_m',
                    }
         return row_map
 
