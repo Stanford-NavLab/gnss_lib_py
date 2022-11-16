@@ -267,7 +267,7 @@ def unix_millis_to_datetime(unix_millis):
 
     Parameters
     ----------
-    unix_millis : float
+    unix_millis : float or int
         Milliseconds that have passed since UTC epoch.
 
     Returns
@@ -275,7 +275,7 @@ def unix_millis_to_datetime(unix_millis):
     t_utc : datetime.datetime
         UTC time as a datetime object.
     """
-    t_utc = UNIX_EPOCH_0 + timedelta(milliseconds=unix_millis)
+    t_utc = UNIX_EPOCH_0 + timedelta(milliseconds=float(unix_millis))
     t_utc = t_utc.replace(tzinfo=timezone.utc)
     return t_utc
 

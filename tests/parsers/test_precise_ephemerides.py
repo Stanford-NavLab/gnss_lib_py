@@ -862,8 +862,6 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
     assert isinstance( navdata_gpsl1_eph, type(NavData()) )
 
     for sval in SV_KEYS[0:6]:
-        print( sval, max(abs(navdata_gpsl1[sval] - navdata_gpsl1_eph[sval])) )
-
         # Check if the resulting navdata class has satellite information
         assert sval in navdata_gpsl1_eph.rows
 

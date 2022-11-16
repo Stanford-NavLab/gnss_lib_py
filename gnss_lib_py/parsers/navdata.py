@@ -56,7 +56,7 @@ class NavData():
         # For a Pythonic implementation,
         # including all attributes as None in the beginning
         self.arr_dtype = np.float64 # default value
-        self.orig_dtypes = None     # original dtypes
+        self.orig_dtypes = {}       # original dtypes
         self.array = None
         self.map = {}
         self.str_map = {}
@@ -119,7 +119,7 @@ class NavData():
         if not isinstance(pandas_df, pd.DataFrame):
             raise TypeError("pandas_df must be pd.DataFrame")
 
-        self.orig_dtypes = pandas_df.dtypes
+        self.orig_dtypes = dict(pandas_df.dtypes)
 
         if pandas_df.columns.dtype != object:
             # default headers are Int64 type, but for the NavData
@@ -143,10 +143,8 @@ class NavData():
 
         """
 
-
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
-
 
         self._build_navdata()
 
@@ -211,9 +209,7 @@ class NavData():
                     else:
                         suffix += 1
                     new_row_name = row + "_" + str(suffix)
-                new_row = navdata[row]
-                if navdata.orig_dtypes is not None:
-                    new_row = new_row.astype(navdata.orig_dtypes[row])
+                new_row = navdata[row].astype(navdata.orig_dtypes[row])
                 if inplace:
                     self[new_row_name] = new_row
                 else:
@@ -241,21 +237,19 @@ class NavData():
                                                    new_row))
                 new_navdata[row] = combined_row
 
-            if self.orig_dtypes is not None \
-            and navdata.orig_dtypes is not None:
-                new_orig_dtypes = pd.concat((self.orig_dtypes,navdata.orig_dtypes))
-                new_orig_dtypes = new_orig_dtypes[~new_orig_dtypes.index.duplicated(keep='first')]
-                new_navdata.orig_dtypes = new_orig_dtypes
-            elif self.orig_dtypes is not None:
+            if len(self) > 0 and len(navdata) > 0:
+                new_navdata.orig_dtypes = navdata.orig_dtypes.copy()
+                new_navdata.orig_dtypes.update(self.orig_dtypes)
+            elif len(self) > 0:
                 new_navdata.orig_dtypes = self.orig_dtypes.copy()
-            elif navdata.orig_dtypes is not None:
+            elif len(navdata) > 0:
                 new_navdata.orig_dtypes = navdata.orig_dtypes.copy()
 
             if inplace:
                 self.array = new_navdata.array
                 self.map = new_navdata.map
                 self.str_map = new_navdata.str_map
-                self.orig_dtypes = new_navdata.orig_dtypes
+                self.orig_dtypes = new_navdata.orig_dtypes.copy()
 
         if inplace:
             return None
@@ -464,11 +458,11 @@ class NavData():
             if inplace:
                 self.map[new_name] = self.map.pop(old_name)
                 self.str_map[new_name] = self.str_map.pop(old_name)
+                self.orig_dtypes[new_name] = self.orig_dtypes.pop(old_name)
             else:
                 new_navdata.map[new_name] = new_navdata.map.pop(old_name)
                 new_navdata.str_map[new_name] = new_navdata.str_map.pop(old_name)
-            if self.orig_dtypes is not None:
-                self.orig_dtypes.rename({old_name:new_name},inplace=True)
+                new_navdata.orig_dtypes[new_name] = new_navdata.orig_dtypes.pop(old_name)
 
         if inplace:
             return None
@@ -577,8 +571,7 @@ class NavData():
                 key = row_idx
             new_navdata[key] = new_row
 
-        if self.orig_dtypes is not None:
-            new_navdata.orig_dtypes = self.orig_dtypes.copy()
+        new_navdata.orig_dtypes = self.orig_dtypes.copy()
 
         return new_navdata
 
@@ -750,12 +743,11 @@ class NavData():
 
         df_list = []
         for row in self.rows:
-            if self.orig_dtypes is not None and row in self.orig_dtypes:
+            if row in self.orig_dtypes:
                 df_list.append(np.atleast_1d(
                                self[row].astype(self.orig_dtypes[row])))
             else:
                 df_list.append(np.atleast_1d(self[row]))
-
 
         # transpose list to conform to Pandas input
         df_list = [list(x) for x in zip(*df_list)]
@@ -861,6 +853,10 @@ class NavData():
         else:
             arr_slice = self.array[rows, cols]
 
+        if isinstance(rows,list) and len(rows) == 1 \
+        and self.inv_map[rows[0]] in self.orig_dtypes:
+            arr_slice = arr_slice.astype(self.orig_dtypes[self.inv_map[rows[0]]])
+
         # remove all dimensions of length one
         arr_slice = np.squeeze(arr_slice)
 
@@ -906,8 +902,7 @@ class NavData():
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
                 # update original dtype in case of replacing values
-                if self.orig_dtypes is not None:
-                    self.orig_dtypes[key_idx] = object
+                self.orig_dtypes[key_idx] = object
             else:
                 # numeric values
                 if not type(new_value) in (int,float) \
@@ -919,8 +914,7 @@ class NavData():
                 # Adding numeric values
                 self.str_map[key_idx] = {}
                 # update original dtype in case of replacing values
-                if self.orig_dtypes is not None:
-                    self.orig_dtypes[key_idx] = np.asarray(new_value).dtype
+                self.orig_dtypes[key_idx] = np.asarray(new_value).dtype
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
                     self.array = np.reshape(new_value, (1,-1))
@@ -954,16 +948,16 @@ class NavData():
                                                     new_value_row, key)
                 self.array[rows, cols] = new_str_vals
                 # update original dtype in case of replacing values
-                if self.orig_dtypes is not None:
-                    self.orig_dtypes[rows] = object
+                for row_index in rows:
+                    self.orig_dtypes[self.inv_map[row_index]] = object
             else:
                 if not isinstance(new_value, int):
                     assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Please use dtype=object for string assignments"
                 self.array[rows, cols] = new_value
                 # update original dtype in case of replacing values
-                if self.orig_dtypes is not None:
-                    self.orig_dtypes[rows] = np.asarray(new_value).dtype
+                for row_index in rows:
+                    self.orig_dtypes[self.inv_map[row_index]] = np.asarray(new_value).dtype
 
     def __iter__(self):
         """Initialize iterator over NavData (iterates over all columns)
