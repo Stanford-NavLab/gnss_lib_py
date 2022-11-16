@@ -363,7 +363,7 @@ def test_plot_skyplot(navdata, state_estimate):
             navdata["x_sv_m",col_idx] = np.nan
 
     # don't save figures
-    fig = viz.plot_skyplot(navdata, state_estimate, save=True)
+    fig = viz.plot_skyplot(navdata, state_estimate, save=False)
     viz.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
