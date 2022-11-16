@@ -648,6 +648,70 @@ class NavData():
             new_navdata[key] = new_row
         return new_navdata
 
+    def interpolate(self, x_row, y_rows, inplace=False, *args):
+        """Interpolate NaN values based on row data.
+
+        Additional ``*args`` arguments are passed into the ``np.interp``
+        function.
+
+        Parameters
+        ----------
+        x_row : string
+            Row name for x-coordinate of all values (e.g. gps_millis).
+            Row must not contain any nan values.
+        y_rows : list or string
+            Row name(s) for y-coordinate which includes nan values that
+            will be interpolated.
+        inplace : bool
+            If False, will return new NavData instance with nan values
+            interpolated. If True, will interpolate nan values within
+            the current NavData instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after removing
+            specified rows and columns. If inplace is True, returns
+            None.
+
+        Notes
+        -----
+        Copied from https://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
+
+        """
+
+        # TODO: change to interpolate based on UnixTimeMillis
+
+        if isinstance(y_rows,str):
+            y_rows = [y_rows]
+        if not isinstance(x_row, str):
+            raise TypeError("'x_row' must be row name as a string.")
+        if not isinstance(y_rows, list):
+            raise TypeError("'y_rows' must be single or list of " \
+                          + "row names as a string.")
+        self.in_rows([x_row] + y_rows)
+
+        if not inplace:
+            new_navdata = self.copy()
+        for y_row in y_rows:
+            nan_idxs = self.argwhere(y_row,np.nan)
+            not_nan_idxs = self.argwhere(y_row,np.nan,"neq")
+            x_vals = self[x_row,nan_idxs]
+            xp_vals = self[x_row,not_nan_idxs]
+            yp_vals = self[y_row,not_nan_idxs]
+
+            if inplace:
+                self[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
+                                                 yp_vals, *args)
+            else:
+                new_navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
+                                                        yp_vals, *args)
+
+        if inplace:
+            return None
+        return new_navdata
+
+
     def in_rows(self, rows):
         """Checks whether the given rows are in NavData.
 
@@ -743,11 +807,8 @@ class NavData():
 
         df_list = []
         for row in self.rows:
-            if row in self.orig_dtypes:
-                df_list.append(np.atleast_1d(
-                               self[row].astype(self.orig_dtypes[row])))
-            else:
-                df_list.append(np.atleast_1d(self[row]))
+            df_list.append(np.atleast_1d(
+                           self[row].astype(self.orig_dtypes[row])))
 
         # transpose list to conform to Pandas input
         df_list = [list(x) for x in zip(*df_list)]
