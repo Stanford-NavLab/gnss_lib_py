@@ -2172,6 +2172,14 @@ def test_interpolate():
     """Test inerpolate nan function.
 
     """
+
+    data = NavData()
+    data["ints"] = [1,2]
+    data["floats"] = [1.,2.]
+    new_data = data.interpolate("ints","floats")
+    new_data["ints"] = np.array([1,2])
+    new_data["floats"] = np.array([1.,2.])
+
     data = NavData()
     data["UnixTimeMillis"] = [0,1,2,3,4,5,6,7,8,9,10]
     data["LatitudeDegrees"] = [0., np.nan, np.nan, np.nan, np.nan, 50.,

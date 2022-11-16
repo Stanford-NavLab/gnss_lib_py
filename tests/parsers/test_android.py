@@ -588,7 +588,7 @@ def fixture_gt_2022_path(root_path_2022):
     gt_path = os.path.join(root_path_2022, 'ground_truth.csv')
     return gt_path
 
-
+@pytest.fixture(name="derived_2022")
 def test_derived_2022(derived_2022_path):
     """Testing that Android Derived 2022 is created without errors.
 
@@ -596,9 +596,15 @@ def test_derived_2022(derived_2022_path):
     ----------
     derived_2022_path : string
         Location for the unit_test Android derived 2022 measurements
+
+    Returns
+    -------
+    derived_2022 :
+
     """
     derived_2022 = android.AndroidDerived2022(derived_2022_path)
     assert isinstance(derived_2022, NavData)
+    return derived_2022
 
 
 def test_gt_2022(gt_2022_path):
@@ -643,3 +649,52 @@ def test_remove_all_data(derived_path_xl):
                                    remove_timing_outliers=True)
 
     assert derived.shape[1] == 0
+
+@pytest.fixture(name="state_estimate")
+def test_solve_kaggle_baseline(derived_2022):
+    """Testing Kaggle baseline solution.
+
+    Parameters
+    ----------
+    derived_2022 : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android derived 2022 measurements
+
+    Returns
+    -------
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Baseline state estimate.
+    """
+
+    state_estimate = android.solve_kaggle_baseline(derived_2022)
+
+    state_estimate.in_rows(["gps_millis","lat_rx_deg",
+                            "lon_rx_deg","alt_rx_deg"])
+
+    assert state_estimate.shape[1] == 6
+
+    expected = np.array([1303770943999,1303770944999,1303770945999,
+                         1303770946999,1303770947999,1303770948999])
+    np.testing.assert_array_equal(state_estimate["gps_millis"],expected)
+
+    return state_estimate
+
+def test_prepare_kaggle_submission(state_estimate):
+    """Prepare Kaggle baseline solution.
+
+    Parameters
+    ----------
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Baseline state estimate.
+
+    """
+
+    output = android.prepare_kaggle_submission(state_estimate,"test")
+
+    output.in_rows(["tripId","UnixTimeMillis",
+                    "LatitudeDegrees","LongitudeDegrees"])
+
+    assert output.shape[1] == 6
+
+    expected = np.array([1619735725999,1619735726999,1619735727999,
+                         1619735728999,1619735729999,1619735730999])
+    np.testing.assert_array_equal(output["UnixTimeMillis"], expected)

@@ -15,7 +15,9 @@ import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
+from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.time_conversions import unix_to_gps_millis
+from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
 
 class AndroidDerived2021(NavData):
     """Class handling derived measurements from Android dataset.
@@ -491,3 +493,71 @@ def make_csv(input_path, output_directory, field, show_path=False):
         print(output_path)
 
     return output_path
+
+def solve_kaggle_baseline(navdata):
+    """Convert Decimeter challenge baseline into state_estimate.
+
+    The baseline solution was provided in 2022, but not in 2021.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.android.AndroidDerived2022
+        Instance of the AndroidDerived2022 class.
+
+    """
+
+    columns = ["unix_millis",
+               "x_rx_m",
+               "y_rx_m",
+               "z_rx_m",
+               ]
+    data_df = (navdata.pandas_df().drop_duplicates(subset='unix_millis')[columns]
+               .reset_index(drop=True))
+    lat,lon,alt = ecef_to_geodetic(data_df[["x_rx_m",
+                                            "y_rx_m",
+                                            "z_rx_m",
+                                            ]].to_numpy().T)
+
+    state_estimate = NavData()
+    state_estimate["gps_millis"] = unix_to_gps_millis(
+                                     data_df["unix_millis"].to_numpy())
+    state_estimate["lat_rx_deg"] = lat
+    state_estimate["lon_rx_deg"] = lon
+    state_estimate["alt_rx_deg"] = alt
+
+    return state_estimate
+
+def prepare_kaggle_submission(state_wls, trip_id):
+    """Converts from gnss_lib_py receiver state to Kaggle submission.
+
+
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Estimated receiver position in latitude and longitude as an
+        instance of the NavData class with the following
+        rows: ``lat_*_deg``, ``lon_*_deg``.
+    tripId : string
+        Value for the tripId column in kaggle submission which is a
+        fusion of the data and phone type
+
+    Returns
+    -------
+    output : gnss_lib_py.parsers.navdata.NavData
+        NavData structure ready for Kaggle submission
+
+    """
+
+    state_wls.in_rows("gps_millis")
+    wildcards = state_wls.find_wildcard_indexes(["lat_*_deg",
+                            "lon_*_deg"],max_allow = 1)
+
+    output = NavData()
+    output["tripId"] = np.array([trip_id] * state_wls.shape[1])
+    output["UnixTimeMillis"] = gps_to_unix_millis(state_wls["gps_millis"])
+    output.orig_dtypes["UnixTimeMillis"] = np.int64
+    output["LatitudeDegrees"] = state_wls[wildcards["lat_*_deg"]]
+    output["LongitudeDegrees"] = state_wls[wildcards["lon_*_deg"]]
+
+    output.interpolate("UnixTimeMillis",["LatitudeDegrees",
+                                         "LongitudeDegrees"])
+
+    return output

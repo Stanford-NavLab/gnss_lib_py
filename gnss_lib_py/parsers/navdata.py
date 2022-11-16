@@ -695,6 +695,8 @@ class NavData():
             new_navdata = self.copy()
         for y_row in y_rows:
             nan_idxs = self.argwhere(y_row,np.nan)
+            if len(nan_idxs) == 0:
+                continue
             not_nan_idxs = self.argwhere(y_row,np.nan,"neq")
             x_vals = self[x_row,nan_idxs]
             xp_vals = self[x_row,not_nan_idxs]
