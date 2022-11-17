@@ -575,7 +575,7 @@ def test_replace_mapper_all(df_simple, rows):
                           np.array([10,2,46,67,98,300]))
 
     assert new_navdata["names"].dtype == object
-    assert new_navdata["integers"].dtype == int
+    assert np.issubdtype(new_navdata["integers"].dtype, int)
     assert new_navdata["floats"].dtype == np.float64
     assert new_navdata["strings"].dtype == object
 
@@ -589,7 +589,7 @@ def test_replace_mapper_all(df_simple, rows):
                           np.array([10,2,46,67,98,300]))
 
     assert data_temp["names"].dtype == object
-    assert data_temp["integers"].dtype == int
+    assert np.issubdtype(data_temp["integers"].dtype, int)
     assert data_temp["floats"].dtype == np.float64
     assert data_temp["strings"].dtype == object
 
@@ -634,7 +634,7 @@ def test_replace_mapper_partial(df_simple, rows):
                           np.array([10,2,45,67,98,300]))
 
     assert new_navdata["names"].dtype == object
-    assert new_navdata["integers"].dtype == int
+    assert np.issubdtype(new_navdata["integers"].dtype, int)
     assert new_navdata["floats"].dtype == np.float64
     assert new_navdata["strings"].dtype == object
 
@@ -648,7 +648,7 @@ def test_replace_mapper_partial(df_simple, rows):
                           np.array([10,2,45,67,98,300]))
 
     assert data_temp["names"].dtype == object
-    assert data_temp["integers"].dtype == int
+    assert np.issubdtype(data_temp["integers"].dtype, int)
     assert data_temp["floats"].dtype == np.float64
     assert data_temp["strings"].dtype == object
 
@@ -692,7 +692,7 @@ def test_replace_mapper_type_change(df_simple):
     assert data["names"].dtype == object
     assert data["integers"].dtype == object
     assert data["floats"].dtype == np.float64
-    assert data["strings"].dtype == int
+    assert np.issubdtype(data["strings"].dtype, int)
 
 def test_rename_mapper_and_rows(df_simple):
     """Test data renaming functionality with type changes and row names.

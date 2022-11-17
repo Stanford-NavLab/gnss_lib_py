@@ -206,6 +206,9 @@ def test_datetime_to_unix_millis():
     t_rev = tc.unix_millis_to_datetime(out_unix_millis)
     assert t_datetime == t_rev
 
+    t_rev = tc.unix_millis_to_datetime(np.array(out_unix_millis).astype(np.int64))
+    assert t_datetime == t_rev
+
 
 def test_datetime_to_gps_millis():
     """Test UTC datetime to milliseconds since GPS epoch conversion

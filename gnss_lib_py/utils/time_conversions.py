@@ -274,7 +274,7 @@ def unix_millis_to_datetime(unix_millis):
     t_utc : datetime.datetime
         UTC time as a datetime object.
     """
-    if np.issubdtype(type(unix_millis),int):
+    if np.issubdtype(type(unix_millis),int) or isinstance(unix_millis,np.ndarray):
         unix_millis = float(unix_millis)
     t_utc = UNIX_EPOCH_0 + timedelta(milliseconds=unix_millis)
     t_utc = t_utc.replace(tzinfo=timezone.utc)
