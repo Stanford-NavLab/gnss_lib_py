@@ -712,14 +712,17 @@ def test_solve_kaggle_dataset(root_path):
                    solve_wls,
                    solve_gnss_ekf,
                   ]:
-        solution = android.solve_kaggle_dataset(folder_path, solver)
+        for verbose in [True, False]:
+            solution = android.solve_kaggle_dataset(folder_path, solver,
+                                                    verbose)
 
-        solution.in_rows(["tripId","UnixTimeMillis",
-                        "LatitudeDegrees","LongitudeDegrees"])
+            solution.in_rows(["tripId","UnixTimeMillis",
+                            "LatitudeDegrees","LongitudeDegrees"])
 
-        assert solution.shape[1] == 6
+            assert solution.shape[1] == 6
 
-        expected = np.array([1619735725999,1619735726999,1619735727999,
-                             1619735728999,1619735729999,1619735730999])
-        np.testing.assert_array_equal(solution["UnixTimeMillis"],
-                                      expected)
+            expected = np.array([1619735725999,1619735726999,
+                                 1619735727999,1619735728999,
+                                 1619735729999,1619735730999])
+            np.testing.assert_array_equal(solution["UnixTimeMillis"],
+                                          expected)

@@ -564,10 +564,10 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
     output["LongitudeDegrees"] = state_estimate[wildcards["lon_*_deg"]]
 
     output.interpolate("UnixTimeMillis",["LatitudeDegrees",
-                                         "LongitudeDegrees"])
+                                         "LongitudeDegrees"],inplace=True)
     return output
 
-def solve_kaggle_dataset(folder_path, solver, *args):
+def solve_kaggle_dataset(folder_path, solver, verbose=False, *args):
     """Run solver on all kaggle traces.
 
     Additional ``*args`` arguments are passed into the ``solver``
@@ -583,6 +583,9 @@ def solve_kaggle_dataset(folder_path, solver, *args):
         AndroidDerived2022 and outputs a state_estimate NavData object.
         Additional ``*args`` arguments are passed into this ``solver``
         function.
+    verbose : bool
+        If verbose, will print each trace trajectory name and phone name
+	pair when it is solving the state estimate for that pair.
 
     Returns
     -------
@@ -605,6 +608,9 @@ def solve_kaggle_dataset(folder_path, solver, *args):
             try:
                 # convert data to Measurement class
                 derived_data = AndroidDerived2022(data_path)
+
+                if verbose:
+                    print("solving:",trace_name,phone_type)
 
                 # compute state estimate using provided solver function
                 state_estimate = solver(derived_data, *args)
