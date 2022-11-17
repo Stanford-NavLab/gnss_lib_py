@@ -369,11 +369,11 @@ def test_plot_skyplot(navdata, state_estimate):
             navdata["x_sv_m",col_idx] = np.nan
 
     # don't save figures
-    fig = viz.plot_skyplot(navdata, state_estimate, save=True)
+    fig = viz.plot_skyplot(navdata.copy(), state_estimate, save=False)
     viz.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
-        viz.plot_skyplot(navdata, state_estimate, save=True, prefix=1)
+        viz.plot_skyplot(navdata.copy(), state_estimate, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
     for row in ["x_sv_m","y_sv_m","z_sv_m","gps_millis"]:

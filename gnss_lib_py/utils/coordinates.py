@@ -467,3 +467,51 @@ def ecef_to_el_az(rx_pos, sv_pos):
         el_az[:,1][el_az[:,1] < 0] += 360
 
     return el_az
+
+def add_el_az(navdata, receiver_state):
+    """Adds elevation and azimuth to NavData object.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class. Must include ``gps_millis`` as
+        well as satellite ECEF positions as ``x_sv_m``, ``y_sv_m``,
+        ``z_sv_m``, ``gnss_id`` and ``sv_id``.
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Either estimated or ground truth receiver position in ECEF frame
+        in meters as an instance of the NavData class with the
+        following rows: ``x_*_m``, ``y_*_m``, ``z_*_m``, ``gps_millis``.
+
+    """
+
+    # check for missing rows
+    navdata.in_rows(["gps_millis","x_sv_m","y_sv_m","z_sv_m",
+                     "gnss_id","sv_id"])
+    receiver_state.in_rows(["gps_millis"])
+
+    # check for receiver_state indexes
+    rx_idxs = receiver_state.find_wildcard_indexes(["x_*_m","y_*_m",
+                                                    "z_*_m"],max_allow=1)
+
+    sv_el_az = None
+    for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
+
+        pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
+
+        # find time index for receiver_state NavData instance
+        rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
+
+        pos_rx_m = receiver_state[[rx_idxs["x_*_m"][0],
+                                   rx_idxs["y_*_m"][0],
+                                   rx_idxs["z_*_m"][0]],
+                                   rx_t_idx].reshape(1,-1)
+
+        timestep_el_az = ecef_to_el_az(pos_rx_m, pos_sv_m)
+
+        if sv_el_az is None:
+            sv_el_az = timestep_el_az.T
+        else:
+            sv_el_az = np.hstack((sv_el_az,timestep_el_az.T))
+
+    navdata["el_sv_deg"] = sv_el_az[0,:]
+    navdata["az_sv_deg"] = sv_el_az[1,:]

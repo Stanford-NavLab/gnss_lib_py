@@ -21,7 +21,7 @@ from matplotlib.colors import to_rgb, ListedColormap
 
 import gnss_lib_py.utils.file_operations as fo
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.coordinates import ecef_to_el_az
+from gnss_lib_py.utils.coordinates import add_el_az
 
 STANFORD_COLORS = [
                    "#8C1515",   # cardinal red
@@ -274,39 +274,9 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
 
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
-    # check for missing rows
-    navdata.in_rows(["gps_millis","x_sv_m","y_sv_m","z_sv_m",
-                     "gnss_id","sv_id"])
-    receiver_state.in_rows(["gps_millis"])
-
-    # check for receiver_state indexes
-    rx_idxs = receiver_state.find_wildcard_indexes(["x_*_m","y_*_m",
-                                                    "z_*_m"],max_allow=1)
 
     if "el_sv_deg" not in navdata.rows or "az_sv_deg" not in navdata.rows:
-        sv_el_az = None
-
-        for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
-
-            pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
-
-            # find time index for receiver_state NavData instance
-            rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
-
-            pos_rx_m = receiver_state[[rx_idxs["x_*_m"][0],
-                                       rx_idxs["y_*_m"][0],
-                                       rx_idxs["z_*_m"][0]],
-                                       rx_t_idx].reshape(1,-1)
-
-            timestep_el_az = ecef_to_el_az(pos_rx_m, pos_sv_m)
-
-            if sv_el_az is None:
-                sv_el_az = timestep_el_az.T
-            else:
-                sv_el_az = np.hstack((sv_el_az,timestep_el_az.T))
-
-        navdata["el_sv_deg"] = sv_el_az[0,:]
-        navdata["az_sv_deg"] = sv_el_az[1,:]
+        add_el_az(navdata, receiver_state)
 
     # create new figure
     fig = plt.figure(figsize=(6,4.5))
