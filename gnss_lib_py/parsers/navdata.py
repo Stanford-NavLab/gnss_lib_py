@@ -100,7 +100,7 @@ class NavData():
         if not isinstance(csv_path, str):
             raise TypeError("csv_path must be string")
         if not os.path.exists(csv_path):
-            raise OSError("file not found")
+            raise FileNotFoundError("file not found")
 
         self._build_navdata()
 
@@ -674,13 +674,7 @@ class NavData():
             specified rows and columns. If inplace is True, returns
             None.
 
-        Notes
-        -----
-        Copied from https://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
-
         """
-
-        # TODO: change to interpolate based on UnixTimeMillis
 
         if isinstance(y_rows,str):
             y_rows = [y_rows]
@@ -708,11 +702,9 @@ class NavData():
             else:
                 new_navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
                                                         yp_vals, *args)
-
         if inplace:
             return None
         return new_navdata
-
 
     def in_rows(self, rows):
         """Checks whether the given rows are in NavData.

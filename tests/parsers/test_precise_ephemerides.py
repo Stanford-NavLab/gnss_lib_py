@@ -322,7 +322,7 @@ def test_load_sp3data_gps_missing(sp3_path_missing):
         measurements
     """
     # Create a sp3 class for each expected satellite
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         _ = parse_sp3(sp3_path_missing, constellation = 'gps')
 
 def test_load_clkdata_gps_missing(clk_path_missing):
@@ -335,7 +335,7 @@ def test_load_clkdata_gps_missing(clk_path_missing):
         measurements
     """
     # Create a sp3 class for each expected satellite
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         _ = parse_clockfile(clk_path_missing, constellation = 'gps')
 
 @pytest.fixture(name="sp3_path_nodata")

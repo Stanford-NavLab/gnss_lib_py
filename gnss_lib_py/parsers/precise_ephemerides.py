@@ -102,7 +102,7 @@ def parse_sp3(input_path, constellation = 'gps'):
     if not isinstance(input_path, str):
         raise TypeError("input_path must be string")
     if not os.path.exists(input_path):
-        raise OSError("file not found")
+        raise FileNotFoundError("file not found")
 
     # Load in the file
     with open(input_path, 'r', encoding="utf-8") as infile:
@@ -228,7 +228,7 @@ def parse_clockfile(input_path, constellation = 'gps'):
     if not isinstance(input_path, str):
         raise TypeError("input_path must be string")
     if not os.path.exists(input_path):
-        raise OSError("file not found")
+        raise FileNotFoundError("file not found")
 
     # Poll the total no. of satellites based on constellation specified
     if constellation in NUMSATS.keys():

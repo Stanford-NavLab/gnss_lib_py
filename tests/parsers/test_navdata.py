@@ -217,7 +217,7 @@ def test_init_csv(csv_path):
 
 
     # raises exception if not a file path
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         data = NavData(csv_path="")
 
     # raises exception if input int
