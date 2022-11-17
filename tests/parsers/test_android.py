@@ -601,7 +601,8 @@ def test_derived_2022(derived_2022_path):
 
     Returns
     -------
-    derived_2022 :
+    derived_2022 : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived 2022 Navdata object for testing.
 
     """
     derived_2022 = android.AndroidDerived2022(derived_2022_path)
