@@ -504,6 +504,11 @@ def solve_kaggle_baseline(navdata):
     navdata : gnss_lib_py.parsers.android.AndroidDerived2022
         Instance of the AndroidDerived2022 class.
 
+    Returns
+    -------
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Baseline state estimate.
+
     """
 
     columns = ["unix_millis",
@@ -527,37 +532,91 @@ def solve_kaggle_baseline(navdata):
 
     return state_estimate
 
-def prepare_kaggle_submission(state_wls, trip_id):
+def prepare_kaggle_submission(state_estimate, trip_id):
     """Converts from gnss_lib_py receiver state to Kaggle submission.
 
-
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    Parameters
+    ----------
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
         Estimated receiver position in latitude and longitude as an
         instance of the NavData class with the following
-        rows: ``lat_*_deg``, ``lon_*_deg``.
-    tripId : string
+        rows: ``gps_millis``, ``lat_*_deg``, ``lon_*_deg``.
+    trip_id : string
         Value for the tripId column in kaggle submission which is a
-        fusion of the data and phone type
+        fusion of the data and phone type.
 
     Returns
     -------
     output : gnss_lib_py.parsers.navdata.NavData
-        NavData structure ready for Kaggle submission
+        NavData structure ready for Kaggle submission.
 
     """
 
-    state_wls.in_rows("gps_millis")
-    wildcards = state_wls.find_wildcard_indexes(["lat_*_deg",
+    state_estimate.in_rows("gps_millis")
+    wildcards = state_estimate.find_wildcard_indexes(["lat_*_deg",
                             "lon_*_deg"],max_allow = 1)
 
     output = NavData()
-    output["tripId"] = np.array([trip_id] * state_wls.shape[1])
-    output["UnixTimeMillis"] = gps_to_unix_millis(state_wls["gps_millis"])
+    output["tripId"] = np.array([trip_id] * state_estimate.shape[1])
+    output["UnixTimeMillis"] = gps_to_unix_millis(state_estimate["gps_millis"])
     output.orig_dtypes["UnixTimeMillis"] = np.int64
-    output["LatitudeDegrees"] = state_wls[wildcards["lat_*_deg"]]
-    output["LongitudeDegrees"] = state_wls[wildcards["lon_*_deg"]]
+    output["LatitudeDegrees"] = state_estimate[wildcards["lat_*_deg"]]
+    output["LongitudeDegrees"] = state_estimate[wildcards["lon_*_deg"]]
 
     output.interpolate("UnixTimeMillis",["LatitudeDegrees",
                                          "LongitudeDegrees"])
-
     return output
+
+def solve_kaggle_dataset(folder_path, solver, *args):
+    """Run solver on all kaggle traces.
+
+    Additional ``*args`` arguments are passed into the ``solver``
+    function.
+
+    Parameters
+    ----------
+    folder_path: string or path-like
+        Path to folder containing all traces (e.g. full path to "train"
+        or "test" directories.
+    solver : function
+        State estimate solver that takes an instance of
+        AndroidDerived2022 and outputs a state_estimate NavData object.
+        Additional ``*args`` arguments are passed into this ``solver``
+        function.
+
+    Returns
+    -------
+    submission : gnss_lib_py.parsers.navdata.NavData
+        Full solution submission across all traces. Can then be saved
+        using submission.to_csv().
+
+    """
+
+    # create solution NavData object
+    solution = NavData()
+
+    # iterate through all trace options
+    for trace_name in sorted(os.listdir(folder_path)):
+        trace_path = os.path.join(folder_path, trace_name)
+        # iterate through all phone types
+        for phone_type in sorted(os.listdir(trace_path)):
+            data_path = os.path.join(folder_path,trace_name,
+                                     phone_type,"device_gnss.csv")
+            try:
+                # convert data to Measurement class
+                derived_data = AndroidDerived2022(data_path)
+
+                # compute state estimate using provided solver function
+                state_estimate = solver(derived_data, *args)
+
+                trip_id = "/".join([trace_name,phone_type])
+                output = prepare_kaggle_submission(state_estimate,
+                                                   trip_id)
+
+                # concatenate solution to previous solutions
+                solution.concat(navdata=output, inplace=True)
+
+            except FileNotFoundError:
+                continue
+
+    return solution
