@@ -532,7 +532,7 @@ def solve_kaggle_baseline(navdata):
 
     return state_estimate
 
-def prepare_kaggle_submission(state_estimate, trip_id):
+def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
     """Converts from gnss_lib_py receiver state to Kaggle submission.
 
     Parameters
