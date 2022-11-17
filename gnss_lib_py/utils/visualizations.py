@@ -579,6 +579,16 @@ def _get_label(inputs):
     if not isinstance(inputs,dict):
         raise TypeError("_get_label input must be dictionary.")
 
+    # handle units specially.
+    units = {"m","km",
+             "deg","rad",
+             "sec","s","hr","min",
+             "mps",
+             }
+    unit_replacements = {
+                         "mps" : "m/s",
+                        }
+
     label = ""
     for key, value in inputs.items():
 
@@ -593,8 +603,14 @@ def _get_label(inputs):
         except ValueError:
             pass
 
-        value = value.upper()
-        value = value.replace("_"," ")
+        value = value.split("_")
+        if value[-1] in units:
+            # make units lowercase and bracketed.
+            if value[-1] in unit_replacements:
+                value[-1] = unit_replacements[value[-1]]
+            value = " ".join(value[:-1]).upper() + " [" + value[-1] + "]"
+        else:
+            value = " ".join(value).upper()
 
         if key == "gnss_id": # use GNSS specific capitalization
             constellation_map = {"GALILEO" : "Galileo",

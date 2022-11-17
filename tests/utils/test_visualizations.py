@@ -415,6 +415,10 @@ def test_get_label():
     assert viz._get_label({"gnss_id" : "galileo",
                            "signal_type" : "b1i"}) == "Galileo B1i"
 
+    assert viz._get_label({"row" : "x_rx_m"}) == "X RX [m]"
+    assert viz._get_label({"row" : "lat_rx_deg"}) == "LAT RX [deg]"
+    assert viz._get_label({"row" : "vx_sv_mps"}) == "VX SV [m/s]"
+
     with pytest.raises(TypeError) as excinfo:
         viz._get_label(["should","fail"])
     assert "dictionary" in str(excinfo.value)
