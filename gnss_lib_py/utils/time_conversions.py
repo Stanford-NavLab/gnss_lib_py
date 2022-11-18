@@ -98,7 +98,7 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
             print('leapSecs added')
         tow = tow + out_leapsecs
 
-    return int(gps_week), tow
+    return np.int64(gps_week), tow
 
 def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
     """Convert Python datetime object to GPS Week and time of week.
@@ -133,7 +133,7 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
 
     tow = ((t_datetime - GPS_EPOCH_0) - timedelta(gps_week* 7.0)).total_seconds()
 
-    return int(gps_week), tow
+    return np.int64(gps_week), tow
 
 
 def tow_to_datetime(gps_week, tow, rem_leap_secs=True):
@@ -301,7 +301,7 @@ def unix_millis_to_tow(unix_millis):
     """
     t_utc = unix_millis_to_datetime(unix_millis)
     gps_week, tow = datetime_to_tow(t_utc, add_leap_secs=True)
-    return int(gps_week), tow
+    return np.int64(gps_week), tow
 
 
 def unix_to_gps_millis(unix_millis, add_leap_secs=True):
@@ -328,10 +328,10 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
         for t_idx, unix in enumerate(unix_millis):
             t_utc = unix_millis_to_datetime(unix)
             gps_millis[t_idx] = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
-        gps_millis = gps_millis.astype(int)
+        gps_millis = gps_millis.astype(np.int64)
     else:
         t_utc = unix_millis_to_datetime(unix_millis)
-        gps_millis = int(datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs))
+        gps_millis = np.int64(datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs))
     return gps_millis
 
 
@@ -386,10 +386,10 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
         for t_idx, gps in enumerate(gps_millis):
             t_utc = gps_millis_to_datetime(gps, rem_leap_secs=rem_leap_secs)
             unix_millis[t_idx] = datetime_to_unix_millis(t_utc)
-        gps_millis = gps_millis.astype(int)
+        gps_millis = gps_millis.astype(np.int64)
     else:
         t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
-        unix_millis = int(datetime_to_unix_millis(t_utc))
+        unix_millis = np.int64(datetime_to_unix_millis(t_utc))
     return unix_millis
 
 def _check_tzinfo(t_datetime):
