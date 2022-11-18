@@ -121,7 +121,7 @@ class NavData():
 
         dtypes = dict(pandas_df.dtypes)
         for row, dtype in dtypes.items():
-            if np.issubdtype(dtype,int):
+            if np.issubdtype(dtype,np.integer):
                 dtype = np.int64
             self.orig_dtypes[row] = dtype
 
@@ -974,7 +974,7 @@ class NavData():
                 self.str_map[key_idx] = {}
                 # update original dtype in case of replacing values
                 dtype = np.asarray(new_value).dtype
-                if np.issubdtype(dtype, int):
+                if np.issubdtype(dtype, np.integer):
                     dtype = np.int64
                 self.orig_dtypes[key_idx] = dtype
                 if self.array.shape == (0,0):
@@ -1020,7 +1020,7 @@ class NavData():
                 # update original dtype in case of replacing values
                 for row_index in rows:
                     dtype = np.asarray(new_value).dtype
-                    if np.issubdtype(dtype, int):
+                    if np.issubdtype(dtype, np.integer):
                         dtype = np.int64
                     self.orig_dtypes[self.inv_map[row_index]] = dtype
 
