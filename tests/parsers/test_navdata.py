@@ -1225,7 +1225,7 @@ def fixture_add_dataframe():
         Dataframe that will be added to NavData
     """
     add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object),
-                'integers': np.asarray([-2, 45]),
+                'integers': np.asarray([-2, 45], dtype=np.int64),
                 'floats': np.asarray([1.4, 1.5869]),
                 'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
     add_df = pd.DataFrame(data=add_data)
