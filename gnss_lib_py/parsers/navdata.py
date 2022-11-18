@@ -119,7 +119,11 @@ class NavData():
         if not isinstance(pandas_df, pd.DataFrame):
             raise TypeError("pandas_df must be pd.DataFrame")
 
-        self.orig_dtypes = dict(pandas_df.dtypes)
+        dtypes = dict(pandas_df.dtypes)
+        for row, dtype in dtypes.items():
+            if np.issubdtype(dtype,int):
+                dtype = np.int64
+            self.orig_dtypes[row] = dtype
 
         if pandas_df.columns.dtype != object:
             # default headers are Int64 type, but for the NavData
@@ -969,7 +973,10 @@ class NavData():
                 # Adding numeric values
                 self.str_map[key_idx] = {}
                 # update original dtype in case of replacing values
-                self.orig_dtypes[key_idx] = np.asarray(new_value).dtype
+                dtype = np.asarray(new_value).dtype
+                if np.issubdtype(dtype, int):
+                    dtype = np.int64
+                self.orig_dtypes[key_idx] = dtype
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
                     self.array = np.reshape(new_value, (1,-1))
@@ -1012,7 +1019,10 @@ class NavData():
                 self.array[rows, cols] = new_value
                 # update original dtype in case of replacing values
                 for row_index in rows:
-                    self.orig_dtypes[self.inv_map[row_index]] = np.asarray(new_value).dtype
+                    dtype = np.asarray(new_value).dtype
+                    if np.issubdtype(dtype, int):
+                        dtype = np.int64
+                    self.orig_dtypes[self.inv_map[row_index]] = dtype
 
     def __iter__(self):
         """Initialize iterator over NavData (iterates over all columns)
