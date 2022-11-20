@@ -276,7 +276,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         raise TypeError("Prefix must be a string.")
 
     if "el_sv_deg" not in navdata.rows or "az_sv_deg" not in navdata.rows:
-        add_el_az(navdata, receiver_state)
+        add_el_az(navdata, receiver_state, inplace=True)
 
     # create new figure
     fig = plt.figure(figsize=(6,4.5))
@@ -553,10 +553,17 @@ def _get_label(inputs):
     units = {"m","km",
              "deg","rad",
              "sec","s","hr","min",
-             "mps",
+             "mps","kmph","mph",
+             "dgps","radps",
+             "mps2",
              }
     unit_replacements = {
                          "mps" : "m/s",
+                         "kmph" : "km/hr",
+                         "mph" : "miles/hr",
+                         "degps" : "deg/s",
+                         "radps" : "rad/s",
+                         "mps2" : "m/s^2",
                         }
 
     label = ""

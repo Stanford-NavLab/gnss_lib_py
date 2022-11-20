@@ -33,6 +33,7 @@ __date__ = "20 July 2021"
 import numpy as np
 
 import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.parsers.navdata import NavData
 
 EPSILON = 1e-7
 
@@ -468,7 +469,7 @@ def ecef_to_el_az(rx_pos, sv_pos):
 
     return el_az
 
-def add_el_az(navdata, receiver_state):
+def add_el_az(navdata, receiver_state, inplace=False):
     """Adds elevation and azimuth to NavData object.
 
     Parameters
@@ -481,6 +482,19 @@ def add_el_az(navdata, receiver_state):
         Either estimated or ground truth receiver position in ECEF frame
         in meters as an instance of the NavData class with the
         following rows: ``x_*_m``, ``y_*_m``, ``z_*_m``, ``gps_millis``.
+    inplace : bool
+        If false (default) will add elevation and azimuth to a new
+        NavData instance. If true, will add elevation and azimuth to the
+        existing NavData instance.
+
+    Returns
+    -------
+    data_el_az : None or gnss_lib_py.parsers.navdata.NavData
+        If inplace is True, adds ``el_sv_deg`` and ``az_sv_deg`` to
+        the input navdata. If inplace is False, returns ``el_sv_deg``
+        and ``az_sv_deg`` in a new NavData instance along with
+        ``gps_millis`` and the corresponding satellite and receiver
+        rows.
 
     """
 
@@ -513,5 +527,22 @@ def add_el_az(navdata, receiver_state):
         else:
             sv_el_az = np.hstack((sv_el_az,timestep_el_az.T))
 
-    navdata["el_sv_deg"] = sv_el_az[0,:]
-    navdata["az_sv_deg"] = sv_el_az[1,:]
+    if inplace:
+        navdata["el_sv_deg"] = sv_el_az[0,:]
+        navdata["az_sv_deg"] = sv_el_az[1,:]
+        return None
+
+    data_el_az = NavData()
+    data_el_az["gps_millis"] = navdata["gps_millis"]
+    data_el_az["gnss_id"] = navdata["gnss_id"]
+    data_el_az["sv_id"] = navdata["sv_id"]
+    data_el_az["x_sv_m"] = navdata["x_sv_m"]
+    data_el_az["y_sv_m"] = navdata["y_sv_m"]
+    data_el_az["z_sv_m"] = navdata["z_sv_m"]
+    data_el_az[rx_idxs["x_*_m"][0]] = receiver_state[rx_idxs["x_*_m"][0]]
+    data_el_az[rx_idxs["y_*_m"][0]] = receiver_state[rx_idxs["y_*_m"][0]]
+    data_el_az[rx_idxs["z_*_m"][0]] = receiver_state[rx_idxs["z_*_m"][0]]
+    data_el_az["el_sv_deg"] = sv_el_az[0,:]
+    data_el_az["az_sv_deg"] = sv_el_az[1,:]
+
+    return data_el_az
