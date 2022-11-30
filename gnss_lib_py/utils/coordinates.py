@@ -489,12 +489,12 @@ def add_el_az(navdata, receiver_state, inplace=False):
 
     Returns
     -------
-    data_el_az : None or gnss_lib_py.parsers.navdata.NavData
+    data_el_az : gnss_lib_py.parsers.navdata.NavData
         If inplace is True, adds ``el_sv_deg`` and ``az_sv_deg`` to
-        the input navdata. If inplace is False, returns ``el_sv_deg``
-        and ``az_sv_deg`` in a new NavData instance along with
-        ``gps_millis`` and the corresponding satellite and receiver
-        rows.
+        the input navdata and returns the same object.
+        If inplace is False, returns ``el_sv_deg`` and ``az_sv_deg``
+        in a new NavData instance along with ``gps_millis`` and the
+        corresponding satellite and receiver rows.
 
     """
 
@@ -530,7 +530,7 @@ def add_el_az(navdata, receiver_state, inplace=False):
     if inplace:
         navdata["el_sv_deg"] = sv_el_az[0,:]
         navdata["az_sv_deg"] = sv_el_az[1,:]
-        return None
+        return navdata
 
     data_el_az = NavData()
     data_el_az["gps_millis"] = navdata["gps_millis"]
