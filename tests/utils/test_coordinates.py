@@ -13,7 +13,7 @@ from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.android import AndroidDerived2022
-from gnss_lib_py.utils.coordinates import ecef_to_el_az
+from gnss_lib_py.utils.coordinates import ecef_to_el_az, add_el_az
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, LocalCoord
 
@@ -409,3 +409,33 @@ def test_ecef_to_el_az_fails(set_sv_pos, set_rx_pos):
     with pytest.raises(RuntimeError) as excinfo:
         ecef_to_el_az(set_rx_pos,set_sv_pos.T)
     assert "Nx3" in str(excinfo.value)
+
+
+@pytest.mark.parametrize('navdata',[
+                                    lazy_fixture('derived_2022'),
+                                    ])
+def test_add_el_az(navdata):
+    """Test for plotting skyplot.
+
+    Parameters
+    ----------
+    navdata : AndroidDerived
+        Instance of AndroidDerived for testing.
+
+    """
+
+    receiver_state = navdata.copy(rows=["gps_millis",
+                                        "WlsPositionXEcefMeters",
+                                        "WlsPositionYEcefMeters",
+                                        "WlsPositionZEcefMeters"])
+    row_map = {
+               "WlsPositionXEcefMeters" : "x_rx_m",
+               "WlsPositionYEcefMeters" : "y_rx_m",
+               "WlsPositionZEcefMeters" : "z_rx_m",
+                }
+    receiver_state.rename(row_map,inplace=True)
+    data_el_az = add_el_az(navdata, receiver_state)
+    np.testing.assert_array_almost_equal(data_el_az["el_sv_deg"],
+                                         navdata["el_sv_deg"])
+    np.testing.assert_array_almost_equal(data_el_az["az_sv_deg"],
+                                         navdata["az_sv_deg"])
