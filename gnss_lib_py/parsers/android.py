@@ -516,12 +516,13 @@ def solve_kaggle_baseline(navdata):
                "y_rx_m",
                "z_rx_m",
                ]
+    navdata.in_rows(columns)
     data_df = (navdata.pandas_df().drop_duplicates(subset='unix_millis')[columns]
                .reset_index(drop=True))
-    lat,lon,alt = ecef_to_geodetic(data_df[["x_rx_m",
-                                            "y_rx_m",
-                                            "z_rx_m",
-                                            ]].to_numpy().T)
+    lat,lon,alt = np.transpose(ecef_to_geodetic(data_df[["x_rx_m",
+                                                         "y_rx_m",
+                                                         "z_rx_m",
+                                                         ]].to_numpy()))
 
     state_estimate = NavData()
     state_estimate["gps_millis"] = unix_to_gps_millis(

@@ -91,17 +91,17 @@ def solve_wls(measurements, weight_type = None,
 
     states = np.array(states)
 
-    if np.isnan(states[:,1:]).all():
-        warnings.warn("No valid state estimate computed in WLS, "\
-                    + "returning None.", RuntimeWarning)
-        return None
-
     state_estimate = NavData()
     state_estimate["gps_millis"] = states[:,0]
     state_estimate["x_rx_m"] = states[:,1]
     state_estimate["y_rx_m"] = states[:,2]
     state_estimate["z_rx_m"] = states[:,3]
     state_estimate["b_rx_m"] = states[:,4]
+
+    if np.isnan(states[:,1:]).all():
+        warnings.warn("No valid state estimate computed in WLS, "\
+                    + "returning None.", RuntimeWarning)
+        return state_estimate
 
     lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
                                    "z_rx_m"]].reshape(3,-1))
