@@ -6,13 +6,13 @@ Install
 Prerequisites
 -------------
 
-| **Python:** >=3.7.1, <3.11
+| **Python:** >=3.8, <3.12
 | **Operating System:** Linux, Windows, MacOS
 
-All :code:`gnss_lib_py` classes and methods are tested in Python 3.7.1,
-3.8, and 3.10 in the latest Ubuntu, MacOS and Windows versions.
-:code:`gnss_lib_py` is developed in Python 3.8.9 in Ubuntu 20/22 and
-Ubuntu 20 for WSL2.
+All :code:`gnss_lib_py` classes and methods are tested in Python 3.8,
+and 3.11 in the latest Ubuntu, MacOS and Windows versions.
+:code:`gnss_lib_py` was originally developed in Python 3.8.9 in
+Ubuntu 20/22 and Ubuntu 20 for WSL2.
 
 Standard Installation
 ---------------------
