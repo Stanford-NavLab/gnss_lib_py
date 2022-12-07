@@ -42,6 +42,7 @@ extensions = [
                 'sphinx.ext.napoleon',
                 'nbsphinx',
                 'nbsphinx_link',
+                'IPython.sphinxext.ipython_console_highlighting',
 ]
 
 # Specify which files are source files for Sphinx
