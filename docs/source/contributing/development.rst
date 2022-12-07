@@ -174,7 +174,7 @@ Pull Request Review Workflow
 
    If the feature branch included new functionality, the following
    should have also been updated:
-   
+
    * the "Code Organization" section of the :code:`README.md`
    * the "Code Organization" section of
      :code:`docs/source/index.rst` to match the :code:`README.md`
@@ -204,3 +204,29 @@ Pull Request Review Workflow
    See the :ref:`Coverage Report<coverage>` section for more details.
 
 7. Submit your approval or any comments on GitHub.
+
+New Package Release Workflow
+--------------------
+
+1. Create new branch for the release:
+
+   .. code-block:: bash
+
+      git checkout -b your-name/release-X.Y.Z
+
+2. Open the ``pyproject.toml`` file and under the ``[tool.poetry]``
+   group change the ``version = X.Y.Z`` variable to match the new
+   package version number.
+
+3. Create a new pull request and merge to the ``main`` branch using the
+   development process above.
+
+4. Go to the `releases page <https://github.com/Stanford-NavLab/gnss_lib_py/releases>`__
+   on GitHub and click the ``Draft a new release`` button on the top.
+   Click ``Choose a tag`` and add a new tag named ``X.Y.Z`` matching the
+   new package version number. Target the ``main`` branch. Finally,
+   click the ``Publish release`` button.
+
+5. Allow time for the release to build and then check
+   `pypi <https://pypi.org/project/gnss-lib-py/>`__
+   to ensure that the release was built successfully.
