@@ -206,7 +206,7 @@ Pull Request Review Workflow
 7. Submit your approval or any comments on GitHub.
 
 New Package Release Workflow
---------------------
+----------------------------
 
 1. Create new branch for the release:
 
