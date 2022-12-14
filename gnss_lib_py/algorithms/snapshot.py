@@ -82,18 +82,14 @@ def solve_wls(measurements, weight_type = None,
         try:
             position = wls(position, pos_sv_m, corr_pr_m, weights,
                            only_bias, tol, max_count)
-
             states.append([timestamp] + np.squeeze(position).tolist())
         except RuntimeError as error:
             warnings.warn("RuntimeError encountered at gps_millis: " \
                         + str(int(timestamp)) + " RuntimeError: " \
                         + str(error), RuntimeWarning)
-    states = np.array(states)
+            states.append([timestamp, np.nan, np.nan, np.nan, np.nan])
 
-    if states.size == 0:
-        warnings.warn("No valid state estimate computed in WLS, "\
-                    + "returning None.", RuntimeWarning)
-        return None
+    states = np.array(states)
 
     state_estimate = NavData()
     state_estimate["gps_millis"] = states[:,0]
@@ -101,6 +97,11 @@ def solve_wls(measurements, weight_type = None,
     state_estimate["y_rx_m"] = states[:,2]
     state_estimate["z_rx_m"] = states[:,3]
     state_estimate["b_rx_m"] = states[:,4]
+
+    if np.isnan(states[:,1:]).all():
+        warnings.warn("No valid state estimate computed in WLS, "\
+                    + "returning NaNs.", RuntimeWarning)
+        return state_estimate
 
     lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
                                    "z_rx_m"]].reshape(3,-1))

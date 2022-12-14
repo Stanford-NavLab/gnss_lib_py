@@ -355,12 +355,6 @@ def test_plot_skyplot(navdata, state_estimate):
     """
 
     if isinstance(navdata, AndroidDerived2022):
-        row_map = {
-                   "WlsPositionXEcefMeters" : "x_rx_m",
-                   "WlsPositionYEcefMeters" : "y_rx_m",
-                   "WlsPositionZEcefMeters" : "z_rx_m",
-                    }
-        navdata.rename(row_map,inplace=True)
         state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
 
     sv_nan = np.unique(navdata["sv_id"])[0]

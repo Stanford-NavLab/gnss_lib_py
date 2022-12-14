@@ -322,7 +322,7 @@ def test_load_sp3data_gps_missing(sp3_path_missing):
         measurements
     """
     # Create a sp3 class for each expected satellite
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         _ = parse_sp3(sp3_path_missing, constellation = 'gps')
 
 def test_load_clkdata_gps_missing(clk_path_missing):
@@ -335,7 +335,7 @@ def test_load_clkdata_gps_missing(clk_path_missing):
         measurements
     """
     # Create a sp3 class for each expected satellite
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         _ = parse_clockfile(clk_path_missing, constellation = 'gps')
 
 @pytest.fixture(name="sp3_path_nodata")
@@ -862,8 +862,6 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
     assert isinstance( navdata_gpsl1_eph, type(NavData()) )
 
     for sval in SV_KEYS[0:6]:
-        print( sval, max(abs(navdata_gpsl1[sval] - navdata_gpsl1_eph[sval])) )
-
         # Check if the resulting navdata class has satellite information
         assert sval in navdata_gpsl1_eph.rows
 

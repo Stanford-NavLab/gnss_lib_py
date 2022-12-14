@@ -90,6 +90,13 @@ def fixture_csv_only_header():
     """
     return fixture_csv_path("navdata_only_header.csv")
 
+@pytest.fixture(name="csv_dtypes")
+def fixture_csv_dtypes():
+    """csv made up of different data types.
+
+    """
+    return fixture_csv_path("navdata_test_dtypes.csv")
+
 def load_test_dataframe(csv_filepath, header="infer"):
     """Create dataframe test fixture.
 
@@ -210,7 +217,7 @@ def test_init_csv(csv_path):
 
 
     # raises exception if not a file path
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         data = NavData(csv_path="")
 
     # raises exception if input int
@@ -568,7 +575,7 @@ def test_replace_mapper_all(df_simple, rows):
                           np.array([10,2,46,67,98,300]))
 
     assert new_navdata["names"].dtype == object
-    assert new_navdata["integers"].dtype == np.float64
+    assert np.issubdtype(new_navdata["integers"].dtype, np.integer)
     assert new_navdata["floats"].dtype == np.float64
     assert new_navdata["strings"].dtype == object
 
@@ -582,7 +589,7 @@ def test_replace_mapper_all(df_simple, rows):
                           np.array([10,2,46,67,98,300]))
 
     assert data_temp["names"].dtype == object
-    assert data_temp["integers"].dtype == np.float64
+    assert np.issubdtype(data_temp["integers"].dtype, np.integer)
     assert data_temp["floats"].dtype == np.float64
     assert data_temp["strings"].dtype == object
 
@@ -627,7 +634,7 @@ def test_replace_mapper_partial(df_simple, rows):
                           np.array([10,2,45,67,98,300]))
 
     assert new_navdata["names"].dtype == object
-    assert new_navdata["integers"].dtype == np.float64
+    assert np.issubdtype(new_navdata["integers"].dtype, np.integer)
     assert new_navdata["floats"].dtype == np.float64
     assert new_navdata["strings"].dtype == object
 
@@ -641,7 +648,7 @@ def test_replace_mapper_partial(df_simple, rows):
                           np.array([10,2,45,67,98,300]))
 
     assert data_temp["names"].dtype == object
-    assert data_temp["integers"].dtype == np.float64
+    assert np.issubdtype(data_temp["integers"].dtype, np.integer)
     assert data_temp["floats"].dtype == np.float64
     assert data_temp["strings"].dtype == object
 
@@ -685,7 +692,7 @@ def test_replace_mapper_type_change(df_simple):
     assert data["names"].dtype == object
     assert data["integers"].dtype == object
     assert data["floats"].dtype == np.float64
-    assert data["strings"].dtype == np.float64
+    assert np.issubdtype(data["strings"].dtype, np.integer)
 
 def test_rename_mapper_and_rows(df_simple):
     """Test data renaming functionality with type changes and row names.
@@ -1218,7 +1225,7 @@ def fixture_add_dataframe():
         Dataframe that will be added to NavData
     """
     add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object),
-                'integers': np.asarray([-2., 45.]),
+                'integers': np.asarray([-2, 45], dtype=np.int64),
                 'floats': np.asarray([1.4, 1.5869]),
                 'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
     add_df = pd.DataFrame(data=add_data)
@@ -1264,7 +1271,7 @@ def test_add_csv(df_simple, csv_simple):
     data.concat(NavData(csv_path=csv_simple),axis=1,inplace=True)
     data_df = data.pandas_df()
     # Set up dataframe for comparison
-    df_types = {'names': object, 'integers': np.float64,
+    df_types = {'names': object, 'integers': np.int64,
                 'floats': np.float64, 'strings': object}
     expected_df = pd.concat((df_simple,df_simple)).reset_index(drop=True)
     expected_df = expected_df.astype(df_types)
@@ -1826,8 +1833,6 @@ def test_str_navdata(df_simple, df_only_header):
     """
     navdata = NavData(pandas_df=df_simple)
     navdata_str = str(navdata)
-    # Conversion from int to float in DataFrame for consistency
-    df_simple = df_simple.astype({'integers': 'float64'})
     df_str = str(df_simple)
     assert navdata_str==df_str
 
@@ -2097,3 +2102,144 @@ def test_find_wildcard_indexes(data):
         with pytest.raises(TypeError) as excinfo:
             multi.find_wildcard_indexes("x_*_m",max_allow)
         assert "max_allow" in str(excinfo.value)
+
+@pytest.mark.parametrize('csv_path',
+                        [
+                         lazy_fixture("csv_dtypes"),
+                         lazy_fixture("csv_simple"),
+                         lazy_fixture("csv_mixed"),
+                         lazy_fixture("csv_inf"),
+                         lazy_fixture("csv_int_first"),
+                        ])
+def test_dtypes_casting(csv_path):
+    """Test dtypes casting from csv back to csv
+
+    Parameters
+    ----------
+    csv_path : string
+        Path to csv file containing data
+
+    """
+
+    data = NavData(csv_path=csv_path)
+    # check reverse casting
+    assert data.__str__() == pd.read_csv(csv_path).__str__()
+
+
+def test_dtypes_changing(csv_dtypes):
+    """Test changing dtypes
+
+    Parameters
+    ----------
+    csv_dtypes : string
+        Path to csv file containing multiple data types
+
+    """
+
+    data = NavData(csv_path=csv_dtypes)
+    assert data.orig_dtypes["int"] == np.int64
+    assert data.orig_dtypes["float"] == np.float64
+    assert data.orig_dtypes["datetime"] == object
+    assert data.orig_dtypes["string"] == object
+
+    data_changed = data.copy()
+    data_changed["int"] = np.array(["an integer no longer!"])
+    data_changed["float"] = np.array(["a float no longer!"])
+    assert data_changed.orig_dtypes["int"] == object
+    assert data_changed.orig_dtypes["float"] == object
+    assert data_changed.orig_dtypes["datetime"] == object
+    assert data_changed.orig_dtypes["string"] == object
+
+    data_changed = data.copy()
+    data_changed["float"] = 1
+    data_changed["datetime"] = 2
+    data_changed["string"] = 3
+    assert data_changed.orig_dtypes["int"] == np.int64
+    assert data_changed.orig_dtypes["float"] == np.int64
+    assert data_changed.orig_dtypes["datetime"] == np.int64
+    assert data_changed.orig_dtypes["string"] == np.int64
+
+    data_changed = data.copy()
+    data_changed["int"] = 1.
+    data_changed["datetime"] = 2.
+    data_changed["string"] = 3.
+    assert data_changed.orig_dtypes["int"] == np.float64
+    assert data_changed.orig_dtypes["float"] == np.float64
+    assert data_changed.orig_dtypes["datetime"] == np.float64
+    assert data_changed.orig_dtypes["string"] == np.float64
+
+def test_interpolate():
+    """Test inerpolate nan function.
+
+    """
+
+    data = NavData()
+    data["ints"] = [1,2]
+    data["floats"] = [1.,2.]
+    new_data = data.interpolate("ints","floats")
+    new_data["ints"] = np.array([1,2])
+    new_data["floats"] = np.array([1.,2.])
+
+    data = NavData()
+    data["UnixTimeMillis"] = [0,1,2,3,4,5,6,7,8,9,10]
+    data["LatitudeDegrees"] = [0., np.nan, np.nan, np.nan, np.nan, 50.,
+                               np.nan, np.nan, np.nan, np.nan, 55.]
+    data["LongitudeDegrees"] = [-10., np.nan, np.nan, np.nan, np.nan,
+                               np.nan, np.nan, np.nan, np.nan, np.nan, 0.]
+
+    new_data = data.interpolate("UnixTimeMillis",["LatitudeDegrees",
+                                                  "LongitudeDegrees"])
+
+    np.testing.assert_array_equal(new_data["UnixTimeMillis"],
+                                  np.array([0,1,2,3,4,5,6,7,8,9,10]))
+    np.testing.assert_array_equal(new_data["LatitudeDegrees"],
+                                  np.array([0.,10.,20.,30.,40.,50.,
+                                            51.,52.,53.,54.,55.]))
+    np.testing.assert_array_equal(new_data["LongitudeDegrees"],
+                                  np.array([-10.,-9.,-8.,-7.,-6.,-5.,
+                                            -4.,-3.,-2.,-1.,0.]))
+
+    data = NavData()
+    data["UnixTimeMillis"] = [1,4,5,7,10]
+    data["LatitudeDegrees"] = [1., np.nan, np.nan, np.nan, 10.]
+    data["LongitudeDegrees"] = [-11., np.nan, np.nan, np.nan, -20.]
+
+    new_data = data.interpolate("UnixTimeMillis",["LatitudeDegrees",
+                                                  "LongitudeDegrees"])
+
+    np.testing.assert_array_equal(new_data["UnixTimeMillis"],
+                                  np.array([1,4,5,7,10]))
+    np.testing.assert_array_equal(new_data["LatitudeDegrees"],
+                                  np.array([1.,4.,5.,7.,10.]))
+    np.testing.assert_array_equal(new_data["LongitudeDegrees"],
+                                  np.array([-11.,-14.,-15.,-17.,-20.]))
+
+    new_data = data.copy()
+
+    new_data.interpolate("UnixTimeMillis",["LatitudeDegrees",
+                                           "LongitudeDegrees"],
+                                           inplace=True)
+
+    np.testing.assert_array_equal(new_data["UnixTimeMillis"],
+                                  np.array([1,4,5,7,10]))
+    np.testing.assert_array_equal(new_data["LatitudeDegrees"],
+                                  np.array([1.,4.,5.,7.,10.]))
+    np.testing.assert_array_equal(new_data["LongitudeDegrees"],
+                                  np.array([-11.,-14.,-15.,-17.,-20.]))
+
+def test_interpolate_fails():
+    """Test when inerpolate nan function should fail.
+
+    """
+
+    data = NavData()
+    data["ints"] = [0,1,2,3,4]
+    data["floats"] = [0.,1.,2.,np.nan,4.]
+
+    with pytest.raises(TypeError) as excinfo:
+        data.interpolate(1,"floats")
+    assert "x_row" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        data.interpolate("ints",1)
+    assert "y_rows" in str(excinfo.value)

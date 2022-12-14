@@ -46,12 +46,17 @@ class NavData():
     str_map : Dict
         Map of the form {pandas column name : {array value : string}}.
         Map is of the form {pandas column name : {}} for non string rows.
+    orig_dtypes : pandas.core.series.Series
+        Type of each original column if reading from a csv or Pandas
+        dataframe.
+
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
                  **kwargs):
         # For a Pythonic implementation,
         # including all attributes as None in the beginning
         self.arr_dtype = np.float64 # default value
+        self.orig_dtypes = {}       # original dtypes
         self.array = None
         self.map = {}
         self.str_map = {}
@@ -95,7 +100,7 @@ class NavData():
         if not isinstance(csv_path, str):
             raise TypeError("csv_path must be string")
         if not os.path.exists(csv_path):
-            raise OSError("file not found")
+            raise FileNotFoundError("file not found")
 
         self._build_navdata()
 
@@ -113,6 +118,12 @@ class NavData():
 
         if not isinstance(pandas_df, pd.DataFrame):
             raise TypeError("pandas_df must be pd.DataFrame")
+
+        dtypes = dict(pandas_df.dtypes)
+        for row, dtype in dtypes.items():
+            if np.issubdtype(dtype,np.integer):
+                dtype = np.int64
+            self.orig_dtypes[row] = dtype
 
         if pandas_df.columns.dtype != object:
             # default headers are Int64 type, but for the NavData
@@ -136,10 +147,8 @@ class NavData():
 
         """
 
-
         if not isinstance(numpy_array, np.ndarray):
             raise TypeError("numpy_array must be np.ndarray")
-
 
         self._build_navdata()
 
@@ -204,15 +213,17 @@ class NavData():
                     else:
                         suffix += 1
                     new_row_name = row + "_" + str(suffix)
+                new_row = navdata[row].astype(navdata.orig_dtypes[row])
                 if inplace:
-                    self[new_row_name] = navdata[row]
+                    self[new_row_name] = new_row
                 else:
-                    new_navdata[new_row_name] = navdata[row]
+                    new_navdata[new_row_name] = new_row
 
         elif axis == 1: # concatenate new columns
             new_navdata = NavData()
             # get unique list of row names
-            combined_rows = set(self.rows + navdata.rows)
+            combined_rows = self.rows  + [row for row in navdata.rows
+                                          if row not in self.rows]
 
             for row in combined_rows:
                 combined_row = np.array([])
@@ -229,10 +240,20 @@ class NavData():
                     combined_row = np.concatenate((combined_row,
                                                    new_row))
                 new_navdata[row] = combined_row
+
+            if len(self) > 0 and len(navdata) > 0:
+                new_navdata.orig_dtypes = navdata.orig_dtypes.copy()
+                new_navdata.orig_dtypes.update(self.orig_dtypes)
+            elif len(self) > 0:
+                new_navdata.orig_dtypes = self.orig_dtypes.copy()
+            elif len(navdata) > 0:
+                new_navdata.orig_dtypes = navdata.orig_dtypes.copy()
+
             if inplace:
                 self.array = new_navdata.array
                 self.map = new_navdata.map
                 self.str_map = new_navdata.str_map
+                self.orig_dtypes = new_navdata.orig_dtypes.copy()
 
         if inplace:
             return None
@@ -441,9 +462,11 @@ class NavData():
             if inplace:
                 self.map[new_name] = self.map.pop(old_name)
                 self.str_map[new_name] = self.str_map.pop(old_name)
+                self.orig_dtypes[new_name] = self.orig_dtypes.pop(old_name)
             else:
                 new_navdata.map[new_name] = new_navdata.map.pop(old_name)
                 new_navdata.str_map[new_name] = new_navdata.str_map.pop(old_name)
+                new_navdata.orig_dtypes[new_name] = new_navdata.orig_dtypes.pop(old_name)
 
         if inplace:
             return None
@@ -537,6 +560,7 @@ class NavData():
             Copy of original NavData with desired rows and columns
         """
         new_navdata = NavData()
+        new_navdata.arr_dtype = self.arr_dtype
         inv_map = self.inv_map
         if rows is None:
             rows = self.rows
@@ -550,6 +574,9 @@ class NavData():
             else:
                 key = row_idx
             new_navdata[key] = new_row
+
+        new_navdata.orig_dtypes = self.orig_dtypes.copy()
+
         return new_navdata
 
     def remove(self, rows=None, cols=None, inplace=False):
@@ -623,6 +650,64 @@ class NavData():
             new_row = self[row_idx, keep_cols]
             key = row_idx
             new_navdata[key] = new_row
+        return new_navdata
+
+    def interpolate(self, x_row, y_rows, inplace=False, *args):
+        """Interpolate NaN values based on row data.
+
+        Additional ``*args`` arguments are passed into the ``np.interp``
+        function.
+
+        Parameters
+        ----------
+        x_row : string
+            Row name for x-coordinate of all values (e.g. gps_millis).
+            Row must not contain any nan values.
+        y_rows : list or string
+            Row name(s) for y-coordinate which includes nan values that
+            will be interpolated.
+        inplace : bool
+            If False, will return new NavData instance with nan values
+            interpolated. If True, will interpolate nan values within
+            the current NavData instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after removing
+            specified rows and columns. If inplace is True, returns
+            None.
+
+        """
+
+        if isinstance(y_rows,str):
+            y_rows = [y_rows]
+        if not isinstance(x_row, str):
+            raise TypeError("'x_row' must be row name as a string.")
+        if not isinstance(y_rows, list):
+            raise TypeError("'y_rows' must be single or list of " \
+                          + "row names as a string.")
+        self.in_rows([x_row] + y_rows)
+
+        if not inplace:
+            new_navdata = self.copy()
+        for y_row in y_rows:
+            nan_idxs = self.argwhere(y_row,np.nan)
+            if nan_idxs.size == 0:
+                continue
+            not_nan_idxs = self.argwhere(y_row,np.nan,"neq")
+            x_vals = self[x_row,nan_idxs]
+            xp_vals = self[x_row,not_nan_idxs]
+            yp_vals = self[y_row,not_nan_idxs]
+
+            if inplace:
+                self[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
+                                                 yp_vals, *args)
+            else:
+                new_navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
+                                                        yp_vals, *args)
+        if inplace:
+            return None
         return new_navdata
 
     def in_rows(self, rows):
@@ -720,7 +805,8 @@ class NavData():
 
         df_list = []
         for row in self.rows:
-            df_list.append(np.atleast_1d(self[row]))
+            df_list.append(np.atleast_1d(
+                           self[row].astype(self.orig_dtypes[row])))
 
         # transpose list to conform to Pandas input
         df_list = [list(x) for x in zip(*df_list)]
@@ -729,16 +815,23 @@ class NavData():
 
         return dframe
 
-    def save_csv(self, output_path="navdata.csv"): #pragma: no cover
+    def to_csv(self, output_path="navdata.csv", index=False, **kwargs): #pragma: no cover
         """Save data as csv
 
         Parameters
         ----------
         output_path : string
             Path where csv should be saved
+        index : bool
+            If True, will write csv row names (index).
+        header : bool
+            If True (default), will list out names as columns
+        sep : string
+            Delimiter string of length 1, defaults to ‘,’
+
         """
         pd_df = self.pandas_df()
-        pd_df.to_csv(output_path)
+        pd_df.to_csv(output_path, index=index, **kwargs)
 
     @property
     def inv_map(self):
@@ -819,6 +912,10 @@ class NavData():
         else:
             arr_slice = self.array[rows, cols]
 
+        if isinstance(rows,list) and len(rows) == 1 \
+        and self.inv_map[rows[0]] in self.orig_dtypes:
+            arr_slice = arr_slice.astype(self.orig_dtypes[self.inv_map[rows[0]]])
+
         # remove all dimensions of length one
         arr_slice = np.squeeze(arr_slice)
 
@@ -863,6 +960,8 @@ class NavData():
                     # if array is not empty, add to it
                     self.array = np.vstack((self.array, np.reshape(new_str_vals, [1, -1])))
                 self.map[key_idx] = self.shape[0]-1
+                # update original dtype in case of replacing values
+                self.orig_dtypes[key_idx] = object
             else:
                 # numeric values
                 if not type(new_value) in (int,float) \
@@ -873,6 +972,11 @@ class NavData():
                             please use np.ndarray with dtype=object"
                 # Adding numeric values
                 self.str_map[key_idx] = {}
+                # update original dtype in case of replacing values
+                dtype = np.asarray(new_value).dtype
+                if np.issubdtype(dtype, np.integer):
+                    dtype = np.int64
+                self.orig_dtypes[key_idx] = dtype
                 if self.array.shape == (0,0):
                     # if empty array, start from scratch
                     self.array = np.reshape(new_value, (1,-1))
@@ -905,11 +1009,20 @@ class NavData():
                     new_str_vals[row_num, :] = self._str_2_val(new_str_vals_row,
                                                     new_value_row, key)
                 self.array[rows, cols] = new_str_vals
+                # update original dtype in case of replacing values
+                for row_index in rows:
+                    self.orig_dtypes[self.inv_map[row_index]] = object
             else:
                 if not isinstance(new_value, int):
                     assert not isinstance(np.asarray(new_value).item(0), str), \
                             "Please use dtype=object for string assignments"
                 self.array[rows, cols] = new_value
+                # update original dtype in case of replacing values
+                for row_index in rows:
+                    dtype = np.asarray(new_value).dtype
+                    if np.issubdtype(dtype, np.integer):
+                        dtype = np.int64
+                    self.orig_dtypes[self.inv_map[row_index]] = dtype
 
     def __iter__(self):
         """Initialize iterator over NavData (iterates over all columns)

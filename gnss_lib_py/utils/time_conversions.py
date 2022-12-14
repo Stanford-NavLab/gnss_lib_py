@@ -98,7 +98,7 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
             print('leapSecs added')
         tow = tow + out_leapsecs
 
-    return int(gps_week), tow
+    return np.int64(gps_week), tow
 
 def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
     """Convert Python datetime object to GPS Week and time of week.
@@ -133,7 +133,7 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
 
     tow = ((t_datetime - GPS_EPOCH_0) - timedelta(gps_week* 7.0)).total_seconds()
 
-    return int(gps_week), tow
+    return np.int64(gps_week), tow
 
 
 def tow_to_datetime(gps_week, tow, rem_leap_secs=True):
@@ -261,13 +261,12 @@ def datetime_to_gps_millis(t_datetime, add_leap_secs=True):
     gps_millis = tow_to_gps_millis(gps_week, tow)
     return gps_millis
 
-
 def unix_millis_to_datetime(unix_millis):
     """Convert milliseconds since UNIX epoch (1/1/1970) to UTC datetime.
 
     Parameters
     ----------
-    unix_millis : float
+    unix_millis : float or int
         Milliseconds that have passed since UTC epoch.
 
     Returns
@@ -275,6 +274,8 @@ def unix_millis_to_datetime(unix_millis):
     t_utc : datetime.datetime
         UTC time as a datetime object.
     """
+    if np.issubdtype(type(unix_millis), np.integer):
+        unix_millis = float(unix_millis)
     t_utc = UNIX_EPOCH_0 + timedelta(milliseconds=unix_millis)
     t_utc = t_utc.replace(tzinfo=timezone.utc)
     return t_utc
@@ -300,7 +301,7 @@ def unix_millis_to_tow(unix_millis):
     """
     t_utc = unix_millis_to_datetime(unix_millis)
     gps_week, tow = datetime_to_tow(t_utc, add_leap_secs=True)
-    return int(gps_week), tow
+    return np.int64(gps_week), tow
 
 
 def unix_to_gps_millis(unix_millis, add_leap_secs=True):
@@ -318,7 +319,7 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
 
     Returns
     -------
-    gps_millis : float
+    gps_millis : int
         Milliseconds since GPS Epoch (6th January 1980 GPS).
     """
     # Add leapseconds should always be true here
@@ -327,9 +328,10 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
         for t_idx, unix in enumerate(unix_millis):
             t_utc = unix_millis_to_datetime(unix)
             gps_millis[t_idx] = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
+        gps_millis = gps_millis.astype(np.int64)
     else:
         t_utc = unix_millis_to_datetime(unix_millis)
-        gps_millis = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
+        gps_millis = np.int64(datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs))
     return gps_millis
 
 
@@ -373,7 +375,7 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
 
     Returns
     -------
-    unix_millis : float
+    unix_millis : int
         Milliseconds since UNIX Epoch (1/1/1970 UTC)
 
     """
@@ -384,9 +386,10 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
         for t_idx, gps in enumerate(gps_millis):
             t_utc = gps_millis_to_datetime(gps, rem_leap_secs=rem_leap_secs)
             unix_millis[t_idx] = datetime_to_unix_millis(t_utc)
+        gps_millis = gps_millis.astype(np.int64)
     else:
         t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
-        unix_millis = datetime_to_unix_millis(t_utc)
+        unix_millis = np.int64(datetime_to_unix_millis(t_utc))
     return unix_millis
 
 def _check_tzinfo(t_datetime):

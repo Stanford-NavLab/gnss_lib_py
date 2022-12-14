@@ -370,13 +370,6 @@ def test_android_ecef_to_el_az(navdata):
 
     """
 
-    row_map = {
-               "WlsPositionXEcefMeters" : "x_rx_m",
-               "WlsPositionYEcefMeters" : "y_rx_m",
-               "WlsPositionZEcefMeters" : "z_rx_m",
-                }
-    navdata.rename(row_map,inplace=True)
-
     for _, _, navdata_subset in navdata.loop_time("gps_millis"):
 
         pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
@@ -425,15 +418,9 @@ def test_add_el_az(navdata):
     """
 
     receiver_state = navdata.copy(rows=["gps_millis",
-                                        "WlsPositionXEcefMeters",
-                                        "WlsPositionYEcefMeters",
-                                        "WlsPositionZEcefMeters"])
-    row_map = {
-               "WlsPositionXEcefMeters" : "x_rx_m",
-               "WlsPositionYEcefMeters" : "y_rx_m",
-               "WlsPositionZEcefMeters" : "z_rx_m",
-                }
-    receiver_state.rename(row_map,inplace=True)
+                                        "x_rx_m",
+                                        "y_rx_m",
+                                        "z_rx_m"])
     data_el_az = add_el_az(navdata, receiver_state)
     np.testing.assert_array_almost_equal(data_el_az["el_sv_deg"],
                                          navdata["el_sv_deg"])
