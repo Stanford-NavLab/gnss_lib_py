@@ -100,7 +100,7 @@ def solve_wls(measurements, weight_type = None,
 
     if np.isnan(states[:,1:]).all():
         warnings.warn("No valid state estimate computed in WLS, "\
-                    + "returning None.", RuntimeWarning)
+                    + "returning NaNs.", RuntimeWarning)
         return state_estimate
 
     lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
