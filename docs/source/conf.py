@@ -17,12 +17,10 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/algorithms/'))
-sys.path.insert(0, os.path.abspath('../../gnss_lib_py/core/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/parsers/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/utils/'))
 sys.path.insert(0, os.path.abspath('../../tests/'))
 sys.path.insert(0, os.path.abspath('../../tests/algorithms'))
-sys.path.insert(0, os.path.abspath('../../tests/core'))
 sys.path.insert(0, os.path.abspath('../../tests/parsers'))
 sys.path.insert(0, os.path.abspath('../../tests/utils'))
 
@@ -42,7 +40,15 @@ author = 'Ashwin Kanhere, Derek Knowles'
 extensions = [
                 'sphinx.ext.autodoc',
                 'sphinx.ext.napoleon',
+                'nbsphinx',
+                'nbsphinx_link',
 ]
+
+# Specify which files are source files for Sphinx
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # napoleon settings
 napoleon_numpy_docstring = True
@@ -53,7 +59,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['_build', '**.ipynb_checkpoints']
 
 # autodocs settings to include private members
 autodoc_default_options = {
@@ -79,6 +85,10 @@ html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
 html_static_path = []
 
+html_logo = "img/nav_lab_logo.png"
+
+html_favicon = "img/nav_lab_fav.ico"
+
 html_theme_options = {
     "style_nav_header_background" : "#8C1515",
     # "display_version" : True,
@@ -87,11 +97,9 @@ html_theme_options = {
     # "navigation_depth" : 4,
     "includehidden" : True,
     # "titles_only" : True,
-
-
+    "logo_only" : False,
+    "display_version" : True,
 }
-
-html_logo = "img/nav_lab_logo.png"
 
 # document __init__ methods
 autoclass_content = 'both'

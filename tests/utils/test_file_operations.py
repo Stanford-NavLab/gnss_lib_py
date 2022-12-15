@@ -7,9 +7,7 @@ __date__ = "01 Jul 2022"
 
 import gnss_lib_py.utils.file_operations as fo
 
-# test_mkdir
-# test save_figure
-# test close_figures
+# test_make_dir
 
 def test_get_timestamp():
     """Test for getting timestamp.

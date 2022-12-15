@@ -1,0 +1,17 @@
++          0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
++          0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+++         6  5  4  5  6  5  5  6  5  6  5  6  6  5  6  6  6
+++         5  7  4  5  5  4  4  4  5  4  3  4  4  4  3  4  4
+++         4  4  5  5  3  5  4  4  5  4  3  4  4  5  5  4  4
+++         0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+++         0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
+%c M  cc GPS ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc
+%c cc cc ccc ccc cccc cccc cccc cccc ccccc ccccc ccccc ccccc
+%f  0.0000000  0.000000000  0.00000000000  0.000000000000000
+%f  0.0000000  0.000000000  0.00000000000  0.000000000000000
+%i    0    0    0    0      0      0      0      0         0
+%i    0    0    0    0      0      0      0      0         0
+/* CNES/CLS/GRGS - TOULOUSE,FRANCE - Contact : igs-ac@cls.fr
+/* PCV:IGS14_2148 OL/AL:FES2014  NONE     NN ORB:CoN CLK:CoN
+/* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+/* CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC

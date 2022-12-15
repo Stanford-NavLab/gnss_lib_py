@@ -3,47 +3,68 @@
 Install
 =======
 
-Our code has been written in and tested on the following systems:
+Prerequisites
+-------------
 
-- Ubuntu 18
-- Ubuntu 20
-- Ubuntu 20 on WSL2
+| **Python:** >=3.8, <3.12
+| **Operating System:** Linux, Windows, MacOS
+
+All :code:`gnss_lib_py` classes and methods are tested in Python 3.8,
+and 3.11 in the latest Ubuntu, MacOS and Windows versions.
+:code:`gnss_lib_py` was originally developed in Python 3.8.9 in
+Ubuntu 20/22 and Ubuntu 20 for WSL2.
 
 Standard Installation
 ---------------------
 
-Clone the GitHub repository:
+1. :code:`gnss_lib_py` is available through :code:`pip` installation
+   with:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-    git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
+      pip install gnss-lib-py
 
-Install dependencies with pip:
+Editable Installation
+---------------------
 
-.. code-block:: bash
+1. Clone the GitHub repository:
 
-    pip3 install -r requirements.txt
+   .. code-block:: bash
 
-Update pip version. For Linux:
+      git clone https://github.com/Stanford-NavLab/gnss_lib_py.git
 
-.. code-block:: bash
-   
-   pip install -U pip
+2. Install dependencies with pip:
 
-For Windows: 
+   .. code-block:: bash
 
-.. code-block:: bash
-   
-   python -m pip install -U pip
+       pip3 install -r requirements.txt
 
-Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+3. Update pip version.
 
-.. code-block:: bash
-   
-   pip install -e .
+   a. For Linux and MacOS:
 
-Verify installation by running :code:`pytest`
+      .. code-block:: bash
 
+         pip install -U pip
+
+   b. For Windows:
+
+      .. code-block:: bash
+
+          python -m pip install -U pip
+
+4. Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+
+   .. code-block:: bash
+
+      pip install -e .
+
+5. Verify installation by running :code:`pytest`.
+   A successful installation will be indicated by all tests passing.
+
+   .. code-block:: bash
+
+      pytest
 
 .. _developer install:
 
@@ -53,8 +74,8 @@ Developer Installation
 This project is being developed using :code:`pyenv` and :code:`poetry`
 for python version and environment control respectively.
 
-Ubuntu/WSL2
-+++++++++++
+Linux/WSL2 and MacOS
+++++++++++++++++++++
 
 1. Install :code:`pyenv` using the installation instructions
    `here <https://github.com/pyenv/pyenv#installation>`__. The steps are
@@ -91,7 +112,19 @@ Ubuntu/WSL2
 
 6. Install Python dependencies using :code:`poetry install`.
 
-7. Verify that the code is working by running tests on the code using
+.. _install_pandoc:
+
+7. Install pandoc to be able to build documentation. See details
+   `here <https://pandoc.org/installing.html>`__.
+
+   a. For Linux :code:`sudo apt install pandoc`
+
+   b. For Windows :code:`choco install pandoc`
+
+   c. For MacOS :code:`brew install pandoc`
+
+
+8. Verify that the code is working by running tests on the code using
 
    .. code-block:: bash
 
@@ -99,6 +132,12 @@ Ubuntu/WSL2
 
    Check the :ref:`Testing<testing>` section in the Contribution guide
    for more details
+
+9. Verify that the documentation is building locally using
+
+   .. code-block:: bash
+
+      ./build_docs.sh
 
 Windows
 +++++++
