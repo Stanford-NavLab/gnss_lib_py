@@ -107,7 +107,7 @@ Linux/WSL2 and MacOS
    if different than 3.8.9) to set the Python version that code in the
    repository will run.
 
-5. Install :code:`poetry` using the instructions
+5. Install :code:`poetry>=1.2` using the instructions
    `here <https://python-poetry.org/docs/master/#installation>`__.
 
 6. Install Python dependencies using :code:`poetry install`.
