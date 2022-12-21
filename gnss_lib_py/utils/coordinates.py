@@ -399,12 +399,12 @@ def ecef_to_el_az(rx_pos, sv_pos):
     rx_pos : np.ndarray
         1x3 vector containing ECEF [X, Y, Z] coordinate of receiver
     sv_pos : np.ndarray
-        Nx3 array  containing ECEF [X, Y, Z] coordinates of satellites
+        3xN array  containing ECEF [X, Y, Z] coordinates of satellites
 
     Returns
     -------
     el_az : np.ndarray
-        Nx2 array containing the elevation and azimuth from the
+        2XN array containing the elevation and azimuth from the
         receiver to the requested satellites. Elevation and azimuth are
         given in decimal degrees.
 
@@ -418,23 +418,23 @@ def ecef_to_el_az(rx_pos, sv_pos):
 
     # conform receiver position to correct shape
     rx_pos = np.atleast_2d(rx_pos)
-    if rx_pos.shape == (3,1):
+    if rx_pos.shape == (1,3):
         rx_pos = rx_pos.T
-    if rx_pos.shape != (1,3):
+    if rx_pos.shape != (3, 1):
         raise RuntimeError("Receiver ECEF position must be a " \
-                          + "np.ndarray of shape 1x3.")
+                          + "np.ndarray of shape 3x1.")
 
     # conform satellite position to correct shape
     sv_pos = np.atleast_2d(sv_pos)
-    if sv_pos.shape[1] != 3:
+    if sv_pos.shape[0] != 3:
         raise RuntimeError("Satellite ECEF position(s) must be a " \
-                          + "np.ndarray of shape Nx3.")
+                          + "np.ndarray of shape 3xN.")
 
     # Convert the receiver location to WGS84
     rx_lla = ecef_to_geodetic(rx_pos)
 
     # Create variables with the latitude and longitude in radians
-    rx_lat, rx_lon = np.deg2rad(rx_lla[0,:2])
+    rx_lat, rx_lon = np.deg2rad(rx_lla[:2,0])
 
     # Create the 3 x 3 transform matrix from ECEF to VEN
     ecef_to_ven = np.array([[ np.cos(rx_lat)*np.cos(rx_lon),
@@ -448,22 +448,21 @@ def ecef_to_el_az(rx_pos, sv_pos):
                               np.cos(rx_lat)]])
 
     # Replicate the rx_pos array to be the same size as the satellite array
-    rx_array = np.tile(rx_pos,(len(sv_pos),1))
+    rx_array = np.tile(rx_pos,(1, sv_pos.shape[1]))
 
     # Calculate the normalized pseudorange for each satellite
     pseudorange = (sv_pos - rx_array) / np.linalg.norm(sv_pos - rx_array,
-                                             axis=1, keepdims=True)
+                                             axis=0, keepdims=True)
 
     # Perform the transform of the normalized pseudorange from ECEF to VEN
-    p_ven = np.dot(ecef_to_ven, pseudorange.T)
-
+    p_ven = np.dot(ecef_to_ven, pseudorange)
     # Calculate elevation and azimuth in degrees
-    el_az = np.zeros([sv_pos.shape[0],2])
-    el_az[:,0] = np.rad2deg((np.pi/2. - np.arccos(p_ven[0,:])))
-    el_az[:,1] = np.rad2deg(np.arctan2(p_ven[1,:],p_ven[2,:]))
+    el_az = np.zeros([2, sv_pos.shape[1]])
+    el_az[0,:] = np.rad2deg((np.pi/2. - np.arccos(p_ven[0,:])))
+    el_az[1,:] = np.rad2deg(np.arctan2(p_ven[1,:],p_ven[2,:]))
 
     # wrap from 0 to 360
-    while np.any(el_az[:,1] < 0):
-        el_az[:,1][el_az[:,1] < 0] += 360
+    while np.any(el_az[1, :] < 0):
+        el_az[1, :][el_az[1, :] < 0] += 360
 
     return el_az
