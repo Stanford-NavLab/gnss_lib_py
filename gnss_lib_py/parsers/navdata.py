@@ -1051,6 +1051,14 @@ class NavData():
         return x_curr
 
     def __str__(self):
+        """Creates string representation of NavData object
+
+        Returns
+        -------
+        str_out : str
+            String representation of Navdata object, based on equivalent
+            Pandas string
+        """
         str_out = str(self.pandas_df())
         str_out = str_out.replace("DataFrame","NavData")
         str_out = str_out.replace("Columns","Rows")
@@ -1059,6 +1067,21 @@ class NavData():
                          r'\g<1>[\g<3> rows x \g<2> columns]\g<4>',
                          str_out)
         return str_out
+
+    def __repr__(self):  # pragma: no cover
+        """Evaluated string representation of Navdata object
+
+        For NavData objects, this is similar to the str method and is
+        defined separately to avoid having to add a `print` method
+        before each display command in Jupyter notebooks
+
+        Returns
+        -------
+        rep_out : str
+            Evaluated string representation object
+        """
+        rep_out = str(self)
+        return rep_out
 
     def __len__(self):
         """Return length of class
