@@ -3,6 +3,29 @@
 Reference
 =========
 
+General GNSS References
+-----------------------
+
+The GNSS in ``gnss_lib_py`` stands for Global Navigation Satellite
+System(s). The following is a list of references that might be helpful
+in learning more about GNSS:
+
+* *Global Positioning System: Signals, Measurements, and Performance* by
+  Pratap Misra and Per Enge.
+* *Positioning, Navigation, and Timing Technologies in the 21st Century*
+  edited by Y. Jade Morton, Frank van Diggelen, James J. Spilker Jr,
+  Bradford W. Parkinson, Sherman Lo, and Grace Gao.
+* *Understanding GPS/GNSS: Principles and Applications* edited by
+  Elliott D. Kaplan and Christopher J. Hegarty.
+* "GPS: An Introduction to Satellite Navigation" by Frank van Diggelen
+  found on `YouTube <https://www.youtube.com/playlist?list=PLGvhNIiu1ubyEOJga50LJMzVXtbUq6CPo>`__:
+  a playlist of online classes that teach a broad overview of GNSS
+  topics.
+*  "GPS" by Bartosz Ciechanowski found at
+   `ciechanow.ski/gps <https://ciechanow.ski/gps/>`__:
+   a visually-appealing and interactive blog post about some of the
+   basic principles of GNSS positioning.
+
 Package Architecture
 --------------------
 

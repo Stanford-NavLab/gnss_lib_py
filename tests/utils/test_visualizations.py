@@ -355,12 +355,6 @@ def test_plot_skyplot(navdata, state_estimate):
     """
 
     if isinstance(navdata, AndroidDerived2022):
-        row_map = {
-                   "WlsPositionXEcefMeters" : "x_rx_m",
-                   "WlsPositionYEcefMeters" : "y_rx_m",
-                   "WlsPositionZEcefMeters" : "z_rx_m",
-                    }
-        navdata.rename(row_map,inplace=True)
         state_estimate = navdata.copy(rows=["gps_millis","x_rx_m","y_rx_m","z_rx_m"])
 
     sv_nan = np.unique(navdata["sv_id"])[0]
@@ -369,11 +363,11 @@ def test_plot_skyplot(navdata, state_estimate):
             navdata["x_sv_m",col_idx] = np.nan
 
     # don't save figures
-    fig = viz.plot_skyplot(navdata, state_estimate, save=True)
+    fig = viz.plot_skyplot(navdata.copy(), state_estimate, save=False)
     viz.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
-        viz.plot_skyplot(navdata, state_estimate, save=True, prefix=1)
+        viz.plot_skyplot(navdata.copy(), state_estimate, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
     for row in ["x_sv_m","y_sv_m","z_sv_m","gps_millis"]:
@@ -414,6 +408,10 @@ def test_get_label():
 
     assert viz._get_label({"gnss_id" : "galileo",
                            "signal_type" : "b1i"}) == "Galileo B1i"
+
+    assert viz._get_label({"row" : "x_rx_m"}) == "X RX [m]"
+    assert viz._get_label({"row" : "lat_rx_deg"}) == "LAT RX [deg]"
+    assert viz._get_label({"row" : "vx_sv_mps"}) == "VX SV [m/s]"
 
     with pytest.raises(TypeError) as excinfo:
         viz._get_label(["should","fail"])

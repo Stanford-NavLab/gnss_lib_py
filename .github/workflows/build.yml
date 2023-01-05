@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.7.1", "3.8", "3.10"]
+        python-version: ["3.8", "3.11"]
         os: [ubuntu-latest, macos-latest, windows-latest]
       fail-fast : false
     defaults:
@@ -36,10 +36,8 @@ jobs:
         virtualenvs-create: true
         virtualenvs-in-project: true
         installer-parallel: true # default option selected currently
-        version: 1.1.14
     # Load cached environment, if it exists
     - name: Load cached poetry environment
-      if : false == (matrix.os == 'windows-latest' && matrix.python-version=='3.7.1')
       id: cached-poetry-dependencies
       uses: actions/cache@v3
       with:
@@ -60,7 +58,7 @@ jobs:
     - name: Install pandoc for MacOS
       if: matrix.os == 'macos-latest'
       run: brew install pandoc
-      
+
     - name: Test with pytest
       run: |
         source $VENV

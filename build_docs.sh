@@ -1,6 +1,6 @@
 #!/bin/bash
 # export requirements.txt for buildings docs
-poetry export -f requirements.txt --output ./docs/source/requirements.txt --dev --without-hashes
+poetry export -f requirements.txt --output ./docs/source/requirements.txt --with dev --without-hashes
 cd docs
 
 echo "Rebuilding References"
