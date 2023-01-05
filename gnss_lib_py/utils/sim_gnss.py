@@ -140,8 +140,6 @@ def simulate_measures(gps_week, gps_tow, ephem, pos, bias, b_dot, vel,
     return measurements, sv_posvel
 
 def expected_measures(gps_week, gps_tow, ephem, pos, bias, b_dot, vel, sv_posvel=None):
-    #TODO: Migrate docstring to using Measurement
-    #TODO: Migrate codebase to Measurement
     """Compute expected pseudoranges and doppler measurements given receiver
     states.
 
@@ -156,13 +154,13 @@ def expected_measures(gps_week, gps_tow, ephem, pos, bias, b_dot, vel, sv_posvel
         NavData instance containing satellite ephemeris parameters for a
         particular time of ephemeris
     pos : np.ndarray
-        1x3 Receiver 3D ECEF position [m]
+        3x1 Receiver 3D ECEF position [m]
     bias : float
         Receiver clock bais [m]
     b_dot : float
         Receiver clock drift [m/s]
     vel : np.ndarray
-        1x3 Receiver 3D ECEF velocity
+        3x1 Receiver 3D ECEF velocity
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites (if available)
 
@@ -178,8 +176,8 @@ def expected_measures(gps_week, gps_tow, ephem, pos, bias, b_dot, vel, sv_posvel
     # and satellite positions in sv_posvel
     # TODO: Modify this function to use PRNS from measurement in addition to
     # gps_tow from measurement
-    pos = np.reshape(pos, [1, 3])
-    vel = np.reshape(vel, [1, 3])
+    pos = np.reshape(pos, [3, 1])
+    vel = np.reshape(vel, [3, 1])
     sv_posvel, del_pos, true_range = _find_sv_location(gps_week, gps_tow,
                                                          ephem, pos, sv_posvel)
     # sv_pos, sv_vel, del_pos are both Nx3
@@ -208,8 +206,6 @@ def expected_measures(gps_week, gps_tow, ephem, pos, bias, b_dot, vel, sv_posvel
     measurements = NavData()
     measurements['prange'] = prange
     measurements['doppler'] = doppler
-    print('measurements type in expected_measures', type(measurements))
-    print('sv_posvel type in expected_measures', type(sv_posvel))
     return measurements, sv_posvel
 
 
@@ -270,7 +266,7 @@ def _find_sv_location(gps_week, gps_tow, ephem, pos, sv_posvel=None):
     pos : np.ndarray
         1x3 Receiver 3D ECEF position [m]
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        Precomputed positions of satellites (if available)
+        Precomputed positions of satellites, use None if not available
 
     Returns
     -------
@@ -282,8 +278,7 @@ def _find_sv_location(gps_week, gps_tow, ephem, pos, sv_posvel=None):
         Distance between satellite and receiver positions
 
     """
-    print('ephem type in _find_sv_location', type(ephem))
-    pos = np.reshape(pos, [1, 3])
+    pos = np.reshape(pos, [3, 1])
     if sv_posvel is None:
         satellites = len(ephem)
         sv_posvel = find_sat(ephem, gps_tow - consts.T_TRANS, gps_week)
@@ -303,13 +298,11 @@ def _find_sv_location(gps_week, gps_tow, ephem, pos, sv_posvel=None):
     sv_posvel['x_sv_m'] = sv_posvel['x_sv_m'] + del_x
     sv_posvel['y_sv_m'] = sv_posvel['y_sv_m'] + del_y
 
-    print('sv_posvel in _find_sv_location', type(sv_posvel))
     return sv_posvel, del_pos, true_range
 
 
 
 def _find_delxyz_range(sv_posvel, pos, satellites=None):
-    #TODO: Migrate codebase to Measurement
     """Return difference of satellite and rx_pos positions and range between them.
 
     Parameters
@@ -331,7 +324,6 @@ def _find_delxyz_range(sv_posvel, pos, satellites=None):
     # Repeating computation in find_sv_location
     #NOTE: Input is from satellite finding in AE 456 code
     #TODO: Do we need satellites or is it enough to use len(sv_posvel)
-    print('sv_posvel type in _find_delxyz_range', type(sv_posvel))
     pos = np.reshape(pos, [3, 1])
     if satellites is None:
         satellites = len(sv_posvel)
@@ -344,7 +336,6 @@ def _find_delxyz_range(sv_posvel, pos, satellites=None):
 
 
 def find_sat(ephem, times, gpsweek):
-    #NOTE: Migrated codebase to using Measurement
     """Compute position and velocities for all satellites in ephemeris file
     given time of clock.
 
@@ -383,7 +374,6 @@ def find_sat(ephem, times, gpsweek):
     # Satloc contains both positions and velocities.
 
     # Extract parameters
-    print('ephem type in find_sat is', type(ephem))
 
     c_is = ephem['C_is']
     c_ic = ephem['C_ic']
@@ -514,7 +504,6 @@ def find_sat(ephem, times, gpsweek):
 
     sv_posvel['vz_sv_mps'] = dyp*sin_i + yp*cos_i*di
 
-    print('sv_posvel in find_sat ', type(sv_posvel))
     return sv_posvel
 
 
