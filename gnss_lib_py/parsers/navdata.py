@@ -1068,7 +1068,7 @@ class NavData():
                          str_out)
         return str_out
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """Evaluated string representation of Navdata object
 
         For NavData objects, this is similar to the str method and is
