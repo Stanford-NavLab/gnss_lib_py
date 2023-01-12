@@ -12,8 +12,9 @@ References
 __authors__ = "Ashwin Kanhere"
 __date__ = "13 July 2021"
 
-from numpy import sqrt
 from datetime import datetime, timezone
+from numpy import sqrt
+
 
 A = 6378137.
 """float : Semi-major axis (radius) of the Earth [m]."""
@@ -64,3 +65,12 @@ WEEKSEC = 604800
 
 GPS_EPOCH_0 = datetime(1980, 1, 6, 0, 0, 0, 0, tzinfo=timezone.utc)
 """ datetime.datetime: Starting time for GPS epoch"""
+
+TROPO_DELAY_C1 = 2.47
+"""float : First coefficient of simplified tropospheric delay model developed in _[1]."""
+
+TROPO_DELAY_C2 = 0.0121
+"""float : Second coefficient of simplified tropospheric delay model developed in _[1]."""
+
+TROPO_DELAY_C3 = 1.33e-4
+"""float : Third coefficient of simplified tropospheric delay model developed in _[1]."""
