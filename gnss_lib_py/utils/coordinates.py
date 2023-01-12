@@ -509,7 +509,7 @@ def add_el_az(navdata, receiver_state, inplace=False):
     sv_el_az = None
     for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
 
-        pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
+        pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
 
         # find time index for receiver_state NavData instance
         rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
@@ -517,14 +517,14 @@ def add_el_az(navdata, receiver_state, inplace=False):
         pos_rx_m = receiver_state[[rx_idxs["x_*_m"][0],
                                    rx_idxs["y_*_m"][0],
                                    rx_idxs["z_*_m"][0]],
-                                   rx_t_idx].reshape(1,-1)
+                                   rx_t_idx].reshape(-1,1)
 
         timestep_el_az = ecef_to_el_az(pos_rx_m, pos_sv_m)
 
         if sv_el_az is None:
-            sv_el_az = timestep_el_az.T
+            sv_el_az = timestep_el_az
         else:
-            sv_el_az = np.hstack((sv_el_az,timestep_el_az.T))
+            sv_el_az = np.hstack((sv_el_az,timestep_el_az))
 
     if inplace:
         navdata["el_sv_deg"] = sv_el_az[0,:]
