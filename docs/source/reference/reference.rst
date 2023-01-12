@@ -176,6 +176,8 @@ State estimate naming conventions are as follows:
 * :code:`vz_rx_mps` : (float) receiver ECEF z velocity estimate in
   meters per second.
 * :code:`b_rx_m` : (float) receiver clock bias in meters.
+* :code:`b_dot_rx_mps` : (float) receiver clock bias drift rate in meters
+  per second.
 * :code:`lat_rx_deg` : (float) receiver latitude position estimate in
   degrees.
 * :code:`lon_rx_deg` : (float) receiver longitude position estimate in
