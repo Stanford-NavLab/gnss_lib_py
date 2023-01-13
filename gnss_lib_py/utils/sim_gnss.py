@@ -46,33 +46,14 @@ def svs_from_el_az(elaz_deg):
     return svs_ned
 
 
-def _extract_pos_vel_arr(sv_posvel):
-    """Extract satellite positions and velocities into numpy arrays.
-
-    Parameters
-    ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        NavData containing satellite states
-
-    Returns
-    -------
-    sv_pos : np.ndarray
-        ECEF satellite positions 3xN [m]
-    sv_vel : np.ndarray
-        ECEF satellite x, y and z velocities 3xN [m]
-    """
-    sv_pos = sv_posvel[['x_sv_m', 'y_sv_m', 'z_sv_m']]
-    sv_vel   = sv_posvel[['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']]
-    assert np.shape(sv_pos)[0]==3, "sv_pos: Incorrect shape Expected 3xN"
-    assert np.shape(sv_vel)[0]==3, "sv_vel: Incorrect shape Expected 3xN"
-    return sv_pos, sv_vel
-
-def simulate_measures(gps_week, gps_tow, ephem, state, noise_dict=None,
+def simulate_measures(gps_week, gps_tow, state, noise_dict=None, ephem=None,
                       sv_posvel=None, rng=None, el_mask=5.):
     """Simulate GNSS pseudoranges and doppler measurements given receiver state.
 
-    Measurements are simulated by adding Gaussian noise to measurements expected
-    based on the receiver states.
+    Measurements are simulated by finding satellites visible from the
+    given position (in state), computing the expected pseudorange and
+    doppler measurements for those satellites, corresponding to the given
+    state, and adding Gaussian noise to these expected measurements.
 
     Parameters
     ----------
@@ -81,26 +62,34 @@ def simulate_measures(gps_week, gps_tow, ephem, state, noise_dict=None,
     gps_tow : float
         GPS time of week for corresponding GPS week at which
         measurements are needed
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing satellite ephemeris parameters for a
-        particular time of ephemeris
     state : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing state at which measurements have to
-        be simulated. Must be a single state (single column)
+        NavData instance containing state i.e. 3D position, 3D velocity,
+        receiver clock bias and receiver clock drift rate at which
+        measurements have to be simulated.
+        Must be a single state (single column)
     noise_dict : dict
         Dictionary with pseudorange ('prange_sigma') and doppler noise
         ('doppler_sigma') standard deviation values in [m] and [m/s].
         If None, uses default values `prange_sigma=6` and
         `doppler_sigma=1`.
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing satellite ephemeris parameters for a
+        particular time of ephemeris. Use None if not available and using
+        SV positions directly instead
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites, set to None if not available
+    rng : np.random.Generator
+        A random number generator for sampling random noise values
+    el_mask: float
+        The elevation mask above which satellites are considered visible
+        from the given receiver position. Only visible sate
 
     Returns
     -------
     measurements : gnss_lib_py.parsers.navdata.NavData
-        Pseudorange and doppler measurements with satellite SV.
-        Gaussian noise is added to expected measurements to simulate
-        stochasticity
+        Pseudorange (label: `prange`) and doppler (label: `doppler`)
+        measurements with satellite SV. Gaussian noise is added to
+        expected measurements to simulate stochasticity
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Satellite positions and velocities (same as input if provided)
 
@@ -119,8 +108,8 @@ def simulate_measures(gps_week, gps_tow, ephem, state, noise_dict=None,
 
 
     ephem = _find_visible_svs(gps_week, gps_tow, pos, ephem, el_mask=el_mask)
-    measurements, sv_posvel = expected_measures(gps_week, gps_tow, ephem,
-                                                 state, sv_posvel)
+    measurements, sv_posvel = expected_measures(gps_week, gps_tow, state,
+                                                ephem, sv_posvel)
     num_svs   = len(measurements)
 
 
@@ -132,7 +121,8 @@ def simulate_measures(gps_week, gps_tow, ephem, state, noise_dict=None,
 
     return measurements, sv_posvel
 
-def expected_measures(gps_week, gps_tow, ephem, state, sv_posvel=None):
+
+def expected_measures(gps_week, gps_tow, state, ephem=None, sv_posvel=None):
     """Compute expected pseudoranges and doppler measurements given receiver
     states.
 
@@ -143,28 +133,31 @@ def expected_measures(gps_week, gps_tow, ephem, state, sv_posvel=None):
     gps_tow : float
         GPS time of week for corresponding GPS week at which
         measurements are needed
+    state : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing state i.e. 3D position, 3D velocity,
+        receiver clock bias and receiver clock drift rate at which
+        measurements have to be simulated.
+        Must be a single state (single column)
     ephem : gnss_lib_py.parsers.navdata.NavData
         NavData instance containing satellite ephemeris parameters for a
-        particular time of ephemeris
-    state : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing state at which measurements have to
-        be simulated. Must be a single state (single column)
+        particular time of ephemeris, use None if not available and
+        using position directly
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites (if available)
 
     Returns
     -------
     measurements : gnss_lib_py.parsers.navdata.NavData
-        Pseudorange and doppler measurements with satellite SV,
-        Gaussian noise is added to expected measurements for simulation
+        Pseudorange (label: `prange`) and doppler (label: `doppler`)
+        measurements with satellite SV. Also contains SVs and gps_tow at
+        which the measurements are simulated
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Satellite positions and velocities (same as input if provided)
     """
-    # NOTE: When using saved data, pass saved DataFrame with ephemeris in ephem
     # and satellite positions in sv_posvel
-    pos,vel, clk_bias, clk_drift = _extract_state_variables(state)
+    rx_ecef, rx_v_ecef, clk_bias, clk_drift = _extract_state_variables(state)
     sv_posvel, del_pos, true_range = _find_sv_location(gps_week, gps_tow,
-                                                         ephem, pos, sv_posvel)
+                                                         ephem, rx_ecef, sv_posvel)
     # sv_pos, sv_vel, del_pos are both Nx3
     _, sv_vel = _extract_pos_vel_arr(sv_posvel)
 
@@ -176,10 +169,11 @@ def expected_measures(gps_week, gps_tow, ephem, state, sv_posvel=None):
     # TODO: Correction should be applied to the received pseudoranges, not
     # modelled/expected pseudorange -- per discussion in meeting on 11/12
     # TODO: Add corrections instead of returning corrected pseudoranges
-
+    #TODO: Update to use gps_millis in satellite positions and measurements
+    # instead of gps_tow
     # Obtain difference of velocity between satellite and receiver
 
-    del_vel = sv_vel - np.tile(np.reshape(vel, [3,1]), [1, len(sv_posvel)])
+    del_vel = sv_vel - np.tile(np.reshape(rx_v_ecef, [3,1]), [1, len(sv_posvel)])
     prange_rate = np.sum(del_vel*del_pos, axis=0)/true_range
     prange_rate += clk_drift
     doppler = -(consts.F1/consts.C) * (prange_rate)
@@ -189,161 +183,19 @@ def expected_measures(gps_week, gps_tow, ephem, state, sv_posvel=None):
     return measurements, sv_posvel
 
 
-def _extract_state_variables(state):
-    """Extract position, velocity and clock bias terms from state
-
-    Parameters
-    ----------
-    state : gnss_lib_py.parsers.navdata.NavData
-        NavData containing state values at which measurements will be
-        simulated
-
-    Returns
-    -------
-    pos : np.ndarray
-        3x1 Receiver 3D ECEF position [m]
-    vel : np.ndarray
-        3x1 Receiver 3D ECEF velocity
-    bias : float
-        Receiver clock bais [m]
-    b_dot : float
-        Receiver clock drift [m/s]
-
-    """
-    assert len(state)==1, "Only single state accepted for GNSS simulation"
-    pos = np.reshape(state[['x_rx_m', 'y_rx_m', 'z_rx_m']], [3,1])
-    vel = np.reshape(state[['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps']], [3,1])
-    clk_bias = state['b_rx_m']
-    clk_drift = state['b_dot_rx_mps']
-    return pos, vel, clk_bias, clk_drift
-
-
-def _find_visible_svs(gps_week, gps_tow, rx_ecef, ephem, el_mask=5.):
-    """Trim input ephemeris to keep only visible SVs.
-
-    Parameters
-    ----------
-    gps_week : int
-        Week in GPS calendar
-    gps_tow : float
-        GPS time of the week for simulate measurements [s]
-    rx_ecef : np.ndarray
-        1x3 row rx_pos ECEF position vector [m]
-    ephem  gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing satellite ephemeris parameters
-        including gps_week and gps_tow
-    el_mask : float
-        Minimum elevation of returned satellites
-
-    Returns
-    -------
-    eph : gnss_lib_py.parsers.navdata.NavData
-        Ephemeris parameters of visible satellites
-
-    """
-
-    # Find positions and velocities of all satellites
-    approx_posvel = find_sat(ephem, gps_tow - consts.T_TRANS, gps_week)
-
-    # Find elevation and azimuth angles for all satellites
-    approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
-    approx_el_az = ecef_to_el_az(np.reshape(rx_ecef, [3, 1]), approx_pos)
-    # Keep attributes of only those satellites which are visible
-    keep_ind = approx_el_az[0,:] > el_mask
-    eph = ephem.copy(cols=np.nonzero(keep_ind))
-    return eph
-
-
-def _find_sv_location(gps_week, gps_tow, ephem, pos, sv_posvel=None):
-    """Return satellite positions, difference from rx_pos position and ranges.
-
-    Parameters
-    ----------
-    gps_week : int
-        Week in GPS calendar
-    gps_tow : float
-        GPS time of the week for simulate measurements [s]
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        DataFrame containing all satellite ephemeris parameters for gps_week and
-        gps_tow
-    pos : np.ndarray
-        1x3 Receiver 3D ECEF position [m]
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        Precomputed positions of satellites, use None if not available
-
-    Returns
-    -------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        Satellite position and velocities (same if input)
-    del_pos : np.ndarray
-        Difference between satellite positions and receiver position
-    true_range : np.ndarray
-        Distance between satellite and receiver positions
-
-    """
-    pos = np.reshape(pos, [3, 1])
-    if sv_posvel is None:
-        sv_posvel = find_sat(ephem, gps_tow - consts.T_TRANS, gps_week)
-        del_pos, true_range = _find_delxyz_range(sv_posvel, pos)
-        t_corr = true_range/consts.C
-
-        # Find satellite locations at (a more accurate) time of transmission
-        sv_posvel = find_sat(ephem, gps_tow-t_corr, gps_week)
-    del_pos, true_range = _find_delxyz_range(sv_posvel, pos)
-    t_corr = true_range/consts.C
-    # Corrections for the rotation of the Earth during transmission
-    # sv_pos, sv_vel = _extract_pos_vel_arr(sv_posvel)
-    del_x = consts.OMEGA_E_DOT*sv_posvel['x_sv_m'] * t_corr
-    del_y = consts.OMEGA_E_DOT*sv_posvel['y_sv_m'] * t_corr
-    sv_posvel['x_sv_m'] = sv_posvel['x_sv_m'] + del_x
-    sv_posvel['y_sv_m'] = sv_posvel['y_sv_m'] + del_y
-
-    return sv_posvel, del_pos, true_range
-
-
-
-def _find_delxyz_range(sv_posvel, pos):
-    """Return difference of satellite and rx_pos positions and range between them.
-
-    Parameters
-    ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        Satellite position and velocities
-    pos : np.ndarray
-        3x1 Receiver 3D ECEF position [m]
-    satellites : int
-        Number of satellites in sv_posvel
-
-    Returns
-    -------
-    del_pos : np.ndarray
-        Difference between satellite positions and receiver position
-    true_range : np.ndarray
-        Distance between satellite and receiver positions
-    """
-    pos = np.reshape(pos, [3, 1])
-    satellites = len(sv_posvel)
-    if np.size(pos)!=3:
-        raise ValueError(f'Position not 3D, has size {np.size(pos)}')
-    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
-    del_pos = sv_pos - np.tile(pos, (1, satellites))
-    true_range = np.linalg.norm(del_pos, axis=0)
-    return del_pos, true_range
-
-
-def find_sat(ephem, gps_tow, gps_week):
+def find_sat(gps_tow, gps_week, ephem):
     """Compute position and velocities for all satellites in ephemeris file
     given time of clock.
 
     Parameters
     ----------
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing ephemeris parameters of satellites
-        for which states are required
     gps_tow : np.ndarray
         GPS time of the week at which positions are required [s]
     gps_week : int
         Week of GPS calendar corresponding to time of clock
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing ephemeris parameters of satellites
+        for which states are required
 
     Returns
     -------
@@ -373,7 +225,6 @@ def find_sat(ephem, gps_tow, gps_week):
         doi: 10.1002/navi.342.
 
     """
-    # Satloc contains both positions and velocities.
 
     # Extract parameters
 
@@ -394,6 +245,7 @@ def find_sat(ephem, gps_tow, gps_week):
     sqrt_mu_a = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
     gpsweek_diff = (np.mod(gps_week,1024) - np.mod(ephem['gps_week'],1024))*604800.
 
+    #TODO: See if these statements need to be removed
     # if np.size(times_all)==1:
     #     times_all = times_all*np.ones(len(ephem))
     # else:
@@ -408,11 +260,11 @@ def find_sat(ephem, gps_tow, gps_week):
     # length as the ephemeris
     # print(times.shape)
     sv_posvel['times'] = gps_tow
+    #TODO: Update to add gps_millis instead of gps_tow
 
     delta_t = gps_tow - ephem['t_oe'] + gpsweek_diff
 
     # Calculate the mean anomaly with corrections
-    #TODO: Functionalize calculation of mean anomaly, also in clock corrections
     ecc_anom = _compute_eccentric_anomaly(ephem, gps_tow, gps_week)
 
     cos_e   = np.cos(ecc_anom)
@@ -507,10 +359,179 @@ def find_sat(ephem, gps_tow, gps_week):
     return sv_posvel
 
 
+def _extract_pos_vel_arr(sv_posvel):
+    """Extract satellite positions and velocities into numpy arrays.
+
+    Parameters
+    ----------
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        NavData containing satellite position and velocity states
+
+    Returns
+    -------
+    sv_pos : np.ndarray
+        ECEF satellite x, y and z positions 3xN [m]
+    sv_vel : np.ndarray
+        ECEF satellite x, y and z velocities 3xN [m]
+    """
+    sv_pos = sv_posvel[['x_sv_m', 'y_sv_m', 'z_sv_m']]
+    sv_vel   = sv_posvel[['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']]
+    #TODO: Put the following statements in the testing file
+    assert np.shape(sv_pos)[0]==3, "sv_pos: Incorrect shape Expected 3xN"
+    assert np.shape(sv_vel)[0]==3, "sv_vel: Incorrect shape Expected 3xN"
+    return sv_pos, sv_vel
+
+
+def _extract_state_variables(state):
+    """Extract position, velocity and clock bias terms from state
+
+    Parameters
+    ----------
+    state : gnss_lib_py.parsers.navdata.NavData
+        NavData containing state values i.e. 3D position, 3D velocity,
+        receiver clock bias and receiver clock drift rate at which
+        measurements will be simulated
+
+    Returns
+    -------
+    rx_ecef : np.ndarray
+        3x1 Receiver 3D ECEF position [m]
+    rx_v_ecef : np.ndarray
+        3x1 Receiver 3D ECEF velocity
+    bias : float
+        Receiver clock bais [m]
+    b_dot : float
+        Receiver clock drift [m/s]
+
+    """
+    assert len(state)==1, "Only single state accepted for GNSS simulation"
+    rx_ecef = np.reshape(state[['x_rx_m', 'y_rx_m', 'z_rx_m']], [3,1])
+    rx_v_ecef = np.reshape(state[['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps']], [3,1])
+    clk_bias = state['b_rx_m']
+    clk_drift = state['b_dot_rx_mps']
+    return rx_ecef, rx_v_ecef, clk_bias, clk_drift
+
+
+def _find_visible_svs(gps_week, gps_tow, rx_ecef, ephem=None, sv_posvel=None, el_mask=5.):
+    #TODO: Add functionality to use given satellite positions
+    """Trim input ephemeris to keep only visible SVs.
+
+    Parameters
+    ----------
+    gps_week : int
+        Week in GPS calendar
+    gps_tow : float
+        GPS time of the week for simulate measurements [s]
+    rx_ecef : np.ndarray
+        3x1 row rx_pos ECEF position vector [m]
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing satellite ephemeris parameters
+        including gps_week and gps_tow
+    el_mask : float
+        Minimum elevation of returned satellites
+
+    Returns
+    -------
+    eph : gnss_lib_py.parsers.navdata.NavData
+        Ephemeris parameters of visible satellites
+
+    """
+
+    # Find positions and velocities of all satellites
+    #TODO: Add handling for ephem=None
+    approx_posvel = find_sat(ephem, gps_tow - consts.T_TRANS, gps_week)
+
+    # Find elevation and azimuth angles for all satellites
+    approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
+    approx_el_az = ecef_to_el_az(np.reshape(rx_ecef, [3, 1]), approx_pos)
+    # Keep attributes of only those satellites which are visible
+    keep_ind = approx_el_az[0,:] > el_mask
+    eph = ephem.copy(cols=np.nonzero(keep_ind))
+    return eph
+
+
+def _find_sv_location(gps_week, gps_tow, rx_ecef, ephem=None, sv_posvel=None):
+    """Return satellite positions, difference from rx_pos position and ranges.
+
+    Parameters
+    ----------
+    gps_week : int
+        Week in GPS calendar
+    gps_tow : float
+        GPS time of the week for simulate measurements [s]
+    rx_ecef : np.ndarray
+        3x1 Receiver 3D ECEF position [m]
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        DataFrame containing all satellite ephemeris parameters for gps_week and
+        gps_tow, use None if not available and using precomputed satellite
+        positions and velocities instead
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        Precomputed positions of satellites, use None if not available
+
+    Returns
+    -------
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        Satellite position and velocities (same if input)
+    del_pos : np.ndarray
+        Difference between satellite positions and receiver position
+    true_range : np.ndarray
+        Distance between satellite and receiver positions
+
+    """
+    rx_ecef = np.reshape(rx_ecef, [3, 1])
+    #TODO: Add handling for ephem=None
+    if sv_posvel is None:
+        sv_posvel = find_sat(ephem, gps_tow - consts.T_TRANS, gps_week)
+        del_pos, true_range = _find_delxyz_range(sv_posvel, rx_ecef)
+        t_corr = true_range/consts.C
+
+        # Find satellite locations at (a more accurate) time of transmission
+        sv_posvel = find_sat(ephem, gps_tow-t_corr, gps_week)
+    del_pos, true_range = _find_delxyz_range(sv_posvel, rx_ecef)
+    t_corr = true_range/consts.C
+    # Corrections for the rotation of the Earth during transmission
+    # sv_pos, sv_vel = _extract_pos_vel_arr(sv_posvel)
+    del_x = consts.OMEGA_E_DOT*sv_posvel['x_sv_m'] * t_corr
+    del_y = consts.OMEGA_E_DOT*sv_posvel['y_sv_m'] * t_corr
+    sv_posvel['x_sv_m'] = sv_posvel['x_sv_m'] + del_x
+    sv_posvel['y_sv_m'] = sv_posvel['y_sv_m'] + del_y
+
+    return sv_posvel, del_pos, true_range
+
+
+
+def _find_delxyz_range(sv_posvel, rx_ecef):
+    """Return difference of satellite and rx_pos positions and range between them.
+
+    Parameters
+    ----------
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        Satellite position and velocities
+    rx_ecef : np.ndarray
+        3x1 Receiver 3D ECEF position [m]
+
+    Returns
+    -------
+    del_pos : np.ndarray
+        Difference between satellite positions and receiver position
+    true_range : np.ndarray
+        Distance between satellite and receiver positions
+    """
+    rx_ecef = np.reshape(rx_ecef, [3, 1])
+    satellites = len(sv_posvel)
+    if np.size(rx_ecef)!=3:
+        raise ValueError(f'Position not 3D, has size {np.size(rx_ecef)}')
+    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
+    true_range = np.linalg.norm(del_pos, axis=0)
+    return del_pos, true_range
+
+
 def _calculate_pseudorange_corr(gps_week, gps_tow, ephem, iono_params=None, rx_ecef=None):
+    #TODO: Update units of returned values based on what the delays return
     """Incorporate corrections in measurements.
 
-    Incorporate clock corrections (relativistic and drift), tropospheric
+    Incorporate clock corrections (relativistic and polynomial), tropospheric
     and ionospheric atmospheric delay corrections.
 
     Parameters
@@ -522,12 +543,22 @@ def _calculate_pseudorange_corr(gps_week, gps_tow, ephem, iono_params=None, rx_e
     ephem : gnss_lib_py.parsers.navdata.NavData
         Satellite ephemeris parameters for measurement SVs
     rx_ecef : np.ndarray
-        1x3 array of ECEF rx_pos position [m]
+        3x1 array of ECEF rx_pos position [m]
+    iono_params : np.ndarray
+        Ionospheric atmospheric delay parameters for Klobuchar model,
+        passed in 2x4 array, use None if not available
+    rx_ecef : np.ndarray
+        3x1 receiver position in ECEF frame of reference [m], use None
+        if not available.
 
     Returns
     -------
-    pr_corr : np.ndarray
-        Array of corrected pseudorange measurements [m]
+    clock_corr : np.ndarray
+        Satellite clock corrections [m]
+    iono_delay : np.ndarray
+        Estimated delay caused by the ionosphere [m]
+    tropo_delay : np.ndarray
+        Estimated delay caused by the troposhere [m]
 
     Notes
     -----
@@ -568,16 +599,31 @@ def _calculate_pseudorange_corr(gps_week, gps_tow, ephem, iono_params=None, rx_e
                         RuntimeWarning)
         iono_delay = np.zeros(len(ephem))
 
+    #TODO: Check if the corrections and delays are in meters or seconds
     return clock_corr, tropo_delay, iono_delay
 
 
 def _calculate_clock_delay(gps_tow, gps_week, ephem):
+    #TODO: Check if the corrections and delays are in meters or seconds
     """Calculate the modelled satellite clock delay
 
     Parameters
     ---------
     gps_tow : int
-    GPS time of the week [s]
+        GPS time of the week [s]
+    gps_week : int
+        GPS week for time of clock
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        Satellite ephemeris parameters for measurement SVs
+
+    Returns
+    -------
+    clock_corr : np.ndarray
+        Satellite clock corrections containing all terms [m]
+    corr_polynomial : np.ndarray
+        Polynomial clock perturbation terms [m]
+    clock_relativistic : np.ndarray
+        Relativistic clock correction terms [m]
 
     """
     # Extract required GPS constants
@@ -611,24 +657,27 @@ def _calculate_clock_delay(gps_tow, gps_week, ephem):
     return clk_corr, corr_polynomial, corr_relativistic
 
 
-def _calculate_tropo_delay(gps_week, gps_tow, ephem, rx_ecef, sv_posvel=None):
+def _calculate_tropo_delay(gps_week, gps_tow, rx_ecef, ephem=None, sv_posvel=None):
+    #TODO: Check if the corrections and delays are in meters or seconds
     """Calculate tropospheric delay
 
     Parameters
     ----------
-    gps_tow : float
-        Time of clock in seconds of the week
     gps_week : int
         GPS week for time of clock
+    gps_tow : float
+        Time of clock in seconds of the week
     ephem : gnss_lib_py.parsers.navdata.NavData
         Satellite ephemeris parameters for measurement SVs
     rx_ecef : np.ndarray
-        1x3 array of ECEF rx_pos position [m]
+        3x1 array of ECEF rx_pos position [m]
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        Precomputed positions of satellites, set to None if not available
 
     Returns
     -------
     tropo_delay : np.ndarray
-        Tropospheric corrections to pseudorange measurements
+        Tropospheric corrections to pseudorange measurements [m]
 
     Notes
     -----
@@ -672,7 +721,48 @@ def _calculate_tropo_delay(gps_week, gps_tow, ephem, rx_ecef, sv_posvel=None):
 
 
 def _calculate_iono_delay(gps_tow, gps_week, ephem, iono_params, rx_ecef):
+    """Calculate the ionospheric delay in pseudorange using the Klobuchar
+    model Section 5.3.2_[3].
 
+    Parameters
+    ----------
+    gps_week : int
+        GPS week for time of clock
+    gps_tow : float
+        Time of clock in seconds of the week
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        Satellite ephemeris parameters for measurement SVs
+    rx_ecef : np.ndarray
+        3x1 array of ECEF rx_pos position [m]
+    iono_params : np.ndarray
+        Ionospheric atmospheric delay parameters for Klobuchar model,
+        passed in 2x4 array, use None if not available
+    rx_ecef : np.ndarray
+        3x1 receiver position in ECEF frame of reference [m], use None
+        if not available.
+
+    Returns
+    -------
+    clock_corr : np.ndarray
+        Satellite clock corrections [m]
+    iono_delay : np.ndarray
+        Estimated delay caused by the ionosphere [m]
+    tropo_delay : np.ndarray
+        Estimated delay caused by the troposhere [m]
+
+    Notes
+    -----
+    Based on code written by J. Makela.
+    AE 456, Global Navigation Sat Systems, University of Illinois
+    Urbana-Champaign. Fall 2017
+
+    References
+    ----------
+    ..  [3] Misra, P. and Enge, P,
+    "Global Positioning System: Signals, Measurements, and Performance."
+    2nd Edition, Ganga-Jamuna Press, 2006.
+    """
+    #TODO: Check if the corrections and delays are in meters or seconds
     # Make sure things are arrays
     if not isinstance(gps_tow, np.ndarray):
         gps_tow = np.array(gps_tow)
@@ -770,7 +860,7 @@ def _compute_eccentric_anomaly(ephem, gps_tow, gps_week, tol=1e-5, max_iter=10):
     gps_week : int
         Week of GPS calendar corresponding to time of clock
     tol : float
-        Tolerance for Newton-Raphson convergence
+        Tolerance for convergence of the Newton-Raphson
     max_iter : int
         Maximum number of iterations for Newton-Raphson
 
