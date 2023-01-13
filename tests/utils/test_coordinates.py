@@ -399,7 +399,7 @@ def test_ecef_to_el_az_fails(set_sv_pos, set_rx_pos):
 
     with pytest.raises(RuntimeError) as excinfo:
         ecef_to_el_az(set_rx_pos,set_sv_pos.T)
-    assert "Nx3" in str(excinfo.value)
+    assert "3xN" in str(excinfo.value)
 
 
 @pytest.mark.parametrize('navdata',[

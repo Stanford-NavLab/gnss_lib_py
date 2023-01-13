@@ -758,12 +758,12 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
         # Transform satellite position to account for earth's rotation
         gps_week, gps_tow = gps_millis_to_tow(timestep - navdata_offset)
         get_sat_from_ephem = find_sat(ephem, gps_tow, gps_week)
-        satpos_ephemeris = np.transpose([get_sat_from_ephem.x.values, \
-                                         get_sat_from_ephem.y.values, \
-                                         get_sat_from_ephem.z.values])
-        satvel_ephemeris = np.transpose([get_sat_from_ephem.vx.values, \
-                                         get_sat_from_ephem.vy.values, \
-                                         get_sat_from_ephem.vz.values])
+        satpos_ephemeris = np.transpose([get_sat_from_ephem["x_sv_m"], \
+                                         get_sat_from_ephem["y_sv_m"], \
+                                         get_sat_from_ephem["z_sv_m"]])
+        satvel_ephemeris = np.transpose([get_sat_from_ephem["vx_sv_mps"], \
+                                         get_sat_from_ephem["vy_sv_mps"], \
+                                         get_sat_from_ephem["vz_sv_mps"]])
         trans_time = navdata["raw_pr_m", sorted_idxs] / consts.C
         del_x = (consts.OMEGA_E_DOT * satpos_ephemeris[:,1] * trans_time)
         del_y = (-consts.OMEGA_E_DOT * satpos_ephemeris[:,0] * trans_time)
