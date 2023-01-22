@@ -259,9 +259,6 @@ def _find_visible_ephem(gps_millis, rx_ecef, ephem=None, el_mask=5.):
         3x1 row rx_pos ECEF position vector [m].
     ephem : gnss_lib_py.parsers.navdata.NavData
         NavData instance containing satellite ephemeris parameters
-        including gps_week and gps_tow for the ephemeris. Use None if
-        not available and using positions directly.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
         including gps_week and gps_tow for the ephemeris
     el_mask : float
         Minimum elevation of returned satellites.
