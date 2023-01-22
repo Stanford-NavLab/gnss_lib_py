@@ -247,7 +247,7 @@ def _extract_pos_vel_arr(sv_posvel):
     return sv_pos, sv_vel
 
 
-def _find_visible_svs(gps_millis, rx_ecef, ephem=None, sv_posvel=None, el_mask=5.):
+def _find_visible_ephem(gps_millis, rx_ecef, ephem=None, el_mask=5.):
     """Trim input ephemeris to keep only visible SVs.
 
     Parameters
@@ -262,26 +262,19 @@ def _find_visible_svs(gps_millis, rx_ecef, ephem=None, sv_posvel=None, el_mask=5
         including gps_week and gps_tow for the ephemeris. Use None if
         not available and using positions directly.
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing satellite positions and velocities
-        at the time at which visible satellites are needed. Use None if
-        not available
+        including gps_week and gps_tow for the ephemeris
     el_mask : float
         Minimum elevation of returned satellites.
 
     Returns
     -------
     eph : gnss_lib_py.parsers.navdata.NavData
-        Ephemeris parameters of visible satellites.
+        Ephemeris parameters of visible satellites, if ephemeris parameters
+        are given.
 
     """
-
     # Find positions and velocities of all satellites
-    if sv_posvel is None:
-        approx_posvel = find_sv_states(gps_millis - 1000.*consts.T_TRANS, ephem)
-    else:
-        assert ephem is not None, "Must provide ephemeris or positions" \
-                                + " to find visible satellites"
-        approx_posvel = sv_posvel.copy()
+    approx_posvel = find_sv_states(gps_millis - 1000.*consts.T_TRANS, ephem)
     # Find elevation and azimuth angles for all satellites
     approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
     approx_el_az = ecef_to_el_az(np.reshape(rx_ecef, [3, 1]), approx_pos)
@@ -290,6 +283,38 @@ def _find_visible_svs(gps_millis, rx_ecef, ephem=None, sv_posvel=None, el_mask=5
     eph = ephem.copy(cols=np.nonzero(keep_ind))
     return eph
 
+
+def _find_visible_sv_posvel(gps_millis, rx_ecef, sv_posvel, el_mask=5.):
+    """Trim input SV state NavData to keep only visible SVs.
+
+    Parameters
+    ----------
+    gps_millis : int
+        Time at which measurements are needed, measured in milliseconds
+        since start of GPS epoch [ms].
+    rx_ecef : np.ndarray
+        3x1 row rx_pos ECEF position vector [m].
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing satellite positions and velocities
+        at the time at which visible satellites are needed.
+    el_mask : float
+        Minimum elevation of returned satellites.
+
+    Returns
+    -------
+    vis_posvel : gnss_lib_py.parsers.navdata.NavData
+        SV states of satellites that are visible
+
+    """
+    # Find positions and velocities of all satellites
+    approx_posvel = sv_posvel.copy()
+    # Find elevation and azimuth angles for all satellites
+    approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
+    approx_el_az = ecef_to_el_az(np.reshape(rx_ecef, [3, 1]), approx_pos)
+    # Keep attributes of only those satellites which are visible
+    keep_ind = approx_el_az[0,:] > el_mask
+    vis_posvel = sv_posvel.copy(cols=np.nonzero(keep_ind))
+    return vis_posvel
 
 def _find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
     """Return satellite positions, difference from rx_pos position and ranges.
@@ -336,8 +361,9 @@ def _find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
     # sv_pos, sv_vel = _extract_pos_vel_arr(sv_posvel)
     del_x = consts.OMEGA_E_DOT*sv_posvel['x_sv_m'] * t_corr
     del_y = consts.OMEGA_E_DOT*sv_posvel['y_sv_m'] * t_corr
-    sv_posvel['x_sv_m'] = sv_posvel['x_sv_m'] + del_x
-    sv_posvel['y_sv_m'] = sv_posvel['y_sv_m'] + del_y
+    #TODO: Should we keep the following two lines? Doesn't match the Android dataset
+    # sv_posvel['x_sv_m'] = sv_posvel['x_sv_m'] + del_x
+    # sv_posvel['y_sv_m'] = sv_posvel['y_sv_m'] + del_y
 
     return sv_posvel, del_pos, true_range
 
@@ -361,8 +387,6 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
     """
     rx_ecef = np.reshape(rx_ecef, [3, 1])
     satellites = len(sv_posvel)
-    if np.size(rx_ecef)!=3:
-        raise ValueError(f'Position not 3D, has size {np.size(rx_ecef)}')
     sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
     del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
     true_range = np.linalg.norm(del_pos, axis=0)
@@ -420,9 +444,8 @@ def _compute_eccentric_anomaly(gps_week, gps_tow, ephem, tol=1e-5, max_iter=10):
         delta_ecc_anom   = -fun / df_decc_anom
         ecc_anom    = ecc_anom + delta_ecc_anom
 
-    if np.any(delta_ecc_anom > tol):
+    if np.any(delta_ecc_anom > tol): #pragma: no cover
         raise RuntimeWarning("Eccentric Anomaly may not have converged" \
                             + f"after {max_iter} steps. : dE = {delta_ecc_anom}")
 
     return ecc_anom
-    

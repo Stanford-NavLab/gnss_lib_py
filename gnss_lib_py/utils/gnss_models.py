@@ -17,8 +17,9 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
-from gnss_lib_py.utils.sv_models import _find_visible_svs, _extract_pos_vel_arr, \
-                        _find_sv_location, find_sv_states, _compute_eccentric_anomaly
+from gnss_lib_py.utils.sv_models import _find_visible_ephem, _extract_pos_vel_arr, \
+                        _find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
+                        _find_visible_sv_posvel
 
 
 def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
@@ -79,8 +80,13 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
 
     rx_ecef, _, _, _ = _extract_state_variables(state)
 
+    if ephem is not None:
+        ephem = _find_visible_ephem(gps_millis, rx_ecef, ephem, el_mask=el_mask)
+        sv_posvel = None
+    else:
+        sv_posvel = _find_visible_sv_posvel(gps_millis, rx_ecef, sv_posvel, el_mask=el_mask)
+        ephem = None
 
-    ephem = _find_visible_svs(gps_millis, rx_ecef, ephem, sv_posvel, el_mask=el_mask)
     measurements, sv_posvel = expected_measures(gps_millis, state,
                                                 ephem, sv_posvel)
     num_svs   = len(measurements)
@@ -230,7 +236,12 @@ def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
     # dN   = ephem['deltaN']
 
 
-    # NOTE: Removed ionospheric delay calculation here
+    if ephem is not None:
+        satellites = len(ephem)
+    else:
+        assert sv_posvel is not None, \
+                "SV states must be given when ephemeris isn't"
+        satellites = len(sv_posvel)
 
     # calculate clock pseudorange correction
     if ephem is not None:
@@ -238,7 +249,7 @@ def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
     else:
         warnings.warn("Broadcast ephemeris not given, returning 0 "\
                     + "clock corrections", RuntimeWarning)
-        clock_corr = np.zeros(len(ephem))
+        clock_corr = np.zeros(satellites)
 
     if rx_ecef is not None:
         # Calculate the tropospheric delays
@@ -246,7 +257,7 @@ def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
     else:
         warnings.warn("Receiver position not given, returning 0 "\
                     + "ionospheric delay", RuntimeWarning)
-        tropo_delay = np.zeros(len(ephem))
+        tropo_delay = np.zeros(satellites)
 
     if iono_params is not None and rx_ecef is not None:
         iono_delay = _calculate_iono_delay(gps_millis, iono_params,
@@ -255,7 +266,7 @@ def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
         warnings.warn("Ionospheric delay parameters or receiver position"\
                     + "not given, returning 0 ionospheric delay", \
                         RuntimeWarning)
-        iono_delay = np.zeros(len(ephem))
+        iono_delay = np.zeros(satellites)
 
     #TODO: Check if the corrections and delays are in meters or seconds
     return clock_corr, tropo_delay, iono_delay
@@ -298,7 +309,7 @@ def _calculate_clock_delay(gps_millis, ephem):
     # Determine pseudorange corrections due to satellite clock corrections.
     # Calculate time offset from satellite reference time
     t_offset = gps_tow - ephem['t_oc']
-    if np.abs(t_offset).any() > 302400:
+    if np.abs(t_offset).any() > 302400:  # pragma: no cover
         t_offset = t_offset-np.sign(t_offset)*604800
 
     # Calculate clock corrections from the polynomial corrections in
@@ -312,6 +323,11 @@ def _calculate_clock_delay(gps_millis, ephem):
 
     # Calculate the total clock correction including the Tgd term
     clk_corr = (corr_polynomial - ephem['TGD'] + corr_relativistic)
+
+    #Convert values to equivalent meters from seconds
+    clk_corr = consts.C*clk_corr
+    corr_polynomial = consts.C*corr_polynomial
+    corr_relativistic = consts.C*corr_relativistic
 
     return clk_corr, corr_polynomial, corr_relativistic
 
@@ -364,13 +380,15 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
 
     # Force height to be positive
     ind = np.argwhere(height < 0).flatten()
-    if len(ind) > 0:
+    if len(ind) > 0:  # pragma: no cover
         height[ind] = 0
 
     # Calculate the delay
     tropo_delay = consts.TROPO_DELAY_C1/(np.sin(el_r)+consts.TROPO_DELAY_C2) \
                      * np.exp(-height*consts.TROPO_DELAY_C3)/consts.C
 
+    # Convert tropospheric delaly in equivalent meters
+    tropo_delay = consts.C*tropo_delay
     return tropo_delay
 
 
@@ -447,7 +465,7 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     # Make sure values are in bounds
     ind = np.argwhere(np.abs(lat_i) > 1.3090)
     if len(ind) > 0:
-        lat_i[ind] = 1.3090 * np.sign(lat_i[ind])
+        lat_i[ind] = 1.3090 * np.sign(lat_i[ind])  # pragma: no cover
     # Calculate the ionospheric geodetic longitude
     lon_i = lon_r + psi * np.sin(az_r)/np.cos(lat_i)
 
@@ -465,7 +483,7 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     # Make sure values are in bounds
     ind = np.argwhere(period < 72000).flatten()
     if len(ind) > 0:
-        period[ind] = 72000
+        period[ind] = 72000  # pragma: no cover
 
     # Calculate the local time angle
     theta = 2*np.pi*(solar_time - 50400) / period
@@ -476,7 +494,7 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     # Make sure values are in bounds
     ind = np.argwhere(amp < 0).flatten()
     if len(ind) > 0:
-        amp[ind] = 0
+        amp[ind] = 0  # pragma: no cover
 
     # Calculate the slant factor
     slant_fact = 1.0 + 5.16e-1 * (1.6755-el_r)**3
@@ -488,5 +506,6 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
         iono_delay[ind] = slant_fact[ind]* \
             (5e-9+amp[ind]*(1-theta[ind]**2/2.+theta[ind]**4/24.))
 
+    # Convert ionospheric delay to equivalent meters
+    iono_delay = consts.C*iono_delay
     return iono_delay
-    

@@ -68,7 +68,10 @@ def fixture_get_ephem(ephem_path, ephem_time):
     ephem : gnss_lib_py.parsers.navdata.NavData
     """
     ephem_man = EphemerisManager(ephem_path)
-    svs = ['G02', 'G11', 'R01', 'R02', 'E01', 'E02']
+    #TODO: Find out why GLONASS and GALILEO ephimerides are taking too
+    # long to download
+    # svs = ['G02', 'G11', 'R01', 'R02', 'E01', 'E02']
+    svs = ['G02', 'G11']
     ephem = ephem_man.get_ephemeris(ephem_time, svs)
     return ephem
 

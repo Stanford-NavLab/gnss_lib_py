@@ -15,7 +15,7 @@ from scipy import interpolate
 
 from gnss_lib_py.parsers.ephemeris import EphemerisManager
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.sim_gnss import find_sv_states
+from gnss_lib_py.utils.sv_models import find_sv_states
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 import gnss_lib_py.utils.constants as consts
@@ -756,8 +756,7 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
 
         # compute satellite position and velocity based on ephem and gps_time
         # Transform satellite position to account for earth's rotation
-        gps_week, gps_tow = gps_millis_to_tow(timestep - navdata_offset)
-        get_sat_from_ephem = find_sv_states(ephem, gps_tow, gps_week)
+        get_sat_from_ephem = find_sv_states(timestep - navdata_offset, ephem)
         satpos_ephemeris = np.transpose([get_sat_from_ephem["x_sv_m"], \
                                          get_sat_from_ephem["y_sv_m"], \
                                          get_sat_from_ephem["z_sv_m"]])
