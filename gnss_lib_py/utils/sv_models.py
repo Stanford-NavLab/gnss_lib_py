@@ -59,7 +59,7 @@ def find_sv_states(gps_millis, ephem):
     -------
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         NavData containing satellite positions, velocities, corresponding
-        time and SV number.
+        time with GNSS ID and SV number.
 
     Notes
     -----
@@ -117,6 +117,7 @@ def find_sv_states(gps_millis, ephem):
     #     times_all = np.reshape(times_all, len(ephem))
     # times = times_all
     sv_posvel = NavData()
+    sv_posvel['gnss_id'] = ephem['gnss_id']
     sv_posvel['sv_id'] = ephem['sv_id']
     # sv_posvel.set_index('sv', inplace=True)
     # print(times)
@@ -241,9 +242,6 @@ def _extract_pos_vel_arr(sv_posvel):
     """
     sv_pos = sv_posvel[['x_sv_m', 'y_sv_m', 'z_sv_m']]
     sv_vel   = sv_posvel[['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']]
-    #TODO: Put the following statements in the testing file
-    assert np.shape(sv_pos)[0]==3, "sv_pos: Incorrect shape Expected 3xN"
-    assert np.shape(sv_vel)[0]==3, "sv_vel: Incorrect shape Expected 3xN"
     return sv_pos, sv_vel
 
 

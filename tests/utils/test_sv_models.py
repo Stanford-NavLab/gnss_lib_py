@@ -59,6 +59,9 @@ def test_posvel_extract(dummy_pos_vel, scaling_value):
     exp_vel = np.vstack((-scaling_value, -10*scaling_value, -100*scaling_value))
     np.testing.assert_almost_equal(out_pos, exp_pos)
     np.testing.assert_almost_equal(out_vel, exp_vel)
+    #TODO: Put the following statements in the testing file
+    assert np.shape(out_pos)[0]==3, "sv_pos: Incorrect shape Expected 3xN"
+    assert np.shape(out_vel)[0]==3, "sv_vel: Incorrect shape Expected 3xN"
 
 
 def test_del_xyz_range(dummy_pos_vel, scaling_value):

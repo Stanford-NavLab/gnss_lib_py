@@ -190,7 +190,6 @@ def _extract_state_variables(state):
 
 def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
                                  iono_params=None, rx_ecef=None):
-    #TODO: Update units of returned values based on what the delays return
     """Incorporate corrections in measurements.
 
     Incorporate clock corrections (relativistic and polynomial), tropospheric
@@ -268,12 +267,10 @@ def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
                         RuntimeWarning)
         iono_delay = np.zeros(satellites)
 
-    #TODO: Check if the corrections and delays are in meters or seconds
     return clock_corr, tropo_delay, iono_delay
 
 
 def _calculate_clock_delay(gps_millis, ephem):
-    #TODO: Check if the corrections and delays are in meters or seconds
     """Calculate the modelled satellite clock delay
 
     Parameters
@@ -333,7 +330,6 @@ def _calculate_clock_delay(gps_millis, ephem):
 
 
 def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
-    #TODO: Check if the corrections and delays are in meters or seconds
     """Calculate tropospheric delay
 
     Parameters
@@ -431,7 +427,6 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     "Global Positioning System: Signals, Measurements, and Performance."
     2nd Edition, Ganga-Jamuna Press, 2006.
     """
-    #TODO: Check if the corrections and delays are in meters or seconds
     _, gps_tow = gps_millis_to_tow(gps_millis)
 
     #Reshape receiver position to 3x1
