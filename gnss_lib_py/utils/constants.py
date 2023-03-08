@@ -74,3 +74,5 @@ TROPO_DELAY_C2 = 0.0121
 
 TROPO_DELAY_C3 = 1.33e-4
 """float : Third coefficient of simplified tropospheric delay model developed in _[1]."""
+
+CONSTELLATION_CHARS = {'G':'gps', 'E':'galileo', 'R':'glonass', 'B':'beidou'}

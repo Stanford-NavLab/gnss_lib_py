@@ -116,6 +116,11 @@ class EphemerisManager():
         data = data.drop(columns=['time'])
         data = data.rename(columns={"GPSWeek":"gps_week", "sv":"sv_id"})
         data_navdata = NavData(pandas_df=data)
+        gnss_chars = [sv_id[0] for sv_id in data_navdata['sv_id']]
+        gnss_nums = [sv_id[1:] for sv_id in data_navdata['sv_id']]
+        gnss_id = [consts.CONSTELLATION_CHARS[gnss_char] for gnss_char in gnss_chars]
+        data_navdata['gnss_id'] = np.asarray(gnss_id)
+        data_navdata['sv_id'] = np.asarray(gnss_nums, dtype=int)
         return data_navdata
 
     def get_leapseconds(self):
