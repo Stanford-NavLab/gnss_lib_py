@@ -299,7 +299,8 @@ class NavData():
         condition : string
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
-            lesser than or equal to ("leq") / in between ("between"))
+            lesser than or equal to ("leq") / in between ("between")/
+            not equal to ("neq"))
 
         Returns
         -------
@@ -363,6 +364,72 @@ class NavData():
                 raise ValueError("Condition not implemented")
         new_cols = np.squeeze(new_cols)
         return new_cols
+
+
+    def keep_cols_where(self, key_idx, values, condition='eq'):
+        """Return NavData containing columns that contain value from given array
+
+        Given a list of values, for the equality condition the returned
+        subset of measurements will contain one of the given values in
+        the given key_idx; for the inequality condition the returned
+        subset of measurements will contain none of the given values in
+        the given key_idx.
+
+        Parameters
+        ----------
+        key_idx : string/int
+            Key or index of the row in which conditions will be checked
+        values : list
+            List of values that form equality/inequality criteria for the
+            NavData subset that is returned.
+        condition : string
+            Only equality ("eq") and not-equal ("neq") condition types
+            are supported
+
+        Returns
+        -------
+        subset_navdata : gnss_lib_py.parsers.navdata.NavData
+            NavData containing values in the key_idx that satisfy the
+            condition for the given values list
+        """
+        keep_cols = []
+        for value in values:
+            cols = self.argwhere(key_idx, value, condition)
+            if isinstance(cols, np.ndarray) and np.size(cols)==1:
+                cols = [cols]
+            keep_cols.extend(cols)
+        keep_cols = np.sort(keep_cols)
+        subset_navdata = self.copy(cols=keep_cols)
+        return subset_navdata
+
+
+    def sort(self, key_idx=None, ind=None, order="ascending"):
+        """Sort values along given row or using given index
+
+        Parameters
+        ----------
+        key_idx : string/int
+            Key or index of the row in which conditions will be checked
+        ind : list/np.ndarray
+            Ordering of indices to be used for sorting
+        order : string
+            Order in which to sort: "ascending" or "descending"
+        """
+        if ind is None:
+            assert key_idx is not None, \
+            "Provide row along which to sort because index is not given"
+            if order=="ascending":
+                ind = np.argsort(self[key_idx])
+            elif order=="descending":
+                ind = np.argsort(-self[key_idx])
+            else:
+                raise RuntimeError("Can only sort in ascending or ", \
+                    "descending order")
+        new_navdata = NavData()
+        for row in self.rows:
+            new_navdata[row] = self[row][ind]
+        return new_navdata
+
 
     def loop_time(self, time_row, tol_decimals=2):
         """Generator object to loop over columns from same times.

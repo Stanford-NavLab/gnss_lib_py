@@ -2243,3 +2243,33 @@ def test_interpolate_fails():
     with pytest.raises(TypeError) as excinfo:
         data.interpolate("ints",1)
     assert "y_rows" in str(excinfo.value)
+
+
+def test_keep_cols_where(data, df_simple):
+    keep_cols = ['gps', 'glonass']
+    data_subset = data.keep_cols_where('strings', keep_cols,
+                                        condition="eq")
+    df_simple_subset = df_simple.loc[df_simple['strings'].isin(keep_cols), :]
+
+    df_simple_subset = df_simple_subset.reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_subset.pandas_df(), df_simple_subset, check_dtype=False)
+
+
+def test_sort(data, df_simple):
+    df_sorted_int = df_simple.sort_values('integers').reset_index(drop=True)
+    df_sorted_float = df_simple.sort_values('floats').reset_index(drop=True)
+    data_sorted_int = data.sort('integers').pandas_df()
+    data_sorted_float = data.sort('floats').pandas_df()
+    float_ind = np.argsort(data['floats'])
+    data_sorted_ind = data.sort(ind=float_ind).pandas_df()
+    pd.testing.assert_frame_equal(data_sorted_int, df_sorted_int)
+    pd.testing.assert_frame_equal(df_sorted_float, data_sorted_float)
+    pd.testing.assert_frame_equal(df_sorted_float, data_sorted_ind)
+    # Test usecase when descending order is given
+    df_sorted_int_des = df_simple.sort_values('integers', ascending=False).reset_index(drop=True)
+    data_sorted_int_des = data.sort('integers', order="descending").pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)
+    # Test usecase when incorrect order is given
+    with pytest.raises(RuntimeError):
+        _ = data.sort('integers', order="equality")
+
