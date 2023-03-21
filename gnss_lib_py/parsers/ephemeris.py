@@ -116,6 +116,7 @@ class EphemerisManager():
         data = data.drop(columns=['time'])
         data = data.rename(columns={"GPSWeek":"gps_week", "sv":"sv_id"})
         data_navdata = NavData(pandas_df=data)
+        data_navdata['gnss_sv_id'] = data_navdata['sv_id']
         gnss_chars = [sv_id[0] for sv_id in data_navdata['sv_id']]
         gnss_nums = [sv_id[1:] for sv_id in data_navdata['sv_id']]
         gnss_id = [consts.CONSTELLATION_CHARS[gnss_char] for gnss_char in gnss_chars]

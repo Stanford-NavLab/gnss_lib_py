@@ -110,6 +110,13 @@ def fixture_gt_path(android_root_path):
     return gt_path
 
 
+@pytest.fixture(name="ephemeris_path")
+def fixture_ephemeris_path(root_path):
+    ephemeris_path = os.path.join(root_path, 'ephemeris')
+    return ephemeris_path
+
+
+
 @pytest.fixture(name="android_derived")
 def fixture_derived(derived_path):
     derived = AndroidDerived2022(derived_path)
@@ -160,7 +167,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
     frames = []
     sv_states = []
     for _, _, frame in android_frames:
-        vis_svs = [f"G{sv:02}" for sv in frame['sv_id']]
+        vis_svs = [sv for sv in frame['sv_id']]
         cols = []
         for sv in vis_svs:
             cols.append(all_gps_ephem.argwhere('sv_id', sv))
@@ -181,3 +188,15 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
         ephems.append(vis_ephem)
         sv_states.append(android_posvel)
     return {'vis_ephems': ephems, 'android_frames':frames, 'sv_states':sv_states}
+
+
+@pytest.fixture(name="error_tol_dec")
+def fixture_error_tolerances():
+    error_tol = {}
+    error_tol['vel'] = 1
+    error_tol['pos'] = -1
+    error_tol['iono'] = -1
+    error_tol['tropo'] = -1
+    error_tol['clock'] = 1
+    error_tol['brd_eph'] = -2.5
+    return error_tol

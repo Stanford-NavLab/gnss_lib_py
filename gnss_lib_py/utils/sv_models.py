@@ -6,12 +6,14 @@ Functions to calculate GNSS SV positions and velocities for a given time.
 __authors__ = "Ashwin Kanhere, Bradley Collicott"
 __date__ = "17 Jan, 2023"
 
+import warnings
 import numpy as np
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
+from gnss_lib_py.parsers.ephemeris import EphemerisManager
+from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
 
 
 def svs_from_el_az(elaz_deg):
@@ -40,6 +42,58 @@ def svs_from_el_az(elaz_deg):
     unit_vect[2, :] = np.sin(el_deg)
     svs_ned = 20200000*unit_vect
     return svs_ned
+
+
+def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_dec = -2):
+    """
+    Add SV states (ECEF position and velocities) to measurements.
+
+    Parameters
+    ----------
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Received measurements for which SV states are required. Must
+        contain `gps_millis`, `gnss_id`, and `sv_id` fields.
+    ephemeris_path : string
+        Location where ephemeris files are stored. Files will be
+        downloaded if they don't exist for the given date and constellation.
+    constellations : list
+        List of strings indicating which constellations are to be used
+    delta_t_dec : int
+        Decimal places after which times are considered as belonging to
+        the same discrete time interval.
+    """
+    measurements_subset, ephem = \
+        _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
+    sv_states_all_time = NavData()
+    # Loop through the measurement file per time step
+    for _, _, measure_frame in measurements_subset.loop_time('gps_millis', tol_decimals=delta_t_dec):
+        # measure_frame = measure_frame.sort('sv_id', order="descending")
+        # Sort the satellites
+        gnss_sv_id = _combine_gnss_sv_ids(measure_frame)
+        sorted_sats_ind = np.argsort(gnss_sv_id)
+        inv_sort_order = np.argsort(sorted_sats_ind)
+        sorted_sats = gnss_sv_id[sorted_sats_ind]
+        rx_ephem = ephem.keep_cols_where('gnss_sv_id', sorted_sats, condition="eq")
+        try:
+            # The following statement raises a KeyError if rows don't exist
+            measure_frame.in_rows(['x_rx_m', 'y_rx_m', 'z_rx_m'])
+            rx_ecef = np.asarray([measure_frame['x_rx_m', 0],
+                                  measure_frame['y_rx_m', 0],
+                                  measure_frame['z_rx_m', 0]])
+            sv_states, _, _ = _find_sv_location(measure_frame['gps_millis'], rx_ecef, rx_ephem)
+        except KeyError:
+            sv_states = find_sv_states(measure_frame['gps_millis'], rx_ephem)
+        # Reverse the sorting
+        sv_states = sv_states.sort(ind=inv_sort_order)
+        # Add them to new rows
+        for row in sv_states.rows:
+            if row != 'gps_millis' and row!= 'gnss_id' and row!='sv_id':
+                measure_frame[row] = sv_states[row]
+        if len(sv_states_all_time)==0:
+            sv_states_all_time = measure_frame
+        else:
+            sv_states_all_time.concat(measure_frame, inplace=True)
+    return sv_states_all_time
 
 
 def find_sv_states(gps_millis, ephem):
@@ -125,7 +179,7 @@ def find_sv_states(gps_millis, ephem):
     # Deal with times being a single value or a vector with the same
     # length as the ephemeris
     # print(times.shape)
-    sv_posvel['times'] = gps_tow
+    sv_posvel['gps_millis'] = gps_millis
     #TODO: Update to add gps_millis instead of gps_tow
 
     delta_t = gps_tow - ephem['t_oe'] + gpsweek_diff
@@ -223,6 +277,78 @@ def find_sv_states(gps_millis, ephem):
     sv_posvel['vz_sv_mps'] = dyp*sin_i + y_plane*cos_i*delta_i
 
     return sv_posvel
+
+
+def _filter_ephemeris_measurements(measurements, constellations, ephemeris_path):
+    """Filter measurements based on constellations and ephemeris on received SVs
+
+    Measurements are filtered to contain the intersection of received and
+    desired constellations.
+    Ephemeris is extracted from the given path and filtered to contain
+    received SVs.
+
+    Parameters
+    ----------
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Recevied measurements that are filtered based on constellations.
+    constellations : list
+        List of strings indicating constellations that we want to use.
+    ephemeris_path : string
+        Path where the ephermis files are stored or downloaded to.
+
+    Returns
+    -------
+    measurements_subset : gnss_lib_py.parsers.navdata.NavData
+        Measurements containing desired constellations
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        Ephemeris parameters for received SVs and constellations
+    """
+    measurements.in_rows(['gnss_id', 'sv_id', 'gps_millis'])
+    # Check whether the rows are in the right format as needed.
+    isinstance(measurements['gnss_id'].dtype, object)
+    isinstance(measurements['sv_id'].dtype, int)
+    isinstance(measurements['gps_millis'].dtype, np.int64)
+    rx_const= np.unique(measurements['gnss_id'])
+    # Check if required constellations are available, keep only required
+    # constellations
+    for const in constellations:
+        if const not in rx_const:
+            warnings.warn(const + " not available in received constellations", RuntimeWarning)
+    rx_const_set = set(rx_const)
+    req_const_set = set(constellations)
+    keep_consts = req_const_set.intersection(rx_const_set)
+
+    measurements_subset = measurements.keep_cols_where('gnss_id', keep_consts, condition="eq")
+
+    # preprocessing of received quantities for downloading ephemeris file
+    eph_sv = _combine_gnss_sv_ids(measurements)
+    lookup_sats = list(np.unique(eph_sv))
+    start_gps_millis = np.min(measurements['gps_millis'])
+    start_time = gps_millis_to_datetime(start_gps_millis)
+    # Download the ephemeris file for all the satellites in the measurement files
+    ephemeris_manager = EphemerisManager(ephemeris_path)
+    ephem = ephemeris_manager.get_ephemeris(start_time, lookup_sats)
+    return measurements_subset, ephem
+
+
+def _combine_gnss_sv_ids(measurement_frame):
+    """Combine string `gnss_id` and integer sv_id into single `gnss_sv_id`.
+
+    `gnss_id` contains strings like 'gps' and 'glonass' and `sv_id` contains
+    strings. The newly returned `gnss_sv_id` is formatted as `Axx` where
+    `A` is a single letter denoting the `gnss_id` and `xx` denote the two
+    digit `sv_id` of the satellite.
+
+    Parameters
+    ----------
+    measurement_frame : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing measurements including `gnss_id` and
+        `sv_id`
+    """
+    constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
+    gnss_chars = [constellation_char_inv[const] for const in measurement_frame['gnss_id']]
+    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(measurement_frame['sv_id'])])
+    return gnss_sv_id
 
 
 def _extract_pos_vel_arr(sv_posvel):
