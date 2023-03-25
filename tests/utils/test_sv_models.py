@@ -8,6 +8,7 @@ __date__ = "21 Mar 2023"
 import pytest
 import numpy as np
 
+from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
@@ -197,7 +198,6 @@ def test_visible_sv_posvel(gps_measurement_frames, android_gt):
 
     Parameters
     ----------
-
     gps_measurement_frames : Dict
         Dictionary containing NavData instances of ephemeris parameters
         for received satellites, received Android measurements and SV
@@ -217,13 +217,16 @@ def test_visible_sv_posvel(gps_measurement_frames, android_gt):
         vis_svs = set(vis_posvel['sv_id'])
         assert vis_svs.issubset(set(sv_posvel['sv_id']))
 
-
-def test_add_sv_state_wrapper(android_gps_l1, ephemeris_path, error_tol_dec):
+@pytest.mark.parametrize('android_measurements',
+                         [lazy_fixture("android_gps_l1"),
+                          lazy_fixture("android_gps_l1_reversed")
+                         ])
+def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_dec):
     """Test wrapper that adds SV states to received measurements.
 
     Parameters
     ----------
-    android_gps_l1 : gnss_lib_py.parsers.navdata.NavData
+    android_measurements : gnss_lib_py.parsers.navdata.NavData
         NavData instance containing L1 measurements for received GPS
         measurements.
     ephemeris_path : string
@@ -240,33 +243,32 @@ def test_add_sv_state_wrapper(android_gps_l1, ephemeris_path, error_tol_dec):
                  'tropo_delay_m']
     comparison_states = NavData()
     for row in true_rows:
-        comparison_states[row] = android_gps_l1[row]
-    android_gps_l1.remove(true_rows, inplace=True)
-    android_gps_l1_states = sv_models.add_sv_states(android_gps_l1, ephemeris_path)
+        comparison_states[row] = android_measurements[row]
+    android_measurements.remove(true_rows, inplace=True)
+    android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path)
     for row in true_rows:
         if 'mps' in row:
-            np.testing.assert_almost_equal(android_gps_l1_states[row],
+            np.testing.assert_almost_equal(android_gps_states[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['vel'])
         elif 'sv_m' in row:
-            np.testing.assert_almost_equal(android_gps_l1_states[row],
+            np.testing.assert_almost_equal(android_gps_states[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['pos'])
     # Test position estimation when desired constellations are not in
     # received measurements
     with pytest.warns(RuntimeWarning):
-        android_gps_l1_states = sv_models.add_sv_states(android_gps_l1, ephemeris_path,
+        android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path,
                                 constellations=['gps', 'glonass'])
     # Testing position estimation without receiver position
-    android_gps_l1.remove(rows=['x_rx_m', 'y_rx_m', 'z_rx_m'], inplace=True)
-    android_gps_l1_states = sv_models.add_sv_states(android_gps_l1, ephemeris_path)
+    android_measurements.remove(rows=['x_rx_m', 'y_rx_m', 'z_rx_m'], inplace=True)
+    android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path)
     for row in true_rows:
         if 'mps' in row:
-            np.testing.assert_almost_equal(android_gps_l1_states[row],
+            np.testing.assert_almost_equal(android_gps_states[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['vel'])
         elif 'sv_m' in row:
-            np.testing.assert_almost_equal(android_gps_l1_states[row],
+            np.testing.assert_almost_equal(android_gps_states[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['brd_eph'])
-

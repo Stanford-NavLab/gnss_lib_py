@@ -19,7 +19,130 @@ from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.sv_models import _find_visible_ephem, _extract_pos_vel_arr, \
                         _find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
-                        _find_visible_sv_posvel
+                        _find_visible_sv_posvel, _sort_ephem_measures, \
+                        _filter_ephemeris_measurements
+
+
+def add_measures(measurements, ephemeris_path, iono_params=None,
+                 pseudorange=True, doppler=True, corrections=True,
+                 delta_t_dec = -2, inplace=False):
+    """Estimate measurements and add to given measurements
+
+    Parameters
+    ----------
+    measurements : gnss_lib_py.parsers.navdata.NavData
+        Received measurements for which SV states are required. Must
+        contain `gps_millis`, `gnss_id`, and `sv_id` fields.
+    ephemeris_path : string
+        Location where ephemeris files are stored. Files will be
+        downloaded if they don't exist for the given date and constellation.
+    iono_params : np.ndarray
+        Parameters to calculate the ionospheric delay in pseudoranges.
+    pseudorange : bool
+        Flag on whether pseudoranges are to be calculated and used or not.
+    doppler : bool
+        Flag on whether doppler measurements are to be calculated and
+        used or not.
+    corrections : bool
+        Flag on whether pseudorange corrections are to be calculated and
+        used or not.
+    delta_t_dec : int
+        Decimal places after which times are considered as belonging to
+        the same discrete time interval.
+    inplace : bool
+        Flag on whether the replacement has to be done inplace or a new
+        NavData has to be created with the added corrections.
+    """
+    constellations = np.unique(measurements['gnss_id'])
+    measurements, ephem = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
+    info_rows = ['gps_millis', 'gnss_id', 'sv_id']
+    sv_state_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
+    rx_pos_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
+    rx_vel_rows = ['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps']
+    rx_clk_rows = ['b_rx_m', 'b_dot_rx_mps']
+    # Check if SV states exist, if they don't, add them
+    est_measurements = NavData()
+    # Loop through the measurement file per time step
+    for gps_millis, _, measure_frame in measurements.loop_time('gps_millis', tol_decimals=delta_t_dec):
+        # Sort the satellites
+        rx_ephem, sorted_sats_ind, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
+        # Create new NavData with SV positions and velocities
+        # If they're not given, the SV states computed with measures will be used
+        try:
+            measure_frame.in_rows(sv_state_rows)
+            use_posvel = False
+            sv_posvel = NavData()
+            for row in sv_state_rows:
+                sv_posvel[row] = measure_frame[row]
+            for row in info_rows:
+                sv_posvel[row] = measure_frame[row]
+            # sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
+            sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
+        except KeyError:
+            sv_posvel = None
+            use_posvel = True
+
+        # Extract RX states into State NavData
+        state = NavData()
+        try:
+            measure_frame.in_rows(rx_pos_rows)
+            for row in rx_pos_rows:
+                state[row] = measure_frame[row, 0]
+        except KeyError as exc:
+            raise RuntimeError("Rx positions needed to estimate expected measurements") from exc
+        vel_clk_rows = rx_vel_rows + rx_clk_rows
+        for row in vel_clk_rows:
+            try:
+                measure_frame.in_rows(row)
+                state[row] = measure_frame[row, 0]
+            except KeyError:
+                warnings.warn("Assuming 0 "+ row + " for Rx", RuntimeWarning)
+                state[row] = 0
+
+        # Compute measurements
+        if pseudorange or doppler:
+            est_meas, sv_posvel = expected_measures(gps_millis, state, ephem=rx_ephem, sv_posvel=sv_posvel)
+            # Reverse the sorting to match the input measurements
+            est_meas = est_meas.sort(ind=inv_sort_order)
+        else:
+            est_meas = None
+        if corrections:
+            est_clk, est_trp, est_iono = calculate_pseudorange_corr(gps_millis, state=state, ephem=rx_ephem, sv_posvel=sv_posvel,
+                                        iono_params=iono_params)
+            # Reverse the sorting to match the input measurements
+            est_clk = est_clk[inv_sort_order]
+            est_trp = est_trp[inv_sort_order]
+            est_iono = est_iono[inv_sort_order]
+        else:
+            est_clk = None
+            est_trp = None
+            est_iono = None
+        # Add required values to new rows
+        if sv_posvel is not None:
+            # Reverse the sorting to match the input measurements
+            sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
+        est_frame = NavData()
+        if pseudorange:
+            est_frame['raw_pr_m'] = est_meas['raw_pr_m']
+        if doppler:
+            est_frame['doppler_hz'] = est_meas['doppler_hz']
+        if corrections:
+            est_frame['b_sv_m'] = est_clk
+            est_frame['tropo_delay_m'] = est_trp
+            est_frame['iono_delay_m'] = est_iono
+        if use_posvel:
+            for row in sv_state_rows:
+                est_frame[row] = sv_posvel[row]
+        if len(est_measurements)==0:
+            est_measurements = est_frame
+        else:
+            est_measurements.concat(est_frame, inplace=True)
+    if inplace:
+        measurements.concat(est_measurements, axis=0, inplace=True)
+        return measurements
+    else:
+        est_measurements = measurements.concat(est_measurements, axis=0, inplace=False)
+        return est_measurements
 
 
 def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
@@ -92,10 +215,10 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
     num_svs   = len(measurements)
 
 
-    measurements['prange']  = (measurements['prange']
+    measurements['raw_pr_m']  = (measurements['raw_pr_m']
         + noise_dict['prange_sigma'] *rng.standard_normal(num_svs))
 
-    measurements['doppler'] = (measurements['doppler']
+    measurements['doppler_hz'] = (measurements['doppler_hz']
         + noise_dict['doppler_sigma']*rng.standard_normal(num_svs))
 
     return measurements, sv_posvel
@@ -153,8 +276,10 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     prange_rate += clk_drift
     doppler = -(consts.F1/consts.C) * (prange_rate)
     measurements = NavData()
-    measurements['prange'] = prange
-    measurements['doppler'] = doppler
+    measurements['sv_id'] = sv_posvel['sv_id']
+    measurements['gnss_id'] = sv_posvel['gnss_id']
+    measurements['raw_pr_m'] = prange
+    measurements['doppler_hz'] = doppler
     return measurements, sv_posvel
 
 
@@ -188,8 +313,8 @@ def _extract_state_variables(state):
     return rx_ecef, rx_v_ecef, clk_bias, clk_drift
 
 
-def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
-                                 iono_params=None, rx_ecef=None):
+def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=None,
+                                 iono_params=None):
     """Incorporate corrections in measurements.
 
     Incorporate clock corrections (relativistic and polynomial), tropospheric
@@ -230,9 +355,10 @@ def _calculate_pseudorange_corr(gps_millis, ephem=None, sv_posvel=None,
 
     """
 
-    # Extract parameters
-    # M_0  = ephem['M_0']
-    # dN   = ephem['deltaN']
+    if state is not None:
+        rx_ecef, _, _, _ = _extract_state_variables(state)
+    else:
+        rx_ecef = None
 
 
     if ephem is not None:
@@ -390,7 +516,7 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
 
 def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posvel=None):
     """Calculate the ionospheric delay in pseudorange using the Klobuchar
-    model Section 5.3.2_[3].
+    model Section 5.3.2 [1]_.
 
     Parameters
     ----------
@@ -423,9 +549,10 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
 
     References
     ----------
-    ..  [3] Misra, P. and Enge, P,
-    "Global Positioning System: Signals, Measurements, and Performance."
-    2nd Edition, Ganga-Jamuna Press, 2006.
+    ..  [1] Misra, P. and Enge, P,
+        "Global Positioning System: Signals, Measurements, and Performance."
+        2nd Edition, Ganga-Jamuna Press, 2006.
+
     """
     _, gps_tow = gps_millis_to_tow(gps_millis)
 

@@ -61,6 +61,11 @@ def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_
     delta_t_dec : int
         Decimal places after which times are considered as belonging to
         the same discrete time interval.
+
+    Returns
+    -------
+    sv_states_all_time : gnss_lib_py.parsers.navdata.NavData
+        Input measurements with rows containing SV states appended.
     """
     measurements_subset, ephem = \
         _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
@@ -69,11 +74,7 @@ def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_
     for _, _, measure_frame in measurements_subset.loop_time('gps_millis', tol_decimals=delta_t_dec):
         # measure_frame = measure_frame.sort('sv_id', order="descending")
         # Sort the satellites
-        gnss_sv_id = _combine_gnss_sv_ids(measure_frame)
-        sorted_sats_ind = np.argsort(gnss_sv_id)
-        inv_sort_order = np.argsort(sorted_sats_ind)
-        sorted_sats = gnss_sv_id[sorted_sats_ind]
-        rx_ephem = ephem.keep_cols_where('gnss_sv_id', sorted_sats, condition="eq")
+        rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
         try:
             # The following statement raises a KeyError if rows don't exist
             measure_frame.in_rows(['x_rx_m', 'y_rx_m', 'z_rx_m'])
@@ -343,12 +344,43 @@ def _combine_gnss_sv_ids(measurement_frame):
     ----------
     measurement_frame : gnss_lib_py.parsers.navdata.NavData
         NavData instance containing measurements including `gnss_id` and
-        `sv_id`
+        `sv_id`.
     """
     constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
     gnss_chars = [constellation_char_inv[const] for const in measurement_frame['gnss_id']]
     gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(measurement_frame['sv_id'])])
     return gnss_sv_id
+
+
+def _sort_ephem_measures(measure_frame, ephem):
+    """Sort measures and return sorting and inverse sorting indices.
+
+    Parameters
+    ----------
+    measure_frame : gnss_lib_py.parsers.navdata.NavData
+        Measurements received for a single time instance.
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        Ephemeris parameters for all satellites for the closest time
+        before the measurements were received.
+
+    Returns
+    -------
+    rx_ephem : gnss_lib_py.parsers.navdata.NavData
+        Ephemeris parameters for satellites from which measurements were
+        received. Sorted by `gnss_sv_id`.
+    sorted_sats_ind : np.ndarray
+        Indices that sorts the original measurements by `gnss_sv_id`.
+    inv_sort_order : np.ndarray
+        Indices that invert the sort by `gnss_sv_id` to match the input
+        measurements.
+
+    """
+    gnss_sv_id = _combine_gnss_sv_ids(measure_frame)
+    sorted_sats_ind = np.argsort(gnss_sv_id)
+    inv_sort_order = np.argsort(sorted_sats_ind)
+    sorted_sats = gnss_sv_id[sorted_sats_ind]
+    rx_ephem = ephem.keep_cols_where('gnss_sv_id', sorted_sats, condition="eq")
+    return rx_ephem, sorted_sats_ind, inv_sort_order
 
 
 def _extract_pos_vel_arr(sv_posvel):

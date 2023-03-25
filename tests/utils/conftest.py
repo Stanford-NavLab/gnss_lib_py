@@ -94,13 +94,13 @@ def fixture_gt_path(android_root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset [1]_,
+    Test data is a subset of the Android Raw Measurement Dataset [2]_,
     and was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -112,6 +112,18 @@ def fixture_gt_path(android_root_path):
 
 @pytest.fixture(name="ephemeris_path")
 def fixture_ephemeris_path(root_path):
+    """Path where ephemeris files are downloaded or loaded from.
+
+    Parameters
+    ----------
+    root_path : string
+        Path where all unit testing data is stored.
+
+    Returns
+    -------
+    ephemeris_path : string
+        Path where ephemeris files are to be stored.
+    """
     ephemeris_path = os.path.join(root_path, 'ephemeris')
     return ephemeris_path
 
@@ -119,49 +131,165 @@ def fixture_ephemeris_path(root_path):
 
 @pytest.fixture(name="android_derived")
 def fixture_derived(derived_path):
+    """Instance of Android Derived measurements, loaded into AndroidDerived2022.
+
+    Parameters
+    ----------
+    derived_path : string
+        Location where file containing measurements is stored.
+
+    Returns
+    -------
+    derived : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived measurements for testing
+    """
     derived = AndroidDerived2022(derived_path)
     return derived
 
 
 @pytest.fixture(name="android_gps_l1")
 def fixture_derived_gps_l1(android_derived):
+    """Android measurements corresponding to the GPS L1 band.
+
+    Parameters
+    ----------
+    android_derived : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived measurements for testing
+
+    Returns
+    -------
+    android_gps_l1 : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived measurements containing only entries that
+        correspond to the GPS contellation and L1 frequency band.
+    """
     android_gps = android_derived.where('gnss_id', "gps", "eq")
     android_gps_l1 = android_gps.where('signal_type', "l1", "eq")
     return android_gps_l1
 
 
+@pytest.fixture(name="android_gps_l1_reversed")
+def fixture_derived_gps_l1_reversed(android_gps_l1):
+    """Android GPS L1 measurements with reversed SV IDs in the same time.
+
+    Parameters
+    ----------
+    android_gps_l1 : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived measurements containing only entries that
+        correspond to the GPS contellation and L1 frequency band.
+
+    Returns
+    -------
+    android_gps_l1_reversed : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android GPS L1 measurements with reversed SV IDs in a single time
+        instance.
+    """
+    android_gps_l1_reversed = NavData()
+    for _, _, measure_frame in android_gps_l1.loop_time('gps_millis', tol_decimals=-2):
+        if len(android_gps_l1_reversed)==0:
+            android_gps_l1_reversed = measure_frame
+        else:
+            android_gps_l1_reversed.concat(measure_frame, inplace=True)
+    return android_gps_l1_reversed
+
+
 @pytest.fixture(name="android_gt")
 def fixture_gt(gt_path):
+    """Path to ground truth file for Android Derived measurements.
+
+    Parameters
+    ----------
+    gt_path : string
+        Path where ground truth file is stored.
+
+    Returns
+    -------
+    android_gt : gnss_lib_py.parsers.android.AndroidGroundTruth2022
+        NavData containing ground truth for Android measurements.
+    """
     android_gt = AndroidGroundTruth2022(gt_path)
     return android_gt
 
 
-@pytest.fixture(name="ephem_path")
-def fixture_ephem_path(root_path):
-    ephem_path = os.path.join(root_path, 'ephemeris')
-    return ephem_path
-
 @pytest.fixture(name="all_gps_sats")
 def fixture_ephem_all_sats():
+    """Returns list of `gnss_sv_id` for all GPS satellites.
+
+    Returns
+    -------
+    all_gps_sats : list
+        List containing 3 character, eg. G02, combination of GNSS and SV
+        IDs for all GPS satellites.
+    """
     all_gps_sats = [f"G{sv:02}" for sv in range(1,33)]
     return all_gps_sats
 
 @pytest.fixture(name="start_time")
 def fixture_start_time(android_gt):
+    """Starting time of when measurements were received as a datetime.datetime.
+
+    Parameters
+    ----------
+    android_gt : gnss_lib_py.parsers.android.AndroidGroundTruth2022
+        NavData containing ground truth for Android measurements.
+
+    Returns
+    -------
+    start_time : datetime.datetime
+        Time at which measurements were first received in this trace, as
+        a datetime.datetime object
+    """
     start_time = gps_millis_to_datetime(android_gt['gps_millis', 0])
     return start_time
 
 
 
 @pytest.fixture(name="all_gps_ephem")
-def fixture_all_gps_ephem(ephem_path, start_time, all_gps_sats):
-    ephem_man_nav = EphemerisManager(ephem_path)
+def fixture_all_gps_ephem(ephemeris_path, start_time, all_gps_sats):
+    """Extracts ephemeris parameters for all GPS satellites at start time.
+
+    Parameters
+    ----------
+    ephemeris_path : string
+        Path where ephemeris files are to be stored.
+    start_time : datetime.datetime
+        Time at which measurements were first received in this trace, as
+        a datetime.datetime object
+    all_gps_sats : list
+        List containing 3 character, eg. G02, combination of GNSS and SV
+        IDs for all GPS satellites.
+
+    Returns
+    -------
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing ephemeris parameters for all GPS
+        satellites at the start time for measurement reception.
+    """
+    ephem_man_nav = EphemerisManager(ephemeris_path)
     ephem = ephem_man_nav.get_ephemeris(start_time, all_gps_sats)
     return ephem
 
 
 @pytest.fixture(name="gps_measurement_frames")
 def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
+    """Parses and separates received measurements, SV states and visible
+    ephemeris by time instance.
+
+    Parameters
+    ----------
+    all_gps_ephem : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing ephemeris parameters for all GPS
+        satellites at the start time for measurement reception.
+    android_gps_l1 : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived measurements containing only entries that
+        correspond to the GPS contellation and L1 frequency band.
+
+    Returns
+    -------
+    gps_measurement_frames : Dict
+        Dictionary containing lists of visible ephemeris parameters,
+        received Android measurements and SV states. The lists are
+        indexed by discrete time indices.
+    """
     android_frames = android_gps_l1.loop_time('gps_millis', tol_decimals=-2)
     ephems = []
     frames = []
@@ -175,8 +303,10 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
         sort_arg = np.argsort(frame['sv_id'])
 
         android_posvel = NavData()
-        sv_id = [f"G{sv:02}" for sv in frame['sv_id'][sort_arg]]
-        android_posvel['sv_id'] = np.asarray(sv_id, dtype=object)
+        gnss_id = ["gps" for _ in frame['sv_id'][sort_arg]]
+        sv_id = [sv for sv in frame['sv_id'][sort_arg]]
+        android_posvel['gnss_id'] = np.asarray(gnss_id, dtype=object)
+        android_posvel['sv_id'] = np.asarray(sv_id)
         android_posvel['x_sv_m'] = frame['x_sv_m'][sort_arg]
         android_posvel['y_sv_m'] = frame['y_sv_m'][sort_arg]
         android_posvel['z_sv_m'] = frame['z_sv_m'][sort_arg]
@@ -187,16 +317,25 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
         frames.append(frame)
         ephems.append(vis_ephem)
         sv_states.append(android_posvel)
-    return {'vis_ephems': ephems, 'android_frames':frames, 'sv_states':sv_states}
-
+    gps_measurement_frames =  {'vis_ephems': ephems, 'android_frames':frames, 'sv_states':sv_states}
+    return gps_measurement_frames
 
 @pytest.fixture(name="error_tol_dec")
 def fixture_error_tolerances():
+    """
+    Decimal error tolerances for different measurment and SV state values.
+
+    Returns
+    -------
+    error_tol : Dict
+        Dictionary containing decimal places upto which equivalence is
+        checked for position, velocity, atmospheric delays, clock estimation,
+        and broadcast ephemeris positions computed by models.
+    """
     error_tol = {}
     error_tol['vel'] = 1
     error_tol['pos'] = -1
-    error_tol['iono'] = -1
-    error_tol['tropo'] = -1
+    error_tol['delay'] = -1
     error_tol['clock'] = 1
     error_tol['brd_eph'] = -2.5
     return error_tol

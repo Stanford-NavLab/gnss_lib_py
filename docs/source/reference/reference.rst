@@ -119,6 +119,10 @@ GNSS measurement naming conventions are as follows:
   name in lowercase, possible options are :code:`gps`, :code:`galileo`
   :code:`glonass`, :code:`qzss`, :code:`sbas`, etc.
 * :code:`sv_id` : (int) satellite vehicle identification number
+* :code:`gnss_sv_id` : (string) combination of :code:`gnss_id` and :code:`sv_id`
+  in a three character string. The first character is a upper case letters
+  (G for GPS, R for GLONASS, E for Galileo and B for Beidou) followed by
+  a two digit SV ID.
 * :code:`signal_type` (string) Identifier for signal type, eg.
   :code:`l1` for GPS L1 signal, :code:`e5` for Galileo's E5 signal or
   :code:`b1i` for BeiDou's B1I signal. The string is expected to
