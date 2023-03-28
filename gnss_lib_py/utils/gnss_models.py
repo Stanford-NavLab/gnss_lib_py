@@ -63,7 +63,7 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
     # Check if SV states exist, if they don't, add them
     est_measurements = NavData()
     # Loop through the measurement file per time step
-    for gps_millis, _, measure_frame in measurements.loop_time('gps_millis', tol_decimals=delta_t_dec):
+    for gps_millis, _, measure_frame in measurements.loop_time('gps_millis', delta_t_decimals=delta_t_dec):
         # Sort the satellites
         rx_ephem, sorted_sats_ind, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
         # Create new NavData with SV positions and velocities

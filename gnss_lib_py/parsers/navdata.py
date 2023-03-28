@@ -431,14 +431,14 @@ class NavData():
         return new_navdata
 
 
-    def loop_time(self, time_row, tol_decimals=2):
+    def loop_time(self, time_row, delta_t_decimals=2):
         """Generator object to loop over columns from same times.
 
         Parameters
         ----------
         time_row : string/int
             Key or index of the row in which times are stored.
-        tol_decimals : int
+        delta_t_decimals : int
             Decimal places after which times are considered equal.
 
         Yields
@@ -454,14 +454,14 @@ class NavData():
 
         times = self[time_row]
         times_unique = np.sort(np.unique(np.around(times,
-                                         decimals=tol_decimals)))
+                                         decimals=delta_t_decimals)))
         for time_idx, time in enumerate(times_unique):
             if time_idx==0:
                 delta_t = 0
             else:
                 delta_t = time-times_unique[time_idx-1]
-            new_navdata = self.where(time_row, [time-10**(-tol_decimals),
-                                                time+10**(-tol_decimals)],
+            new_navdata = self.where(time_row, [time-10**(-delta_t_decimals),
+                                                time+10**(-delta_t_decimals)],
                                                 condition="between")
             yield time, delta_t, new_navdata
 

@@ -71,7 +71,7 @@ def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_
         _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
     sv_states_all_time = NavData()
     # Loop through the measurement file per time step
-    for _, _, measure_frame in measurements_subset.loop_time('gps_millis', tol_decimals=delta_t_dec):
+    for _, _, measure_frame in measurements_subset.loop_time('gps_millis', delta_t_decimals=delta_t_dec):
         # measure_frame = measure_frame.sort('sv_id', order="descending")
         # Sort the satellites
         rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)

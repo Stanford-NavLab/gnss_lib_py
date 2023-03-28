@@ -184,7 +184,7 @@ def fixture_derived_gps_l1_reversed(android_gps_l1):
         instance.
     """
     android_gps_l1_reversed = NavData()
-    for _, _, measure_frame in android_gps_l1.loop_time('gps_millis', tol_decimals=-2):
+    for _, _, measure_frame in android_gps_l1.loop_time('gps_millis', delta_t_decimals=-2):
         if len(android_gps_l1_reversed)==0:
             android_gps_l1_reversed = measure_frame
         else:
@@ -290,7 +290,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
         received Android measurements and SV states. The lists are
         indexed by discrete time indices.
     """
-    android_frames = android_gps_l1.loop_time('gps_millis', tol_decimals=-2)
+    android_frames = android_gps_l1.loop_time('gps_millis', delta_t_decimals=-2)
     ephems = []
     frames = []
     sv_states = []
