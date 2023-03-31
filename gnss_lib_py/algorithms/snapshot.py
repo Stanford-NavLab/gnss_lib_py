@@ -16,8 +16,8 @@ import numpy as np
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
-def solve_wls(measurements, weight_type = None,
-              only_bias = False, tol = 1e-7, max_count = 20):
+def solve_wls(measurements, weight_type = None, only_bias = False,
+              tol = 1e-7, max_count = 20, delta_t_decimals=-2):
     """Runs weighted least squares across each timestep.
 
     Runs weighted least squares across each timestep and adds a new
@@ -41,6 +41,8 @@ def solve_wls(measurements, weight_type = None,
     max_count : int
         Number of maximum iterations before process is aborted and
         solution returned.
+    delta_t_decimals : int
+            Decimal places after which times are considered equal.
 
     Returns
     -------
@@ -58,7 +60,7 @@ def solve_wls(measurements, weight_type = None,
     states = []
 
     position = np.zeros((4,1))
-    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
+    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis", delta_t_decimals=delta_t_decimals):
 
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)
@@ -80,6 +82,16 @@ def solve_wls(measurements, weight_type = None,
             weights = None
 
         try:
+            if only_bias:
+                try:
+                    measurement_subset.in_rows(['x_rx_m', 'y_rx_m', 'z_rx_m'])
+                    position = np.asarray([measurement_subset['x_rx_m',0],
+                                          measurement_subset['y_rx_m',0],
+                                          measurement_subset['z_rx_m',0],
+                                          0]).reshape([4,1])
+                except KeyError:
+                    warnings.warn("Position not provided for estimating" \
+                                  + "only receiver clock bias", RuntimeWarning)
             position = wls(position, pos_sv_m, corr_pr_m, weights,
                            only_bias, tol, max_count)
             states.append([timestamp] + np.squeeze(position).tolist())
