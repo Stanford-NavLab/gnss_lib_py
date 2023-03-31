@@ -25,7 +25,7 @@ from gnss_lib_py.utils.sv_models import _find_visible_ephem, _extract_pos_vel_ar
 
 def add_measures(measurements, ephemeris_path, iono_params=None,
                  pseudorange=True, doppler=True, corrections=True,
-                 delta_t_dec = -2, inplace=False):
+                 delta_t_dec = -2):
     """Estimate measurements and add to given measurements
 
     Parameters
@@ -49,9 +49,6 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
     delta_t_dec : int
         Decimal places after which times are considered as belonging to
         the same discrete time interval.
-    inplace : bool
-        Flag on whether the replacement has to be done inplace or a new
-        NavData has to be created with the added corrections.
     """
     constellations = np.unique(measurements['gnss_id'])
     measurements, ephem = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
@@ -123,9 +120,9 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
             sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
         est_frame = NavData()
         if pseudorange:
-            est_frame['raw_pr_m'] = est_meas['raw_pr_m']
+            est_frame['est_pr_m'] = est_meas['est_pr_m']
         if doppler:
-            est_frame['doppler_hz'] = est_meas['doppler_hz']
+            est_frame['est_doppler_hz'] = est_meas['est_doppler_hz']
         if corrections:
             est_frame['b_sv_m'] = est_clk
             est_frame['tropo_delay_m'] = est_trp
@@ -137,12 +134,8 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
             est_measurements = est_frame
         else:
             est_measurements.concat(est_frame, inplace=True)
-    if inplace:
-        measurements.concat(est_measurements, axis=0, inplace=True)
-        return measurements
-    else:
-        est_measurements = measurements.concat(est_measurements, axis=0, inplace=False)
-        return est_measurements
+    est_measurements = measurements.concat(est_measurements, axis=0, inplace=False)
+    return est_measurements
 
 
 def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
@@ -214,12 +207,16 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
                                                 ephem, sv_posvel)
     num_svs   = len(measurements)
 
-
-    measurements['raw_pr_m']  = (measurements['raw_pr_m']
+    # Create simulated measurements that match received naming convention
+    #TODO: Add clock and atmospheric delays here
+    measurements['raw_pr_m']  = (measurements['est_pr_m']
         + noise_dict['prange_sigma'] *rng.standard_normal(num_svs))
 
-    measurements['doppler_hz'] = (measurements['doppler_hz']
+    measurements['doppler_hz'] = (measurements['est_doppler_hz']
         + noise_dict['doppler_sigma']*rng.standard_normal(num_svs))
+
+    # Remove expected measurements so they can be added later
+    measurements.remove(rows=['est_pr_m', 'est_doppler_hz'], inplace=True)
 
     return measurements, sv_posvel
 
@@ -278,8 +275,8 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     measurements = NavData()
     measurements['sv_id'] = sv_posvel['sv_id']
     measurements['gnss_id'] = sv_posvel['gnss_id']
-    measurements['raw_pr_m'] = prange
-    measurements['doppler_hz'] = doppler
+    measurements['est_pr_m'] = prange
+    measurements['est_doppler_hz'] = doppler
     return measurements, sv_posvel
 
 

@@ -193,9 +193,9 @@ def test_measure_generation(gps_measurement_frames, android_gt):
     zero_noise_dict = {}
     zero_noise_dict['prange_sigma'] = 0.
     zero_noise_dict['doppler_sigma'] = 0.
-    measurements_eph, sv_posvel_eph = gnss_models.simulate_measures(curr_millis, state,
+    measurements_eph_sim, sv_posvel_eph = gnss_models.simulate_measures(curr_millis, state,
                         ephem=vis_ephems[idx], rng=default_rng(), noise_dict=zero_noise_dict)
-    measurements_sv, sv_posvel_used = gnss_models.simulate_measures(curr_millis, state,
+    measurements_sv_sim, sv_posvel_used = gnss_models.simulate_measures(curr_millis, state,
                         sv_posvel=sv_states[idx], noise_dict=zero_noise_dict)
     # Check that the output position is the same as the given position
     input_sv_pos, input_sv_vel = _extract_pos_vel_arr(sv_states[idx])
@@ -209,31 +209,31 @@ def test_measure_generation(gps_measurement_frames, android_gt):
     np.testing.assert_almost_equal(input_sv_vel, eph_sv_vel, decimal=-1)
     # Test that the measurements are similar for similar time but
     # different ways of computing satellite states
-    np.testing.assert_almost_equal(measurements_eph['raw_pr_m'], measurements_sv['raw_pr_m'], decimal=-1)
-    np.testing.assert_almost_equal(measurements_eph['doppler_hz'], measurements_sv['doppler_hz'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_eph_sim['raw_pr_m'], measurements_sv_sim['raw_pr_m'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_eph_sim['doppler_hz'], measurements_sv_sim['doppler_hz'], decimal=-1)
 
     # Test that the measurements are similar for expected model
     measurements_exp_eph, _ = gnss_models.expected_measures(curr_millis, state,
                             ephem=vis_ephems[idx])
     measurements_exp_sv, _ = gnss_models.expected_measures(curr_millis, state,
                             sv_posvel=sv_states[idx])
-    np.testing.assert_almost_equal(measurements_exp_eph['raw_pr_m'], measurements_exp_sv['raw_pr_m'], decimal=-1)
-    np.testing.assert_almost_equal(measurements_exp_eph['doppler_hz'], measurements_exp_sv['doppler_hz'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_exp_eph['est_pr_m'], measurements_exp_sv['est_pr_m'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_exp_eph['est_doppler_hz'], measurements_exp_sv['est_doppler_hz'], decimal=-1)
 
     # Test that the measurements are similar for expected model and zero
     # noise simulated model
-    np.testing.assert_almost_equal(measurements_exp_eph['raw_pr_m'], measurements_eph['raw_pr_m'], decimal=-1)
-    np.testing.assert_almost_equal(measurements_exp_eph['doppler_hz'], measurements_eph['doppler_hz'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_exp_eph['est_pr_m'], measurements_eph_sim['raw_pr_m'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_exp_eph['est_doppler_hz'], measurements_eph_sim['doppler_hz'], decimal=-1)
 
     # Test that the measurements are similar for default noise levels
     # different generators with same seed
     seeded_rng = default_rng(seed=0)
-    measurements_first_run, _ = gnss_models.simulate_measures(curr_millis, state,
+    measurements_first_run_sim, _ = gnss_models.simulate_measures(curr_millis, state,
                         sv_posvel=sv_states[idx], rng=seeded_rng)
-    measurements_second_run, _ = gnss_models.simulate_measures(curr_millis, state,
+    measurements_second_run_sim, _ = gnss_models.simulate_measures(curr_millis, state,
                         sv_posvel=sv_states[idx], rng=seeded_rng)
-    np.testing.assert_almost_equal(measurements_first_run['raw_pr_m'], measurements_second_run['raw_pr_m'], decimal=-1)
-    np.testing.assert_almost_equal(measurements_first_run['doppler_hz'], measurements_second_run['doppler_hz'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_first_run_sim['raw_pr_m'], measurements_second_run_sim['raw_pr_m'], decimal=-1)
+    np.testing.assert_almost_equal(measurements_first_run_sim['doppler_hz'], measurements_second_run_sim['doppler_hz'], decimal=-1)
 
 
 @pytest.mark.parametrize('android_measurements',
@@ -262,7 +262,7 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
 
     """
     corr_rows = ['iono_delay_m', 'tropo_delay_m', 'b_sv_m']
-    measure_rows = ['raw_pr_m', 'doppler_hz']
+    measure_rows = ['est_pr_m', 'est_doppler_hz']
     sv_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
             'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
     rx_pos_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
@@ -280,13 +280,9 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
     android_measurements['b_rx_m'] = np.repeat(state_estimate['b_rx_m'], 7)
     android_measurements['b_dot_rx_mps'] = 0
     measures = gnss_models.add_measures(android_measurements, ephemeris_path,
-                                                    iono_params, inplace=False)
-    measures_inplace = gnss_models.add_measures(android_measurements.copy(),
-                                    ephemeris_path, iono_params, inplace=True)
+                                                    iono_params)
     for row in corr_rows:
-        # Test that results of operations is the same for inplace True and False
-        np.testing.assert_almost_equal(measures[row], measures_inplace[row])
-        # Test that results of SV state and other calculaations is correct
+        # Test that results of SV state and other calculations is correct
         if 'delay' in row:
             np.testing.assert_almost_equal(measures[row],
                                         comparison_states[row],
@@ -299,13 +295,8 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
 
     android_without_sv = android_measurements.remove(sv_rows)
     measures_without_sv = gnss_models.add_measures(android_without_sv, ephemeris_path,
-                                                    iono_params, inplace=False)
-    measures_without_sv_inplace = gnss_models.add_measures(android_without_sv,
-                                    ephemeris_path, iono_params, inplace=True)
+                                                    iono_params)
     for row in all_rows:
-        # Test that results of operations is the same for inplace True and False
-        np.testing.assert_almost_equal(measures_without_sv[row],
-                                       measures_without_sv_inplace[row])
         # Test that results of SV state and other calculaations is correct
         if 'sv_mps' in row:
             np.testing.assert_almost_equal(measures[row],
@@ -338,14 +329,14 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
                                                   ephemeris_path,
                                                   iono_params,
                                                   pseudorange=False)
-    no_pseudo_rows = corr_rows + ['doppler_hz']
+    no_pseudo_rows = corr_rows + ['est_doppler_hz']
     measures_no_pseudo.in_rows(no_pseudo_rows)
 
     measures_no_doppler = gnss_models.add_measures(android_measurements,
                                                   ephemeris_path,
                                                   iono_params,
                                                   doppler=False)
-    no_doppler_rows = corr_rows + ['raw_pr_m']
+    no_doppler_rows = corr_rows + ['est_pr_m']
     measures_no_doppler.in_rows(no_doppler_rows)
 
     measures_no_corr = gnss_models.add_measures(android_measurements,
