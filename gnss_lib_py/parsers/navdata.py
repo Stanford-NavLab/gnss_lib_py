@@ -431,7 +431,7 @@ class NavData():
         return new_navdata
 
 
-    def loop_time(self, time_row, delta_t_decimals=2):
+    def loop_time(self, time_row, delta_t_decimals=-2):
         """Generator object to loop over columns from same times.
 
         Parameters
