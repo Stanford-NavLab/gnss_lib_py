@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.smart_loc import SmartLocRaw
+from gnss_lib_py.parsers.smart_loc import SmartLocRaw, remove_nlos, \
+                                        calculate_gt_ecef, calculate_gt_vel
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -66,19 +67,19 @@ def fixture_pd_df(raw_path):
     Parameters
     ----------
     raw_path : pytest.fixture
-        String with filepath to navdata_raw measurement file
+        String with filepath to smartloc_raw measurement file
 
     Returns
     -------
-    navdata_raw_df : pd.DataFrame
+    smartloc_raw_df : pd.DataFrame
         Dataframe with TU Chemnitz Raw measurements
     """
-    navdata_raw_df = pd.read_csv(raw_path, sep=";")
-    return navdata_raw_df
+    smartloc_raw_df = pd.read_csv(raw_path, sep=";")
+    return smartloc_raw_df
 
 
-@pytest.fixture(name="navdata_raw")
-def fixture_load_navdata_raw(raw_path):
+@pytest.fixture(name="smartloc_raw")
+def fixture_load_smartloc_raw(raw_path):
     """Load instance of SmartLocRaw
 
     Parameters
@@ -88,27 +89,27 @@ def fixture_load_navdata_raw(raw_path):
 
     Returns
     -------
-    navdata_raw : SmartLocRaw
+    smartloc_raw : SmartLocRaw
         Instance of SmartLocRaw for testing
     """
-    navdata_raw = SmartLocRaw(raw_path)
-    return navdata_raw
+    smartloc_raw = SmartLocRaw(raw_path)
+    return smartloc_raw
 
 
-def test_navdata_raw_df_equivalence(navdata_raw, pd_df):
+def test_smartloc_raw_df_equivalence(smartloc_raw, pd_df):
     """Test if naive dataframe and SmartLocRaw contain same data
 
     Parameters
     ----------
-    navdata_raw : pytest.fixture
+    smartloc_raw : pytest.fixture
         Instance of SmartLocRaw for testing
     pd_df : pytest.fixture
         pd.DataFrame for testing measurements
 
     """
     # Also tests if strings are being converted back correctly
-    measure_df = navdata_raw.pandas_df()
-    inverse_row_map = {v : k for k,v in navdata_raw._row_map().items()}
+    measure_df = smartloc_raw.pandas_df()
+    inverse_row_map = {v : k for k,v in smartloc_raw._row_map().items()}
     measure_df.rename(columns=inverse_row_map, inplace=True)
     measure_df.drop(columns='gps_millis',inplace=True)
     pd_df['GNSS identifier (gnssId) []'] = pd_df['GNSS identifier (gnssId) []'].str.lower()
@@ -122,12 +123,12 @@ def test_navdata_raw_df_equivalence(navdata_raw, pd_df):
                          ('raw_pr_sigma_m', 9, 40.96),
                          ('gnss_id', 55, 'sbas')]
                         )
-def test_navdata_raw_value_check(navdata_raw, row_name, index, value):
+def test_smartloc_raw_value_check(smartloc_raw, row_name, index, value):
     """Check SmartLocRaw entries against known values using test matrix
 
     Parameters
     ----------
-    navdata_raw : pytest.fixture
+    smartloc_raw : pytest.fixture
         Instance of SmartLocRaw for testing
     row_name : string
         Row key for test example
@@ -137,68 +138,133 @@ def test_navdata_raw_value_check(navdata_raw, row_name, index, value):
         Known value to be checked against
 
     """
-    np.testing.assert_equal(navdata_raw[row_name, index], value)
+    np.testing.assert_equal(smartloc_raw[row_name, index], value)
 
 
-def test_get_and_set_num(navdata_raw):
+def test_get_and_set_num(smartloc_raw):
     """Testing __getitem__ and __setitem__ methods for numerical values
 
     Parameters
     ----------
-    navdata_raw : pytest.fixture
+    smartloc_raw : pytest.fixture
         Instance of SmartLocRaw for testing
     """
     key = 'testing123'
-    value = np.zeros(len(navdata_raw))
-    navdata_raw[key] = value
-    np.testing.assert_equal(navdata_raw[key, :], value)
+    value = np.zeros(len(smartloc_raw))
+    smartloc_raw[key] = value
+    np.testing.assert_equal(smartloc_raw[key, :], value)
 
 
-def test_get_and_set_str(navdata_raw):
+def test_get_and_set_str(smartloc_raw):
     """Testing __getitem__ and __setitem__ methods for string values
 
     Parameters
     ----------
-    navdata_raw : pytest.fixture
+    smartloc_raw : pytest.fixture
         Instance of SmartLocRaw for testing
     """
     key = 'testing123_string'
-    value = ['word']*len(navdata_raw)
-    navdata_raw_size = len(navdata_raw)
-    size1 = int(navdata_raw_size/2)
-    size2 = (navdata_raw_size-int(navdata_raw_size/2))
+    value = ['word']*len(smartloc_raw)
+    smartloc_raw_size = len(smartloc_raw)
+    size1 = int(smartloc_raw_size/2)
+    size2 = (smartloc_raw_size-int(smartloc_raw_size/2))
     value1 = ['ashwin']*size1
     value2 = ['derek']*size2
     value = np.concatenate((value1,value2))
-    navdata_raw[key] = value.astype(object)
+    smartloc_raw[key] = value.astype(object)
 
-    np.testing.assert_equal(navdata_raw[key, :], value)
+    np.testing.assert_equal(smartloc_raw[key, :], value)
 
-def test_navdata_type(navdata_raw):
+def test_navdata_type(smartloc_raw):
     """Test that all subclasses inherit from NavData
 
     Parameters
     ----------
-    navdata_raw : pytest.fixture
+    smartloc_raw : pytest.fixture
         Instance of SmartLocRaw for testing
     """
-    isinstance(navdata_raw, NavData)
-    isinstance(navdata_raw, SmartLocRaw)
+    isinstance(smartloc_raw, NavData)
+    isinstance(smartloc_raw, SmartLocRaw)
 
 
-def test_shape_update(navdata_raw):
+def test_shape_update(smartloc_raw):
     """Test that shape gets updated after adding a row.
 
     Parameters
     ----------
-    navdata_raw : pytest.fixture
+    smartloc_raw : pytest.fixture
         Instance of SmartLocRaw for testing
     """
-    old_shape = navdata_raw.shape
-    navdata_raw["new_row"] = np.ones((old_shape[1]))
-    new_shape = navdata_raw.shape
+    old_shape = smartloc_raw.shape
+    smartloc_raw["new_row"] = np.ones((old_shape[1]))
+    new_shape = smartloc_raw.shape
 
     # should still have the same number of columns (timesteps)
     np.testing.assert_equal(old_shape[1], new_shape[1])
     # should have added one new row
     np.testing.assert_equal(old_shape[0] + 1, new_shape[0])
+
+
+def test_nlos_removal(smartloc_raw):
+    """Test that NLOS removal reduces length of NavData and that length
+    stays same for repeated removals.
+
+    Parameters
+    ----------
+    smartloc_raw : gnss_lib_py.parsers.smart_loc.SmartLocRaw
+        Instance of SmartLocRaw for testing
+    """
+    first_shape = smartloc_raw.shape
+    smartloc_los = remove_nlos(smartloc_raw)
+    old_shape = smartloc_los.shape
+    smartloc_los_new = remove_nlos(smartloc_los)
+    new_shape = smartloc_los_new.shape
+    # Ensure that size decreases on removing NLOS satellites
+    assert first_shape[1] >= old_shape[1]
+    # Ensure that only NLOS satellites remain in the new NavData
+    assert np.sum(smartloc_los_new['NLOS (0 == no, 1 == yes, # == No Information)']) \
+            == new_shape[1]
+    # Assert that no rows are removed when removing NLOS measurements
+    np.testing.assert_equal(first_shape[0], old_shape[0])
+    np.testing.assert_equal(old_shape, new_shape)
+
+
+def test_calculate_gt_ecef(smartloc_raw):
+    """Test that GT position rows are added and size increases as
+    expected when using calculate_gt_ecef.
+
+    Parameters
+    ----------
+    smartloc_raw : gnss_lib_py.parsers.smart_loc.SmartLocRaw
+        Instance of SmartLocRaw for testing
+    """
+    old_shape = np.asarray(smartloc_raw.shape)
+    smartloc_raw = calculate_gt_ecef(smartloc_raw)
+    new_shape = np.asarray(smartloc_raw.shape)
+    smartloc_raw.in_rows(['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'])
+    old_shape[0] = old_shape[0] + 3
+    np.testing.assert_equal(old_shape, new_shape)
+
+
+def test_calculate_gt_vel_ecef(smartloc_raw):
+    """Test that GT position rows are added and size increases as
+    expected when using calculate_gt_vel.
+
+    Parameters
+    ----------
+    smartloc_raw : gnss_lib_py.parsers.smart_loc.SmartLocRaw
+        Instance of SmartLocRaw for testing
+    """
+    old_shape = np.asarray(smartloc_raw.shape)
+    smartloc_raw = calculate_gt_vel(smartloc_raw)
+    new_shape = np.asarray(smartloc_raw.shape)
+    smartloc_raw.in_rows(['vx_rx_gt_mps',
+                          'vy_rx_gt_mps',
+                          'vz_rx_gt_mps',
+                          'ax_rx_gt_mps2',
+                          'ay_rx_gt_mps2',
+                          'az_rx_gt_mps2',])
+    old_shape[0] = old_shape[0] + 6
+    np.testing.assert_equal(old_shape, new_shape)
+
+
