@@ -2,7 +2,9 @@ name: pylint
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - v*.*.*
   workflow_dispatch:
 
 jobs:

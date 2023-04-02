@@ -3,34 +3,35 @@
 Development Guides
 ==================
 
-Here are a set of detailed guides depending on if you are a public user,
-Stanford NAV Lab member, or a project maintainer.
+Here are a set of detailed guides depending on if you are a :ref:`public user<standard_dev>`,
+:ref:`Stanford NAV Lab member<navlab_dev>`, or a project maintainer
+:ref:`reviewing pull requests<pr_review>` or
+:ref:`creating new release branches<release_workflow>`.
 
+.. _standard_dev:
 
 Standard GitHub Workflow
 ------------------------
 
 1. Fork `gnss_lib_py <https://github.com/Stanford-NavLab/gnss_lib_py>`__
-   (look for the "Fork" button).
-
-2. Clone your fork locally:
+   (look for the "Fork" button), then clone your fork locally:
 
    .. code-block:: bash
 
       git clone https://github.com/<your username>/gnss_lib_py
 
-3. If using poetry, follow the :ref:`developer install instructions<developer install>`
+2. If using poetry, follow the :ref:`developer install instructions<developer install>`
    to install pyenv, poetry, and the python dependencies. If using
    :code:`pip` or :code:`conda` for package management instead, use
    :code:`pip install -r requirements.txt` to install dependencies.
 
-4. Create a local branch:
+3. Create a local branch:
 
    .. code-block:: bash
 
       git checkout -b your-name/name-of-your-bugfix-or-feature
 
-5. Make changes locally and document them appropriately. See the
+4. Make changes locally and document them appropriately. See the
    :ref:`Documentation<documentation>` section for more details.
 
    If the feature branch includes new functionality, you must also:
@@ -41,12 +42,10 @@ Standard GitHub Workflow
    * add a section in the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*`
 
-6. Add tests for the newly added code and ensure the new code is covered.
+5. Add tests for the newly added code and ensure the new code is covered.
    See the :ref:`Testing<testing>` section for more details.
 
-7. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.sh>`__.
-
-8. When you're done making changes run all the tests with:
+6. When you're done making changes run all the tests with:
 
    .. code-block:: bash
 
@@ -54,7 +53,7 @@ Standard GitHub Workflow
 
    Make sure that all tests are passing.
 
-9. Verify that testing coverage has not decreased:
+7. Verify that testing coverage has not decreased:
 
    .. code-block:: bash
 
@@ -63,11 +62,35 @@ Standard GitHub Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-10. Ensure that system and IDE dependent files, like those in :code:`.idea`
-    folders for PyCharm and :code:`.vscode` folders for VS Code are not
-    committed by updating the :code:`.gitignore` file.
+8. Improve code readability by linting it. Run :code:`pylint` to preview
+   issues with the code:
 
-11. Commit your changes and publish your branch to GitHub:
+   .. code-block:: bash
+
+      poetry run python -m pylint path-to-file-to-lint
+
+   Resolve issues that do not impact how you have implemented your functionality,
+   such as conforming to snake case naming, removing TODOs and using suggested
+   defaults.
+
+9. Ensure that system and IDE dependent files, like those in :code:`.idea`
+   folders for PyCharm and :code:`.vscode` folders for VS Code are not
+   committed by updating the :code:`.gitignore` file.
+
+10. Improve code readability by linting it. Run :code:`pylint` to preview
+    issues with the code:
+
+    .. code-block:: bash
+
+       poetry run python -m pylint path-to-file-to-lint
+
+    Resolve issues that do not impact how you have implemented your functionality,
+    such as conforming to snake case naming, removing TODOs and using suggested
+    defaults.
+
+11. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__.
+
+12. Commit your changes and publish your branch to GitHub:
 
    .. code-block:: bash
 
@@ -75,7 +98,15 @@ Standard GitHub Workflow
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-12. Submit a pull request through GitHub.
+13. Submit a pull request through GitHub. For the base branch
+    in the pull request, select the latest version release branch :code:`vx.Y.Z`
+    (with the highest number of all such branches). *Do not target the*
+    :code:`main` *branch in your pull request.* In the pull request,
+    add a code review request for a current maintainer of the repository.
+    The reviewers might add comments to ensure compliance with the rest
+    of the code.
+
+.. _navlab_dev:
 
 NAVLab GitHub Workflow
 ----------------------
@@ -103,7 +134,8 @@ NAVLab GitHub Workflow
    * add a section in the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*`
 
-5. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.sh>`__.
+5. Add tests for the newly added code and ensure the new code is covered.
+   See the :ref:`Testing<testing>` section for more details.
 
 6. When you're done making changes run all the tests with:
 
@@ -111,7 +143,7 @@ NAVLab GitHub Workflow
 
       poetry run pytest
 
-   See the :ref:`Testing<testing>` section for more details.
+   Make sure that all tests are passing.
 
 7. Verify that testing coverage has not decreased:
 
@@ -122,15 +154,39 @@ NAVLab GitHub Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-8. Ensure that system and IDE dependent files, like those in :code:`.idea`
+8. Improve code readability by linting it. Run :code:`pylint` to preview
+   issues with the code:
+
+   .. code-block:: bash
+
+      poetry run python -m pylint path-to-file-to-lint
+
+   Resolve issues that do not impact how you have implemented your functionality,
+   such as conforming to snake case naming, removing TODOs and using suggested
+   defaults.
+
+9. Ensure that system and IDE dependent files, like those in :code:`.idea`
    folders for PyCharm and :code:`.vscode` folders for VS Code are not
    committed by updating the :code:`.gitignore` file.
 
-9. When you're ready to commit changes follow the steps below to
-   minimize unnecessary merging. This is especially important if
-   multiple people are working on the same branch. If you pull new
-   changes, then repeat the tests above to double check that everything
-   is still working as expected.
+10. Improve code readability by linting it. Run :code:`pylint` to preview
+    issues with the code:
+
+    .. code-block:: bash
+
+       poetry run python -m pylint path-to-file-to-lint
+
+    Resolve issues that do not impact how you have implemented your functionality,
+    such as conforming to snake case naming, removing TODOs and using suggested
+    defaults.
+
+11. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__.
+
+12. When you're ready to commit changes follow the steps below to
+    minimize unnecessary merging. This is especially important if
+    multiple people are working on the same branch. If you pull new
+    changes, then repeat the tests above to double check that everything
+    is still working as expected.
 
    .. code-block:: bash
 
@@ -141,10 +197,15 @@ NAVLab GitHub Workflow
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-10. Submit a pull request through the GitHub website. In the pull request,
-    add a code review request for the current maintainers of the repository,
-    Ashwin Kanhere, Derek Knowles or Sriramya Bhamidipati. The reviewers
-    might add comments to ensure compliance with the rest of the code.
+13. Submit a pull request through GitHub. For the base branch
+    in the pull request, select the latest version release branch :code:`vx.Y.Z`
+    (with the highest number of all such branches). *Do not target the*
+    :code:`main` *branch in your pull request.* In the pull request,
+    add a code review request for a current maintainer of the repository.
+    The reviewers might add comments to ensure compliance with the rest
+    of the code.
+
+.. _pr_review:
 
 Pull Request Review Workflow
 ----------------------------
@@ -203,16 +264,24 @@ Pull Request Review Workflow
 
    See the :ref:`Coverage Report<coverage>` section for more details.
 
-7. Submit your approval or any comments on GitHub.
+7. Verify that the Pull Request targets the latest version release branch,
+   called :code:`vX.Y.Z`. If it doesn't target this branch, change the base
+   branch to the latest version release branch. If this branch
+   doesn't exist, create the latest version release branch from :code:`main`
+   before changing the base.
+
+8. Submit your approval or any comments on GitHub.
+
+.. _release_workflow:
 
 New Package Release Workflow
 ----------------------------
 
-1. Create new branch for the release:
+1. Switch to the latest version release branch (with the highest number):
 
    .. code-block:: bash
 
-      git checkout -b your-name/release-X.Y.Z
+      git checkout -b vX.Y.Z
 
 2. Open the ``pyproject.toml`` file and under the ``[tool.poetry]``
    group change the ``version = X.Y.Z`` variable to match the new

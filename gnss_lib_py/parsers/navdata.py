@@ -39,6 +39,9 @@ class NavData():
     ----------
     arr_dtype : numpy.dtype
         Type of values stored in data array
+    orig_dtypes : pandas.core.series.Series
+        Type of each original column if reading from a csv or Pandas
+        dataframe.
     array : np.ndarray
         Array containing data, dimension M x N
     map : Dict
@@ -46,9 +49,11 @@ class NavData():
     str_map : Dict
         Map of the form {pandas column name : {array value : string}}.
         Map is of the form {pandas column name : {}} for non string rows.
-    orig_dtypes : pandas.core.series.Series
-        Type of each original column if reading from a csv or Pandas
-        dataframe.
+    num_cols : int
+        Number of columns in array containing data, set to 0 by default
+        for empty NavData
+    curr_cols : int
+        Current number of column for iterator, set to 0 by default
 
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
@@ -1051,6 +1056,14 @@ class NavData():
         return x_curr
 
     def __str__(self):
+        """Creates string representation of NavData object
+
+        Returns
+        -------
+        str_out : str
+            String representation of Navdata object, based on equivalent
+            Pandas string
+        """
         str_out = str(self.pandas_df())
         str_out = str_out.replace("DataFrame","NavData")
         str_out = str_out.replace("Columns","Rows")
@@ -1059,6 +1072,21 @@ class NavData():
                          r'\g<1>[\g<3> rows x \g<2> columns]\g<4>',
                          str_out)
         return str_out
+
+    def __repr__(self):  # pragma: no cover
+        """Evaluated string representation of Navdata object
+
+        For NavData objects, this is similar to the str method and is
+        defined separately to avoid having to add a `print` method
+        before each display command in Jupyter notebooks
+
+        Returns
+        -------
+        rep_out : str
+            Evaluated string representation object
+        """
+        rep_out = str(self)
+        return rep_out
 
     def __len__(self):
         """Return length of class
