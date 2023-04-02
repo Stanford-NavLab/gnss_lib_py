@@ -230,7 +230,7 @@ class NavData():
                 # combine data from existing and new instance
                 for data in [self, navdata]:
                     if row in data.rows:
-                        new_row = data[row]
+                        new_row = np.atleast_1d(data[row])
                     elif len(data) == 0:
                         continue
                     else:

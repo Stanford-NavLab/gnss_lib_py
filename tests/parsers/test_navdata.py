@@ -1402,6 +1402,14 @@ def test_concat(df_simple):
                                   check_index_type=False,
                                   check_dtype=False)
 
+    navdata_a = NavData(pandas_df=pd.DataFrame({'a':[0],'b':[1],'c':[2],
+                                                'd':[3],'e':[4],'f':[5],
+                                                }))
+    navdata_b = navdata_a.concat(navdata_a.copy(),axis=0)
+    assert navdata_b.shape == (12,1)
+    navdata_b = navdata_a.concat(navdata_a.copy(),axis=1)
+    assert navdata_b.shape == (6,2)
+
 def test_concat_fails(df_simple):
     """Test when concat should fail.
 
