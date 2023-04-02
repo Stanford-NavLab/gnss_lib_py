@@ -41,6 +41,8 @@ Standard GitHub Workflow
      :code:`docs/source/index.rst` to match the :code:`README.md`
    * add a section in the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*`
+   * if the feature is in a new file, import the file in the
+     `module's import block <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/__init__.py>`__.
 
 5. Add tests for the newly added code and ensure the new code is covered.
    See the :ref:`Testing<testing>` section for more details.
@@ -133,6 +135,8 @@ NAVLab GitHub Workflow
      :code:`docs/source/index.rst` to match the :code:`README.md`
    * add a section in the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*`
+   * if the feature is in a new file, import the file in the
+     `module's import block <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/__init__.py>`__.
 
 5. Add tests for the newly added code and ensure the new code is covered.
    See the :ref:`Testing<testing>` section for more details.
@@ -242,6 +246,8 @@ Pull Request Review Workflow
    * the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*` with a simple example of the new
      functionality
+   * if a new file was created, it should likely be imported in the
+     `module's import block <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/__init__.py>`__.
 
 4. Verify that all tests run on your system:
 
