@@ -6,7 +6,7 @@ Weighted Least Squares algorithm.
 
 """
 
-__authors__ = "D. Knowles, Shubh Gupta, Bradley Collicott"
+__authors__ = "D. Knowles, A. Kanhere, Shubh Gupta, Bradley Collicott"
 __date__ = "25 Jan 2022"
 
 import warnings
@@ -84,14 +84,23 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
         try:
             if only_bias:
                 try:
-                    measurement_subset.in_rows(['x_rx_m', 'y_rx_m', 'z_rx_m'])
-                    position = np.asarray([measurement_subset['x_rx_m',0],
-                                          measurement_subset['y_rx_m',0],
-                                          measurement_subset['z_rx_m',0],
-                                          0]).reshape([4,1])
-                except KeyError:
-                    warnings.warn("Position not provided for estimating" \
-                                  + "only receiver clock bias", RuntimeWarning)
+                    rx_rows_to_find = ['x_rx_*m', 'y_rx_*m', 'z_rx_*m']
+                    rx_dict = measurement_subset.find_wildcard_indexes(
+                                                rx_rows_to_find,
+                                                max_allow=1)
+                    rx_rows = [rx_dict[row][0] for row in rx_rows_to_find]
+                    # print(rx_rows)
+                    # print(rx_dict)
+                    # measurement_subset.in_rows(['x_rx_m', 'y_rx_m', 'z_rx_m'])
+                    position = np.asarray(np.append(measurement_subset[rx_rows, 0],
+                                           0)).reshape([4,1])
+                    # position = np.asarray([measurement_subset['x_rx_m',0],
+                    #                       measurement_subset['y_rx_m',0],
+                    #                       measurement_subset['z_rx_m',0],
+                    #                       0]).reshape([4,1])
+                except KeyError as exc:
+                    raise RuntimeError("Position needed to estimate only " \
+                                  + "receiver clock bias") from exc
             position = wls(position, pos_sv_m, corr_pr_m, weights,
                            only_bias, tol, max_count)
             states.append([timestamp] + np.squeeze(position).tolist())
@@ -170,7 +179,7 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
 
     count = 0
     num_svs = pos_sv_m.shape[0]
-    if num_svs < 4:
+    if num_svs < 4 and not only_bias:
         raise RuntimeError("Need at least four satellites for WLS.")
     pos_x_delta = np.inf*np.ones((4,1))
 

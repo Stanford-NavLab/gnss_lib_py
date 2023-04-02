@@ -725,4 +725,4 @@ def test_solve_kaggle_dataset(root_path):
                                  1619735727999,1619735728999,
                                  1619735729999,1619735730999])
             np.testing.assert_array_almost_equal(solution["UnixTimeMillis"],
-                                          expected, decimal=0)
+                                          expected)

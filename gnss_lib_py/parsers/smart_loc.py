@@ -2,8 +2,8 @@
 
 """
 
-__authors__ = "Derek Knowles"
-__date__ = "09 Aug 2022"
+__authors__ = "Ashwin Kanhere, Derek Knowles"
+__date__ = "02 Apr 2023"
 
 import numpy as np
 

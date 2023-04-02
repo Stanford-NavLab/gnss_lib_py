@@ -431,7 +431,7 @@ class NavData():
         return new_navdata
 
 
-    def loop_time(self, time_row, delta_t_decimals=-2):
+    def loop_time(self, time_row, delta_t_decimals=2):
         """Generator object to loop over columns from same times.
 
         Parameters
@@ -463,7 +463,11 @@ class NavData():
             new_navdata = self.where(time_row, [time-10**(-delta_t_decimals),
                                                 time+10**(-delta_t_decimals)],
                                                 condition="between")
-            yield time, delta_t, new_navdata
+            if len(np.unique(new_navdata[time_row]))==1:
+                frame_time = new_navdata[time_row, 0]
+            else:
+                frame_time = time
+            yield frame_time, delta_t, new_navdata
 
     def is_str(self, row_name):
         """Check whether a row contained string values.
