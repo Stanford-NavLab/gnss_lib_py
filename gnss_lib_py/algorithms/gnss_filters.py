@@ -15,7 +15,7 @@ from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
 
 def solve_gnss_ekf(measurements, init_dict = None,
-                   params_dict = None):
+                   params_dict = None, delta_t_decimals=-2):
     """Runs a GNSS Extended Kalman Filter across each timestep.
 
     Runs an Extended Kalman Filter across each timestep and adds a new
@@ -50,7 +50,8 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
     if "state_0" not in init_dict:
         pos_0 = None
-        for _, _, measurement_subset in measurements.loop_time("gps_millis"):
+        for _, _, measurement_subset in measurements.loop_time("gps_millis",
+                                        delta_t_decimals=delta_t_decimals):
             pos_0 = solve_wls(measurement_subset)
             if pos_0 is not None:
                 break

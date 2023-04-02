@@ -568,7 +568,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
                                          "LongitudeDegrees"],inplace=True)
     return output
 
-def solve_kaggle_dataset(folder_path, solver, verbose=False, *args):
+def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
     """Run solver on all kaggle traces.
 
     Additional ``*args`` arguments are passed into the ``solver``
@@ -614,7 +614,7 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args):
                     print("solving:",trace_name,phone_type)
 
                 # compute state estimate using provided solver function
-                state_estimate = solver(derived_data, *args)
+                state_estimate = solver(derived_data, *args, **kwargs)
 
                 trip_id = "/".join([trace_name,phone_type])
                 output = prepare_kaggle_submission(state_estimate,
