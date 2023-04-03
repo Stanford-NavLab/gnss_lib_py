@@ -179,6 +179,12 @@ State estimate naming conventions are as follows:
   meters per second.
 * :code:`vz_rx_mps` : (float) receiver ECEF z velocity estimate in
   meters per second.
+* :code:`ax_rx_mps2` : (float) receiver ECEF x acceleration estimate in
+  meters per second squared.
+* :code:`ay_rx_mps2` : (float) receiver ECEF y acceleration estimate in
+  meters per second squared.
+* :code:`az_rx_mps2` : (float) receiver ECEF z acceleration estimate in
+  meters per second squared.
 * :code:`b_rx_m` : (float) receiver clock bias in meters.
 * :code:`b_dot_rx_mps` : (float) receiver clock bias drift rate in meters
   per second.
@@ -188,6 +194,13 @@ State estimate naming conventions are as follows:
   degrees.
 * :code:`alt_rx_m` : (float) receiver altitude position estimate in
   meters. Referenced to the WGS-84 ellipsoid.
+
+when ground truth measurements for state estimates are available, the
+naming convention is modified to add a :code:`gt_` before the units.
+So, when a ground truth estimate of the receiver's position is known, the
+naming convention for the positions becomes :code:`x_rx_gt_m`,
+:code:`y_rx_gt_m`, and :code:`z_rx_gt_m` for ECEF x,y, and z coordinates
+respectively
 
 
 Ground truth naming conventions are as follows:

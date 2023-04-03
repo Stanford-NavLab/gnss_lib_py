@@ -326,7 +326,7 @@ def fixture_derived_2022_path(root_path):
 
     References
     ----------
-    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+

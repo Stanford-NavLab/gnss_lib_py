@@ -52,6 +52,7 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
     """
     constellations = np.unique(measurements['gnss_id'])
     measurements, ephem = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
+    #TODO: Convert these to wildcard indices to accomodate ground truth
     info_rows = ['gps_millis', 'gnss_id', 'sv_id']
     sv_state_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
     rx_pos_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
@@ -271,6 +272,7 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     del_vel = sv_vel - np.tile(np.reshape(rx_v_ecef, [3,1]), [1, len(sv_posvel)])
     prange_rate = np.sum(del_vel*del_pos, axis=0)/true_range
     prange_rate += clk_drift
+    # Remove the hardcoded F1 below and change to frequency in measurements
     doppler = -(consts.F1/consts.C) * (prange_rate)
     measurements = NavData()
     measurements['sv_id'] = sv_posvel['sv_id']
