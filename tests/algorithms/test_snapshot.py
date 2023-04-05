@@ -526,7 +526,8 @@ def test_solve_wls_bias_only(derived_2022):
         for row in ecef_rows:
             input_position[row, col] = measure_frame[row, 0]
         col += 1
-    state_estimate = solve_wls(derived_2022, only_bias=True)
+    state_estimate = solve_wls(derived_2022, only_bias=True,
+                               receiver_state=derived_2022)
     # Verify that both structures have the same length
     assert len(input_position) == len(state_estimate)
     # Verify that solved positions are the same as input positions
@@ -553,8 +554,9 @@ def test_solve_wls_bias_only(derived_2022):
 
     # Solve without receiver positions given. This should cause a warning
     derived_2022.remove(ecef_rows, inplace=True)
-    with pytest.warns(RuntimeWarning):
-        _ =  solve_wls(derived_2022, only_bias=True)
+    with pytest.raises(KeyError) as excinfo:
+        solve_wls(derived_2022, only_bias=True,
+                receiver_state=derived_2022)
 
 
 def test_wls_fails(capsys):

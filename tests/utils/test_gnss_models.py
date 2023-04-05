@@ -273,7 +273,8 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
     for row in all_rows:
         comparison_states[row] = android_measurements[row]
     android_measurements.remove(corr_rows, inplace=True)
-    state_estimate = solve_wls(android_measurements, only_bias=True)
+    state_estimate = solve_wls(android_measurements, only_bias=True,
+                               receiver_state=android_measurements)
     android_measurements['vx_rx_mps'] = 0
     android_measurements['vy_rx_mps'] = 0
     android_measurements['vz_rx_mps'] = 0
@@ -353,4 +354,3 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
     measures_only_corr.in_rows(corr_rows)
     with pytest.raises(KeyError):
         measures_only_corr.in_rows(measure_rows)
-
