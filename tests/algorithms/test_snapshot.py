@@ -554,9 +554,13 @@ def test_solve_wls_bias_only(derived_2022):
 
     # Solve without receiver positions given. This should cause a warning
     derived_2022.remove(ecef_rows, inplace=True)
-    with pytest.raises(KeyError) as excinfo:
+    with pytest.raises(KeyError):
         solve_wls(derived_2022, only_bias=True,
                 receiver_state=derived_2022)
+
+    # check error raised when receiver_state is not present in only_bias
+    with pytest.raises(RuntimeError):
+        solve_wls(derived_2022, only_bias=True)
 
 
 def test_wls_fails(capsys):
