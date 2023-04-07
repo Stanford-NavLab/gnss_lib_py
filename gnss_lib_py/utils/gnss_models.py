@@ -51,17 +51,37 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
         the same discrete time interval.
     """
     constellations = np.unique(measurements['gnss_id'])
-    measurements, ephem = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
-    #TODO: Convert these to wildcard indices to accomodate ground truth
+    measurements, ephem = _filter_ephemeris_measurements(measurements,
+                                         constellations, ephemeris_path)
     info_rows = ['gps_millis', 'gnss_id', 'sv_id']
     sv_state_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
-    rx_pos_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
-    rx_vel_rows = ['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps']
-    rx_clk_rows = ['b_rx_m', 'b_dot_rx_mps']
+    rx_pos_rows_to_find = ['x_rx_*_m', 'y_rx_*_m', 'z_rx_*_m']
+    rx_pos_rows_idxs = measurements.find_wildcard_indexes(
+                                            rx_pos_rows_to_find,
+                                            max_allow=1)
+    rx_pos_rows = [rx_pos_rows_idxs['x_rx_*_m'][0],
+                   rx_pos_rows_idxs['y_rx_*_m'][0],
+                   rx_pos_rows_idxs['z_rx_*_m'][0]]
+    # velocity rows
+    rx_vel_rows_to_find = ['vx_rx_*_mps', 'vy_rx_*_mps', 'vz_rx_*_mps']
+    rx_vel_rows_idxs = measurements.find_wildcard_indexes(
+                                            rx_vel_rows_to_find,
+                                            max_allow=1)
+    rx_vel_rows = [rx_vel_rows_idxs['vx_rx_*_mps'][0],
+                   rx_vel_rows_idxs['vy_rx_*_mps'][0],
+                   rx_vel_rows_idxs['vz_rx_*_mps'][0]]
+    # clock rows
+    rx_clk_rows_to_find = ['b_rx_*_m', 'b_dot_rx_*_mps']
+    rx_clk_rows_idxs = measurements.find_wildcard_indexes(
+                                            rx_clk_rows_to_find,
+                                            max_allow=1)
+    rx_clk_rows = [rx_clk_rows_idxs['b_rx_*_m'][0],
+                   rx_clk_rows_idxs['b_dot_rx_*_mps'][0]]
     # Check if SV states exist, if they don't, add them
     est_measurements = NavData()
     # Loop through the measurement file per time step
-    for gps_millis, _, measure_frame in measurements.loop_time('gps_millis', delta_t_decimals=delta_t_dec):
+    for gps_millis, _, measure_frame in measurements.loop_time('gps_millis',
+                                                        delta_t_decimals=delta_t_dec):
         # Sort the satellites
         rx_ephem, sorted_sats_ind, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
         # Create new NavData with SV positions and velocities
@@ -82,12 +102,8 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
 
         # Extract RX states into State NavData
         state = NavData()
-        try:
-            measure_frame.in_rows(rx_pos_rows)
-            for row in rx_pos_rows:
-                state[row] = measure_frame[row, 0]
-        except KeyError as exc:
-            raise RuntimeError("Rx positions needed to estimate expected measurements") from exc
+        for row in rx_pos_rows:
+            state[row] = measure_frame[row, 0]
         vel_clk_rows = rx_vel_rows + rx_clk_rows
         for row in vel_clk_rows:
             try:
@@ -99,14 +115,17 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
 
         # Compute measurements
         if pseudorange or doppler:
-            est_meas, sv_posvel = expected_measures(gps_millis, state, ephem=rx_ephem, sv_posvel=sv_posvel)
+            est_meas, sv_posvel = expected_measures(gps_millis, state,
+                                                    ephem=rx_ephem,
+                                                    sv_posvel=sv_posvel)
             # Reverse the sorting to match the input measurements
             est_meas = est_meas.sort(ind=inv_sort_order)
         else:
             est_meas = None
         if corrections:
-            est_clk, est_trp, est_iono = calculate_pseudorange_corr(gps_millis, state=state, ephem=rx_ephem, sv_posvel=sv_posvel,
-                                        iono_params=iono_params)
+            est_clk, est_trp, est_iono = calculate_pseudorange_corr(gps_millis,
+                                        state=state, ephem=rx_ephem,
+                                        sv_posvel=sv_posvel, iono_params=iono_params)
             # Reverse the sorting to match the input measurements
             est_clk = est_clk[inv_sort_order]
             est_trp = est_trp[inv_sort_order]

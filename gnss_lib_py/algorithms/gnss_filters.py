@@ -58,8 +58,8 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
         state_0 = np.zeros((7,1))
         if pos_0 is not None:
-            state_0[:3,0] = pos_0[["x_rx_m","y_rx_m","z_rx_m"]]
-            state_0[6,0] = pos_0[["b_rx_m"]]
+            state_0[:3,0] = pos_0[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]]
+            state_0[6,0] = pos_0[["b_rx_wls_m"]]
 
         init_dict["state_0"] = state_0
 
@@ -121,19 +121,20 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
     state_estimate = NavData()
     state_estimate["gps_millis"] = states[:,0]
-    state_estimate["x_rx_m"] = states[:,1]
-    state_estimate["y_rx_m"] = states[:,2]
-    state_estimate["z_rx_m"] = states[:,3]
-    state_estimate["vx_rx_mps"] = states[:,4]
-    state_estimate["vy_rx_mps"] = states[:,5]
-    state_estimate["vz_rx_mps"] = states[:,6]
-    state_estimate["b_rx_m"] = states[:,7]
+    state_estimate["x_rx_ekf_m"] = states[:,1]
+    state_estimate["y_rx_ekf_m"] = states[:,2]
+    state_estimate["z_rx_ekf_m"] = states[:,3]
+    state_estimate["vx_rx_ekf_mps"] = states[:,4]
+    state_estimate["vy_rx_ekf_mps"] = states[:,5]
+    state_estimate["vz_rx_ekf_mps"] = states[:,6]
+    state_estimate["b_rx_ekf_m"] = states[:,7]
 
-    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
-                                   "z_rx_m"]].reshape(3,-1))
-    state_estimate["lat_rx_deg"] = lat
-    state_estimate["lon_rx_deg"] = lon
-    state_estimate["alt_rx_deg"] = alt
+    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_ekf_m",
+                                                   "y_rx_ekf_m",
+                                                   "z_rx_ekf_m"]].reshape(3,-1))
+    state_estimate["lat_rx_ekf_deg"] = lat
+    state_estimate["lon_rx_ekf_deg"] = lon
+    state_estimate["alt_rx_ekf_deg"] = alt
 
     return state_estimate
 

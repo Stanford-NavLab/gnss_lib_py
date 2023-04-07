@@ -20,7 +20,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         Either estimated or ground truth receiver position in ECEF frame
         in meters and the estimated or ground truth receiver clock bias
         also in meters as an instance of the NavData class with the
-        following rows: x_*_m, y_*_m, z_*_m, b_*_m.
+        following rows: x_rx_*_m, y_rx_*_m, z_rx_*_m, b_rx_*_m.
     inplace : bool
         If False, will return new NavData instance with gps_millis and
         reisuals. If True, will add a "residuals_m" rows in the
@@ -39,25 +39,12 @@ def solve_residuals(measurements, receiver_state, inplace=True):
     measurements.in_rows(["gps_millis","corr_pr_m"])
     receiver_state.in_rows(["gps_millis"])
 
-    # check for receiver_state indexes
-    rx_idxs = {"x_*_m" : [],
-               "y_*_m" : [],
-               "z_*_m" : [],
-               "b_*_m" : [],
-               }
-    for name, indexes in rx_idxs.items():
-        indexes = [row for row in receiver_state.rows
-                      if row.startswith(name.split("*",maxsplit=1)[0])
-                       and row.endswith(name.split("*",maxsplit=1)[1])]
-        if len(indexes) > 1:
-            raise KeyError("Multiple possible row indexes for " \
-                         + name \
-                         + ". Unable to resolve for solve_wls.")
-        if len(indexes) == 0:
-            raise KeyError("Missing required " + name + " row for " \
-                        + "solve_wls.")
-        # must call dictionary to avoid pass by value
-        rx_idxs[name] = indexes[0]
+
+    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx_*_m",
+                                                    "y_rx_*_m",
+                                                    "z_rx_*_m",
+                                                    "b_rx_*_m"],
+                                                    max_allow=1)
 
     residuals = []
     for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
@@ -72,9 +59,9 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         # find time index for receiver_state NavData instance
         rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
 
-        rx_pos = receiver_state[[rx_idxs["x_*_m"],
-                                 rx_idxs["y_*_m"],
-                                 rx_idxs["z_*_m"]],
+        rx_pos = receiver_state[[rx_idxs["x_rx_*_m"][0],
+                                 rx_idxs["y_rx_*_m"][0],
+                                 rx_idxs["z_rx_*_m"][0]],
                                  rx_t_idx].reshape(1,-1)
         pos_rx_m = np.tile(rx_pos, (num_svs, 1))
 
@@ -82,7 +69,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         # clock bias already removed
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                                  keepdims = True) \
-                + receiver_state[rx_idxs["b_*_m"],rx_t_idx]
+                + receiver_state[rx_idxs["b_rx_*_m"][0],rx_t_idx]
 
         # calculate residual
         residuals_epoch = corr_pr_m - gt_pr_m

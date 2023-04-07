@@ -195,31 +195,29 @@ State estimate naming conventions are as follows:
 * :code:`alt_rx_m` : (float) receiver altitude position estimate in
   meters. Referenced to the WGS-84 ellipsoid.
 
-when ground truth measurements for state estimates are available, the
-naming convention is modified to add a :code:`gt_` before the units.
-So, when a ground truth estimate of the receiver's position is known, the
-naming convention for the positions becomes :code:`x_rx_gt_m`,
-:code:`y_rx_gt_m`, and :code:`z_rx_gt_m` for ECEF x,y, and z coordinates
-respectively
-
-
-Ground truth naming conventions are as follows:
+Receiver ground truth naming conventions are as follows:
 
 * :code:`gps_millis` : (float) milliseconds that have elapsed
   since the start of the GPS epoch on January 6th, 1980.
   :code:`gps_millis` is the common method for time that we expect
   in many functions and must be created to use some of the algorithms.
-* :code:`x_gt_m` : (float) receiver ECEF x ground truth position in
+* :code:`x_rx_gt_m` : (float) receiver ECEF x ground truth position in
   meters.
-* :code:`y_gt_m` : (float) receiver ECEF y ground truth position in
+* :code:`y_rx_gt_m` : (float) receiver ECEF y ground truth position in
   meters.
-* :code:`z_gt_m` : (float) receiver ECEF z ground truth position in
+* :code:`z_rx_gt_m` : (float) receiver ECEF z ground truth position in
   meters.
-* :code:`lat_gt_deg` : (float) receiver ground truth latitude in
+* :code:`vx_rx_gt_mps` : (float) receiver ECEF x velocity ground truth
+  in meters per second.
+* :code:`vy_rx_gt_mps` : (float) receiver ECEF y velocity ground truth
+  in meters per second.
+* :code:`vz_rx_gt_mps` : (float) receiver ECEF z velocity ground truth
+  in meters per second.
+* :code:`lat_rx_gt_deg` : (float) receiver ground truth latitude in
   degrees.
-* :code:`lon_gt_deg` : (float) receiver ground truth longitude in
+* :code:`lon_rx_gt_deg` : (float) receiver ground truth longitude in
   degrees.
-* :code:`alt_gt_m` : (float) receiver ground truth altitude in meters.
+* :code:`alt_rx_gt_m` : (float) receiver ground truth altitude in meters.
   Referenced to the WGS-84 ellipsoid.
 
 
