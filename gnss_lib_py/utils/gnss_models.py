@@ -64,19 +64,9 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
                    rx_pos_rows_idxs['z_rx_*_m'][0]]
     # velocity rows
     rx_vel_rows_to_find = ['vx_rx_*_mps', 'vy_rx_*_mps', 'vz_rx_*_mps']
-    rx_vel_rows_idxs = measurements.find_wildcard_indexes(
-                                            rx_vel_rows_to_find,
-                                            max_allow=1)
-    rx_vel_rows = [rx_vel_rows_idxs['vx_rx_*_mps'][0],
-                   rx_vel_rows_idxs['vy_rx_*_mps'][0],
-                   rx_vel_rows_idxs['vz_rx_*_mps'][0]]
     # clock rows
     rx_clk_rows_to_find = ['b_rx_*_m', 'b_dot_rx_*_mps']
-    rx_clk_rows_idxs = measurements.find_wildcard_indexes(
-                                            rx_clk_rows_to_find,
-                                            max_allow=1)
-    rx_clk_rows = [rx_clk_rows_idxs['b_rx_*_m'][0],
-                   rx_clk_rows_idxs['b_dot_rx_*_mps'][0]]
+
     # Check if SV states exist, if they don't, add them
     est_measurements = NavData()
     # Loop through the measurement file per time step
@@ -104,11 +94,12 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
         state = NavData()
         for row in rx_pos_rows:
             state[row] = measure_frame[row, 0]
-        vel_clk_rows = rx_vel_rows + rx_clk_rows
+        # velocity and clock rows
+        vel_clk_rows = rx_vel_rows_to_find + rx_clk_rows_to_find
         for row in vel_clk_rows:
             try:
-                measure_frame.in_rows(row)
-                state[row] = measure_frame[row, 0]
+                row_idx = measure_frame.find_wildcard_indexes(row,max_allow=1)
+                state[row_idx[row][0]] = measure_frame[row_idx[row][0], 0]
             except KeyError:
                 warnings.warn("Assuming 0 "+ row + " for Rx", RuntimeWarning)
                 state[row] = 0
