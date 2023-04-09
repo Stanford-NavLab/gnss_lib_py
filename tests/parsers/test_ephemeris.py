@@ -6,11 +6,16 @@ __authors__ = "Ashwin Kanhere"
 __date__ = "30 Aug 2022"
 
 import os
-import pytest
+import ftplib
 from datetime import datetime, timezone
+
+import pytest
+import numpy as np
+import pandas as pd
 
 from gnss_lib_py.parsers.ephemeris import EphemerisManager
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 
 
 @pytest.fixture(name="ephem_path", scope='session')
@@ -27,34 +32,63 @@ def fixture_ephem_path():
                 os.path.dirname(
                 os.path.realpath(__file__))))
     ephem_path = os.path.join(root_path, 'data/unit_test/ephemeris')
-    # Remove old files in the ephemeris directory, this tests the
-    # download component of EphemerisManager()
-    for dir_name in os.listdir(ephem_path):
-        dir_loc = os.path.join(ephem_path, dir_name)
-        if os.path.isdir(dir_loc):
-            for file_name in os.listdir(dir_loc):
-                file_loc = os.path.join(dir_loc, file_name)
-                if os.path.isfile(file_loc):
-                    os.remove(file_loc)
     return ephem_path
 
-
-@pytest.fixture(name="ephem_time", scope="module")
-def fixture_ephem_time():
-    """Time for which corresponding ephemeris files will be used.
+@pytest.fixture(name="ephem_download_path", scope='session')
+def fixture_ephem_download_path():
+    """Location of ephemeris files for unit test
 
     Returns
     -------
-    start_time : datetime.datetime
-        Time at which state estimation starts
+    root_path : string
+        Folder location containing Android Derived 2021 measurements
     """
-    start_time = datetime(2020, 5, 15, 0, 47, 48, tzinfo=timezone.utc)
-    return start_time
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    ephem_path = os.path.join(root_path, 'data/unit_test/ephemeris_download')
+    return ephem_path
 
+def remove_download_eph(ephem_download_path):
+    """Remove previous directory
 
-@pytest.fixture(name="ephem", scope="module")
-def fixture_get_ephem(ephem_path, ephem_time):
+    Parameters
+    ----------
+    ephem_download_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+    """
+    # Remove old files in the ephemeris directory, this tests the
+    # download component of EphemerisManager()
+    if os.path.isdir(ephem_download_path):
+        for dir_name in os.listdir(ephem_download_path):
+            dir_loc = os.path.join(ephem_download_path, dir_name)
+            if os.path.isdir(dir_loc):
+                for file_name in os.listdir(dir_loc):
+                    file_loc = os.path.join(dir_loc, file_name)
+                    if os.path.isfile(file_loc):
+                        os.remove(file_loc)
+                os.rmdir(dir_loc)
+        os.rmdir(ephem_download_path)
+
+@pytest.mark.parametrize('satellites',
+                         [
+                          ['G01'],
+                          ['R01'],
+                          ['E02'],
+                          ['G01','R01'],
+                          ['G01','R01','E02'],
+                         ])
+@pytest.mark.parametrize('ephem_time',
+                         [
+                          datetime(2020, 5, 15, 3, 47, 48, tzinfo=timezone.utc),
+                          datetime(2023, 3, 14, 23, 17, 13, tzinfo=timezone.utc),
+                          datetime.now(timezone.utc),
+                         ])
+def test_get_ephem(ephem_path, ephem_time, satellites):
     """Create instance of Ephemeris manager and fetch ephemeris file.
+
+    Check type and rows.
 
     Parameters
     ----------
@@ -63,37 +97,102 @@ def fixture_get_ephem(ephem_path, ephem_time):
     ephem_time : datetime.datetime
         Time at which state estimation is starting, the most recent ephemeris
         file before the start time will be fetched.
+    satellites : List
+        List of satellites ['Const_IDSVID']
 
     Returns
     -------
     ephem : gnss_lib_py.parsers.navdata.NavData
     """
-    ephem_man = EphemerisManager(ephem_path)
-    #TODO: Find out why GLONASS and GALILEO ephimerides are taking too
-    # long to download
-    # svs = ['G02', 'G11', 'R01', 'R02', 'E01', 'E02']
-    svs = ['G02', 'G11']
-    ephem = ephem_man.get_ephemeris(ephem_time, svs)
-    return ephem
 
+    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem = ephem_man.get_ephemeris(ephem_time, satellites)
 
-def test_ephem_type(ephem):
-    """Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
-
-    Parameters
-    ----------
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        Broadcast satellite ephemerides
-    """
+    # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
     assert isinstance(ephem, NavData)
+    assert isinstance(ephem_man.data, pd.DataFrame)
 
-def test_is_rows(ephem):
-    """Tests that NavData specific rows are present in ephem
+    # time check for GPS and Galileo
+    if "gps_week" in ephem.rows:
+        for ii in range(len(ephem)):
+            if not np.isnan(ephem["gps_week",ii]):
+                gps_week, tow = gps_millis_to_tow(ephem["gps_millis",ii])
+                assert gps_week == ephem["gps_week",ii]
+
+    # Tests that NavData specific rows are present in ephem
+    navdata_rows = ['gps_millis', 'sv_id', 'gnss_id']
+    ephem.in_rows(navdata_rows)
+
+@pytest.mark.parametrize('fileinfo',
+    [
+     {'filepath': 'gnss/data/daily/2020/brdc/brdc1360.20n.Z', 'url': 'gdc.cddis.eosdis.nasa.gov'},
+     {'filepath': 'gnss/data/daily/2020/brdc/brdc1360.20g.Z', 'url': 'gdc.cddis.eosdis.nasa.gov'},
+     {'filepath': 'gnss/data/daily/2020/brdc/BRDC00IGS_R_20201360000_01D_MN.rnx.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
+     {'filepath': 'gnss/data/daily/2023/brdc/brdc0730.23n.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
+     {'filepath': 'gnss/data/daily/2023/brdc/brdc0730.23g.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
+     {'filepath': 'gnss/data/daily/2023/brdc/BRDC00IGS_R_20230730000_01D_MN.rnx.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
+     {'filepath': 'gnss/data/daily/2023/brdc/brdc0990.23n.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
+     {'filepath': '/IGS/BRDC/2023/099/BRDC00WRD_S_20230990000_01D_MN.rnx.gz', 'url': 'igs-ftp.bkg.bund.de'},
+     ])
+def test_download_ephem(ephem_download_path, fileinfo):
+    """Test FTP download for ephemeris files.
 
     Parameters
     ----------
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        Broadcast satellite ephemerides
+    ephem_download_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+    fileinfo : dict
+        Filenames for ephemeris with ftp server and constellation details
+
     """
-    navdata_rows = ['gps_millis', 'sv_id', 'gps_week']
-    ephem.in_rows(navdata_rows)
+
+    remove_download_eph(ephem_download_path)
+    os.makedirs(ephem_download_path)
+
+    ephem_man = EphemerisManager(ephem_download_path, verbose=True)
+
+    filepath = fileinfo['filepath']
+    url = fileinfo['url']
+    directory = os.path.split(filepath)[0]
+    filename = os.path.split(filepath)[1]
+    if url == 'igs-ftp.bkg.bund.de':
+        dest_filepath = os.path.join(ephem_man.data_directory, 'igs', filename)
+    else:
+        dest_filepath = os.path.join(ephem_man.data_directory, 'nasa', filename)
+
+    # download the ephemeris file
+    ephem_man.retrieve_file(url, directory, filename,
+                       dest_filepath)
+
+    remove_download_eph(ephem_download_path)
+
+def test_ftp_errors(ephem_download_path):
+    """Test FTP download errors.
+
+    Parameters
+    ----------
+    ephem_download_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+
+    """
+    remove_download_eph(ephem_download_path)
+    os.makedirs(ephem_download_path)
+
+    fileinfo = {'filepath': 'gnss/data/daily/2020/brdc/notAfile.20n.Z', 'url': 'gdc.cddis.eosdis.nasa.gov'}
+
+    ephem_man = EphemerisManager(ephem_download_path, verbose=True)
+
+    filepath = fileinfo['filepath']
+    url = fileinfo['url']
+    directory = os.path.split(filepath)[0]
+    filename = os.path.split(filepath)[1]
+    dest_filepath = os.path.join(ephem_man.data_directory, 'nasa', filename)
+
+    # download the ephemeris file
+    with pytest.raises(ftplib.error_perm) as excinfo:
+        ephem_man.retrieve_file(url, directory, filename,
+                                dest_filepath)
+    assert directory in str(excinfo.value)
+    assert filename in str(excinfo.value)
+
+    remove_download_eph(ephem_download_path)
