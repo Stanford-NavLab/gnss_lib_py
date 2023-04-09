@@ -171,11 +171,9 @@ def test_residuals_fails(derived):
         for row in ["x_rx_wls_m", "y_rx_wls_m", "z_rx_wls_m", "b_rx_wls_m"]:
             duplicated = state_estimate.copy()
             new_name = row.split("_")
-            error_name = new_name.copy()
             new_name[2] = "gt"
             new_name = "_".join(new_name)
-            error_name[2] = "*"
-            error_name = "_".join(error_name)
+            error_name = row[:4] + '*' + row[-2:]
             duplicated[new_name] = duplicated[row]
             with pytest.raises(KeyError) as excinfo:
                 _ = solve_residuals(derived,
@@ -185,9 +183,7 @@ def test_residuals_fails(derived):
 
         for row in ["x_rx_wls_m", "y_rx_wls_m", "z_rx_wls_m", "b_rx_wls_m"]:
             state_estimate_removed = state_estimate.remove(rows=row)
-            error_name = row.split("_")
-            error_name[2] = "*"
-            error_name = "_".join(error_name)
+            error_name = row[:4] + '*' + row[-2:]
             with pytest.raises(KeyError) as excinfo:
                 _ = solve_residuals(derived,
                                     state_estimate_removed,

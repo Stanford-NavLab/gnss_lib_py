@@ -78,10 +78,16 @@ def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_
         rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
         try:
             # The following statement raises a KeyError if rows don't exist
+            rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
+            rx_idxs = measure_frame.find_wildcard_indexes(
+                                                   rx_rows_to_find,
+                                                   max_allow=1)
+
             measure_frame.in_rows(['x_rx_m', 'y_rx_m', 'z_rx_m'])
-            rx_ecef = np.asarray([measure_frame['x_rx_m', 0],
-                                  measure_frame['y_rx_m', 0],
-                                  measure_frame['z_rx_m', 0]])
+            rx_ecef = measure_frame[[rx_idxs["x_rx*_m"][0],
+                                     rx_idxs["y_rx*_m"][0],
+                                     rx_idxs["z_rx*_m"][0]]
+                                     ,0]
             sv_states, _, _ = _find_sv_location(measure_frame['gps_millis'], rx_ecef, rx_ephem)
         except KeyError:
             sv_states = find_sv_states(measure_frame['gps_millis'], rx_ephem)
@@ -89,7 +95,7 @@ def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_
         sv_states = sv_states.sort(ind=inv_sort_order)
         # Add them to new rows
         for row in sv_states.rows:
-            if row != 'gps_millis' and row!= 'gnss_id' and row!='sv_id':
+            if row not in ('gps_millis','gnss_id','sv_id'):
                 measure_frame[row] = sv_states[row]
         if len(sv_states_all_time)==0:
             sv_states_all_time = measure_frame

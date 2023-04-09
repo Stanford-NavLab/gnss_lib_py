@@ -541,7 +541,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
     state_estimate : gnss_lib_py.parsers.navdata.NavData
         Estimated receiver position in latitude and longitude as an
         instance of the NavData class with the following
-        rows: ``gps_millis``, ``lat_*_deg``, ``lon_*_deg``.
+        rows: ``gps_millis``, ``lat_rx*_deg``, ``lon_rx*_deg``.
     trip_id : string
         Value for the tripId column in kaggle submission which is a
         fusion of the data and phone type.
@@ -554,15 +554,15 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
     """
 
     state_estimate.in_rows("gps_millis")
-    wildcards = state_estimate.find_wildcard_indexes(["lat_*_deg",
-                            "lon_*_deg"],max_allow = 1)
+    wildcards = state_estimate.find_wildcard_indexes(["lat_rx*_deg",
+                            "lon_rx*_deg"],max_allow = 1)
 
     output = NavData()
     output["tripId"] = np.array([trip_id] * state_estimate.shape[1])
     output["UnixTimeMillis"] = gps_to_unix_millis(state_estimate["gps_millis"])
     output.orig_dtypes["UnixTimeMillis"] = np.int64
-    output["LatitudeDegrees"] = state_estimate[wildcards["lat_*_deg"]]
-    output["LongitudeDegrees"] = state_estimate[wildcards["lon_*_deg"]]
+    output["LatitudeDegrees"] = state_estimate[wildcards["lat_rx*_deg"]]
+    output["LongitudeDegrees"] = state_estimate[wildcards["lon_rx*_deg"]]
 
     output.interpolate("UnixTimeMillis",["LatitudeDegrees",
                                          "LongitudeDegrees"],inplace=True)

@@ -34,7 +34,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     receiver_state : gnss_lib_py.parsers.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters as an instance of the NavData class with the
-        following rows: ``x_rx_*_m``, `y_rx_*_m``, ``z_rx_*_m``,
+        following rows: ``x_rx*_m``, `y_rx*_m``, ``z_rx*_m``,
         ``gps_millis``.
 
     Parameters
@@ -49,8 +49,8 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     receiver_state : gnss_lib_py.parsers.navdata.NavData
         Only used if only_bias is set to True, see description above.
         Receiver position in ECEF frame in meters as an instance of the
-        NavData class with at least the following rows: ``x_rx_*_m``,
-        ``y_rx_*_m``, ``z_rx_*_m``, ``gps_millis``.
+        NavData class with at least the following rows: ``x_rx*_m``,
+        ``y_rx*_m``, ``z_rx*_m``, ``gps_millis``.
     tol : float
         Tolerance used for the convergence check.
     max_count : int
@@ -79,7 +79,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
             raise RuntimeError("receiver_state needed in WLS " \
                     + "for only_bias.")
 
-        rx_rows_to_find = ['x_rx_*_m', 'y_rx_*_m', 'z_rx_*_m']
+        rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
         rx_idxs = receiver_state.find_wildcard_indexes(
                                                rx_rows_to_find,
                                                max_allow=1)
@@ -111,9 +111,9 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
             if only_bias:
                 position = np.vstack((
                                   receiver_state.where("gps_millis",
-                                  timestamp)[[rx_idxs["x_rx_*_m"][0],
-                                              rx_idxs["y_rx_*_m"][0],
-                                              rx_idxs["z_rx_*_m"][0]]
+                                  timestamp)[[rx_idxs["x_rx*_m"][0],
+                                              rx_idxs["y_rx*_m"][0],
+                                              rx_idxs["z_rx*_m"][0]]
                                               ,0].reshape(-1,1),
                                              position[3])) # clock bias
             position = wls(position, pos_sv_m, corr_pr_m, weights,

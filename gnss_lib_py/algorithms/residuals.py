@@ -20,7 +20,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         Either estimated or ground truth receiver position in ECEF frame
         in meters and the estimated or ground truth receiver clock bias
         also in meters as an instance of the NavData class with the
-        following rows: x_rx_*_m, y_rx_*_m, z_rx_*_m, b_rx_*_m.
+        following rows: x_rx*_m, y_rx*_m, z_rx*_m, b_rx*_m.
     inplace : bool
         If False, will return new NavData instance with gps_millis and
         reisuals. If True, will add a "residuals_m" rows in the
@@ -40,10 +40,10 @@ def solve_residuals(measurements, receiver_state, inplace=True):
     receiver_state.in_rows(["gps_millis"])
 
 
-    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx_*_m",
-                                                    "y_rx_*_m",
-                                                    "z_rx_*_m",
-                                                    "b_rx_*_m"],
+    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx*_m",
+                                                    "y_rx*_m",
+                                                    "z_rx*_m",
+                                                    "b_rx*_m"],
                                                     max_allow=1)
 
     residuals = []
@@ -59,9 +59,9 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         # find time index for receiver_state NavData instance
         rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
 
-        rx_pos = receiver_state[[rx_idxs["x_rx_*_m"][0],
-                                 rx_idxs["y_rx_*_m"][0],
-                                 rx_idxs["z_rx_*_m"][0]],
+        rx_pos = receiver_state[[rx_idxs["x_rx*_m"][0],
+                                 rx_idxs["y_rx*_m"][0],
+                                 rx_idxs["z_rx*_m"][0]],
                                  rx_t_idx].reshape(1,-1)
         pos_rx_m = np.tile(rx_pos, (num_svs, 1))
 
@@ -69,7 +69,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
         # clock bias already removed
         gt_pr_m = np.linalg.norm(pos_rx_m - pos_sv_m, axis = 1,
                                  keepdims = True) \
-                + receiver_state[rx_idxs["b_rx_*_m"][0],rx_t_idx]
+                + receiver_state[rx_idxs["b_rx*_m"][0],rx_t_idx]
 
         # calculate residual
         residuals_epoch = corr_pr_m - gt_pr_m

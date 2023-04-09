@@ -55,17 +55,17 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
                                          constellations, ephemeris_path)
     info_rows = ['gps_millis', 'gnss_id', 'sv_id']
     sv_state_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
-    rx_pos_rows_to_find = ['x_rx_*_m', 'y_rx_*_m', 'z_rx_*_m']
+    rx_pos_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
     rx_pos_rows_idxs = measurements.find_wildcard_indexes(
                                             rx_pos_rows_to_find,
                                             max_allow=1)
-    rx_pos_rows = [rx_pos_rows_idxs['x_rx_*_m'][0],
-                   rx_pos_rows_idxs['y_rx_*_m'][0],
-                   rx_pos_rows_idxs['z_rx_*_m'][0]]
+    rx_pos_rows = [rx_pos_rows_idxs['x_rx*_m'][0],
+                   rx_pos_rows_idxs['y_rx*_m'][0],
+                   rx_pos_rows_idxs['z_rx*_m'][0]]
     # velocity rows
-    rx_vel_rows_to_find = ['vx_rx_*_mps', 'vy_rx_*_mps', 'vz_rx_*_mps']
+    rx_vel_rows_to_find = ['vx_rx*_mps', 'vy_rx*_mps', 'vz_rx*_mps']
     # clock rows
-    rx_clk_rows_to_find = ['b_rx_*_m', 'b_dot_rx_*_mps']
+    rx_clk_rows_to_find = ['b_rx*_m', 'b_dot_rx*_mps']
 
     # Check if SV states exist, if they don't, add them
     est_measurements = NavData()
@@ -315,10 +315,26 @@ def _extract_state_variables(state):
 
     """
     assert len(state)==1, "Only single state accepted for GNSS simulation"
-    rx_ecef = np.reshape(state[['x_rx_m', 'y_rx_m', 'z_rx_m']], [3,1])
-    rx_v_ecef = np.reshape(state[['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps']], [3,1])
-    clk_bias = state['b_rx_m']
-    clk_drift = state['b_dot_rx_mps']
+
+    rx_idxs = state.find_wildcard_indexes(['x_rx*_m',
+                                           'y_rx*_m',
+                                           'z_rx*_m',
+                                           'vx_rx*_mps',
+                                           'vy_rx*_mps',
+                                           'vz_rx*_mps',
+                                           'b_rx*_m',
+                                           'b_dot_rx*_mps',
+                                           ],
+                                           max_allow=1)
+
+    rx_ecef = np.reshape(state[[rx_idxs['x_rx*_m'][0],
+                                rx_idxs['y_rx*_m'][0],
+                                rx_idxs['z_rx*_m'][0]]], [3,1])
+    rx_v_ecef = np.reshape(state[[rx_idxs['vx_rx*_mps'][0],
+                                  rx_idxs['vy_rx*_mps'][0],
+                                  rx_idxs['vz_rx*_mps'][0]]], [3,1])
+    clk_bias = state[rx_idxs['b_rx*_m'][0]]
+    clk_drift = state[rx_idxs['b_dot_rx*_mps'][0]]
     return rx_ecef, rx_v_ecef, clk_bias, clk_drift
 
 
