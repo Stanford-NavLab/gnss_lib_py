@@ -278,7 +278,7 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
     android_measurements['vx_rx_mps'] = 0
     android_measurements['vy_rx_mps'] = 0
     android_measurements['vz_rx_mps'] = 0
-    android_measurements['b_rx_m'] = np.repeat(state_estimate['b_rx_m'], 7)
+    android_measurements['b_rx_m'] = np.repeat(state_estimate['b_rx_wls_m'], 7)
     android_measurements['b_dot_rx_mps'] = 0
     measures = gnss_models.add_measures(android_measurements, ephemeris_path,
                                                     iono_params)
@@ -318,7 +318,7 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
 
     # Test measure estimation without Rx states
     measures_without_rx = android_measurements.remove(rx_pos_rows)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(KeyError):
         _ = gnss_models.add_measures(measures_without_rx, ephemeris_path,
                                      iono_params)
     measures_without_rx_v = android_measurements.remove(rx_vel_rows)

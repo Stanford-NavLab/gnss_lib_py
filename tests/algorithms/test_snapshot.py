@@ -372,13 +372,13 @@ def test_solve_wls(derived):
 
     # should have the following contents
     assert "gps_millis" in state_estimate.rows
-    assert "x_rx_m" in state_estimate.rows
-    assert "y_rx_m" in state_estimate.rows
-    assert "z_rx_m" in state_estimate.rows
-    assert "b_rx_m" in state_estimate.rows
-    assert "lat_rx_deg" in state_estimate.rows
-    assert "lon_rx_deg" in state_estimate.rows
-    assert "alt_rx_deg" in state_estimate.rows
+    assert "x_rx_wls_m" in state_estimate.rows
+    assert "y_rx_wls_m" in state_estimate.rows
+    assert "z_rx_wls_m" in state_estimate.rows
+    assert "b_rx_wls_m" in state_estimate.rows
+    assert "lat_rx_wls_deg" in state_estimate.rows
+    assert "lon_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_deg" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
     assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
@@ -517,6 +517,7 @@ def test_solve_wls_bias_only(derived_2022):
 
     # Solve with receiver positions given
     ecef_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
+    wls_rows = ['x_rx_wls_m','y_rx_wls_m','z_rx_wls_m']
     time_length = sum(1 for _ in derived_2022.loop_time("gps_millis"))
     input_position = NavData()
     for row in ecef_rows:
@@ -531,8 +532,8 @@ def test_solve_wls_bias_only(derived_2022):
     # Verify that both structures have the same length
     assert len(input_position) == len(state_estimate)
     # Verify that solved positions are the same as input positions
-    for row in ecef_rows:
-        np.testing.assert_almost_equal(input_position[row], state_estimate[row])
+    for rr,row in enumerate(ecef_rows):
+        np.testing.assert_almost_equal(input_position[row], state_estimate[wls_rows[rr]])
 
     assert isinstance(state_estimate,type(NavData()))
 
@@ -541,13 +542,13 @@ def test_solve_wls_bias_only(derived_2022):
 
     # should have the following contents
     assert "gps_millis" in state_estimate.rows
-    assert "x_rx_m" in state_estimate.rows
-    assert "y_rx_m" in state_estimate.rows
-    assert "z_rx_m" in state_estimate.rows
-    assert "b_rx_m" in state_estimate.rows
-    assert "lat_rx_deg" in state_estimate.rows
-    assert "lon_rx_deg" in state_estimate.rows
-    assert "alt_rx_deg" in state_estimate.rows
+    assert "x_rx_wls_m" in state_estimate.rows
+    assert "y_rx_wls_m" in state_estimate.rows
+    assert "z_rx_wls_m" in state_estimate.rows
+    assert "b_rx_wls_m" in state_estimate.rows
+    assert "lat_rx_wls_deg" in state_estimate.rows
+    assert "lon_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_deg" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
     assert len(state_estimate) == time_length
