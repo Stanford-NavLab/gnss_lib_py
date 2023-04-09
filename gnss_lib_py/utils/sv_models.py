@@ -75,6 +75,8 @@ def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_
         # measure_frame = measure_frame.sort('sv_id', order="descending")
         # Sort the satellites
         rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
+        if rx_ephem.shape[1] != measure_frame.shape[1]:
+            raise RuntimeError('Some ephemeris data is missing')
         try:
             # The following statement raises a KeyError if rows don't exist
             measure_frame.in_rows(['x_rx_m', 'y_rx_m', 'z_rx_m'])
@@ -119,7 +121,7 @@ def find_sv_states(gps_millis, ephem):
     Notes
     -----
     Based on code written by J. Makela.
-    AE 456, Global Navigation Sat Systems, University of Illinois
+    seaE 456, Global Navigation Sat Systems, University of Illinois
     Urbana-Champaign. Fall 2017
 
     More details on the algorithm used to compute satellite positions
@@ -347,8 +349,8 @@ def _combine_gnss_sv_ids(measurement_frame):
         `sv_id`.
     """
     constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
-    gnss_chars = [constellation_char_inv[const] for const in measurement_frame['gnss_id']]
-    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(measurement_frame['sv_id'])])
+    gnss_chars = [constellation_char_inv[const] for const in np.array(measurement_frame['gnss_id'], ndmin=1)]
+    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(np.array(measurement_frame['sv_id'], ndmin=1))])
     return gnss_sv_id
 
 
@@ -541,6 +543,7 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
     rx_ecef = np.reshape(rx_ecef, [3, 1])
     satellites = len(sv_posvel)
     sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    sv_pos = sv_pos.reshape(rx_ecef.shape[0], satellites)
     del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
     true_range = np.linalg.norm(del_pos, axis=0)
     return del_pos, true_range
