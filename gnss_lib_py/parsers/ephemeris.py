@@ -228,6 +228,11 @@ class EphemerisManager():
         if not self.leapseconds:
             self.leapseconds = EphemerisManager.load_leapseconds(
                 decompressed_filename)
+        print('Starting time counter')
+        print('Decompressed file name', decompressed_filename)
+        print('Constellations', constellations)
+        import time
+        tic = time.time()
         if constellations is not None:
             data = georinex.load(decompressed_filename,
                                  use=constellations,
@@ -235,6 +240,7 @@ class EphemerisManager():
         else:
             data = georinex.load(decompressed_filename,
                                  verbose=self.verbose).to_dataframe()
+        print("Time taken upto here", time.time()-tic)
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = decompressed_filename
