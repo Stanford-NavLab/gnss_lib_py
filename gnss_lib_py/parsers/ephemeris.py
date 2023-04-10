@@ -333,10 +333,7 @@ class EphemerisManager():
 
         """
 
-        if url == 'gdc.cddis.eosdis.nasa.gov':
-            secure = True
-        else:
-            secure = False
+        secure = bool(url == 'gdc.cddis.eosdis.nasa.gov')
 
         if self.verbose:
             print('Retrieving ' + directory + '/' + filename + ' from ' + url)

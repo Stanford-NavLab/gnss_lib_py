@@ -24,8 +24,8 @@ def fixture_ephem_path():
 
     Returns
     -------
-    root_path : string
-        Folder location containing Android Derived 2021 measurements
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded.
     """
     root_path = os.path.dirname(
                 os.path.dirname(
@@ -40,8 +40,8 @@ def fixture_ephem_download_path():
 
     Returns
     -------
-    root_path : string
-        Folder location containing Android Derived 2021 measurements
+    ephem_download_path : string
+        Location where ephemeris files are stored/to be downloaded.
     """
     root_path = os.path.dirname(
                 os.path.dirname(
@@ -56,7 +56,8 @@ def remove_download_eph(ephem_download_path):
     Parameters
     ----------
     ephem_download_path : string
-        Location where ephemeris files are stored/to be downloaded to.
+        Location where ephemeris files are stored/to be downloaded.
+
     """
     # Remove old files in the ephemeris directory, this tests the
     # download component of EphemerisManager()
@@ -83,7 +84,6 @@ def remove_download_eph(ephem_download_path):
                          [
                           datetime(2020, 5, 15, 3, 47, 48, tzinfo=timezone.utc),
                           datetime(2023, 3, 14, 23, 17, 13, tzinfo=timezone.utc),
-                          datetime.now(timezone.utc),
                          ])
 def test_get_ephem(ephem_path, ephem_time, satellites):
     """Create instance of Ephemeris manager and fetch ephemeris file.
@@ -100,9 +100,6 @@ def test_get_ephem(ephem_path, ephem_time, satellites):
     satellites : List
         List of satellites ['Const_IDSVID']
 
-    Returns
-    -------
-    ephem : gnss_lib_py.parsers.navdata.NavData
     """
 
     ephem_man = EphemerisManager(ephem_path, verbose=True)
@@ -114,14 +111,47 @@ def test_get_ephem(ephem_path, ephem_time, satellites):
 
     # time check for GPS and Galileo
     if "gps_week" in ephem.rows:
-        for ii in range(len(ephem)):
-            if not np.isnan(ephem["gps_week",ii]):
-                gps_week, tow = gps_millis_to_tow(ephem["gps_millis",ii])
-                assert gps_week == ephem["gps_week",ii]
+        for timestep in range(len(ephem)):
+            if not np.isnan(ephem["gps_week",timestep]):
+                gps_week, _ = gps_millis_to_tow(ephem["gps_millis",timestep])
+                assert gps_week == ephem["gps_week",timestep]
 
     # Tests that NavData specific rows are present in ephem
     navdata_rows = ['gps_millis', 'sv_id', 'gnss_id']
     ephem.in_rows(navdata_rows)
+
+@pytest.mark.parametrize('constellations',
+                         [
+                          set(['G']),
+                          set(['G','R','E']),
+                          None,
+                         ])
+@pytest.mark.parametrize('ephem_time',
+                         [
+                          datetime(2023, 3, 14, 23, 17, 13, tzinfo=timezone.utc),
+                         ])
+def test_load_ephem(ephem_path, ephem_time, constellations):
+    """Create instance of Ephemeris manager and fetch ephemeris file.
+
+    Check type and rows.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+    ephem_time : datetime.datetime
+        Time at which state estimation is starting, the most recent ephemeris
+        file before the start time will be fetched.
+    constellations : List
+        List of constellation types
+
+    """
+
+    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem_man.load_data(ephem_time, constellations, same_day=True)
+
+    # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
+    assert isinstance(ephem_man.data, pd.DataFrame)
 
 @pytest.mark.parametrize('fileinfo',
     [
@@ -172,7 +202,7 @@ def test_ftp_errors(ephem_download_path):
     Parameters
     ----------
     ephem_download_path : string
-        Location where ephemeris files are stored/to be downloaded to.
+        Location where ephemeris files are stored/to be downloaded.
 
     """
     remove_download_eph(ephem_download_path)
@@ -196,3 +226,49 @@ def test_ftp_errors(ephem_download_path):
     assert filename in str(excinfo.value)
 
     remove_download_eph(ephem_download_path)
+
+@pytest.mark.parametrize('satellites',
+                         [
+                          ['G99'],
+                         ])
+@pytest.mark.parametrize('ephem_time',
+                         [
+                          datetime(2020, 5, 15, 3, 47, 48, tzinfo=timezone.utc),
+                         ])
+def test_get_ephem_fails(ephem_path, ephem_time, satellites):
+    """Test when ephemeris manager should fail.
+
+    Check type and rows.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+    ephem_time : datetime.datetime
+        Time at which state estimation is starting, the most recent ephemeris
+        file before the start time will be fetched.
+    satellites : List
+        List of satellites ['Const_IDSVID']
+
+    """
+
+    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    with pytest.raises(RuntimeError) as excinfo:
+        ephem_man.get_ephemeris(ephem_time, satellites)
+    assert "ephemeris data" in str(excinfo.value)
+
+def test_get_constellation(ephem_path):
+    """Test get constellation.
+
+    Check type and rows.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+
+    """
+
+    ephem_man = EphemerisManager(ephem_path, verbose=True)
+
+    assert ephem_man.get_constellations(set('R')) is None
