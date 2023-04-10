@@ -104,7 +104,7 @@ class EphemerisManager():
 
         """
         systems = EphemerisManager.get_constellations(satellites)
-        if not isinstance(self.data, pd.DataFrame): # pragma: no cover
+        if not isinstance(self.data, pd.DataFrame):
             same_day = (datetime.now(timezone.utc) - timestamp).days <= 0
             self.load_data(timestamp, systems, same_day)
         data = self.data
@@ -230,10 +230,11 @@ class EphemerisManager():
                 decompressed_filename)
         if constellations is not None:
             data = georinex.load(decompressed_filename,
-                                 use=constellations).to_dataframe()
+                                 use=constellations,
+                                 verbose=self.verbose).to_dataframe()
         else:
-            data = georinex.load(decompressed_filename)
-            data = data.to_dataframe()
+            data = georinex.load(decompressed_filename,
+                                 verbose=self.verbose).to_dataframe()
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = decompressed_filename

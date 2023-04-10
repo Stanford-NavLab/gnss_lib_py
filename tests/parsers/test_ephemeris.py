@@ -153,6 +153,8 @@ def test_load_ephem(ephem_path, ephem_time, constellations):
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
     assert isinstance(ephem_man.data, pd.DataFrame)
 
+    print(np.unique(ephem_man.data["sv"]))
+
 @pytest.mark.parametrize('fileinfo',
     [
      {'filepath': 'gnss/data/daily/2020/brdc/brdc1360.20n.Z', 'url': 'gdc.cddis.eosdis.nasa.gov'},
