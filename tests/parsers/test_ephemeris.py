@@ -31,10 +31,11 @@ def fixture_ephem_path():
     # download component of EphemerisManager()
     for dir_name in os.listdir(ephem_path):
         dir_loc = os.path.join(ephem_path, dir_name)
-        for file_name in os.listdir(dir_loc):
-            file_loc = os.path.join(dir_loc, file_name)
-            if os.path.isfile(file_loc):
-                os.remove(file_loc)
+        if os.path.isdir(dir_loc):
+            for file_name in os.listdir(dir_loc):
+                file_loc = os.path.join(dir_loc, file_name)
+                if os.path.isfile(file_loc):
+                    os.remove(file_loc)
     return ephem_path
 
 

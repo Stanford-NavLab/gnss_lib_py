@@ -4,7 +4,8 @@ data/*
 !data/unit_test/
 
 # Ignoring large RINEX/SP3 files, required for running and testing
-data/unit_test/ephemeris/nasa/BRDC00IGS_R_20201360000_01D_MN.rnx
+data/unit_test/ephemeris/
+!data/unit_test/ephemeris/.gitkeep
 
 # development folder
 dev/*

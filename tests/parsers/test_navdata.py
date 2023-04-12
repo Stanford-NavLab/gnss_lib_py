@@ -1402,6 +1402,14 @@ def test_concat(df_simple):
                                   check_index_type=False,
                                   check_dtype=False)
 
+    navdata_a = NavData(pandas_df=pd.DataFrame({'a':[0],'b':[1],'c':[2],
+                                                'd':[3],'e':[4],'f':[5],
+                                                }))
+    navdata_b = navdata_a.concat(navdata_a.copy(),axis=0)
+    assert navdata_b.shape == (12,1)
+    navdata_b = navdata_a.concat(navdata_a.copy(),axis=1)
+    assert navdata_b.shape == (6,2)
+
 def test_concat_fails(df_simple):
     """Test when concat should fail.
 
@@ -1762,23 +1770,34 @@ def test_time_looping(csv_simple):
                             1.0001*np.ones([1, 1]),
                             1.0003*np.ones([1,1]),
                             1.50004*np.ones([1, 1]),
-                            1.499999*np.ones([1,1])))
+                            1.49999*np.ones([1,1])))
     compare_df = data.pandas_df()
     count = 0
-    for _, delta_t, measure in data.loop_time('times'):
+    # Testing when loop_time finds overlapping times
+    for time, delta_t, measure in data.loop_time('times', delta_t_decimals=2):
         if count == 0:
             np.testing.assert_almost_equal(delta_t, 0)
+            np.testing.assert_almost_equal(time, 0)
             row_num = [0,1]
         elif count == 1:
             np.testing.assert_almost_equal(delta_t, 1)
+            np.testing.assert_almost_equal(time, 1)
             row_num = [2,3]
         elif count == 2:
             np.testing.assert_almost_equal(delta_t, 0.5)
+            np.testing.assert_almost_equal(time, 1.5)
             row_num = [4,5]
         small_df = measure.pandas_df().reset_index(drop=True)
         expected_df = compare_df.iloc[row_num, :].reset_index(drop=True)
         pd.testing.assert_frame_equal(small_df, expected_df,
                                       check_index_type=False)
+        count += 1
+
+    # Testing for when loop_time finds only unique times
+    count = 0
+    expected_times = [0., 1.0001, 1.0003, 1.49999, 1.50004]
+    for time, _, measure in data.loop_time('times', delta_t_decimals=5):
+        np.testing.assert_almost_equal(time, expected_times[count])
         count += 1
 
 def test_col_looping(csv_simple):

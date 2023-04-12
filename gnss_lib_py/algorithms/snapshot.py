@@ -6,7 +6,7 @@ Weighted Least Squares algorithm.
 
 """
 
-__authors__ = "D. Knowles, Shubh Gupta, Bradley Collicott"
+__authors__ = "D. Knowles, A. Kanhere, Shubh Gupta, Bradley Collicott"
 __date__ = "25 Jan 2022"
 
 import warnings
@@ -16,8 +16,9 @@ import numpy as np
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
-def solve_wls(measurements, weight_type = None,
-              only_bias = False, tol = 1e-7, max_count = 20):
+def solve_wls(measurements, weight_type = None, only_bias = False,
+              receiver_state=None, tol = 1e-7, max_count = 20,
+              delta_t_decimals=-2):
     """Runs weighted least squares across each timestep.
 
     Runs weighted least squares across each timestep and adds a new
@@ -26,6 +27,15 @@ def solve_wls(measurements, weight_type = None,
     The option for only_bias allows the user to only calculate the clock
     bias if the receiver position is already known. Only the bias term
     in rx_est_m will be updated if only_bias is set to True.
+
+    If only_bias is set to True, then the receiver position must also
+    be passed in as the receiver_state
+
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Either estimated or ground truth receiver position in ECEF frame
+        in meters as an instance of the NavData class with the
+        following rows: ``x_rx*_m``, `y_rx*_m``, ``z_rx*_m``,
+        ``gps_millis``.
 
     Parameters
     ----------
@@ -36,11 +46,18 @@ def solve_wls(measurements, weight_type = None,
     only_bias : bool
         If True, then only the receiver clock bias is estimated.
         Otherwise, both position and clock bias are estimated.
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Only used if only_bias is set to True, see description above.
+        Receiver position in ECEF frame in meters as an instance of the
+        NavData class with at least the following rows: ``x_rx*_m``,
+        ``y_rx*_m``, ``z_rx*_m``, ``gps_millis``.
     tol : float
         Tolerance used for the convergence check.
     max_count : int
         Number of maximum iterations before process is aborted and
         solution returned.
+    delta_t_decimals : int
+            Decimal places after which times are considered equal.
 
     Returns
     -------
@@ -48,17 +65,28 @@ def solve_wls(measurements, weight_type = None,
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of
         the NavData class with shape (4 x # unique timesteps) and
-        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+        the following rows: gps_millis, x_rx_wls_m, y_rx_wls_m,
+        z_rx_wls_m, b_rx_wls_m, lat_rx_wls_deg, lon_rx_wls_deg,
+        alt_rx_wls_deg.
 
     """
 
     # check that all necessary rows exist
     measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","gps_millis"])
 
+    if only_bias:
+        if receiver_state is None:
+            raise RuntimeError("receiver_state needed in WLS " \
+                    + "for only_bias.")
+
+        rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
+        rx_idxs = receiver_state.find_wildcard_indexes(
+                                               rx_rows_to_find,
+                                               max_allow=1)
     states = []
 
     position = np.zeros((4,1))
-    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
+    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis", delta_t_decimals=delta_t_decimals):
 
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)
@@ -80,6 +108,14 @@ def solve_wls(measurements, weight_type = None,
             weights = None
 
         try:
+            if only_bias:
+                position = np.vstack((
+                                  receiver_state.where("gps_millis",
+                                  timestamp)[[rx_idxs["x_rx*_m"][0],
+                                              rx_idxs["y_rx*_m"][0],
+                                              rx_idxs["z_rx*_m"][0]]
+                                              ,0].reshape(-1,1),
+                                             position[3])) # clock bias
             position = wls(position, pos_sv_m, corr_pr_m, weights,
                            only_bias, tol, max_count)
             states.append([timestamp] + np.squeeze(position).tolist())
@@ -93,21 +129,21 @@ def solve_wls(measurements, weight_type = None,
 
     state_estimate = NavData()
     state_estimate["gps_millis"] = states[:,0]
-    state_estimate["x_rx_m"] = states[:,1]
-    state_estimate["y_rx_m"] = states[:,2]
-    state_estimate["z_rx_m"] = states[:,3]
-    state_estimate["b_rx_m"] = states[:,4]
+    state_estimate["x_rx_wls_m"] = states[:,1]
+    state_estimate["y_rx_wls_m"] = states[:,2]
+    state_estimate["z_rx_wls_m"] = states[:,3]
+    state_estimate["b_rx_wls_m"] = states[:,4]
 
     if np.isnan(states[:,1:]).all():
         warnings.warn("No valid state estimate computed in WLS, "\
                     + "returning NaNs.", RuntimeWarning)
         return state_estimate
 
-    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
-                                   "z_rx_m"]].reshape(3,-1))
-    state_estimate["lat_rx_deg"] = lat
-    state_estimate["lon_rx_deg"] = lon
-    state_estimate["alt_rx_deg"] = alt
+    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_wls_m","y_rx_wls_m",
+                                   "z_rx_wls_m"]].reshape(3,-1))
+    state_estimate["lat_rx_wls_deg"] = lat
+    state_estimate["lon_rx_wls_deg"] = lon
+    state_estimate["alt_rx_wls_deg"] = alt
 
     return state_estimate
 
@@ -158,7 +194,7 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
 
     count = 0
     num_svs = pos_sv_m.shape[0]
-    if num_svs < 4:
+    if num_svs < 4 and not only_bias:
         raise RuntimeError("Need at least four satellites for WLS.")
     pos_x_delta = np.inf*np.ones((4,1))
 

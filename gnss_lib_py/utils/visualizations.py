@@ -251,7 +251,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
     receiver_state : gnss_lib_py.parsers.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters as an instance of the NavData class with the
-        following rows: ``x_*_m``, ``y_*_m``, ``z_*_m``, ``gps_millis``.
+        following rows: ``x_rx*_m``, ``y_rx*_m``, ``z_rx*_m``, ``gps_millis``.
     save : bool
         Saves figure if true to file specified by ``fname`` or defaults
         to the Results folder otherwise.
