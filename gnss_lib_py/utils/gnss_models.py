@@ -54,7 +54,10 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
         NavData has to be created with the added corrections.
     """
     constellations = np.unique(measurements['gnss_id'])
-    measurements, ephem = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
+    if iono_params is None:
+        measurements, ephem, iono_params = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path, get_iono=True)
+    else:
+        measurements, ephem = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path, get_iono=False)
     info_rows = ['gps_millis', 'gnss_id', 'sv_id']
     sv_state_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
     rx_pos_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
@@ -257,7 +260,7 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     # and satellite positions in sv_posvel
     rx_ecef, rx_v_ecef, clk_bias, clk_drift = _extract_state_variables(state)
     sv_posvel, del_pos, true_range = _find_sv_location(gps_millis,
-                                                         rx_ecef, ephem, sv_posvel)
+                                                        rx_ecef, ephem, sv_posvel)
     # sv_pos, sv_vel, del_pos are both Nx3
     _, sv_vel = _extract_pos_vel_arr(sv_posvel)
 
@@ -271,7 +274,7 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     # TODO:  corrections instead of returning corrected pseudoranges
     # Obtain difference of velocity between satellite and receiver
 
-    del_vel = sv_vel - np.tile(np.reshape(rx_v_ecef, [3,1]), [1, len(sv_posvel)])
+    del_vel = sv_vel.reshape(3, -1) - np.tile(np.reshape(rx_v_ecef, [3,1]), [1, len(sv_posvel)])
     prange_rate = np.sum(del_vel*del_pos, axis=0)/true_range
     prange_rate += clk_drift
     doppler = -(consts.F1/consts.C) * (prange_rate)
@@ -448,9 +451,9 @@ def _calculate_clock_delay(gps_millis, ephem):
     clk_corr = (corr_polynomial - ephem['TGD'] + corr_relativistic)
 
     #Convert values to equivalent meters from seconds
-    clk_corr = consts.C*clk_corr
-    corr_polynomial = consts.C*corr_polynomial
-    corr_relativistic = consts.C*corr_relativistic
+    clk_corr = np.array(consts.C*clk_corr, ndmin=1)
+    corr_polynomial = np.array(consts.C*corr_polynomial, ndmin=1)
+    corr_relativistic = np.array(consts.C*corr_relativistic, ndmin=1)
 
     return clk_corr, corr_polynomial, corr_relativistic
 
@@ -491,6 +494,7 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
                         + " to find troposphere delay"
         sv_posvel = find_sv_states(gps_millis, ephem)
     sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    sv_pos = sv_pos.reshape(3, -1)
 
     # compute elevation and azimuth
     el_az = ecef_to_el_az(rx_ecef, sv_pos)
@@ -565,6 +569,7 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
                                 + " to find visible satellites"
         sv_posvel = find_sv_states(gps_millis, ephem)
     sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    sv_pos = sv_pos.reshape(3, -1)
     el_az = ecef_to_el_az(rx_ecef, sv_pos)
     el_r = np.deg2rad(el_az[0, :])
     az_r = np.deg2rad(el_az[1, :])

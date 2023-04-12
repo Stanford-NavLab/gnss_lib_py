@@ -79,6 +79,7 @@ class EphemerisManager():
         os.makedirs(igs_dir, exist_ok=True)
         self.data = None
         self.leapseconds = None
+        self.iono_params = None
 
     def get_ephemeris(self, timestamp, satellites):
         """Return ephemeris DataFrame for satellites input
@@ -238,6 +239,34 @@ class EphemerisManager():
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
         return data
+
+    def get_iono_params_gps(self, timestamp):
+        fileinfo = EphemerisManager.get_filepaths(timestamp)['nasa_daily_gps']
+        filepath = fileinfo['filepath']
+        url = fileinfo['url']
+        directory = os.path.split(filepath)[0]
+        filename = os.path.split(filepath)[1]
+        dest_filepath = os.path.join(self.data_directory, 'nasa', filename)
+        decompressed_filename = os.path.splitext(dest_filepath)[0]
+        if not os.path.isfile(decompressed_filename):
+            if url == 'gdc.cddis.eosdis.nasa.gov':
+                secure = True
+            else:
+                secure = False
+            try:
+                self.retrieve_file(url, directory, filename,
+                                   dest_filepath, secure)
+                self.decompress_file(dest_filepath)
+            except ftplib.error_perm as err:
+                print('ftp error')
+                return None
+        ion_alpha_str = georinex.rinexheader(decompressed_filename)['ION ALPHA'].replace('D', 'E')
+        ion_alpha = np.array(list(map(float, ion_alpha_str.split())))
+        ion_beta_str = georinex.rinexheader(decompressed_filename)['ION BETA'].replace('D', 'E')
+        ion_beta = np.array(list(map(float, ion_beta_str.split())))
+        iono_params = np.vstack((ion_alpha, ion_beta))
+
+        return iono_params
 
 
     @staticmethod

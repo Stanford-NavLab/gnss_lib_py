@@ -282,7 +282,7 @@ def find_sv_states(gps_millis, ephem):
     return sv_posvel
 
 
-def _filter_ephemeris_measurements(measurements, constellations, ephemeris_path):
+def _filter_ephemeris_measurements(measurements, constellations, ephemeris_path, get_iono=False):
     """Filter measurements based on constellations and ephemeris on received SVs
 
     Measurements are filtered to contain the intersection of received and
@@ -331,7 +331,11 @@ def _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
     # Download the ephemeris file for all the satellites in the measurement files
     ephemeris_manager = EphemerisManager(ephemeris_path)
     ephem = ephemeris_manager.get_ephemeris(start_time, lookup_sats)
-    return measurements_subset, ephem
+    if get_iono:
+        iono_params = ephemeris_manager.get_iono_params_gps(start_time)
+        return measurements_subset, ephem, iono_params
+    else:
+        return measurements_subset, ephem
 
 
 def _combine_gnss_sv_ids(measurement_frame):
