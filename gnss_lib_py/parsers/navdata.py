@@ -39,6 +39,9 @@ class NavData():
     ----------
     arr_dtype : numpy.dtype
         Type of values stored in data array
+    orig_dtypes : pandas.core.series.Series
+        Type of each original column if reading from a csv or Pandas
+        dataframe.
     array : np.ndarray
         Array containing data, dimension M x N
     map : Dict
@@ -46,9 +49,11 @@ class NavData():
     str_map : Dict
         Map of the form {pandas column name : {array value : string}}.
         Map is of the form {pandas column name : {}} for non string rows.
-    orig_dtypes : pandas.core.series.Series
-        Type of each original column if reading from a csv or Pandas
-        dataframe.
+    num_cols : int
+        Number of columns in array containing data, set to 0 by default
+        for empty NavData
+    curr_cols : int
+        Current number of column for iterator, set to 0 by default
 
     """
     def __init__(self, csv_path=None, pandas_df=None, numpy_array=None,
