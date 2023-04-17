@@ -109,6 +109,57 @@ def test_get_ephem(ephem_path, ephem_time, satellites):
     assert isinstance(ephem, NavData)
     assert isinstance(ephem_man.data, pd.DataFrame)
 
+    # check that there's one row per satellite
+    assert len(ephem) == len(satellites)
+
+    # time check for GPS and Galileo
+    if "gps_week" in ephem.rows:
+        for timestep in range(len(ephem)):
+            if not np.isnan(ephem["gps_week",timestep]):
+                gps_week, _ = gps_millis_to_tow(ephem["gps_millis",timestep])
+                assert gps_week == ephem["gps_week",timestep]
+
+    # Tests that NavData specific rows are present in ephem
+    navdata_rows = ['gps_millis', 'sv_id', 'gnss_id']
+    ephem.in_rows(navdata_rows)
+
+@pytest.mark.parametrize('satellites',
+                         [
+                          ['G01'],
+                          ['R01'],
+                          ['E01'],
+                         ])
+@pytest.mark.parametrize('ephem_time',
+                         [
+                          datetime(2020, 5, 16, 0, 0, 1, tzinfo=timezone.utc),
+                         ])
+def test_prev_ephem(ephem_path, ephem_time, satellites):
+    """Test scenario when timestamp is near after midnight.
+
+    Check type and rows.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+    ephem_time : datetime.datetime
+        Time at which state estimation is starting, the most recent ephemeris
+        file before the start time will be fetched.
+    satellites : List
+        List of satellites ['Const_IDSVID']
+
+    """
+
+    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem = ephem_man.get_ephemeris(ephem_time, satellites)
+
+    # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
+    assert isinstance(ephem, NavData)
+    assert isinstance(ephem_man.data, pd.DataFrame)
+
+    # check that there's one row per satellite
+    assert len(ephem) == len(satellites)
+
     # time check for GPS and Galileo
     if "gps_week" in ephem.rows:
         for timestep in range(len(ephem)):
@@ -152,8 +203,6 @@ def test_load_ephem(ephem_path, ephem_time, constellations):
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
     assert isinstance(ephem_man.data, pd.DataFrame)
-
-    print(np.unique(ephem_man.data["sv"]))
 
 @pytest.mark.parametrize('fileinfo',
     [

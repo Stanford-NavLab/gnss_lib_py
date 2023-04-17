@@ -1,5 +1,25 @@
 """Functions to download, save and process satellite ephemeris files.
 
+The Ephemeris Manager provides broadcast ephemeris for specific
+satellites at a specific timestep. The EphemerisManager class should be
+initialized and then the ``get_ephemeris`` function can be used to
+retrieve ephemeris for specific satellites. ``get_ephemeris`` returns
+the most recent broadcast ephemeris for the provided list of satellites
+that was broadcast BEFORE the provided timestamp. For example GPS daily
+ephemeris files contain data at a two hour frequency, so if the
+timestamp provided is 5am, then ``get_ephemeris`` will return the 4am
+data but not 6am. If provided a timestamp between midnight and 2am then
+the ephemeris from around midnight (might be the day before) will be
+provided. If no list of satellites is provided, then ``get_ephemeris``
+will return data for all satellites.
+
+When multiple observations are provided for the same satellite and same
+timestep, the Ephemeris Manager will only return the first instance.
+This is applicable when requesting ephemeris for multi-GNSS for the
+current day. Same-day multi GNSS data is pulled from  same day. For
+same-day multi-GNSS from https://igs.org/data/ which often has multiple
+observations.
+
 """
 
 __authors__ = "Shubh Gupta, Ashwin Kanhere"
@@ -82,15 +102,41 @@ class EphemerisManager():
         self.leapseconds = None
         self.verbose = verbose
 
-    def get_ephemeris(self, timestamp, satellites):
-        """Return ephemeris DataFrame for satellites input
+    def get_ephemeris(self, timestamp, satellites=None):
+        """Return ephemeris DataFrame for satellites input.
+
+        The Ephemeris Manager provides broadcast ephemeris for specific
+        satellites at a specific timestep. The EphemerisManager class
+        should be initialized and then the ``get_ephemeris`` function
+        can be used to retrieve ephemeris for specific satellites.
+        ``get_ephemeris`` returns the most recent broadcast ephemeris
+        for the provided list of satellites that was broadcast BEFORE
+        the provided timestamp. For example GPS daily ephemeris files
+        contain data at a two hour frequency, so if the timestamp
+        provided is 5am, then ``get_ephemeris`` will return the 4am data
+        but not 6am. If provided a timestamp between midnight and 2am
+        then the ephemeris from around midnight (might be the day
+        before) will be provided. If no list of satellites is provided,
+        then ``get_ephemeris`` will return data for all satellites.
+
+        When multiple observations are provided for the same satellite
+        and same timestep, the Ephemeris Manager will only return the
+        first instance. This is applicable when requesting ephemeris for
+        multi-GNSS for the current day. Same-day multi GNSS data is
+        pulled from  same day. For same-day multi-GNSS from
+        https://igs.org/data/ which often has multiple observations.
 
         Parameters
         ----------
         timestamp : datetime.datetime
-            Time of clock
+            Ephemeris data is returned for the timestamp day and
+            includes all broadcast ephemeris whose broadcast timestamps
+            happen before the given timestamp variable. Timezone should
+            be added manually and is interpreted as UTC if not added.
         satellites : List
-            List of satellites ['Const_IDSVID']
+            List of satellite IDs as a string, for example ['G01','E11',
+            'R06']. Defaults to None which returns get_ephemeris for
+            all satellites.
 
         Returns
         -------
@@ -110,7 +156,26 @@ class EphemerisManager():
         data = self.data
         if satellites:
             data = data.loc[data['sv'].isin(satellites)]
-        data = data.loc[data['time'] < timestamp]
+        time_cropped_data = data.loc[data['time'] < timestamp]
+        if len(time_cropped_data) == 0 and len(data) != 0:
+            # if no data available for the given day, try looking at the
+            # previous day, may occur when a time near to midnight
+            # is provided. For example, 12:01am
+            prev_day_timestamp = datetime(year=timestamp.year,
+                                          month=timestamp.month,
+                                          day=timestamp.day - 1,
+                                          hour=23,
+                                          minute=59,
+                                          second=59,
+                                          microsecond=999999,
+                                          tzinfo=timezone.utc,
+                                          )
+            self.load_data(prev_day_timestamp, systems, False)
+            data = self.data
+            if satellites:
+                data = data.loc[data['sv'].isin(satellites)]
+        else:
+            data = time_cropped_data
         data = data.sort_values('time').groupby(
             'sv').last().drop(labels = 'index', axis = 'columns')
         data['Leap Seconds'] = self.leapseconds
@@ -147,11 +212,14 @@ class EphemerisManager():
         Parameters
         ----------
         timestamp : datetime.datetime
-            Time of clock
+            Ephemeris data is returned for the timestamp day and
+            includes all broadcast ephemeris whose broadcast timestamps
+            happen before the given timestamp variable. Timezone should
+            be added manually and is interpreted as UTC if not added.
         constellations : Set
-            Set of satellites {"ConstIDSVID"}
+            Set of satellites For example, set({"G","R","E"}).
         same_day : bool
-            Whether or not ephemeris is for same-day aquisition
+            Whether or not ephemeris is for same-day aquisition.
 
         """
         filepaths = EphemerisManager.get_filepaths(timestamp)
@@ -228,11 +296,6 @@ class EphemerisManager():
         if not self.leapseconds:
             self.leapseconds = EphemerisManager.load_leapseconds(
                 decompressed_filename)
-        print('Starting time counter')
-        print('Decompressed file name', decompressed_filename)
-        print('Constellations', constellations)
-        import time
-        tic = time.time()
         if constellations is not None:
             data = georinex.load(decompressed_filename,
                                  use=constellations,
@@ -240,7 +303,6 @@ class EphemerisManager():
         else:
             data = georinex.load(decompressed_filename,
                                  verbose=self.verbose).to_dataframe()
-        print("Time taken upto here", time.time()-tic)
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = decompressed_filename
