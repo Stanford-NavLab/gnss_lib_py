@@ -103,7 +103,12 @@ def test_get_ephem(ephem_path, ephem_time, satellites):
     """
 
     ephem_man = EphemerisManager(ephem_path, verbose=True)
-    ephem = ephem_man.get_ephemeris(ephem_time, satellites)
+    if ephem_time.tzinfo is None:
+        with pytest.warns(RuntimeWarning):
+            ephem = ephem_man.get_ephemeris(ephem_time, satellites)
+    else:
+        ephem = ephem_man.get_ephemeris(ephem_time, satellites)
+
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
     assert isinstance(ephem, NavData)

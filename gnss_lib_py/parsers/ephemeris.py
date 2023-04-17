@@ -39,7 +39,7 @@ import pandas as pd
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
+from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, tzinfo_to_utc
 
 
 class EphemerisManager():
@@ -150,10 +150,8 @@ class EphemerisManager():
 
         """
         systems = EphemerisManager.get_constellations(satellites)
-        if timestamp.tzinfo is None \
-            or timestamp.tzinfo.utcoffset(timestamp) is None:
-            # add UTC timezone if datatime os offset-naive
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        # add UTC timezone if datatime os offset-naive
+        timestamp = tzinfo_to_utc(timestamp)
         if not isinstance(self.data, pd.DataFrame):
             same_day = (datetime.now(timezone.utc) - timestamp).days <= 0
             self.load_data(timestamp, systems, same_day)
@@ -195,7 +193,9 @@ class EphemerisManager():
         if "GPSWeek" in data.columns:
             data = data.rename(columns={"GPSWeek":"gps_week"})
             if "GALWeek" in data.columns:
-                data["gps_week"] = np.where(pd.isnull(data["gps_week"]), data["GALWeek"], data["gps_week"])
+                data["gps_week"] = np.where(pd.isnull(data["gps_week"]),
+                                                      data["GALWeek"],
+                                                      data["gps_week"])
         elif "GALWeek" in data.columns:
             data = data.rename(columns={"GALWeek":"gps_week"})
         if len(data) == 0:
@@ -363,6 +363,8 @@ class EphemerisManager():
                 if 'END OF HEADER' in line:
                     return None
 
+        return None
+
     @staticmethod
     def get_constellations(satellites):
         """Convert list of satellites to set
@@ -377,13 +379,13 @@ class EphemerisManager():
         systems : Set or None
             Set representation of satellites for which ephemeris is needed
         """
-        if type(satellites) is list:
+        if isinstance(satellites, list):
             systems = set()
             for sat in satellites:
                 systems.add(sat[0])
             return systems
-        else:
-            return None
+
+        return None
 
     def retrieve_file(self, url, directory, filename, dest_filepath):
         """Copy ephemeris file from FTP filepath to local directory.

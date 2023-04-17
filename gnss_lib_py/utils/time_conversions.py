@@ -57,7 +57,7 @@ def get_leap_seconds(gps_time):
     else:
         curr_time = GPS_EPOCH_0 + timedelta(milliseconds=gps_time)
         curr_time = curr_time.replace(tzinfo=timezone.utc)
-    curr_time = _check_tzinfo(curr_time)
+    curr_time = tzinfo_to_utc(curr_time)
     if curr_time < GPS_EPOCH_0:
         raise RuntimeError("Need input time after GPS epoch " \
                            + str(GPS_EPOCH_0))
@@ -120,7 +120,7 @@ def datetime_to_tow(t_datetime, add_leap_secs=True, verbose=False):
         GPS time of week [s].
 
     """
-    t_datetime = _check_tzinfo(t_datetime)
+    t_datetime = tzinfo_to_utc(t_datetime)
     if t_datetime < GPS_EPOCH_0:
         raise RuntimeError("Input time must be after GPS epoch " \
                          + str(GPS_EPOCH_0))
@@ -232,7 +232,7 @@ def datetime_to_unix_millis(t_datetime):
         Milliseconds since UNIX Epoch (1/1/1970 UTC).
 
     """
-    t_datetime = _check_tzinfo(t_datetime)
+    t_datetime = tzinfo_to_utc(t_datetime)
     unix_millis = 1000*(t_datetime - UNIX_EPOCH_0).total_seconds()
     return unix_millis
 
@@ -392,8 +392,11 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
         unix_millis = np.int64(datetime_to_unix_millis(t_utc))
     return unix_millis
 
-def _check_tzinfo(t_datetime):
+def tzinfo_to_utc(t_datetime):
     """Raises warning if time doesn't have timezone and converts to UTC.
+
+    If datetime object is offset-naive, then this function will
+    interpret the timezone as UTC and add the appropriate timezone info.
 
     Parameters
     ----------
@@ -408,7 +411,7 @@ def _check_tzinfo(t_datetime):
         converted to UTC if datetime was in local timezone.
 
     """
-    if not hasattr(t_datetime, 'tzinfo') or not t_datetime.tzinfo:
+    if not hasattr(t_datetime, 'tzinfo') or t_datetime.tzinfo is None:
         warnings.warn("No time zone info found in datetime, assuming UTC",\
                         RuntimeWarning)
         t_datetime = t_datetime.replace(tzinfo=timezone.utc)
