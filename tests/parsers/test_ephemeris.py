@@ -82,7 +82,7 @@ def remove_download_eph(ephem_download_path):
                          ])
 @pytest.mark.parametrize('ephem_time',
                          [
-                          datetime(2020, 5, 15, 3, 47, 48, tzinfo=timezone.utc),
+                          datetime(2020, 5, 15, 3, 47, 48),
                           datetime(2023, 3, 14, 23, 17, 13, tzinfo=timezone.utc),
                          ])
 def test_get_ephem(ephem_path, ephem_time, satellites):

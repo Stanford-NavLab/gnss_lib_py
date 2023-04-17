@@ -150,6 +150,10 @@ class EphemerisManager():
 
         """
         systems = EphemerisManager.get_constellations(satellites)
+        if timestamp.tzinfo is None \
+            or timestamp.tzinfo.utcoffset(timestamp) is None:
+            # add UTC timezone if datatime os offset-naive
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
         if not isinstance(self.data, pd.DataFrame):
             same_day = (datetime.now(timezone.utc) - timestamp).days <= 0
             self.load_data(timestamp, systems, same_day)
