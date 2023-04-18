@@ -156,13 +156,18 @@ class EphemerisManager():
             same_day = (datetime.now(timezone.utc) - timestamp).days <= 0
             self.load_data(timestamp, systems, same_day)
         data = self.data
-        if satellites:
+        if satellites is not None:
             data = data.loc[data['sv'].isin(satellites)]
         time_cropped_data = data.loc[data['time'] < timestamp]
-        if len(time_cropped_data) == 0 and len(data) != 0:
+        time_cropped_data = time_cropped_data.sort_values('time').groupby(
+            'sv').last().drop(labels = 'index', axis = 'columns')
+        if satellites is not None and len(time_cropped_data) < len(satellites):
             # if no data available for the given day, try looking at the
             # previous day, may occur when a time near to midnight
             # is provided. For example, 12:01am
+            if len(time_cropped_data) != 0:
+                satellites = list(set(satellites) - set(time_cropped_data.index))
+            systems = EphemerisManager.get_constellations(satellites)
             prev_day_timestamp = datetime(year=timestamp.year,
                                           month=timestamp.month,
                                           day=timestamp.day - 1,
@@ -173,13 +178,14 @@ class EphemerisManager():
                                           tzinfo=timezone.utc,
                                           )
             self.load_data(prev_day_timestamp, systems, False)
-            data = self.data
-            if satellites:
-                data = data.loc[data['sv'].isin(satellites)]
+            prev_data = self.data
+            if satellites is not None:
+                prev_data = prev_data.loc[prev_data['sv'].isin(satellites)]
+            prev_data = prev_data.sort_values('time').groupby(
+                'sv').last().drop(labels = 'index', axis = 'columns')
+            data = pd.concat((time_cropped_data,prev_data))
         else:
             data = time_cropped_data
-        data = data.sort_values('time').groupby(
-            'sv').last().drop(labels = 'index', axis = 'columns')
         data['Leap Seconds'] = self.leapseconds
         # Convert data DataFrame to NavData instance
         # Move sv to DataFrame columns, reset index

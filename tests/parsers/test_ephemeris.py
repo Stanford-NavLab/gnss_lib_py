@@ -131,12 +131,12 @@ def test_get_ephem(ephem_path, ephem_time, satellites):
 @pytest.mark.parametrize('satellites',
                          [
                           ['G01'],
-                          ['R01'],
                           ['E01'],
+                          ['G01','R01'],
                          ])
 @pytest.mark.parametrize('ephem_time',
                          [
-                          datetime(2020, 5, 16, 0, 0, 1, tzinfo=timezone.utc),
+                          datetime(2020, 5, 16, 0, 17, 1, tzinfo=timezone.utc),
                          ])
 def test_prev_ephem(ephem_path, ephem_time, satellites):
     """Test scenario when timestamp is near after midnight.
@@ -328,3 +328,20 @@ def test_get_constellation(ephem_path):
     ephem_man = EphemerisManager(ephem_path, verbose=True)
 
     assert ephem_man.get_constellations(set('R')) is None
+
+def test_load_leapseconds(ephem_path):
+    """Test load leapseconds.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+
+    """
+
+    ephem_man = EphemerisManager(ephem_path, verbose=True)
+
+    # check what happens when a file with an incomplete header is passed
+    incomplete_path = os.path.join(ephem_path,"nasa",
+                                   "brdc1370_incomplete.20n")
+    assert ephem_man.load_leapseconds(incomplete_path) is None
