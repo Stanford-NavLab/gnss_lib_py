@@ -471,13 +471,13 @@ class EphemerisManager():
         """
         if secure:
             ftp = FTP_TLS(url)
-            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             ftp.login()
+            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             ftp.prot_p()
         else:
             ftp = FTP(url)
-            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             ftp.login()
+            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         return ftp
 
     @staticmethod
