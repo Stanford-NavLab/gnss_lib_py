@@ -28,7 +28,6 @@ __date__ = "13 July 2021"
 import os
 import shutil
 import gzip
-import socket
 import ftplib
 from ftplib import FTP_TLS, FTP
 from datetime import datetime, timezone
@@ -430,6 +429,7 @@ class EphemerisManager():
             raise ftplib.error_perm(str(err) + ' Failed to retrieve ' \
                                   + src_filepath + ' from ' + url)
 
+        ftp.quit()
         self.decompress_file(dest_filepath)
 
     def decompress_file(self, filepath):
@@ -472,12 +472,10 @@ class EphemerisManager():
         if secure:
             ftp = FTP_TLS(url)
             ftp.login()
-            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             ftp.prot_p()
         else:
             ftp = FTP(url)
             ftp.login()
-            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return ftp
 
     @staticmethod
