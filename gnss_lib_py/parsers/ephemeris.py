@@ -430,6 +430,8 @@ class EphemerisManager():
                                   + src_filepath + ' from ' + url)
 
         ftp.quit()
+        if ftp is not None: # try closing if still active
+            ftp.close()
         self.decompress_file(dest_filepath)
 
     def decompress_file(self, filepath):
