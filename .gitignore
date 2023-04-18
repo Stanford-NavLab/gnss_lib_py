@@ -3,10 +3,6 @@ data/*
 # Including small datasets used for unit testing NavData objects
 !data/unit_test/
 
-# Ignoring large RINEX/SP3 files, required for running and testing
-data/unit_test/ephemeris/
-!data/unit_test/ephemeris/.gitkeep
-
 # development folder
 dev/*
 !dev/.gitkeep

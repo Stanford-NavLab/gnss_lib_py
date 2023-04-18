@@ -283,10 +283,10 @@ def test_tz_conversion():
     local_time = datetime(2022, 8, 10, 19, 51, 9)
     exp_utc_time = datetime(2022, 8, 10, 19, 51, 9, tzinfo=timezone.utc)
     with pytest.warns(RuntimeWarning):
-        out_utc_time = tc._check_tzinfo(local_time)
+        out_utc_time = tc.tzinfo_to_utc(local_time)
         assert exp_utc_time == out_utc_time
     # Check time conversion when timezone other than UTC is given
     us_western = py_timezone('US/Pacific')
     western_time = us_western.localize(datetime(2022, 8, 10, 12, 51, 9))
-    out_utc_time = tc._check_tzinfo(western_time)
+    out_utc_time = tc.tzinfo_to_utc(western_time)
     assert exp_utc_time == out_utc_time
