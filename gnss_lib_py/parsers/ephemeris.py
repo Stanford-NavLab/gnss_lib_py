@@ -28,6 +28,7 @@ __date__ = "13 July 2021"
 import os
 import shutil
 import gzip
+import socket
 import ftplib
 from ftplib import FTP_TLS, FTP
 from datetime import datetime, timezone
@@ -470,10 +471,12 @@ class EphemerisManager():
         """
         if secure:
             ftp = FTP_TLS(url)
+            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             ftp.login()
             ftp.prot_p()
         else:
             ftp = FTP(url)
+            ftp.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             ftp.login()
         return ftp
 
