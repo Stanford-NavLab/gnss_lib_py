@@ -333,13 +333,14 @@ def _filter_ephemeris_measurements(measurements, constellations, ephemeris_path,
     # preprocessing of received quantities for downloading ephemeris file
     eph_sv = _combine_gnss_sv_ids(measurements)
     lookup_sats = list(np.unique(eph_sv))
+    # Why use start time instead of end time?
     start_gps_millis = np.min(measurements['gps_millis'])
     start_time = gps_millis_to_datetime(start_gps_millis)
     # Download the ephemeris file for all the satellites in the measurement files
     ephemeris_manager = EphemerisManager(ephemeris_path)
     ephem = ephemeris_manager.get_ephemeris(start_time, lookup_sats)
     if get_iono:
-        iono_params = ephemeris_manager.get_iono_params_gps(start_time)
+        iono_params = ephemeris_manager.get_iono_params(start_time, 'nasa_daily_gps')
         return measurements_subset, ephem, iono_params
     else:
         return measurements_subset, ephem

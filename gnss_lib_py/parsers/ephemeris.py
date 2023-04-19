@@ -200,6 +200,30 @@ class EphemerisManager():
         data : pd.DataFrame
             Parsed ephemeris DataFrame
         """
+        decompressed_filename = self.get_decompressed_filename(fileinfo)
+        if decompressed_filename is None:
+            return pd.DataFrame()
+        if not self.leapseconds:
+            self.leapseconds = EphemerisManager.load_leapseconds(
+                decompressed_filename)
+        if constellations:
+            data = georinex.load(decompressed_filename,
+                                 use=constellations).to_dataframe()
+        else:
+            data = georinex.load(decompressed_filename).to_dataframe()
+        data.dropna(how='all', inplace=True)
+        data.reset_index(inplace=True)
+        data['source'] = decompressed_filename
+        data['t_oc'] = pd.to_numeric(data['time'] - datetime(1980, 1, 6, 0, 0, 0))
+        #TODO: Use a constant for the time of GPS clock start
+        data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
+        data['time'] = data['time'].dt.tz_localize('UTC')
+        data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
+                             'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
+        return data
+
+
+    def get_decompressed_filename(self, fileinfo):
         filepath = fileinfo['filepath']
         url = fileinfo['url']
         directory = os.path.split(filepath)[0]
@@ -220,46 +244,13 @@ class EphemerisManager():
                 self.decompress_file(dest_filepath)
             except ftplib.error_perm as err:
                 print('ftp error')
-                return pd.DataFrame()
-        if not self.leapseconds:
-            self.leapseconds = EphemerisManager.load_leapseconds(
-                decompressed_filename)
-        if constellations:
-            data = georinex.load(decompressed_filename,
-                                 use=constellations).to_dataframe()
-        else:
-            data = georinex.load(decompressed_filename).to_dataframe()
-        data.dropna(how='all', inplace=True)
-        data.reset_index(inplace=True)
-        data['source'] = decompressed_filename
-        data['t_oc'] = pd.to_numeric(data['time'] - datetime(1980, 1, 6, 0, 0, 0))
-        #TODO: Use a constant for the time of GPS clock start
-        data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
-        data['time'] = data['time'].dt.tz_localize('UTC')
-        data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
-                             'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
-        return data
-
-    def get_iono_params_gps(self, timestamp):
-        fileinfo = EphemerisManager.get_filepaths(timestamp)['nasa_daily_gps']
-        filepath = fileinfo['filepath']
-        url = fileinfo['url']
-        directory = os.path.split(filepath)[0]
-        filename = os.path.split(filepath)[1]
-        dest_filepath = os.path.join(self.data_directory, 'nasa', filename)
-        decompressed_filename = os.path.splitext(dest_filepath)[0]
-        if not os.path.isfile(decompressed_filename):
-            if url == 'gdc.cddis.eosdis.nasa.gov':
-                secure = True
-            else:
-                secure = False
-            try:
-                self.retrieve_file(url, directory, filename,
-                                   dest_filepath, secure)
-                self.decompress_file(dest_filepath)
-            except ftplib.error_perm as err:
-                print('ftp error')
                 return None
+
+        return decompressed_filename
+
+    def get_iono_params(self, timestamp, data_source):
+        fileinfo = EphemerisManager.get_filepaths(timestamp)[data_source]
+        decompressed_filename = self.get_decompressed_filename(fileinfo)
         ion_alpha_str = georinex.rinexheader(decompressed_filename)['ION ALPHA'].replace('D', 'E')
         ion_alpha = np.array(list(map(float, ion_alpha_str.split())))
         ion_beta_str = georinex.rinexheader(decompressed_filename)['ION BETA'].replace('D', 'E')
