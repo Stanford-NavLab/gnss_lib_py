@@ -2275,6 +2275,7 @@ def test_keep_cols_where(data, df_simple):
 
 
 def test_sort(data, df_simple):
+    """Test sorting function across simple dataframe."""
     df_sorted_int = df_simple.sort_values('integers').reset_index(drop=True)
     df_sorted_float = df_simple.sort_values('floats').reset_index(drop=True)
     data_sorted_int = data.sort('integers').pandas_df()
@@ -2284,10 +2285,22 @@ def test_sort(data, df_simple):
     pd.testing.assert_frame_equal(data_sorted_int, df_sorted_int)
     pd.testing.assert_frame_equal(df_sorted_float, data_sorted_float)
     pd.testing.assert_frame_equal(df_sorted_float, data_sorted_ind)
+    # test strings as well:
+    df_sorted_names = df_simple.sort_values('names').reset_index(drop=True)
+    data_sorted_names = data.sort('names').pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_names, data_sorted_names)
+
+    df_sorted_strings = df_simple.sort_values('strings').reset_index(drop=True)
+    data_sorted_strings = data.sort('strings').pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_strings, data_sorted_strings)
+
     # Test usecase when descending order is given
     df_sorted_int_des = df_simple.sort_values('integers', ascending=False).reset_index(drop=True)
-    data_sorted_int_des = data.sort('integers', order="descending").pandas_df()
+    data_sorted_int_des = data.sort('integers', ascending=False).pandas_df()
     pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)
-    # Test usecase when incorrect order is given
-    with pytest.raises(RuntimeError):
-        _ = data.sort('integers', order="equality")
+
+    # test inplace
+    data_sorted_int_des = data.copy()
+    data_sorted_int_des.sort('integers', ascending=False, inplace=True)
+    data_sorted_int_des = data_sorted_int_des.pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)

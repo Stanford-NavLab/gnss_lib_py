@@ -278,7 +278,7 @@ class NavData():
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
             lesser than or equal to ("leq") / in between ("between")
-            inclusive of the provided limits
+            inclusive of the provided limits / not equal to ("neq"))
 
         Returns
         -------
@@ -304,8 +304,8 @@ class NavData():
         condition : string
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
-            lesser than or equal to ("leq") / in between ("between")/
-            not equal to ("neq"))
+            lesser than or equal to ("leq") / in between ("between")
+            inclusive of the provided limits / not equal to ("neq"))
 
         Returns
         -------
@@ -407,34 +407,50 @@ class NavData():
         subset_navdata = self.copy(cols=keep_cols)
         return subset_navdata
 
-
-    def sort(self, key_idx=None, ind=None, order="ascending"):
+    def sort(self, order=None, ind=None, ascending=True,
+             inplace=False):
         """Sort values along given row or using given index
 
         Parameters
         ----------
-        key_idx : string/int
-            Key or index of the row in which conditions will be checked
+        order : string/int
+            Key or index of the row on which NavData will be sorted
         ind : list/np.ndarray
             Ordering of indices to be used for sorting
-        order : string
-            Order in which to sort: "ascending" or "descending"
+        ascending : bool
+            If true, sorts "ascending", otherwise sorts "descending"
+        inplace : bool
+            If False, will return new NavData instance with rows
+            renamed. If True, will rename data rows in the
+            current NavData instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after renaming
+            specified rows. If inplace is True, returns
+            None.
+
         """
         if ind is None:
-            assert key_idx is not None, \
-            "Provide row along which to sort because index is not given"
-            if order=="ascending":
-                ind = np.argsort(self[key_idx])
-            elif order=="descending":
-                ind = np.argsort(-self[key_idx])
+            assert order is not None, \
+            "Provide 'order' arg as row on which NavData is sorted"
+            if ascending:
+                ind = np.argsort(self[order])
             else:
-                raise RuntimeError("Can only sort in ascending or ", \
-                    "descending order")
-        new_navdata = NavData()
-        for row in self.rows:
-            new_navdata[row] = self[row][ind]
-        return new_navdata
+                ind = np.argsort(-self[order])
 
+        if not inplace:
+            new_navdata = self.copy()   # create copy to return
+        for row_idx in range(self.shape[0]):
+            if inplace:
+                self.array[row_idx,:] = self.array[row_idx,ind]
+            else:
+                new_navdata.array[row_idx,:] = new_navdata.array[row_idx,ind]
+
+        if inplace:
+            return None
+        return new_navdata
 
     def loop_time(self, time_row, delta_t_decimals=2):
         """Generator object to loop over columns from same times.
