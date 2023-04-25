@@ -292,18 +292,7 @@ class EphemerisManager():
         data : pd.DataFrame
             Parsed ephemeris DataFrame
         """
-        filepath = fileinfo['filepath']
-        url = fileinfo['url']
-        directory = os.path.split(filepath)[0]
-        filename = os.path.split(filepath)[1]
-        if url == 'igs-ftp.bkg.bund.de':
-            dest_filepath = os.path.join(self.data_directory, 'igs', filename)
-        else:
-            dest_filepath = os.path.join(self.data_directory, 'nasa', filename)
-        decompressed_filename = os.path.splitext(dest_filepath)[0]
-        if not os.path.isfile(decompressed_filename): # pragma: no cover
-            self.retrieve_file(url, directory, filename,
-                               dest_filepath)
+        decompressed_filename = self.get_decompressed_filename(fileinfo)
         if not self.leapseconds:
             self.leapseconds = EphemerisManager.load_leapseconds(
                 decompressed_filename)
@@ -331,23 +320,14 @@ class EphemerisManager():
         url = fileinfo['url']
         directory = os.path.split(filepath)[0]
         filename = os.path.split(filepath)[1]
-        if url == 'igs.bkg.bund.de':
+        if url == 'igs-ftp.bkg.bund.de':
             dest_filepath = os.path.join(self.data_directory, 'igs', filename)
         else:
             dest_filepath = os.path.join(self.data_directory, 'nasa', filename)
         decompressed_filename = os.path.splitext(dest_filepath)[0]
-        if not os.path.isfile(decompressed_filename):
-            if url == 'gdc.cddis.eosdis.nasa.gov':
-                secure = True
-            else:
-                secure = False
-            try:
-                self.retrieve_file(url, directory, filename,
-                                   dest_filepath, secure)
-                self.decompress_file(dest_filepath)
-            except ftplib.error_perm as err:
-                print('ftp error')
-                return None
+        if not os.path.isfile(decompressed_filename): # pragma: no cover
+            self.retrieve_file(url, directory, filename,
+                               dest_filepath)
 
         return decompressed_filename
 
