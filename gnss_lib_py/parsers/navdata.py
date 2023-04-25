@@ -265,20 +265,33 @@ class NavData():
         return new_navdata
 
     def where(self, key_idx, value, condition="eq"):
-        """Return NavData where conditions are met for the given row
+        """Return NavData where conditions are met for the given row.
+
+        For string rows, only the "eq" and "neq" conditions are valid.
+        The "value" argument can contain either a string, np.nan or an
+        array-like object of strings. If an array-like object of strings
+        is passed in then np.isin() is used to check the condition.
+
+        For non-string rows, all valid conditions are listed in the
+        "condition" argument description. The "value" argument can either
+        contain a numeric or an array-like object of numerics for both
+        the "eq" and "neq" conditions.
+        For the "between" condition, the two limit values must be passed
+        into the "value" argument as an array-like object.
 
         Parameters
         ----------
         key_idx : string/int
             Key or index of the row in which conditions will be checked
-        value : float/list
-            Number (or list of two numbers for ) to compare array values
-            against
+        value : float/int/str/array-like
+            Value that the row is checked against, array-like object
+            possible for "eq", "neq", or "between" conditions.
         condition : string
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
             lesser than or equal to ("leq") / in between ("between")
-            inclusive of the provided limits / not equal to ("neq"))
+            inclusive of the provided limits / not equal to ("neq")/
+            is in value subset ("isin") / not in value subset (nisin))
 
         Returns
         -------
@@ -293,19 +306,33 @@ class NavData():
         return new_navdata
 
     def argwhere(self, key_idx, value, condition="eq"):
-        """Return columns where conditions are met for the given row
+        """Return columns where conditions are met for the given row.
+
+        For string rows, only the "eq" and "neq" conditions are valid.
+        The "value" argument can contain either a string, np.nan or an
+        array-like object of strings. If an array-like object of strings
+        is passed in then np.isin() is used to check the condition.
+
+        For non-string rows, all valid conditions are listed in the
+        "condition" argument description. The "value" argument can either
+        contain a numeric or an array-like object of numerics for both
+        the "eq" and "neq" conditions.
+        For the "between" condition, the two limit values must be passed
+        into the "value" argument as an array-like object.
 
         Parameters
         ----------
         key_idx : string/int
             Key or index of the row in which conditions will be checked
-        value : float/list
-            Number (or list of two numbers for ) to compare array values against
+        value : float/int/str/array-like
+            Value that the row is checked against, array-like object
+            possible for "eq", "neq", or "between" conditions.
         condition : string
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
             lesser than or equal to ("leq") / in between ("between")
-            inclusive of the provided limits / not equal to ("neq"))
+            inclusive of the provided limits / not equal to ("neq")/
+            is in value subset ("isin") / not in value subset (nisin))
 
         Returns
         -------
@@ -314,41 +341,52 @@ class NavData():
             for specified row
         """
         rows, _ = self._parse_key_idx(key_idx)
-        inv_map = self.inv_map
         row_list, row_str = self._get_str_rows(rows)
         if len(row_list)>1:
             error_msg = "where does not currently support multiple rows"
             raise NotImplementedError(error_msg)
         row = row_list[0]
         row_str = row_str[0]
-        new_cols = None
+        new_cols = np.array([])
         if row_str:
             # Values in row are strings
             if condition not in ("eq","neq"):
-                raise ValueError("Inequality comparison not valid for strings")
-            key = inv_map[row]
-            for str_key, str_value in self.str_map[key].items():
-                if str_value==str(value):
-                    if condition == "eq":
-                        new_cols = np.argwhere(self.array[row, :]==str_key)
-                        break
-                    # condition == "neq"
-                    new_cols = np.argwhere(self.array[row, :]!=str_key)
-                    break
-            if new_cols is None:
-                new_cols = np.array([])
+                raise ValueError("Unsupported where condition for strings")
+            if isinstance(value,str):
+                str_check = [str(value)]
+            elif isinstance(value,(np.ndarray,list,tuple,set)):
+                str_check = [str(v) for v in value]
+            elif np.isnan(value):
+                str_check = [str(np.nan)]
+            else:
+                raise ValueError("Value must be string or array-like" \
+                               + "for string condition checks")
             # Extract columns where condition holds true and return new NavData
+            if condition == "eq":
+                new_cols = np.argwhere(np.isin(self[row, :],str_check))
+            else:
+                # condition == "neq"
+                new_cols = np.argwhere(~np.isin(self[row, :],str_check))
+
         else:
             # Values in row are numerical
             # Find columns where value can be found and return new NavData
             if condition=="eq":
-                if not isinstance(value,str) and np.isnan(value):
+                if isinstance(value,(np.ndarray,list,tuple,set)):
+                    # use numpy's isin() condition if list of values
+                    new_cols = np.argwhere(np.isin(self.array[row, :],
+                                           value))
+                elif not isinstance(value,str) and np.isnan(value):
                     # check isinstance b/c np.isnan can't handle strings
                     new_cols = np.argwhere(np.isnan(self.array[row, :]))
                 else:
                     new_cols = np.argwhere(self.array[row, :]==value)
             elif condition=="neq":
-                if not isinstance(value,str) and np.isnan(value):
+                if isinstance(value,(np.ndarray,list,tuple,set)):
+                    # use numpy's isin() condition if list of values
+                    new_cols = np.argwhere(~np.isin(self.array[row, :],
+                                           value))
+                elif not isinstance(value,str) and np.isnan(value):
                     # check isinstance b/c np.isnan can't handle strings
                     new_cols = np.argwhere(~np.isnan(self.array[row, :]))
                 else:
@@ -369,43 +407,6 @@ class NavData():
                 raise ValueError("Condition not implemented")
         new_cols = np.squeeze(new_cols)
         return new_cols
-
-
-    def keep_cols_where(self, key_idx, values, condition='eq'):
-        """Return NavData containing columns that contain value from given array
-
-        Given a list of values, for the equality condition the returned
-        subset of measurements will contain one of the given values in
-        the given key_idx; for the inequality condition the returned
-        subset of measurements will contain none of the given values in
-        the given key_idx.
-
-        Parameters
-        ----------
-        key_idx : string/int
-            Key or index of the row in which conditions will be checked
-        values : list
-            List of values that form equality/inequality criteria for the
-            NavData subset that is returned.
-        condition : string
-            Only equality ("eq") and not-equal ("neq") condition types
-            are supported
-
-        Returns
-        -------
-        subset_navdata : gnss_lib_py.parsers.navdata.NavData
-            NavData containing values in the key_idx that satisfy the
-            condition for the given values list
-        """
-        keep_cols = []
-        for value in values:
-            cols = self.argwhere(key_idx, value, condition)
-            if isinstance(cols, np.ndarray) and np.size(cols)==1:
-                cols = [cols]
-            keep_cols.extend(cols)
-        keep_cols = np.sort(keep_cols)
-        subset_navdata = self.copy(cols=keep_cols)
-        return subset_navdata
 
     def sort(self, order=None, ind=None, ascending=True,
              inplace=False):
