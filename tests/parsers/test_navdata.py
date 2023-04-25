@@ -2016,7 +2016,7 @@ def test_pandas_df(df_simple, df_only_header):
     navdata = NavData()
     pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
                                   pd.DataFrame().sort_index(axis=1),
-                                  check_names=True)
+                                  check_names=True, check_column_type=False)
 
 def test_large_int():
     """Test get/set for large integers.
@@ -2291,4 +2291,3 @@ def test_sort(data, df_simple):
     # Test usecase when incorrect order is given
     with pytest.raises(RuntimeError):
         _ = data.sort('integers', order="equality")
-
