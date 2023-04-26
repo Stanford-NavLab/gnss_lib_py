@@ -270,12 +270,20 @@ class NavData():
         For string rows, only the "eq" and "neq" conditions are valid.
         The "value" argument can contain either a string, np.nan or an
         array-like object of strings. If an array-like object of strings
-        is passed in then np.isin() is used to check the condition.
+        is passed in then np.isin() is used to check the condition
+        meaning that the returned subset will contain one of the values
+        in the "value" array-like object for the "eq" condition or none
+        of the values in the "value" array-like object for the "neq"
+        condition.
 
         For non-string rows, all valid conditions are listed in the
         "condition" argument description. The "value" argument can either
         contain a numeric or an array-like object of numerics for both
         the "eq" and "neq" conditions.
+        If an array-like object is passed then the returned subset will
+        contain one of the values in the "value" array-like object for
+        the "eq" condition or none of the values in the "value"
+        array-like object for the "neq" condition.
         For the "between" condition, the two limit values must be passed
         into the "value" argument as an array-like object.
 
@@ -290,8 +298,7 @@ class NavData():
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
             lesser than or equal to ("leq") / in between ("between")
-            inclusive of the provided limits / not equal to ("neq")/
-            is in value subset ("isin") / not in value subset (nisin))
+            inclusive of the provided limits / not equal to ("neq"))
 
         Returns
         -------
@@ -311,12 +318,20 @@ class NavData():
         For string rows, only the "eq" and "neq" conditions are valid.
         The "value" argument can contain either a string, np.nan or an
         array-like object of strings. If an array-like object of strings
-        is passed in then np.isin() is used to check the condition.
+        is passed in then np.isin() is used to check the condition
+        meaning that the returned subset will contain one of the values
+        in the "value" array-like object for the "eq" condition or none
+        of the values in the "value" array-like object for the "neq"
+        condition.
 
         For non-string rows, all valid conditions are listed in the
         "condition" argument description. The "value" argument can either
         contain a numeric or an array-like object of numerics for both
         the "eq" and "neq" conditions.
+        If an array-like object is passed then the returned subset will
+        contain one of the values in the "value" array-like object for
+        the "eq" condition or none of the values in the "value"
+        array-like object for the "neq" condition.
         For the "between" condition, the two limit values must be passed
         into the "value" argument as an array-like object.
 
@@ -331,8 +346,7 @@ class NavData():
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
             lesser than or equal to ("leq") / in between ("between")
-            inclusive of the provided limits / not equal to ("neq")/
-            is in value subset ("isin") / not in value subset (nisin))
+            inclusive of the provided limits / not equal to ("neq"))
 
         Returns
         -------
