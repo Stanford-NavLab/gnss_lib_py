@@ -12,8 +12,10 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.parsers.smart_loc import SmartLocRaw, remove_nlos, \
                                         calculate_gt_ecef, calculate_gt_vel
+
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -109,10 +111,14 @@ def test_smartloc_raw_df_equivalence(smartloc_raw, pd_df):
     """
     # Also tests if strings are being converted back correctly
     measure_df = smartloc_raw.pandas_df()
+    measure_df["heading_rx_gt_rad"] = -measure_df["heading_rx_gt_rad"]  + np.pi/2.
+    measure_df["heading_rx_gt_rad"] = wrap_0_to_2pi(measure_df["heading_rx_gt_rad"])
     inverse_row_map = {v : k for k,v in smartloc_raw._row_map().items()}
     measure_df.rename(columns=inverse_row_map, inplace=True)
     measure_df.drop(columns='gps_millis',inplace=True)
     pd_df['GNSS identifier (gnssId) []'] = pd_df['GNSS identifier (gnssId) []'].str.lower()
+    pd_df.drop(columns="GPSWeek [weeks]",inplace=True)
+    pd_df.drop(columns="GPSSecondsOfWeek [s]",inplace=True)
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
                                   measure_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
@@ -266,5 +272,3 @@ def test_calculate_gt_vel_ecef(smartloc_raw):
                           'az_rx_gt_mps2',])
     old_shape[0] = old_shape[0] + 6
     np.testing.assert_equal(old_shape, new_shape)
-
-
