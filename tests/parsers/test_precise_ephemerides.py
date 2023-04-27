@@ -22,14 +22,8 @@ from gnss_lib_py.parsers.precise_ephemerides import multi_gnss_from_precise_eph
 from gnss_lib_py.parsers.precise_ephemerides import sv_gps_from_brdcst_eph
 from gnss_lib_py.parsers.precise_ephemerides import sp3_snapshot, clk_snapshot
 from gnss_lib_py.parsers.precise_ephemerides import extract_sp3, extract_clk
+from gnss_lib_py.parsers.precise_ephemerides import NUMSATS
 import gnss_lib_py.utils.constants as consts
-
-# Define the number of sats to create arrays for
-NUMSATS = {'gps': (32, 'G'),
-           'galileo': (36, 'E'),
-           'beidou': (46, 'C'),
-           'glonass': (24, 'R'),
-           'qzss': (3, 'J')}
 
 # Define the no. of samples to test functions:test_gps_sp3_funcs,
 # test_gps_clk_funcs, test_glonass_sp3_funcs, test_glonass_clk_funcs

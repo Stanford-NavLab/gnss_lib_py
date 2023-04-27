@@ -53,6 +53,8 @@ class EphemerisManager():
         Ephemeris parameters
     leapseconds : int
         Leap seconds to add to UTC time to get GPS time
+    verbose : bool
+        If true, prints debugging statements.
 
     Notes
     -----

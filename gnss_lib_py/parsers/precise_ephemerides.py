@@ -24,7 +24,7 @@ import gnss_lib_py.utils.constants as consts
 NUMSATS = {'gps': (32, 'G'),
            'galileo': (36, 'E'),
            'beidou': (46, 'C'),
-           'glonass': (24, 'R'),
+           'glonass': (26, 'R'), # 26 total GLONASS satellites in orbit
            'qzss': (3, 'J')}
 
 class Sp3:
@@ -501,6 +501,14 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
     # Compute satellite information for desired time steps
     unique_timesteps = np.unique(navdata["gps_millis"])
 
+    # add satellite indexes if not present already.
+    sv_idx_keys = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
+                'vx_sv_mps','vy_sv_mps','vz_sv_mps', \
+                'b_sv_m', 'b_dot_sv_mps']
+    for sv_idx_key in sv_idx_keys:
+        if sv_idx_key not in navdata.rows:
+            navdata[sv_idx_key] = np.nan
+
     for t_idx, timestep in enumerate(unique_timesteps):
 
         # Compute indices where gps_millis match, sort them
@@ -514,18 +522,18 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
             print('misc: ', navdata['gps_millis', sorted_idxs], \
                             navdata['gnss_id', sorted_idxs], \
                             navdata['sv_id', sorted_idxs], \
-                            navdata['signal_type', sorted_idxs])
+                            )
 
-        # this if else condition can be removed later after navdata has been
-        # fixed to represent one data point as an array as well
-        if len(sorted_idxs)==1:
-            visible_sats = np.array([navdata["sv_id", sorted_idxs]])
-        else:
-            visible_sats = navdata["sv_id", sorted_idxs]
+        visible_sats = np.atleast_1d(navdata["sv_id", sorted_idxs])
 
         for sv_idx, prn in enumerate(visible_sats):
 
             prn = int(prn)
+
+            # continue if no sp3 or clk data availble
+            if len(sp3_parsed_file[prn].tym) == 0 \
+                or len(clk_parsed_file[prn].tym) == 0:
+                continue
 
             # Perform nearest time step search to compute iref values for sp3 and clk
             sp3_iref = np.argmin(abs(np.array(sp3_parsed_file[prn].tym) - \
@@ -613,46 +621,19 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
                           navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] - consts.C * satdrift_clk)
                 print(' ')
 
-            # update x_sv_m of navdata with the estimated values from .sp3 files
+            # update *_sv_m of navdata with the estimated values from .sp3 files
             navdata['x_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[0]])
-            if not (navdata["x_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[0] == 0.0):
-                raise RuntimeError("x_sv_m of navdata not correctly updated")
-
-            # update y_sv_m of navdata with the estimated values from .sp3 files
             navdata['y_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[1]])
-            if not (navdata["y_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[1] == 0.0):
-                raise RuntimeError("y_sv_m of navdata not correctly updated")
-
-            # update z_sv_m of navdata with the estimated values from .sp3 files
             navdata['z_sv_m', sorted_idxs[sv_idx]] = np.array([satpos_sp3[2]])
-            if not (navdata["z_sv_m", sorted_idxs[sv_idx]] - satpos_sp3[2] == 0.0):
-                raise RuntimeError("z_sv_m of navdata not correctly updated")
 
-            # update vx_sv_mps of navdata with the estimated values from .sp3 files
+            # update v*_sv_mps of navdata with the estimated values from .sp3 files
             navdata["vx_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[0]])
-            if not (navdata["vx_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[0] == 0.0):
-                raise RuntimeError("vx_sv_mps of navdata not correctly updated")
-
-            # update vy_sv_mps of navdata with the estimated values from .sp3 files
             navdata["vy_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[1]])
-            if not (navdata["vy_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[1] == 0.0):
-                raise RuntimeError("vy_sv_mps of navdata not correctly updated")
-
-            # update vz_sv_mps of navdata with the estimated values from .sp3 files
             navdata["vz_sv_mps", sorted_idxs[sv_idx]] = np.array([satvel_sp3[2]])
-            if not (navdata["vz_sv_mps", sorted_idxs[sv_idx]] - satvel_sp3[2] == 0.0):
-                raise RuntimeError("vz_sv_mps of navdata not correctly updated")
 
-            # update b_sv_m of navdata with the estimated values from .clk files
+            # update clock data of navdata with the estimated values from .clk files
             navdata["b_sv_m", sorted_idxs[sv_idx]] = np.array([consts.C * satbias_clk])
-            if not (navdata["b_sv_m", sorted_idxs[sv_idx]] - consts.C * satbias_clk == 0.0):
-                raise RuntimeError("b_sv_m of navdata not correctly updated")
-
-            # update b_dot_sv_mps of navdata with the estimated values from .clk files
             navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] = np.array([consts.C * satdrift_clk])
-            if not (navdata["b_dot_sv_mps", sorted_idxs[sv_idx]] - \
-                                            consts.C * satdrift_clk == 0.0):
-                raise RuntimeError("b_dot_sv_mps of navdata not correctly updated")
 
     return navdata
 
@@ -664,10 +645,13 @@ def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
-    sp3_parsed_file : list
-        Instance with list of gnss_lib_py.parsers.precise_ephemerides.Sp3
-    clk_parsed_file : list
-        Instance with array of gnss_lib_py.parsers.precise_ephemerides.Clk
+    sp3_path : path
+        File path for .sp3 file to extract precise ephemerides
+    clk_path : path
+        File path for .clk file to extract precise ephemerides
+    gnss_consts : array-like
+        The GNSS constellations for which you want to extract precise
+        ephemeris, (e.g. ['gps','glonass'])
     verbose : bool
         Flag (True/False) for whether to print intermediate steps useful
         for debugging/reviewing (the default is False)
@@ -743,7 +727,6 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
             print('misc: ', navdata['gps_millis', sorted_idxs], \
                             navdata['gnss_id', sorted_idxs], \
                             navdata['sv_id', sorted_idxs], \
-                            navdata['signal_type', sorted_idxs], \
                             desired_sats, rxdatetime)
 
             satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
@@ -777,34 +760,14 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
                       np.linalg.norm(satvel_ephemeris - satvel_android, axis=1) )
             print(' ')
 
-        # update x_sv_m of navdata with the estimated values from .n files
+        # update *_sv_m of navdata with the estimated values from .n files
         navdata["x_sv_m", sorted_idxs] = satpos_ephemeris[:,0]
-        if not max(abs(navdata["x_sv_m", sorted_idxs] - satpos_ephemeris[:,0])) == 0.0:
-            raise RuntimeError("x_sv_m of navdata not correctly updated")
-
-        # update y_sv_m of navdata with the estimated values from .n files
         navdata["y_sv_m", sorted_idxs] = satpos_ephemeris[:,1]
-        if not max(abs(navdata["y_sv_m", sorted_idxs] - satpos_ephemeris[:,1])) == 0.0:
-            raise RuntimeError("y_sv_m of navdata not correctly updated")
-
-        # update z_sv_m of navdata with the estimated values from .n files
         navdata["z_sv_m", sorted_idxs] = satpos_ephemeris[:,2]
-        if not max(abs(navdata["z_sv_m", sorted_idxs] - satpos_ephemeris[:,2])) == 0.0:
-            raise RuntimeError("z_sv_m of navdata not correctly updated")
 
-        # update vx_sv_mps of navdata with the estimated values from .n files
+        # update v*_sv_mps of navdata with the estimated values from .n files
         navdata["vx_sv_mps", sorted_idxs] = satvel_ephemeris[:,0]
-        if not max(abs(navdata["vx_sv_mps", sorted_idxs] - satvel_ephemeris[:,0])) == 0.0:
-            raise RuntimeError("vx_sv_mps of navdata not correctly updated")
-
-        # update vy_sv_mps of navdata with the estimated values from .n files
         navdata["vy_sv_mps", sorted_idxs] = satvel_ephemeris[:,1]
-        if not max(abs(navdata["vy_sv_mps", sorted_idxs] - satvel_ephemeris[:,1])) == 0.0:
-            raise RuntimeError("vy_sv_mps of navdata not correctly updated")
-
-        # update vz_sv_mps of navdata with the estimated values from .n files
         navdata["vz_sv_mps", sorted_idxs] = satvel_ephemeris[:,2]
-        if not max(abs(navdata["vz_sv_mps", sorted_idxs] - satvel_ephemeris[:,2])) == 0.0:
-            raise RuntimeError("vz_sv_mps of navdata not correctly updated")
 
     return navdata
