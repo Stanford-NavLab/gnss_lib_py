@@ -634,7 +634,7 @@ def test_gt_alt_nan(root_path_2022):
     gt_2022_nan = os.path.join(root_path_2022, 'alt_nan_ground_truth.csv')
     with pytest.warns(RuntimeWarning):
         gt_2022 = android.AndroidGroundTruth2022(gt_2022_nan)
-        np.testing.assert_almost_equal(gt_2022['alt_gt_m'],
+        np.testing.assert_almost_equal(gt_2022['alt_rx_gt_m'],
                                        np.zeros(len(gt_2022)))
 
 def test_remove_all_data(derived_path_xl):

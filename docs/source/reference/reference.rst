@@ -175,6 +175,8 @@ State estimate naming conventions are as follows:
 * :code:`x_rx_m` : (float) receiver ECEF x position estimate in meters.
 * :code:`y_rx_m` : (float) receiver ECEF y position estimate in meters.
 * :code:`z_rx_m` : (float) receiver ECEF z position estimate in meters.
+* :code:`v_rx_mps` : (float) receiver total velocity estimate in
+  meters per second.
 * :code:`vx_rx_mps` : (float) receiver ECEF x velocity estimate in
   meters per second.
 * :code:`vy_rx_mps` : (float) receiver ECEF y velocity estimate in
@@ -182,6 +184,8 @@ State estimate naming conventions are as follows:
 * :code:`vz_rx_mps` : (float) receiver ECEF z velocity estimate in
   meters per second.
 * :code:`ax_rx_mps2` : (float) receiver ECEF x acceleration estimate in
+  meters per second squared.
+* :code:`a_rx_mps2` : (float) receiver total acceleration estimate in
   meters per second squared.
 * :code:`ay_rx_mps2` : (float) receiver ECEF y acceleration estimate in
   meters per second squared.
@@ -196,6 +200,9 @@ State estimate naming conventions are as follows:
   degrees.
 * :code:`alt_rx_m` : (float) receiver altitude position estimate in
   meters. Referenced to the WGS-84 ellipsoid.
+* :code:`heading_rx_rad` : (float) receiver heading estimate in radians
+  where 0 radians is North and pi/2 radians is East, etc.
+  Assumed to be radians in the range between 0 and 2pi.
 
 Receiver ground truth naming conventions are as follows:
 
@@ -209,19 +216,31 @@ Receiver ground truth naming conventions are as follows:
   meters.
 * :code:`z_rx_gt_m` : (float) receiver ECEF z ground truth position in
   meters.
+* :code:`v_rx_gt_mps` : (float) receiver total velocity ground truth in
+  meters per second.
 * :code:`vx_rx_gt_mps` : (float) receiver ECEF x velocity ground truth
   in meters per second.
 * :code:`vy_rx_gt_mps` : (float) receiver ECEF y velocity ground truth
   in meters per second.
 * :code:`vz_rx_gt_mps` : (float) receiver ECEF z velocity ground truth
   in meters per second.
+* :code:`a_rx_gt_mps2` : (float) receiver total acceleration estimate in
+  meters per second squared.
+* :code:`ax_rx_gt_mps2` : (float) receiver ECEF x acceleration ground truth
+  in meters per second squared.
+* :code:`ay_rx_gt_mps2` : (float) receiver ECEF y acceleration ground truth
+  in meters per second squared.
+* :code:`az_rx_gt_mps2` : (float) receiver ECEF z acceleration ground truth
+  in meters per second squared.
 * :code:`lat_rx_gt_deg` : (float) receiver ground truth latitude in
   degrees.
 * :code:`lon_rx_gt_deg` : (float) receiver ground truth longitude in
   degrees.
 * :code:`alt_rx_gt_m` : (float) receiver ground truth altitude in meters.
   Referenced to the WGS-84 ellipsoid.
-
+* :code:`heading_rx_gt_rad` : (float) receiver heading estimate in
+  radians where 0 radians is North and pi/2 radians is East, etc.
+  Assumed to be radians in the range between 0 and 2pi.
 
 Module Level Function References
 --------------------------------

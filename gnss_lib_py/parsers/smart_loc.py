@@ -8,7 +8,7 @@ __date__ = "02 Apr 2023"
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.coordinates import LocalCoord, geodetic_to_ecef
+from gnss_lib_py.utils.coordinates import LocalCoord, geodetic_to_ecef, wrap_0_to_2pi
 from gnss_lib_py.utils.time_conversions import tow_to_gps_millis
 
 
@@ -56,6 +56,16 @@ class SmartLocRaw(NavData):
         self["gps_millis"] = [tow_to_gps_millis(*x) for x in
                               zip(self["gps_week"],self["gps_tow"])]
 
+        # convert SmartLoc East counterclockwise heading into
+        # North clockwise heading standard
+        self["heading_rx_gt_rad"] = np.pi/2. - self["heading_rx_gt_rad"]
+        self["heading_rx_gt_rad"] = wrap_0_to_2pi(self["heading_rx_gt_rad"])
+
+        # remove duplicate rows
+        self.remove(rows=["GPSWeek [weeks]",
+                          "GPSSecondsOfWeek [s]"
+                          ],inplace=True)
+
 
     @staticmethod
     def _row_map():
@@ -78,12 +88,14 @@ class SmartLocRaw(NavData):
                    'Estimated Doppler measurement standard deviation (doStdev) [Hz]' \
                    : 'doppler_sigma_hz',
                    'Longitude (GT Lon) [deg]' : 'lon_rx_gt_deg',
-                   'Longitude Cov (GT Lon) [deg]' : 'lon_rx_gt_sigma_deg',
+                   'Longitude Cov (GT Lon) [deg]' : 'lon_sigma_rx_gt_deg',
                    'Latitude (GT Lat) [deg]' : 'lat_rx_gt_deg',
-                   'Latitude Cov (GT Lat) [deg]' : 'lat_rx_gt_sigma_deg',
+                   'Latitude Cov (GT Lat) [deg]' : 'lat_sigma_rx_gt_deg',
                    'Height above ellipsoid (GT Height) [m]' : 'alt_rx_gt_m',
-                   'Height above ellipsoid Cov (GT Height) [m]' : 'alt_rx_gt_sigma_m'
-
+                   'Height above ellipsoid Cov (GT Height) [m]' : 'alt_sigma_rx_gt_m',
+                   'Heading (0° = East, counterclockwise) - (GT Heading) [rad]' : 'heading_rx_gt_rad',
+                   'Velocity (GT Velocity) [m/s]' : 'v_rx_gt_mps',
+                   'Acceleration (GT Acceleration) [ms^2]' : 'a_rx_gt_mps2',
                    }
         return row_map
 
@@ -151,11 +163,11 @@ def calculate_gt_vel(smartloc_raw):
                 'az_rx_gt_mps2' : []}
     for _, _, measure_frame in smartloc_raw.loop_time('gps_millis', \
                                                         delta_t_decimals = -2):
-        yaw = measure_frame['Heading (0° = East, counterclockwise) - (GT Heading) [rad]', 0]
-        vel_gt = measure_frame['Velocity (GT Velocity) [m/s]', 0]
-        acc_gt = measure_frame['Acceleration (GT Acceleration) [ms^2]', 0]
-        vel_ned = np.array([[np.sin(yaw)*vel_gt], [np.cos(yaw)*vel_gt], [0.]])
-        acc_ned = np.array([[np.sin(yaw)*acc_gt], [np.cos(yaw)*acc_gt], [0.]])
+        yaw = measure_frame['heading_rx_gt_rad', 0]
+        vel_gt = measure_frame['v_rx_gt_mps', 0]
+        acc_gt = measure_frame['a_rx_gt_mps2', 0]
+        vel_ned = np.array([[np.cos(yaw)*vel_gt], [np.sin(yaw)*vel_gt], [0.]])
+        acc_ned = np.array([[np.cos(yaw)*acc_gt], [np.sin(yaw)*acc_gt], [0.]])
         vel_ecef = ned_frame.ned_to_ecefv(vel_ned)
         acc_ecef = ned_frame.ned_to_ecefv(acc_ned)
         vel_acc['vx_rx_gt_mps'].extend(np.repeat(vel_ecef[0, 0], len(measure_frame)))
@@ -167,4 +179,3 @@ def calculate_gt_vel(smartloc_raw):
     for row, values in vel_acc.items():
         smartloc_raw[row] = values
     return smartloc_raw
-
