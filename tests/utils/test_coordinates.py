@@ -16,6 +16,7 @@ from gnss_lib_py.parsers.android import AndroidDerived2022
 from gnss_lib_py.utils.coordinates import ecef_to_el_az, add_el_az
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, LocalCoord
+from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 
 
 @pytest.fixture(name="local_ecef")
@@ -424,3 +425,35 @@ def test_add_el_az(navdata):
                                          navdata["el_sv_deg"])
     np.testing.assert_array_almost_equal(data_el_az["az_sv_deg"],
                                          navdata["az_sv_deg"])
+
+
+def test_wrap_0_to_2pi():
+    """Test wrapping.
+
+    """
+    # nothing should change
+    angles_in = np.linspace(0,7*np.pi/4.,8)
+    angles_out = np.linspace(0,7*np.pi/4.,8)
+    np.testing.assert_array_equal(wrap_0_to_2pi(angles_in),angles_out)
+
+    # test greater than loop
+    angles_in = np.linspace(0,7*np.pi/4.,8) + 16*np.pi
+    angles_out = np.linspace(0,7*np.pi/4.,8)
+    np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
+
+    # test greater than loop
+    angles_in = np.linspace(0,7*np.pi/4.,8) - 12*np.pi
+    angles_out = np.linspace(0,7*np.pi/4.,8)
+    np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
+
+    # test positive offset loop
+    angles_in = np.linspace(0,7*np.pi/4.,8) + 7*np.pi
+    angles_out = np.concatenate((np.linspace(np.pi,7*np.pi/4.,4),
+                                 np.linspace(0,3*np.pi/4.,4)))
+    np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
+
+    # test positive offset loop
+    angles_in = np.linspace(0,7*np.pi/4.,8) - 11*np.pi
+    angles_out = np.concatenate((np.linspace(np.pi,7*np.pi/4.,4),
+                                 np.linspace(0,3*np.pi/4.,4)))
+    np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
