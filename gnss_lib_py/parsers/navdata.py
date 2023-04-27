@@ -436,7 +436,7 @@ class NavData():
             If true, sorts "ascending", otherwise sorts "descending"
         inplace : bool
             If False, will return new NavData instance with rows
-            renamed. If True, will rename data rows in the
+            sorted. If True, will sorted data rows in the
             current NavData instance.
 
         Returns
