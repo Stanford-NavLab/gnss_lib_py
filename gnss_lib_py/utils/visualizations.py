@@ -408,9 +408,9 @@ def plot_map(*args, sections=0, save=False, prefix="",
                           + "NavData.")
 
         # check for lat/lon indexes
-        traj_idxs = traj_data.find_wildcard_indexes(["lat_*_deg",
-                                                     "lon_*_deg"],
-                                                     max_allow=1)
+        traj_idxs = traj_data.find_wildcard_indexes(
+                    wildcards=["lat_*_deg","lon_*_deg"], max_allow=1,
+                    excludes=[["lat_sigma_*_deg"],["lon_sigma_*_deg"]])
 
         label_name = _get_label({"":"_".join((traj_idxs["lat_*_deg"][0].split("_"))[1:-1])})
 
