@@ -2125,6 +2125,85 @@ def test_find_wildcard_indexes(data):
             multi.find_wildcard_indexes("x_*_m",max_allow)
         assert "max_allow" in str(excinfo.value)
 
+def test_find_wildcard_excludes(data):
+    """Tests find_wildcard_indexes
+
+    """
+    all_matching = data.rename({"names" : "x_alpha_m",
+                                "integers" : "x_beta_m",
+                                "floats" : "x_gamma_m",
+                                "strings" : "x_zeta_m"})
+
+    # no exclusion
+    indexes = all_matching.find_wildcard_indexes("x_*_m",excludes=None)
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m",
+                                "x_gamma_m","x_zeta_m"]
+    indexes = all_matching.find_wildcard_indexes("x_*_m",excludes=[None])
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m",
+                                "x_gamma_m","x_zeta_m"]
+
+    # single exclusion
+    indexes = all_matching.find_wildcard_indexes("x_*_m",excludes="x_beta_m")
+    assert indexes["x_*_m"] == ["x_alpha_m","x_gamma_m","x_zeta_m"]
+
+    # two exclusion
+    indexes = all_matching.find_wildcard_indexes("x_*_m",
+                                excludes=[["x_beta_m","x_zeta_m"]])
+    assert indexes["x_*_m"] == ["x_alpha_m","x_gamma_m"]
+
+    # all excluded
+    with pytest.raises(KeyError) as excinfo:
+        all_matching.find_wildcard_indexes("x_*_m",excludes=["x_*_m"])
+    assert "Missing " in str(excinfo.value)
+    assert "x_*_m" in str(excinfo.value)
+
+
+    multi = data.rename({"names" : "x_alpha_m",
+                         "integers" : "x_beta_m",
+                         "floats" : "y_alpha_deg",
+                         "strings" : "y_beta_deg"})
+
+    # no exclusion
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=None)
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg","y_beta_deg"]
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=[None,None])
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg","y_beta_deg"]
+
+    # single exclusion
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=["x_alpha*",None])
+    assert indexes["x_*_m"] == ["x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg","y_beta_deg"]
+
+    # double exclusion
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=["x_alpha*","y_beta*"])
+    assert indexes["x_*_m"] == ["x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg"]
+
+    # must match length
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                    excludes=[None])
+    assert "match length" in str(excinfo.value)
+
+    # must match length
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                    excludes={"a":"dictionary"})
+    assert "array-like" in str(excinfo.value)
+    # must match length
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                    excludes=[None,{"a":"dictionary"}])
+    assert "array-like" in str(excinfo.value)
+
+
+
 @pytest.mark.parametrize('csv_path',
                         [
                          lazy_fixture("csv_dtypes"),
