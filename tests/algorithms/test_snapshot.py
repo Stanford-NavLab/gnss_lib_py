@@ -592,7 +592,8 @@ def test_solve_wls_fails(derived):
 
     """
 
-    navdata = derived.remove(cols=list(range(3,len(derived))))
+    navdata = derived.remove(cols=list(range(3,50)) \
+                                + list(range(53,len(derived))))
 
     with pytest.warns(RuntimeWarning) as warns:
         solve_wls(navdata)
