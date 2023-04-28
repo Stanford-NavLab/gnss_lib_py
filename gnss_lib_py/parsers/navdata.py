@@ -373,7 +373,7 @@ class NavData():
             elif np.isnan(value):
                 str_check = [str(np.nan)]
             else:
-                raise ValueError("Value must be string or array-like" \
+                raise ValueError("Value must be string or array-like " \
                                + "for string condition checks")
             # Extract columns where condition holds true and return new NavData
             if condition == "eq":
