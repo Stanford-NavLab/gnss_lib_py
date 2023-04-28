@@ -66,6 +66,14 @@ class SmartLocRaw(NavData):
                           "GPSSecondsOfWeek [s]"
                           ],inplace=True)
 
+        # change all NLOS columns to be integers
+        nlos_idx = 'NLOS (0 == no, 1 == yes, # == No Information)'
+        nlos_new = 'NLOS (0 == no, 1 == yes, 2 == No Information)'
+        if self.is_str(nlos_idx) and '#' in np.unique(self[nlos_idx]):
+            # replace '#' values with 2 and convert to ints
+            self[nlos_idx] = np.where(self[nlos_idx]=='#',
+                                      '2',self[nlos_idx]).astype(int)
+        self.rename({nlos_idx:nlos_new},inplace=True)
 
     @staticmethod
     def _row_map():
@@ -100,7 +108,28 @@ class SmartLocRaw(NavData):
         return row_map
 
 def remove_nlos(smartloc_raw):
-    """Remove NLOS measurements from SmartLoc data instance.
+    """Remove NLOS and 'no information' measurements from SmartLoc.
+
+    The dataset's paper[1]_ says the following about their NLOS
+    classification process:
+    "The NovAtel receiver is also able to provide raw measurement
+    (pseudorange) information like the u-blox receiver. The
+    u-blox receiver provide information about all received satellite
+    signals. The NovAtel receiver seems to exclude some satellites
+    in harsh environments, which might be affected by NLOS.
+    NovAtel used for receiving a Pinwheel antenna and internally
+    different algorithms. Hence, we use this information to build a
+    NLOS detection based on different satellites availabilities in
+    both receivers. Therefore, we remember the last received set
+    of satellites from NovAtel and time of data. When we receive
+    in next step a set of satellites from u-blox, we compare the
+    availability of each satellite and time span since the last update
+    from the NovAtel. If the time span is too high or the satellite
+    was never seen before, the pseudorange measurement or satellite
+    marked as NLOS. In the other case, the measurement marked
+    as LOS. This approach gives a hint for the type of LOS or
+    NLOS of a given measurement and we export this information
+    to complete the datasets."
 
     Parameters
     ----------
@@ -112,9 +141,17 @@ def remove_nlos(smartloc_raw):
     smartloc_los : gnss_lib_py.parsers.navdata.NavData
         Instance of NavData containing only LOS labeled measurements
 
+    References
+    ----------
+    .. [1] Reisdorf, Pierre, Tim Pfeifer, Julia Bressler, Sven Bauer,
+           Peter Weissig, Sven Lange, Gerd Wanielik and Peter Protzel.
+           The Problem of Comparable GNSS Results – An Approach for a
+           Uniform Dataset with Low-Cost and Reference Data. Vehicular.
+           2016.
+
     """
-    smartloc_los = smartloc_raw.where('NLOS (0 == no, 1 == yes, # == No Information)',
-                        1, 'eq')
+    smartloc_los = smartloc_raw.where('NLOS (0 == no, 1 == yes, 2 == No Information)',
+                        0, 'eq')
     return smartloc_los
 
 def calculate_gt_ecef(smartloc_raw):
@@ -133,6 +170,7 @@ def calculate_gt_ecef(smartloc_raw):
     """
     llh = smartloc_raw[['lat_rx_gt_deg', 'lon_rx_gt_deg', 'alt_rx_gt_m']]
     rx_ecef = geodetic_to_ecef(llh)
+    smartloc_raw = smartloc_raw.copy()
     smartloc_raw['x_rx_gt_m'] = rx_ecef[0, :]
     smartloc_raw['y_rx_gt_m'] = rx_ecef[1, :]
     smartloc_raw['z_rx_gt_m'] = rx_ecef[2, :]
@@ -176,6 +214,7 @@ def calculate_gt_vel(smartloc_raw):
         vel_acc['ax_rx_gt_mps2'].extend(np.repeat(acc_ecef[0, 0], len(measure_frame)))
         vel_acc['ay_rx_gt_mps2'].extend(np.repeat(acc_ecef[1, 0], len(measure_frame)))
         vel_acc['az_rx_gt_mps2'].extend(np.repeat(acc_ecef[2, 0], len(measure_frame)))
+    smartloc_raw = smartloc_raw.copy()
     for row, values in vel_acc.items():
         smartloc_raw[row] = values
     return smartloc_raw
