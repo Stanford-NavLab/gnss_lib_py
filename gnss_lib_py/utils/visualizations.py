@@ -7,6 +7,7 @@ __date__ = "27 Jan 2022"
 
 import os
 import pathlib
+from math import floor
 from multiprocessing import Process
 
 import numpy as np
@@ -806,7 +807,7 @@ def _zoom_center(lats, lons, width_to_height = 1.25):
     width = (maxlon - minlon) * margin
     lon_zoom = np.interp(width , lon_zoom_range, range(20, 0, -1))
     lat_zoom = np.interp(height, lon_zoom_range, range(20, 0, -1))
-    zoom = round(min(lon_zoom, lat_zoom), 2)
+    zoom = floor(min(lon_zoom, lat_zoom))
 
     return zoom, center
 
