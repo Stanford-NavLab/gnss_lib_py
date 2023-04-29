@@ -110,7 +110,7 @@ class SmartLocRaw(NavData):
 def remove_nlos(smartloc_raw):
     """Remove NLOS and 'no information' measurements from SmartLoc.
 
-    The dataset's paper[1]_ says the following about their NLOS
+    The dataset's paper [3]_ says the following about their NLOS
     classification process:
     "The NovAtel receiver is also able to provide raw measurement
     (pseudorange) information like the u-blox receiver. The
@@ -143,7 +143,7 @@ def remove_nlos(smartloc_raw):
 
     References
     ----------
-    .. [1] Reisdorf, Pierre, Tim Pfeifer, Julia Bressler, Sven Bauer,
+    .. [3] Reisdorf, Pierre, Tim Pfeifer, Julia Bressler, Sven Bauer,
            Peter Weissig, Sven Lange, Gerd Wanielik and Peter Protzel.
            The Problem of Comparable GNSS Results – An Approach for a
            Uniform Dataset with Low-Cost and Reference Data. Vehicular.
