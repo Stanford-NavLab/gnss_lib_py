@@ -22,7 +22,6 @@ from gnss_lib_py.parsers.precise_ephemerides import multi_gnss_from_precise_eph
 from gnss_lib_py.parsers.precise_ephemerides import sv_gps_from_brdcst_eph
 from gnss_lib_py.parsers.precise_ephemerides import sp3_snapshot, clk_snapshot
 from gnss_lib_py.parsers.precise_ephemerides import extract_sp3, extract_clk
-from gnss_lib_py.parsers.precise_ephemerides import NUMSATS
 import gnss_lib_py.utils.constants as consts
 
 # Define the no. of samples to test functions:test_gps_sp3_funcs,
@@ -786,17 +785,15 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
     gnss_consts = {'gps', 'glonass'}
 
     navdata_merged = NavData()
-    for sv in gnss_consts:
-        navdata_gnss = navdata.where('gnss_id', sv)
-        navdata_merged.concat(navdata_gnss, inplace=True)
+    navdata_merged = navdata.where('gnss_id',gnss_consts)
 
-    navdata_prcs_merged = multi_gnss_from_precise_eph(navdata, \
-                                                              sp3_path, clk_path, \
-                                                              gnss_consts, \
-                                                              verbose = False)
+    navdata_prcs_merged = multi_gnss_from_precise_eph(navdata, sp3_path,
+                                            clk_path,  verbose = True)
+
+    navdata_prcs_merged = navdata_prcs_merged.where("gnss_id",gnss_consts)
 
     # Check if the resulting derived is NavData class
-    assert isinstance( navdata_prcs_merged, type(NavData()) )
+    assert isinstance( navdata_prcs_merged, NavData )
 
     for sval in SV_KEYS:
         # Check if the resulting navdata class has satellite information
@@ -821,12 +818,11 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
     navdata_merged_df = navdata_merged_df.drop(columns = SV_KEYS)
 
     navdata_prcs_merged_df = navdata_prcs_merged.pandas_df()
-    navdata_prcs_merged_df = navdata_prcs_merged_df.drop(columns = SV_KEYS)
+    navdata_prcs_merged_df = navdata_prcs_merged_df.drop(columns = SV_KEYS + ["gnss_sv_id"])
 
     pd.testing.assert_frame_equal(navdata_merged_df.sort_index(axis=1),
                                   navdata_prcs_merged_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
-
 
 def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
     """Tests that sv_gps_from_brdcst_eph does not fail for GPS
