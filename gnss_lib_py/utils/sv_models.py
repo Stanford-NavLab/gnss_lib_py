@@ -352,6 +352,13 @@ def _combine_gnss_sv_ids(measurement_frame):
     measurement_frame : gnss_lib_py.parsers.navdata.NavData
         NavData instance containing measurements including `gnss_id` and
         `sv_id`.
+
+    Returns
+    -------
+    gnss_sv_id : np.ndarray
+	New row values that combine `gnss_id` and `sv_id` into a something
+	similar to 'R01' or 'G12' for example.
+
     """
     constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
     gnss_chars = [constellation_char_inv[const] for const in measurement_frame['gnss_id']]
