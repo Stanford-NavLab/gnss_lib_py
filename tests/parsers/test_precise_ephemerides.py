@@ -675,12 +675,49 @@ def test_compute_glonass_precise_eph(navdata_glonass, sp3data, clkdata):
         Instance of Clk class dictionary
     """
     navdata_prcs_glonass = navdata_glonass.copy()
-    navdata_prcs_glonass = \
-            single_gnss_from_precise_eph(navdata_prcs_glonass, \
-                                             sp3data, clkdata)
+    navdata_prcs_glonass.remove(rows=SV_KEYS,inplace=True)
+    new_navdata = single_gnss_from_precise_eph(navdata_prcs_glonass,
+                                               sp3data, clkdata)
 
     # Check if the resulting derived is NavData class
-    assert isinstance( navdata_prcs_glonass, type(NavData()) )
+    assert isinstance( new_navdata, type(NavData()) )
+
+    for sval in SV_KEYS:
+        # Check if the resulting navdata class has satellite information
+        assert sval in new_navdata.rows
+
+        # Check if satellite info from AndroidDerived and sp3 closely resemble
+        if (sval == 'x_sv_m') | (sval == 'y_sv_m') | (sval == 'z_sv_m'):
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) < 13e3 #300
+        if (sval == 'vx_sv_mps') | (sval == 'vy_sv_mps') | (sval == 'vz_sv_mps'):
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) < 2 #5e-2
+        if sval=='b_sv_m':
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) < 15
+        if sval=='b_dot_sv_mps':
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) != 0.0
+            assert max(abs(new_navdata[sval] - navdata_glonass[sval])) < 5e-3
+
+    # Check if the derived classes are same except for the changed SV_KEYS
+    navdata_glonass_df = navdata_glonass.pandas_df()
+    navdata_glonass_df = navdata_glonass_df.drop(columns = SV_KEYS)
+
+    navdata_prcs_glonass_df = new_navdata.pandas_df()
+    navdata_prcs_glonass_df = navdata_prcs_glonass_df.drop(columns = SV_KEYS\
+                                                    + ["gnss_sv_id"])
+
+    pd.testing.assert_frame_equal(navdata_glonass_df.sort_index(axis=1),
+                                  navdata_prcs_glonass_df.sort_index(axis=1),
+                                  check_dtype=False, check_names=True)
+    # test inplace
+    new_navdata = single_gnss_from_precise_eph(navdata_prcs_glonass,
+                                               sp3data, clkdata,
+                                               inplace=True)
+
+    # Check if the resulting derived is NavData class
+    assert new_navdata is None
 
     for sval in SV_KEYS:
         # Check if the resulting navdata class has satellite information

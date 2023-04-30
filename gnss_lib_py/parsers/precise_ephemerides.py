@@ -59,8 +59,6 @@ def parse_sp3(input_path):
             Accessed as of August 20, 2022
     """
     # Initial checks for loading sp3_path
-    if not isinstance(input_path, str):
-        raise TypeError("input_path must be string")
     if not os.path.exists(input_path):
         raise FileNotFoundError("file not found")
 
@@ -141,8 +139,6 @@ def parse_clockfile(input_path):
     """
 
     # Initial checks for loading sp3_path
-    if not isinstance(input_path, str):
-        raise TypeError("input_path must be string")
     if not os.path.exists(input_path):
         raise FileNotFoundError("file not found")
 
@@ -361,6 +357,10 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
         Instance with list of gnss_lib_py.parsers.precise_ephemerides.Sp3
     clk_parsed_file : list
         Instance with list of gnss_lib_py.parsers.precise_ephemerides.Clk
+    inplace : bool
+        If true, adds satellite positions and clock bias to the input
+        navdata object, otherwise returns a new NavData object with the
+        satellite rows added.
     verbose : bool
         Flag (True/False) for whether to print intermediate steps useful
         for debugging/reviewing (the default is False)
@@ -381,26 +381,37 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
     # Compute satellite information for desired time steps
     unique_timesteps = np.unique(navdata["gps_millis"])
 
+    # combine gnss_id and sv_id into gnss_sv_ids
+    if inplace:
+        navdata["gnss_sv_id"] = _combine_gnss_sv_ids(navdata)
+    else:
+        new_navdata = navdata.copy()
+        new_navdata["gnss_sv_id"] = _combine_gnss_sv_ids(new_navdata)
+
     # add satellite indexes if not present already.
     sv_idx_keys = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
                 'vx_sv_mps','vy_sv_mps','vz_sv_mps', \
                 'b_sv_m', 'b_dot_sv_mps']
     for sv_idx_key in sv_idx_keys:
         if sv_idx_key not in navdata.rows:
-            navdata[sv_idx_key] = np.nan
+            if inplace:
+                navdata[sv_idx_key] = np.nan
+            else:
+                new_navdata[sv_idx_key] = np.nan
 
-    # combine gnss_id and sv_id into gnss_sv_ids
-    navdata["gnss_sv_id"] = _combine_gnss_sv_ids(navdata)
 
-    for row_idx, row in enumerate(navdata):
+    if inplace:
+        iterate_navdata = navdata
+    else:
+        iterate_navdata = new_navdata
+
+    for row_idx, row in enumerate(iterate_navdata):
         gnss_sv_id = str(row["gnss_sv_id"])
-
         # continue if no sp3 or clk data availble
         if gnss_sv_id not in sp3_parsed_file \
-            or gnss_sv_id not in clk_parsed_file \
-            or len(sp3_parsed_file[gnss_sv_id].tym) == 0 \
-            or len(clk_parsed_file[gnss_sv_id].tym) == 0:
-            continue
+          or gnss_sv_id not in clk_parsed_file \
+          or len(sp3_parsed_file[gnss_sv_id].tym) == 0 \
+          or len(clk_parsed_file[gnss_sv_id].tym) == 0: continue
 
         timestep = row["gps_millis"]
 
@@ -451,21 +462,38 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
         # Compute satellite clock bias and drift using interpolated function
         satbias_clk, satdrift_clk = clk_snapshot(func_satbias, timestep)
 
-        # update *_sv_m of navdata with the estimated values from .sp3 files
-        navdata['x_sv_m', row_idx] = np.array([satpos_sp3[0]])
-        navdata['y_sv_m', row_idx] = np.array([satpos_sp3[1]])
-        navdata['z_sv_m', row_idx] = np.array([satpos_sp3[2]])
+        if inplace:
+            # update *_sv_m of navdata with the estimated values from .sp3 files
+            navdata['x_sv_m', row_idx] = np.array([satpos_sp3[0]])
+            navdata['y_sv_m', row_idx] = np.array([satpos_sp3[1]])
+            navdata['z_sv_m', row_idx] = np.array([satpos_sp3[2]])
 
-        # update v*_sv_mps of navdata with the estimated values from .sp3 files
-        navdata["vx_sv_mps", row_idx] = np.array([satvel_sp3[0]])
-        navdata["vy_sv_mps", row_idx] = np.array([satvel_sp3[1]])
-        navdata["vz_sv_mps", row_idx] = np.array([satvel_sp3[2]])
+            # update v*_sv_mps of navdata with the estimated values from .sp3 files
+            navdata["vx_sv_mps", row_idx] = np.array([satvel_sp3[0]])
+            navdata["vy_sv_mps", row_idx] = np.array([satvel_sp3[1]])
+            navdata["vz_sv_mps", row_idx] = np.array([satvel_sp3[2]])
 
-        # update clock data of navdata with the estimated values from .clk files
-        navdata["b_sv_m", row_idx] = np.array([consts.C * satbias_clk])
-        navdata["b_dot_sv_mps", row_idx] = np.array([consts.C * satdrift_clk])
+            # update clock data of navdata with the estimated values from .clk files
+            navdata["b_sv_m", row_idx] = np.array([consts.C * satbias_clk])
+            navdata["b_dot_sv_mps", row_idx] = np.array([consts.C * satdrift_clk])
+        else:
+            # update *_sv_m of navdata with the estimated values from .sp3 files
+            new_navdata['x_sv_m', row_idx] = np.array([satpos_sp3[0]])
+            new_navdata['y_sv_m', row_idx] = np.array([satpos_sp3[1]])
+            new_navdata['z_sv_m', row_idx] = np.array([satpos_sp3[2]])
 
-    return navdata
+            # update v*_sv_mps of navdata with the estimated values from .sp3 files
+            new_navdata["vx_sv_mps", row_idx] = np.array([satvel_sp3[0]])
+            new_navdata["vy_sv_mps", row_idx] = np.array([satvel_sp3[1]])
+            new_navdata["vz_sv_mps", row_idx] = np.array([satvel_sp3[2]])
+
+            # update clock data of navdata with the estimated values from .clk files
+            new_navdata["b_sv_m", row_idx] = np.array([consts.C * satbias_clk])
+            new_navdata["b_dot_sv_mps", row_idx] = np.array([consts.C * satdrift_clk])
+
+    if inplace:
+        return None
+    return new_navdata
 
 def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path,
                                 inplace=False, verbose = False):
@@ -496,14 +524,13 @@ def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path,
 
     sp3_parsed_gnss = parse_sp3(sp3_path)
     clk_parsed_gnss = parse_clockfile(clk_path)
-    derived_prcs_gnss = single_gnss_from_precise_eph(navdata,
-                                                     sp3_parsed_gnss,
-                                                     clk_parsed_gnss, \
-                                                     verbose = verbose)
+    precise_navdata = single_gnss_from_precise_eph(navdata,
+                                                   sp3_parsed_gnss,
+                                                   clk_parsed_gnss,
+                                                   inplace = inplace,
+                                                   verbose = verbose)
 
-    if inplace:
-        return None
-    return derived_prcs_gnss
+    return precise_navdata
 
 def sv_gps_from_brdcst_eph(navdata, verbose = False):
     """Compute satellite information using .n for any GNSS constellation
