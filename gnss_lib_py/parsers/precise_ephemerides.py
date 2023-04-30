@@ -25,34 +25,11 @@ class Sp3:
 
     """
     def __init__(self):
-        self.const = None
         self.xpos = []
         self.ypos = []
         self.zpos = []
         self.tym = []
         self.utc_time = []
-
-    def __eq__(self, other):
-        """Checks if two Sp3() classes are equal to each other
-
-        Parameters
-        ----------
-        other : gnss_lib_py.parsers.precise_ephemerides.Sp3
-            Sp3 object that stores .sp3 parsed information
-
-        Returns
-        ----------
-        bool_check : bool
-            Flag (True/False) that indicates if Sp3 classes are equal
-        """
-        bool_check = (self.const == other.const) & \
-                     (self.xpos == other.xpos) & \
-                     (self.ypos == other.ypos) & \
-                     (self.zpos == other.zpos) & \
-                     (self.tym == other.tym) & \
-                     (self.utc_time == other.utc_time)
-
-        return bool_check
 
 def parse_sp3(input_path):
     """sp3 specific loading and preprocessing for any GNSS constellation
@@ -131,28 +108,9 @@ class Clk:
 
     """
     def __init__(self):
-        self.const = None
         self.clk_bias = []
         self.utc_time = []
         self.tym = []
-
-    def __eq__(self, other):
-        """Checks if two Clk() classes are equal to each other
-
-        Parameters
-        ----------
-        other : gnss_lib_py.parsers.precise_ephemerides.Clk
-            Clk object that stores .clk parsed information
-
-        Returns
-        ----------
-        bool_check : bool
-            Flag (True/False) indicating if Clk classes are equal
-        """
-        return (self.const == other.const) & \
-               (self.clk_bias == other.clk_bias) & \
-               (self.tym == other.tym) & \
-               (self.utc_time == other.utc_time)
 
 def parse_clockfile(input_path):
     """Clk specific loading and preprocessing for any GNSS constellation
@@ -171,8 +129,6 @@ def parse_clockfile(input_path):
     Notes
     -----
     The format for .sp3 files can be viewed in [2]_.
-
-    0th array of the Clk class is always empty since PRN=0 does not exist
 
     Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois
@@ -594,21 +550,6 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
                      timedelta( seconds = (timestep - navdata_offset) * 1e-3 )
         ephem = repo.get_ephemeris(rxdatetime, satellites = desired_sats)
 
-        if verbose:
-            print(t_idx, timestep, idxs, sorted_idxs)
-            print('misc: ', navdata['gps_millis', sorted_idxs], \
-                            navdata['gnss_id', sorted_idxs], \
-                            navdata['sv_id', sorted_idxs], \
-                            desired_sats, rxdatetime)
-
-            satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
-                                            navdata["y_sv_m", sorted_idxs], \
-                                            navdata["z_sv_m", sorted_idxs] ])
-            satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
-                                               navdata["vy_sv_mps", sorted_idxs], \
-                                               navdata["vz_sv_mps", sorted_idxs] ])
-            print('android:', satpos_android, satvel_android)
-
         # compute satellite position and velocity based on ephem and gps_time
         # Transform satellite position to account for earth's rotation
         get_sat_from_ephem = find_sv_states(timestep - navdata_offset, ephem)
@@ -626,11 +567,16 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
 
         if verbose:
             print('after ephemeris:', satpos_ephemeris, satvel_ephemeris)
+            satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
+                                            navdata["y_sv_m", sorted_idxs], \
+                                            navdata["z_sv_m", sorted_idxs] ])
+            satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
+                                               navdata["vy_sv_mps", sorted_idxs], \
+                                               navdata["vz_sv_mps", sorted_idxs] ])
             print('nav-android Pos Error: ', \
                       np.linalg.norm(satpos_ephemeris - satpos_android, axis=1) )
             print('nav-android Vel Error: ', \
                       np.linalg.norm(satvel_ephemeris - satvel_android, axis=1) )
-            print(' ')
 
         # update *_sv_m of navdata with the estimated values from .n files
         navdata["x_sv_m", sorted_idxs] = satpos_ephemeris[:,0]
