@@ -272,12 +272,6 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     # Obtain corrected pseudoranges and add receiver clock bias to them
     prange = true_range
     prange += clk_bias
-    # prange = (correct_pseudorange(gps_week, gps_tow ephem, true_range,
-    #                              np.reshape(pos, [-1, 3])) + bias)
-    # TODO: Correction should be applied to the received pseudoranges, not
-    # modelled/expected pseudorange -- per discussion in meeting on 11/12
-    # TODO:  corrections instead of returning corrected pseudoranges
-    # Obtain difference of velocity between satellite and receiver
 
     del_vel = sv_vel - np.tile(np.reshape(rx_v_ecef, [3,1]), [1, len(sv_posvel)])
     prange_rate = np.sum(del_vel*del_pos, axis=0)/true_range
