@@ -171,13 +171,6 @@ def find_sv_states(gps_millis, ephem):
 
     sqrt_mu_a = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
     gpsweek_diff = (np.mod(gps_week,1024) - np.mod(ephem['gps_week'],1024))*604800.
-
-    #TODO: See if these statements need to be removed
-    # if np.size(times_all)==1:
-    #     times_all = times_all*np.ones(len(ephem))
-    # else:
-    #     times_all = np.reshape(times_all, len(ephem))
-    # times = times_all
     sv_posvel = NavData()
     sv_posvel['gnss_id'] = ephem['gnss_id']
     sv_posvel['sv_id'] = ephem['sv_id']
@@ -188,7 +181,6 @@ def find_sv_states(gps_millis, ephem):
     # length as the ephemeris
     # print(times.shape)
     sv_posvel['gps_millis'] = gps_millis
-    #TODO: Update to add gps_millis instead of gps_tow
 
     delta_t = gps_tow - ephem['t_oe'] + gpsweek_diff
 
@@ -230,8 +222,6 @@ def find_sv_states(gps_millis, ephem):
     ############################################
     ######  Lines added for velocity (1)  ######
     ############################################
-    #TODO: Factorize out into an internal function for calculating
-    # satellite velocities
     delta_e   = (sqrt_mu_a + delta_n) / e_cos_e
     dphi = np.sqrt(1 - ecc**2)*delta_e / e_cos_e
     # Changed from the paper
@@ -265,8 +255,6 @@ def find_sv_states(gps_millis, ephem):
     sv_posvel['x_sv_m'] = x_plane*cos_omega - y_plane*cos_i*sin_omega
     sv_posvel['y_sv_m'] = x_plane*sin_omega + y_plane*cos_i*cos_omega
     sv_posvel['z_sv_m'] = y_plane*sin_i
-    # TODO: Add satellite clock bias here using the 'clock corrections' not to
-    # be used but compared against SP3 and Android data
 
     ############################################
     ######  Lines added for velocity (4)  ######
@@ -522,15 +510,6 @@ def _find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
         sv_posvel = find_sv_states(gps_millis-1000.*t_corr, ephem)
     del_pos, true_range = _find_delxyz_range(sv_posvel, rx_ecef)
     t_corr = true_range/consts.C
-    # Corrections for the rotation of the Earth during transmission
-    #TODO: Should we correct for the rotation of the Earth here or let the
-    # user figure this out during WLS and other estimation methods?
-    # sv_pos, sv_vel = _extract_pos_vel_arr(sv_posvel)
-    del_x = consts.OMEGA_E_DOT*sv_posvel['x_sv_m'] * t_corr
-    del_y = consts.OMEGA_E_DOT*sv_posvel['y_sv_m'] * t_corr
-    #TODO: Should we keep the following two lines? Doesn't match the Android dataset
-    # sv_posvel['x_sv_m'] = sv_posvel['x_sv_m'] + del_x
-    # sv_posvel['y_sv_m'] = sv_posvel['y_sv_m'] + del_y
 
     return sv_posvel, del_pos, true_range
 
