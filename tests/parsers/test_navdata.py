@@ -1756,6 +1756,9 @@ def test_where_errors(csv_simple):
     # Test condition that is not defined
     with pytest.raises(ValueError):
         _ = data.where("integers", 10, condition="eq_sqrt")
+    # Test passing float in for string check
+    with pytest.raises(ValueError):
+        _ = data.where("names", 0.342, condition="eq")
 
 def test_time_looping(csv_simple):
     """Testing implementation to loop over times
@@ -2265,16 +2268,34 @@ def test_interpolate_fails():
 
 
 def test_keep_cols_where(data, df_simple):
+    """Test keep columns with where.
+
+    """
+    # test for strings
     keep_cols = ['gps', 'glonass']
-    data_subset = data.keep_cols_where('strings', keep_cols,
+
+    data_subset = data.where('strings', keep_cols,
                                         condition="eq")
     df_simple_subset = df_simple.loc[df_simple['strings'].isin(keep_cols), :]
 
     df_simple_subset = df_simple_subset.reset_index(drop=True)
     pd.testing.assert_frame_equal(data_subset.pandas_df(), df_simple_subset, check_dtype=False)
 
+    # test for floats
+    keep_cols = [0.5, 0.45]
+
+    data_subset = data.where('floats', keep_cols,
+                                        condition="neq")
+    df_simple_subset = df_simple.loc[~df_simple['floats'].isin(keep_cols), :]
+
+    df_simple_subset = df_simple_subset.reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_subset.pandas_df(), df_simple_subset, check_dtype=False)
 
 def test_sort(data, df_simple):
+    """Test sorting function across simple dataframe.
+
+    """
+
     df_sorted_int = df_simple.sort_values('integers').reset_index(drop=True)
     df_sorted_float = df_simple.sort_values('floats').reset_index(drop=True)
     data_sorted_int = data.sort('integers').pandas_df()
@@ -2284,10 +2305,22 @@ def test_sort(data, df_simple):
     pd.testing.assert_frame_equal(data_sorted_int, df_sorted_int)
     pd.testing.assert_frame_equal(df_sorted_float, data_sorted_float)
     pd.testing.assert_frame_equal(df_sorted_float, data_sorted_ind)
+    # test strings as well:
+    df_sorted_names = df_simple.sort_values('names').reset_index(drop=True)
+    data_sorted_names = data.sort('names').pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_names, data_sorted_names)
+
+    df_sorted_strings = df_simple.sort_values('strings').reset_index(drop=True)
+    data_sorted_strings = data.sort('strings').pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_strings, data_sorted_strings)
+
     # Test usecase when descending order is given
     df_sorted_int_des = df_simple.sort_values('integers', ascending=False).reset_index(drop=True)
-    data_sorted_int_des = data.sort('integers', order="descending").pandas_df()
+    data_sorted_int_des = data.sort('integers', ascending=False).pandas_df()
     pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)
-    # Test usecase when incorrect order is given
-    with pytest.raises(RuntimeError):
-        _ = data.sort('integers', order="equality")
+
+    # test inplace
+    data_sorted_int_des = data.copy()
+    data_sorted_int_des.sort('integers', ascending=False, inplace=True)
+    data_sorted_int_des = data_sorted_int_des.pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)

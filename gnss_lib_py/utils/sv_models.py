@@ -314,7 +314,7 @@ def _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
     req_const_set = set(constellations)
     keep_consts = req_const_set.intersection(rx_const_set)
 
-    measurements_subset = measurements.keep_cols_where('gnss_id', keep_consts, condition="eq")
+    measurements_subset = measurements.where('gnss_id', keep_consts, condition="eq")
 
     # preprocessing of received quantities for downloading ephemeris file
     eph_sv = _combine_gnss_sv_ids(measurements)
@@ -381,7 +381,7 @@ def _sort_ephem_measures(measure_frame, ephem):
     sorted_sats_ind = np.argsort(gnss_sv_id)
     inv_sort_order = np.argsort(sorted_sats_ind)
     sorted_sats = gnss_sv_id[sorted_sats_ind]
-    rx_ephem = ephem.keep_cols_where('gnss_sv_id', sorted_sats, condition="eq")
+    rx_ephem = ephem.where('gnss_sv_id', sorted_sats, condition="eq")
     return rx_ephem, sorted_sats_ind, inv_sort_order
 
 
