@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.time_conversions import unix_to_gps_millis
@@ -271,14 +272,18 @@ class AndroidGroundTruth2021(NavData):
         https://www.kaggle.com/code/gymf123/tips-notes-from-the-competition-hosts
         """
         # Correcting reported altitude
-        self['alt_gt_m'] = self['alt_gt_m'] - 61.
-        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'],
-                                         self['lon_gt_deg'],
-                                         self['alt_gt_m']]))
+        self['alt_rx_gt_m'] = self['alt_rx_gt_m'] - 61.
+        gt_lla = np.transpose(np.vstack([self['lat_rx_gt_deg'],
+                                         self['lon_rx_gt_deg'],
+                                         self['alt_rx_gt_m']]))
         gt_ecef = geodetic_to_ecef(gt_lla)
-        self["x_gt_m"] = gt_ecef[:,0]
-        self["y_gt_m"] = gt_ecef[:,1]
-        self["z_gt_m"] = gt_ecef[:,2]
+        self["x_rx_gt_m"] = gt_ecef[:,0]
+        self["y_rx_gt_m"] = gt_ecef[:,1]
+        self["z_rx_gt_m"] = gt_ecef[:,2]
+
+        # convert bearing degrees to heading in radians
+        self["heading_rx_gt_rad"] = np.deg2rad(self["heading_rx_gt_rad"])
+        self["heading_rx_gt_rad"] = wrap_0_to_2pi(self["heading_rx_gt_rad"])
 
     @staticmethod
     def _row_map():
@@ -289,10 +294,12 @@ class AndroidGroundTruth2021(NavData):
         row_map : Dict
             Dictionary of the form {old_name : new_name}
         """
-        row_map = {'latDeg' : 'lat_gt_deg',
-                   'lngDeg' : 'lon_gt_deg',
-                   'heightAboveWgs84EllipsoidM' : 'alt_gt_m',
-                   'millisSinceGpsEpoch' : 'gps_millis'
+        row_map = {'latDeg' : 'lat_rx_gt_deg',
+                   'lngDeg' : 'lon_rx_gt_deg',
+                   'heightAboveWgs84EllipsoidM' : 'alt_rx_gt_m',
+                   'millisSinceGpsEpoch' : 'gps_millis',
+                   'speedMps' : 'v_rx_gt_mps',
+                   'courseDegree' : 'heading_rx_gt_rad',
                 }
         return row_map
 
@@ -309,19 +316,23 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
         Notes
         -----
         """
-        if np.any(np.isnan(self['alt_gt_m'])):
+        if np.any(np.isnan(self['alt_rx_gt_m'])):
             warnings.warn("Some altitude values were missing, using 0m ", RuntimeWarning)
-            self['alt_gt_m'] = np.nan_to_num(self['alt_gt_m'])
-        gt_lla = np.transpose(np.vstack([self['lat_gt_deg'],
-                                         self['lon_gt_deg'],
-                                         self['alt_gt_m']]))
+            self['alt_rx_gt_m'] = np.nan_to_num(self['alt_rx_gt_m'])
+        gt_lla = np.transpose(np.vstack([self['lat_rx_gt_deg'],
+                                         self['lon_rx_gt_deg'],
+                                         self['alt_rx_gt_m']]))
         gt_ecef = geodetic_to_ecef(gt_lla)
-        self["x_gt_m"] = gt_ecef[:,0]
-        self["y_gt_m"] = gt_ecef[:,1]
-        self["z_gt_m"] = gt_ecef[:,2]
+        self["x_rx_gt_m"] = gt_ecef[:,0]
+        self["y_rx_gt_m"] = gt_ecef[:,1]
+        self["z_rx_gt_m"] = gt_ecef[:,2]
 
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self['unix_millis'])
+
+        # convert bearing degrees to heading in radians
+        self["heading_rx_gt_rad"] = np.deg2rad(self["heading_rx_gt_rad"])
+        self["heading_rx_gt_rad"] = wrap_0_to_2pi(self["heading_rx_gt_rad"])
 
     @staticmethod
     def _row_map():
@@ -332,10 +343,13 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
         row_map : Dict
             Dictionary of the form {old_name : new_name}
         """
-        row_map = {'LatitudeDegrees' : 'lat_gt_deg',
-                   'LongitudeDegrees' : 'lon_gt_deg',
-                   'AltitudeMeters' : 'alt_gt_m',
-                   'UnixTimeMillis' : 'unix_millis'
+        row_map = {'LatitudeDegrees' : 'lat_rx_gt_deg',
+                   'LongitudeDegrees' : 'lon_rx_gt_deg',
+                   'AltitudeMeters' : 'alt_rx_gt_m',
+                   'SpeedMps' : 'v_rx_gt_mps',
+                   'BearingDegrees' : 'heading_rx_gt_rad',
+                   'UnixTimeMillis' : 'unix_millis',
+
                 }
         return row_map
 

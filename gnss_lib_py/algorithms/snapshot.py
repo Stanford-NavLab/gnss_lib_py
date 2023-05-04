@@ -84,6 +84,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
                                                rx_rows_to_find,
                                                max_allow=1)
     states = []
+    runtime_error_idxs = {}
 
     position = np.zeros((4,1))
     for timestamp, _, measurement_subset in measurements.loop_time("gps_millis", delta_t_decimals=delta_t_decimals):
@@ -120,9 +121,10 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
                            only_bias, tol, max_count)
             states.append([timestamp] + np.squeeze(position).tolist())
         except RuntimeError as error:
-            warnings.warn("RuntimeError encountered at gps_millis: " \
-                        + str(int(timestamp)) + " RuntimeError: " \
-                        + str(error), RuntimeWarning)
+            if str(error) not in runtime_error_idxs:
+                runtime_error_idxs[str(error)] = [str(int(timestamp))]
+            else:
+                runtime_error_idxs[str(error)].append(str(int(timestamp)))
             states.append([timestamp, np.nan, np.nan, np.nan, np.nan])
 
     states = np.array(states)
@@ -133,6 +135,11 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     state_estimate["y_rx_wls_m"] = states[:,2]
     state_estimate["z_rx_wls_m"] = states[:,3]
     state_estimate["b_rx_wls_m"] = states[:,4]
+
+    for error,timestamps in runtime_error_idxs.items():
+        warnings.warn(error + " Encountered at " + str(len(timestamps))\
+                    + " gps_millis of: " \
+                + ", ".join(timestamps), RuntimeWarning)
 
     if np.isnan(states[:,1:]).all():
         warnings.warn("No valid state estimate computed in WLS, "\

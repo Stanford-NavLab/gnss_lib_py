@@ -373,7 +373,7 @@ class NavData():
             elif np.isnan(value):
                 str_check = [str(np.nan)]
             else:
-                raise ValueError("Value must be string or array-like" \
+                raise ValueError("Value must be string or array-like " \
                                + "for string condition checks")
             # Extract columns where condition holds true and return new NavData
             if condition == "eq":
@@ -436,7 +436,7 @@ class NavData():
             If true, sorts "ascending", otherwise sorts "descending"
         inplace : bool
             If False, will return new NavData instance with rows
-            renamed. If True, will rename data rows in the
+            sorted. If True, will sorted data rows in the
             current NavData instance.
 
         Returns
@@ -844,17 +844,26 @@ class NavData():
             raise KeyError(", ".join(missing_rows) + " row(s) are" \
                            + " missing from NavData object.")
 
-    def find_wildcard_indexes(self, wildcards, max_allow = None):
+    def find_wildcard_indexes(self, wildcards, max_allow = None,
+                              excludes = None):
         """Searches for indexes matching wildcard search input.
 
         For example, a search for ``x_*_m`` would find ``x_rx_m`` or
         ``x_sv_m`` or ``x_alpha_beta_gamma_m`` depending on the rows
         existing in the NavData instance.
 
+        The ``excludes`` variable allows you to exclude indexes when
+        trying to match a wildcard. For example, if there are rows named
+        ``pr_raw_m``and ``pr_raw_sigma_m`` then the input
+        ``wildcards="pr_*_m", excludes=None`` would return
+        ``{"pr_*_m", ["pr_raw_m","pr_raw_sigma_m"]}`` but with the excludes
+        parameter set, the input ``wildcards="pr_*_m", excludes="pr_*_sigma_m"``
+        would only return ``{"pr_*_m", ["pr_raw_m"]}``
+
         Will return an error no index is found matching the wildcard or
         if more than ``max_allow`` indexes are found.
 
-        Currently only allows for a single wildcard per index.
+        Currently only allows for a single wildcard '*' per index.
 
         Parameters
         ----------
@@ -863,6 +872,10 @@ class NavData():
         max_allow : int or None
             Maximum number of valid indexes to allow before throwing an
             error. If None, then no limit is placed.
+        excludes : array-like or str
+            List or string to exclude for each wildcard in wildcards.
+            Must be the same length as wildcards. Allowed to include a
+            wildcard '*' character but not necessary.
 
         Returns
         -------
@@ -879,10 +892,29 @@ class NavData():
         if not (isinstance(max_allow,int) or max_allow is None):
             raise TypeError("max_allow input in find_wildcard_indexes" \
                           + " must be an integer or None.")
+        # handle exclude types
+        if isinstance(excludes,str):
+            excludes = [excludes]
+        if excludes is None:
+            excludes = [None] * len(wildcards)
+        if not isinstance(excludes, (list,tuple,np.ndarray,set)):
+            raise TypeError("excludes input in find_wildcard_indexes" \
+                         +  " must be array-like, single string, " \
+                         + "or None for each wildcard")
+        if len(excludes) != len(wildcards):
+            raise TypeError("excludes input must match length of " \
+                          + "wildcard input.")
+        for ex_idx, exclude in enumerate(excludes):
+            if exclude is None or isinstance(exclude,str):
+                excludes[ex_idx] = [exclude]
+            if not isinstance(excludes[ex_idx], (list,tuple,np.ndarray,set)):
+                raise TypeError("excludes input in find_wildcard_indexes" \
+                             +  " must be array-like, single string, " \
+                             + "or None for each wildcard")
 
         wildcard_indexes = {}
 
-        for wildcard in wildcards:
+        for wild_idx, wildcard in enumerate(wildcards):
             if not isinstance(wildcard,str):
                 raise TypeError("wildcards must be strings")
             if wildcard.count("*") != 1:
@@ -891,6 +923,15 @@ class NavData():
             indexes = [row for row in self.rows
                    if row.startswith(wildcard.split("*",maxsplit=1)[0])
                     and row.endswith(wildcard.split("*",maxsplit=1)[1])]
+            if excludes[wild_idx] is not None:
+                for exclude in excludes[wild_idx]:
+                    if exclude is not None:
+                        if '*' in exclude:
+                            indexes = [row for row in indexes
+                                     if not (row.startswith(exclude.split("*",maxsplit=1)[0])
+                                     and row.endswith(exclude.split("*",maxsplit=1)[1]))]
+                        else:
+                            indexes = [row for row in indexes if exclude != row]
             if max_allow is not None and len(indexes) > max_allow:
                 raise KeyError("More than " + str(max_allow) \
                              + " possible row indexes for "  + wildcard)

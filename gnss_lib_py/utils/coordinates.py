@@ -547,3 +547,27 @@ def add_el_az(navdata, receiver_state, inplace=False):
     data_el_az["az_sv_deg"] = sv_el_az[1,:]
 
     return data_el_az
+
+def wrap_0_to_2pi(angles):
+    """Wraps an arbitrary radian between [0, 2pi).
+
+    Angles must be in radians.
+
+    Parameters
+    ----------
+    angles : np.ndarray
+        Array of angles in radians to wrap between 0 and 2pi.
+
+    Returns
+    -------
+    angles : np.ndarray
+        Angles wrapped between 0 and 2pi in radians.
+
+    """
+    angles = np.mod(angles, 2*np.pi)
+    while np.any(angles < 0.):
+        angles = np.where(angles<0. , 2.*np.pi+angles, angles)
+    while np.any(angles >= 2*np.pi):
+        angles = np.where(angles>= 2*np.pi , angles-2.*np.pi, angles)
+
+    return angles

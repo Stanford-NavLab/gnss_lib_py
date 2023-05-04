@@ -58,21 +58,20 @@ def calculate_state(android_gt, idx):
     state : gnss_lib_py.parsers.navdata.NavData
         NavData containing state information for one time instance.
     """
-    bearing_rad = np.deg2rad(android_gt['BearingDegrees', idx])
 
-    v_gt_n = android_gt['SpeedMps', idx]*np.cos(bearing_rad)
-    v_gt_e = android_gt['SpeedMps', idx]*np.sin(bearing_rad)
+    v_gt_n = android_gt['v_rx_gt_mps', idx]*np.cos(android_gt['heading_rx_gt_rad', idx])
+    v_gt_e = android_gt['v_rx_gt_mps', idx]*np.sin(android_gt['heading_rx_gt_rad', idx])
     v_ned = np.array([[v_gt_n],[v_gt_e],[0]])
-    llh = np.array([[android_gt['lat_gt_deg', idx]],
-                    [android_gt['lon_gt_deg', idx]],
-                    [android_gt['alt_gt_m', idx]]])
+    llh = np.array([[android_gt['lat_rx_gt_deg', idx]],
+                    [android_gt['lon_rx_gt_deg', idx]],
+                    [android_gt['alt_rx_gt_m', idx]]])
     local_frame = LocalCoord.from_geodetic(llh)
     vx_ecef = local_frame.ned_to_ecefv(v_ned)
 
     state = NavData()
-    state['x_rx_m'] = android_gt['x_gt_m', idx]
-    state['y_rx_m'] = android_gt['y_gt_m', idx]
-    state['z_rx_m'] = android_gt['z_gt_m', idx]
+    state['x_rx_m'] = android_gt['x_rx_gt_m', idx]
+    state['y_rx_m'] = android_gt['y_rx_gt_m', idx]
+    state['z_rx_m'] = android_gt['z_rx_gt_m', idx]
     state['vx_rx_mps'] = vx_ecef[0,0]
     state['vy_rx_mps'] = vx_ecef[1,0]
     state['vz_rx_mps'] = vx_ecef[2,0]
@@ -128,7 +127,6 @@ def test_pseudorange_corrections(gps_measurement_frames, android_gt, iono_params
         curr_millis = frame['gps_millis', 0]
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
         state = calculate_state(android_gt, gt_slice_idx)
-        # x_ecef = android_gt[['x_gt_m', 'y_gt_m', 'z_gt_m'], gt_slice_idx]
 
         # Test corrections with ephemeris parameters
         est_clk, est_trp, est_iono = gnss_models.calculate_pseudorange_corr(

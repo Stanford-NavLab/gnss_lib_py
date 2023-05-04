@@ -144,7 +144,7 @@ def test_sv_state_model(gps_measurement_frames, android_gt):
         # Get Android Derived states, sorted by SVs
         curr_millis = android_frames[idx]['gps_millis', 0]
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
-        x_ecef = android_gt[['x_gt_m', 'y_gt_m', 'z_gt_m'], gt_slice_idx]
+        x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
 
         est_sv_posvel, _, _ = sv_models._find_sv_location(curr_millis, x_ecef, ephem=vis_ephems[idx])
@@ -181,7 +181,7 @@ def test_visible_ephem(all_gps_ephem, gps_measurement_frames, android_gt):
     for idx, frame in enumerate(android_frames):
         curr_millis = frame['gps_millis', 0]
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
-        x_ecef = android_gt[['x_gt_m', 'y_gt_m', 'z_gt_m'], gt_slice_idx]
+        x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
         # Test visible satellite computation with ephemeris
         eph = sv_models._find_visible_ephem(curr_millis, x_ecef, ephem=vis_ephems[idx], el_mask=0.)
         vis_svs = set(eph['sv_id'])
@@ -210,7 +210,7 @@ def test_visible_sv_posvel(gps_measurement_frames, android_gt):
     for idx, sv_posvel in enumerate(sv_states):
         curr_millis = android_frames[idx]['gps_millis', 0]
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
-        x_ecef = android_gt[['x_gt_m', 'y_gt_m', 'z_gt_m'], gt_slice_idx]
+        x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
         # Test that actually visible satellites are subset of expected satellites
         vis_posvel = sv_models._find_visible_sv_posvel(curr_millis, x_ecef, sv_posvel, el_mask=0.)
