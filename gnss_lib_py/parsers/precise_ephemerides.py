@@ -638,7 +638,7 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file, \
     return navdata
 
 def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
-                                        gnss_consts, verbose = False):
+                                        constellations, verbose = False):
     """Compute satellite information using .sp3 and .clk for multiple GNSS
 
     Parameters
@@ -649,7 +649,7 @@ def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
         File path for .sp3 file to extract precise ephemerides
     clk_path : path
         File path for .clk file to extract precise ephemerides
-    gnss_consts : array-like
+    constellations : array-like
         The GNSS constellations for which you want to extract precise
         ephemeris, (e.g. ['gps','glonass'])
     verbose : bool
@@ -664,7 +664,7 @@ def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path, \
     """
 
     navdata_prcs_merged = NavData()
-    for sv in gnss_consts:
+    for sv in constellations:
         navdata_prcs_gnss = navdata.where('gnss_id', sv)
 
         sp3_parsed_gnss = parse_sp3(sp3_path, constellation = sv)
