@@ -7,6 +7,7 @@ __date__ = "30 Aug 2022"
 
 import os
 import ftplib
+import requests
 from datetime import datetime, timezone
 
 import pytest
@@ -247,8 +248,48 @@ def test_download_ephem(ephem_download_path, fileinfo):
         dest_filepath = os.path.join(ephem_man.data_directory, 'nasa', filename)
 
     # download the ephemeris file
-    ephem_man.retrieve_file(url, directory, filename,
-                       dest_filepath)
+    try:
+        ephem_man.retrieve_file(url, directory, filename,
+                           dest_filepath)
+    except ftplib.error_perm as ftplib_exception:
+        print(ftplib_exception)
+
+    remove_download_eph(ephem_download_path)
+
+@pytest.mark.parametrize('fileinfo',
+    [
+     {'filepath': 'IGS/BRDC/2023/099/BRDC00WRD_S_20230990000_01D_MN.rnx.gz',
+       'url': 'http://igs.bkg.bund.de/root_ftp/'},
+     ])
+def test_request_igs(ephem_download_path, fileinfo):
+    """Test requests download for igs files.
+
+    The reason for this test is that Github workflow actions seem to
+    block international IPs and so won't properly bind to the igs IP.
+
+    Parameters
+    ----------
+    ephem_download_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+    fileinfo : dict
+        Filenames for ephemeris with ftp server and constellation details
+
+    """
+
+    remove_download_eph(ephem_download_path)
+    os.makedirs(ephem_download_path)
+
+    ephem_man = EphemerisManager(ephem_download_path, verbose=True)
+
+    filepath = fileinfo['filepath']
+    filename = os.path.split(filepath)[1]
+    dest_filepath = os.path.join(ephem_man.data_directory, 'igs', filename)
+
+    requests_url = fileinfo['url'] + fileinfo['filepath']
+
+    response = requests.get(requests_url, timeout=5)
+    with open(dest_filepath,'wb') as file:
+        file.write(response.content)
 
     remove_download_eph(ephem_download_path)
 
