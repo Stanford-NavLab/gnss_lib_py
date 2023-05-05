@@ -377,18 +377,20 @@ def test_plot_skyplot(navdata, state_estimate):
         assert row in str(excinfo.value)
 
     for row in ["x_rx_m","y_rx_m","z_rx_m"]:
-        state_removed = state_estimate.remove(rows=row)
+        row_idx = state_estimate.find_wildcard_indexes(row[:4]+'*'+row[4:])[row[:4]+'*'+row[4:]][0]
+        state_removed = state_estimate.remove(rows=row_idx)
         with pytest.raises(KeyError) as excinfo:
             viz.plot_skyplot(navdata, state_removed, save=False)
-        assert row.replace("rx","*") in str(excinfo.value)
+        assert row[:4]+'*'+row[4:] in str(excinfo.value)
         assert "Missing" in str(excinfo.value)
 
     for row in ["x_rx_m","y_rx_m","z_rx_m"]:
         state_double = state_estimate.copy()
-        state_double[row.replace("rx","get")] = state_double[row]
+        row_idx = state_estimate.find_wildcard_indexes(row[:4]+'*'+row[4:])[row[:4]+'*'+row[4:]][0]
+        state_double[row_idx.replace("rx_","rx_gt_")] = state_double[row_idx]
         with pytest.raises(KeyError) as excinfo:
             viz.plot_skyplot(navdata, state_double, save=False)
-        assert row.replace("rx","*") in str(excinfo.value)
+        assert row[:4]+'*'+row[4:] in str(excinfo.value)
         assert "More than 1" in str(excinfo.value)
 
 def test_get_label():
@@ -478,17 +480,17 @@ def test_plot_map(gtruth, state_estimate):
     assert "NavData" in str(excinfo.value)
     assert "Input" in str(excinfo.value)
 
-    for row in ["lat_rx_deg","lon_rx_deg"]:
+    for row in ["lat_rx_wls_deg","lon_rx_wls_deg"]:
         state_removed = state_estimate.remove(rows=row)
         with pytest.raises(KeyError) as excinfo:
             viz.plot_map(gtruth, state_removed, save=False)
-        assert row.replace("rx","*") in str(excinfo.value)
+        assert row.replace("rx_wls","*") in str(excinfo.value)
         assert "Missing" in str(excinfo.value)
 
-    for row in ["lat_rx_deg","lon_rx_deg"]:
+    for row in ["lat_rx_wls_deg","lon_rx_wls_deg"]:
         state_double = state_estimate.copy()
         state_double[row.replace("rx","2")] = state_double[row]
         with pytest.raises(KeyError) as excinfo:
             viz.plot_map(gtruth, state_double, save=False)
-        assert row.replace("rx","*") in str(excinfo.value)
+        assert row.replace("rx_wls","*") in str(excinfo.value)
         assert "More than 1" in str(excinfo.value)

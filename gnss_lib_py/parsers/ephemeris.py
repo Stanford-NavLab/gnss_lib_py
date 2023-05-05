@@ -1,5 +1,25 @@
 """Functions to download, save and process satellite ephemeris files.
 
+The Ephemeris Manager provides broadcast ephemeris for specific
+satellites at a specific timestep. The EphemerisManager class should be
+initialized and then the ``get_ephemeris`` function can be used to
+retrieve ephemeris for specific satellites. ``get_ephemeris`` returns
+the most recent broadcast ephemeris for the provided list of satellites
+that was broadcast BEFORE the provided timestamp. For example GPS daily
+ephemeris files contain data at a two hour frequency, so if the
+timestamp provided is 5am, then ``get_ephemeris`` will return the 4am
+data but not 6am. If provided a timestamp between midnight and 2am then
+the ephemeris from around midnight (might be the day before) will be
+provided. If no list of satellites is provided, then ``get_ephemeris``
+will return data for all satellites.
+
+When multiple observations are provided for the same satellite and same
+timestep, the Ephemeris Manager will only return the first instance.
+This is applicable when requesting ephemeris for multi-GNSS for the
+current day. Same-day multi GNSS data is pulled from  same day. For
+same-day multi-GNSS from https://igs.org/data/ which often has multiple
+observations.
+
 """
 
 __authors__ = "Shubh Gupta, Ashwin Kanhere"
@@ -10,7 +30,7 @@ import shutil
 import gzip
 import ftplib
 from ftplib import FTP_TLS, FTP
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import unlzw3
 import georinex
@@ -18,6 +38,8 @@ import numpy as np
 import pandas as pd
 
 import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, tzinfo_to_utc
 
 
 class EphemerisManager():
@@ -31,6 +53,8 @@ class EphemerisManager():
         Ephemeris parameters
     leapseconds : int
         Leap seconds to add to UTC time to get GPS time
+    verbose : bool
+        If true, prints debugging statements.
 
     Notes
     -----
@@ -69,7 +93,8 @@ class EphemerisManager():
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     """
-    def __init__(self, data_directory=os.path.join(os.getcwd(), 'data', 'ephemeris')):
+    def __init__(self, data_directory=os.path.join(os.getcwd(), 'data', 'ephemeris'),
+                 verbose=False):
         self.data_directory = data_directory
         nasa_dir = os.path.join(data_directory, 'nasa')
         igs_dir = os.path.join(data_directory, 'igs')
@@ -77,85 +102,172 @@ class EphemerisManager():
         os.makedirs(igs_dir, exist_ok=True)
         self.data = None
         self.leapseconds = None
+        self.verbose = verbose
 
-    def get_ephemeris(self, timestamp, satellites):
-        """Return ephemeris DataFrame for satellites input
+    def get_ephemeris(self, timestamp, satellites=None):
+        """Return ephemeris DataFrame for satellites input.
+
+        The Ephemeris Manager provides broadcast ephemeris for specific
+        satellites at a specific timestep. The EphemerisManager class
+        should be initialized and then the ``get_ephemeris`` function
+        can be used to retrieve ephemeris for specific satellites.
+        ``get_ephemeris`` returns the most recent broadcast ephemeris
+        for the provided list of satellites that was broadcast BEFORE
+        the provided timestamp. For example GPS daily ephemeris files
+        contain data at a two hour frequency, so if the timestamp
+        provided is 5am, then ``get_ephemeris`` will return the 4am data
+        but not 6am. If provided a timestamp between midnight and 2am
+        then the ephemeris from around midnight (might be the day
+        before) will be provided. If no list of satellites is provided,
+        then ``get_ephemeris`` will return data for all satellites.
+
+        When multiple observations are provided for the same satellite
+        and same timestep, the Ephemeris Manager will only return the
+        first instance. This is applicable when requesting ephemeris for
+        multi-GNSS for the current day. Same-day multi GNSS data is
+        pulled from  same day. For same-day multi-GNSS from
+        https://igs.org/data/ which often has multiple observations.
 
         Parameters
         ----------
         timestamp : datetime.datetime
-            Time of clock
+            Ephemeris data is returned for the timestamp day and
+            includes all broadcast ephemeris whose broadcast timestamps
+            happen before the given timestamp variable. Timezone should
+            be added manually and is interpreted as UTC if not added.
         satellites : List
-            List of satellites ['Const_IDSVID']
+            List of satellite IDs as a string, for example ['G01','E11',
+            'R06']. Defaults to None which returns get_ephemeris for
+            all satellites.
 
         Returns
         -------
-        data : pd.DataFrame
-            DataFrame containing ephemeris entries corresponding to timestamp
+        data : gnss_lib_py.parsers.navdata.NavData
+            ephemeris entries corresponding to timestamp
+
+        Notes
+        -----
+        The Galileo week ``GALWeek`` is identical to the GPS Week
+        ``GPSWeek``. See http://acc.igs.org/misc/rinex304.pdf page A26
 
         """
         systems = EphemerisManager.get_constellations(satellites)
+        # add UTC timezone if datatime os offset-naive
+        timestamp = tzinfo_to_utc(timestamp)
         if not isinstance(self.data, pd.DataFrame):
-            self.load_data(timestamp, systems)
+            same_day = (datetime.now(timezone.utc) - timestamp).days <= 0
+            self.load_data(timestamp, systems, same_day)
         data = self.data
-        if satellites:
+        if satellites is not None:
             data = data.loc[data['sv'].isin(satellites)]
-        data = data.loc[data['time'] < timestamp]
-        data = data.sort_values('time').groupby(
+        time_cropped_data = data.loc[data['time'] < timestamp]
+        time_cropped_data = time_cropped_data.sort_values('time').groupby(
             'sv').last().drop(labels = 'index', axis = 'columns')
+        if satellites is not None and len(time_cropped_data) < len(satellites):
+            # if no data available for the given day, try looking at the
+            # previous day, may occur when a time near to midnight
+            # is provided. For example, 12:01am
+            if len(time_cropped_data) != 0:
+                satellites = list(set(satellites) - set(time_cropped_data.index))
+            systems = EphemerisManager.get_constellations(satellites)
+            prev_day_timestamp = datetime(year=timestamp.year,
+                                          month=timestamp.month,
+                                          day=timestamp.day - 1,
+                                          hour=23,
+                                          minute=59,
+                                          second=59,
+                                          microsecond=999999,
+                                          tzinfo=timezone.utc,
+                                          )
+            self.load_data(prev_day_timestamp, systems, False)
+            prev_data = self.data
+            if satellites is not None:
+                prev_data = prev_data.loc[prev_data['sv'].isin(satellites)]
+            prev_data = prev_data.sort_values('time').groupby(
+                'sv').last().drop(labels = 'index', axis = 'columns')
+            data = pd.concat((time_cropped_data,prev_data))
+        else:
+            data = time_cropped_data
         data['Leap Seconds'] = self.leapseconds
-        return data
+        # Convert data DataFrame to NavData instance
+        # Move sv to DataFrame columns, reset index
+        data = data.reset_index()
+        # Replace datetime with gps_millis
+        gps_millis = [datetime_to_gps_millis(df_row['time']) \
+                        for _, df_row in data.iterrows()]
+        data['gps_millis'] = gps_millis
+        data = data.drop(columns=['time'])
+        data = data.rename(columns={"sv":"sv_id"})
+        if "GPSWeek" in data.columns:
+            data = data.rename(columns={"GPSWeek":"gps_week"})
+            if "GALWeek" in data.columns:
+                data["gps_week"] = np.where(pd.isnull(data["gps_week"]),
+                                                      data["GALWeek"],
+                                                      data["gps_week"])
+        elif "GALWeek" in data.columns:
+            data = data.rename(columns={"GALWeek":"gps_week"})
+        if len(data) == 0:
+            raise RuntimeError("No ephemeris data available for the " \
+                             + "given satellites")
+        data_navdata = NavData(pandas_df=data)
+        data_navdata['gnss_sv_id'] = data_navdata['sv_id']
+        gnss_chars = [sv_id[0] for sv_id in np.atleast_1d(data_navdata['sv_id'])]
+        gnss_nums = [sv_id[1:] for sv_id in np.atleast_1d(data_navdata['sv_id'])]
+        gnss_id = [consts.CONSTELLATION_CHARS[gnss_char] for gnss_char in gnss_chars]
+        data_navdata['gnss_id'] = np.asarray(gnss_id)
+        data_navdata['sv_id'] = np.asarray(gnss_nums, dtype=int)
+        return data_navdata
 
-    def get_leapseconds(self, timestamp):
-        """Output saved leapseconds
-
-        Returns
-        -------
-        lp_seconds : float
-            Leap seconds between GPS and UTC time
-        """
-        lp_seconds = self.leapseconds
-        return lp_seconds
-
-    def load_data(self, timestamp, constellations=None):
+    def load_data(self, timestamp, constellations=None, same_day=False):
         """Load ephemeris into class instance
 
         Parameters
         ----------
-
         timestamp : datetime.datetime
-            Time of clock
-
+            Ephemeris data is returned for the timestamp day and
+            includes all broadcast ephemeris whose broadcast timestamps
+            happen before the given timestamp variable. Timezone should
+            be added manually and is interpreted as UTC if not added.
         constellations : Set
-            Set of satellites {"ConstIDSVID"}
+            Set of satellites For example, set({"G","R","E"}).
+        same_day : bool
+            Whether or not ephemeris is for same-day aquisition.
 
         """
         filepaths = EphemerisManager.get_filepaths(timestamp)
         data_list = []
-        timestamp_age = datetime.now(timezone.utc) - timestamp
+
         if constellations == None:
             for fileinfo in filepaths.values():
-                data = self.get_ephemeris_dataframe(fileinfo)
+                data = self.get_ephemeris_dataframe(fileinfo,
+                                                    constellations)
                 data_list.append(data)
         else:
             legacy_systems = set(['G', 'R'])
             legacy_systems_only = len(constellations - legacy_systems) == 0
-            if timestamp_age.days > 0:
+            if not same_day:
                 if legacy_systems_only:
-                    data_list.append(self.get_ephemeris_dataframe(
-                        filepaths['nasa_daily_gps']))
+                    if 'G' in constellations:
+                        data_list.append(self.get_ephemeris_dataframe(
+                            filepaths['nasa_daily_gps'],
+                            constellations=None))
                     if 'R' in constellations:
                         data_list.append(self.get_ephemeris_dataframe(
-                            filepaths['nasa_daily_glonass']))
+                            filepaths['nasa_daily_glonass'],
+                            constellations=None))
                 else:
                     data_list.append(self.get_ephemeris_dataframe(
-                        filepaths['nasa_daily_combined']))
+                        filepaths['nasa_daily_combined'],
+                        constellations))
             else:
-                data_list.append(self.get_ephemeris_dataframe(
-                    filepaths['nasa_daily_gps']))
-                if not legacy_systems_only:
+                if legacy_systems_only and 'G' in constellations:
                     data_list.append(self.get_ephemeris_dataframe(
-                        filepaths['bkg_daily_combined']))
+                        filepaths['nasa_daily_gps'],
+                        constellations=None))
+                else:
+                    data_list.append(self.get_ephemeris_dataframe(
+                        filepaths['bkg_daily_combined'],
+                        constellations))
 
         data = pd.DataFrame()
         for new_data in data_list:
@@ -185,40 +297,35 @@ class EphemerisManager():
         url = fileinfo['url']
         directory = os.path.split(filepath)[0]
         filename = os.path.split(filepath)[1]
-        if url == 'igs.bkg.bund.de':
+        if url == 'igs-ftp.bkg.bund.de':
             dest_filepath = os.path.join(self.data_directory, 'igs', filename)
         else:
             dest_filepath = os.path.join(self.data_directory, 'nasa', filename)
         decompressed_filename = os.path.splitext(dest_filepath)[0]
-        if not os.path.isfile(decompressed_filename):
-            if url == 'gdc.cddis.eosdis.nasa.gov':
-                secure = True
-            else:
-                secure = False
-            try:
-                self.retrieve_file(url, directory, filename,
-                                   dest_filepath, secure)
-                self.decompress_file(dest_filepath)
-            except ftplib.error_perm as err:
-                print('ftp error')
-                return pd.DataFrame()
+        if not os.path.isfile(decompressed_filename): # pragma: no cover
+            self.retrieve_file(url, directory, filename,
+                               dest_filepath)
         if not self.leapseconds:
             self.leapseconds = EphemerisManager.load_leapseconds(
                 decompressed_filename)
-        if constellations:
+        if constellations is not None:
             data = georinex.load(decompressed_filename,
-                                 use=constellations).to_dataframe()
+                                 use=constellations,
+                                 verbose=self.verbose).to_dataframe()
         else:
-            data = georinex.load(decompressed_filename).to_dataframe()
+            data = georinex.load(decompressed_filename,
+                                 verbose=self.verbose).to_dataframe()
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = decompressed_filename
         data['t_oc'] = pd.to_numeric(data['time'] - datetime(1980, 1, 6, 0, 0, 0))
+        #TODO: Use a constant for the time of GPS clock start
         data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
         data['time'] = data['time'].dt.tz_localize('UTC')
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
         return data
+
 
     @staticmethod
     def get_filetype(timestamp):
@@ -264,6 +371,8 @@ class EphemerisManager():
                 if 'END OF HEADER' in line:
                     return None
 
+        return None
+
     @staticmethod
     def get_constellations(satellites):
         """Convert list of satellites to set
@@ -278,23 +387,18 @@ class EphemerisManager():
         systems : Set or None
             Set representation of satellites for which ephemeris is needed
         """
-        if type(satellites) is list:
+        if isinstance(satellites, list):
             systems = set()
             for sat in satellites:
                 systems.add(sat[0])
             return systems
-        else:
-            return None
 
-    @staticmethod
-    def calculate_toc(timestamp):
-        """I think this is equivalent of datetime_to_tow()
-        #TODO: See if this function is needed or can be deleted
-        """
-        pass
+        return None
 
-    def retrieve_file(self, url, directory, filename, dest_filepath, secure=False):
-        """Copy ephemeris file from FTP filepath to local directory
+    def retrieve_file(self, url, directory, filename, dest_filepath):
+        """Copy ephemeris file from FTP filepath to local directory.
+
+        Also decompresses file.
 
         Parameters
         ----------
@@ -310,11 +414,12 @@ class EphemerisManager():
         dest_filepath : String
             Directory where downloaded ephemeris files are stored locally
 
-        secure : Bool
-            Whether to make secure FTP connection
-
         """
-        print('Retrieving ' + directory + '/' + filename + ' from ' + url)
+
+        secure = bool(url == 'gdc.cddis.eosdis.nasa.gov')
+
+        if self.verbose:
+            print('Retrieving ' + directory + '/' + filename + ' from ' + url)
         ftp = self.connect(url, secure)
         src_filepath = directory + '/' + filename
         try:
@@ -322,10 +427,14 @@ class EphemerisManager():
                 ftp.retrbinary(
                     'RETR ' + src_filepath, handle.write)
         except ftplib.error_perm as err:
-            print('Failed to retrieve ' + src_filepath + ' from ' + url)
-            print(err)
             os.remove(dest_filepath)
-            raise ftplib.error_perm
+            raise ftplib.error_perm(str(err) + ' Failed to retrieve ' \
+                                  + src_filepath + ' from ' + url)
+
+        ftp.quit()
+        if ftp is not None: # try closing if still active
+            ftp.close()
+        self.decompress_file(dest_filepath)
 
     def decompress_file(self, filepath):
         """Decompress downloaded file ephemeris file in same destination location
@@ -373,23 +482,6 @@ class EphemerisManager():
             ftp.login()
         return ftp
 
-    def listdir(self, url, directory, secure):
-        """Display files on server that match input filename
-
-        Parameters
-        ----------
-        url : String
-            URL of FTP server
-
-        directory : String
-            Directory in FTP server where relevant ephemeris files are stored
-        """
-        # TODO: Function not called anywhere, consider folding into existing function calls or deleting
-        ftp = self.connect(url, secure)
-        dirlist = ftp.nlst(directory)
-        dirlist = [x for x in dirlist]
-        print(dirlist)
-
     @staticmethod
     def get_filepaths(timestamp):
         """Generate filepaths for all ephemeris files
@@ -432,12 +524,6 @@ class EphemerisManager():
             str(timetuple.tm_year) + \
             str(timetuple.tm_yday).zfill(3) + '0000_01D_MN.rnx.gz'
         filepaths['bkg_daily_combined'] = {
-            'filepath': directory + filename, 'url': 'igs.bkg.bund.de'}
+            'filepath': directory + filename, 'url': 'igs-ftp.bkg.bund.de'}
 
         return filepaths
-
-
-if __name__ == '__main__':
-    repo = EphemerisManager()
-    target_time = datetime(2021, 1, 9, 12, 0, 0, tzinfo=timezone.utc)
-    data = repo.get_ephemeris(target_time, ['G01', 'G03'])

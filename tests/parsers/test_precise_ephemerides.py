@@ -22,14 +22,8 @@ from gnss_lib_py.parsers.precise_ephemerides import multi_gnss_from_precise_eph
 from gnss_lib_py.parsers.precise_ephemerides import sv_gps_from_brdcst_eph
 from gnss_lib_py.parsers.precise_ephemerides import sp3_snapshot, clk_snapshot
 from gnss_lib_py.parsers.precise_ephemerides import extract_sp3, extract_clk
+from gnss_lib_py.parsers.precise_ephemerides import NUMSATS
 import gnss_lib_py.utils.constants as consts
-
-# Define the number of sats to create arrays for
-NUMSATS = {'gps': (32, 'G'),
-           'galileo': (36, 'E'),
-           'beidou': (46, 'C'),
-           'glonass': (24, 'R'),
-           'qzss': (3, 'J')}
 
 # Define the no. of samples to test functions:test_gps_sp3_funcs,
 # test_gps_clk_funcs, test_glonass_sp3_funcs, test_glonass_clk_funcs
@@ -571,7 +565,8 @@ def test_gps_sp3_funcs(sp3data_gps):
             sp3_subset = random.sample(range(len(sp3data_gps[prn].tym)-1), NUMSAMPLES)
             for sidx, _ in enumerate(sp3_subset):
                 func_satpos = extract_sp3(sp3data_gps[prn], sidx, \
-                                               ipos = 10, method='CubicSpline')
+                                               ipos = 10, method='CubicSpline',
+                                               verbose=True)
                 cxtime = sp3data_gps[prn].tym[sidx]
                 satpos_sp3, _ = sp3_snapshot(func_satpos, cxtime, \
                                                      hstep = 5e-1, method='CubicSpline')
@@ -653,7 +648,8 @@ def test_glonass_clk_funcs(clkdata_glonass):
             clk_subset = random.sample(range(len(clkdata_glonass[prn].tym)-1), NUMSAMPLES)
             for sidx, _ in enumerate(clk_subset):
                 func_satbias = extract_clk(clkdata_glonass[prn], sidx, \
-                                             ipos = 10, method='CubicSpline')
+                                             ipos = 10, method='CubicSpline',
+                                             verbose=True)
                 cxtime = clkdata_glonass[prn].tym[sidx]
                 satbias_clk, _ = clk_snapshot(func_satbias, cxtime, \
                                                       hstep = 5e-1, method='CubicSpline')
@@ -679,7 +675,9 @@ def test_compute_gps_precise_eph(navdata_gps, sp3data_gps, clkdata_gps):
     """
     navdata_prcs_gps = navdata_gps.copy()
     navdata_prcs_gps = single_gnss_from_precise_eph(navdata_prcs_gps, \
-                                                        sp3data_gps, clkdata_gps)
+                                                        sp3data_gps,
+                                                        clkdata_gps,
+                                                        verbose=True)
 
     # Check if the resulting derived is NavData class
     assert isinstance( navdata_prcs_gps, type(NavData()) )
@@ -846,17 +844,18 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
     # test what happens when extra (multi-GNSS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_eph = navdata.copy()
-        sv_gps_from_brdcst_eph(navdata_eph)
+        sv_gps_from_brdcst_eph(navdata_eph, verbose=True)
     assert "Multi-GNSS" in str(excinfo.value)
 
     # test what happens when invalid (non-GPS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_glonassg1_eph = navdata_glonassg1.copy()
-        sv_gps_from_brdcst_eph(navdata_glonassg1_eph)
+        sv_gps_from_brdcst_eph(navdata_glonassg1_eph, verbose=True)
     assert "non-GPS" in str(excinfo.value)
 
     navdata_gpsl1_eph = navdata_gpsl1.copy()
-    navdata_gpsl1_eph = sv_gps_from_brdcst_eph(navdata_gpsl1_eph)
+    navdata_gpsl1_eph = sv_gps_from_brdcst_eph(navdata_gpsl1_eph,
+                                               verbose=True)
 
     # Check if the resulting derived is NavData class
     assert isinstance( navdata_gpsl1_eph, type(NavData()) )

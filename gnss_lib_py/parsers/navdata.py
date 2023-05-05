@@ -235,7 +235,7 @@ class NavData():
                 # combine data from existing and new instance
                 for data in [self, navdata]:
                     if row in data.rows:
-                        new_row = data[row]
+                        new_row = np.atleast_1d(data[row])
                     elif len(data) == 0:
                         continue
                     else:
@@ -265,20 +265,40 @@ class NavData():
         return new_navdata
 
     def where(self, key_idx, value, condition="eq"):
-        """Return NavData where conditions are met for the given row
+        """Return NavData where conditions are met for the given row.
+
+        For string rows, only the "eq" and "neq" conditions are valid.
+        The "value" argument can contain either a string, np.nan or an
+        array-like object of strings. If an array-like object of strings
+        is passed in then np.isin() is used to check the condition
+        meaning that the returned subset will contain one of the values
+        in the "value" array-like object for the "eq" condition or none
+        of the values in the "value" array-like object for the "neq"
+        condition.
+
+        For non-string rows, all valid conditions are listed in the
+        "condition" argument description. The "value" argument can either
+        contain a numeric or an array-like object of numerics for both
+        the "eq" and "neq" conditions.
+        If an array-like object is passed then the returned subset will
+        contain one of the values in the "value" array-like object for
+        the "eq" condition or none of the values in the "value"
+        array-like object for the "neq" condition.
+        For the "between" condition, the two limit values must be passed
+        into the "value" argument as an array-like object.
 
         Parameters
         ----------
         key_idx : string/int
             Key or index of the row in which conditions will be checked
-        value : float/list
-            Number (or list of two numbers for ) to compare array values
-            against
+        value : float/int/str/array-like
+            Value that the row is checked against, array-like object
+            possible for "eq", "neq", or "between" conditions.
         condition : string
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
             lesser than or equal to ("leq") / in between ("between")
-            inclusive of the provided limits
+            inclusive of the provided limits / not equal to ("neq"))
 
         Returns
         -------
@@ -293,18 +313,40 @@ class NavData():
         return new_navdata
 
     def argwhere(self, key_idx, value, condition="eq"):
-        """Return columns where conditions are met for the given row
+        """Return columns where conditions are met for the given row.
+
+        For string rows, only the "eq" and "neq" conditions are valid.
+        The "value" argument can contain either a string, np.nan or an
+        array-like object of strings. If an array-like object of strings
+        is passed in then np.isin() is used to check the condition
+        meaning that the returned subset will contain one of the values
+        in the "value" array-like object for the "eq" condition or none
+        of the values in the "value" array-like object for the "neq"
+        condition.
+
+        For non-string rows, all valid conditions are listed in the
+        "condition" argument description. The "value" argument can either
+        contain a numeric or an array-like object of numerics for both
+        the "eq" and "neq" conditions.
+        If an array-like object is passed then the returned subset will
+        contain one of the values in the "value" array-like object for
+        the "eq" condition or none of the values in the "value"
+        array-like object for the "neq" condition.
+        For the "between" condition, the two limit values must be passed
+        into the "value" argument as an array-like object.
 
         Parameters
         ----------
         key_idx : string/int
             Key or index of the row in which conditions will be checked
-        value : float/list
-            Number (or list of two numbers for ) to compare array values against
+        value : float/int/str/array-like
+            Value that the row is checked against, array-like object
+            possible for "eq", "neq", or "between" conditions.
         condition : string
             Condition type (greater than ("greater")/ less than ("lesser")/
             equal to ("eq")/ greater than or equal to ("geq")/
-            lesser than or equal to ("leq") / in between ("between"))
+            lesser than or equal to ("leq") / in between ("between")
+            inclusive of the provided limits / not equal to ("neq"))
 
         Returns
         -------
@@ -313,41 +355,52 @@ class NavData():
             for specified row
         """
         rows, _ = self._parse_key_idx(key_idx)
-        inv_map = self.inv_map
         row_list, row_str = self._get_str_rows(rows)
         if len(row_list)>1:
             error_msg = "where does not currently support multiple rows"
             raise NotImplementedError(error_msg)
         row = row_list[0]
         row_str = row_str[0]
-        new_cols = None
+        new_cols = np.array([])
         if row_str:
             # Values in row are strings
             if condition not in ("eq","neq"):
-                raise ValueError("Inequality comparison not valid for strings")
-            key = inv_map[row]
-            for str_key, str_value in self.str_map[key].items():
-                if str_value==str(value):
-                    if condition == "eq":
-                        new_cols = np.argwhere(self.array[row, :]==str_key)
-                        break
-                    # condition == "neq"
-                    new_cols = np.argwhere(self.array[row, :]!=str_key)
-                    break
-            if new_cols is None:
-                new_cols = np.array([])
+                raise ValueError("Unsupported where condition for strings")
+            if isinstance(value,str):
+                str_check = [str(value)]
+            elif isinstance(value,(np.ndarray,list,tuple,set)):
+                str_check = [str(v) for v in value]
+            elif np.isnan(value):
+                str_check = [str(np.nan)]
+            else:
+                raise ValueError("Value must be string or array-like " \
+                               + "for string condition checks")
             # Extract columns where condition holds true and return new NavData
+            if condition == "eq":
+                new_cols = np.argwhere(np.isin(self[row, :],str_check))
+            else:
+                # condition == "neq"
+                new_cols = np.argwhere(~np.isin(self[row, :],str_check))
+
         else:
             # Values in row are numerical
             # Find columns where value can be found and return new NavData
             if condition=="eq":
-                if not isinstance(value,str) and np.isnan(value):
+                if isinstance(value,(np.ndarray,list,tuple,set)):
+                    # use numpy's isin() condition if list of values
+                    new_cols = np.argwhere(np.isin(self.array[row, :],
+                                           value))
+                elif not isinstance(value,str) and np.isnan(value):
                     # check isinstance b/c np.isnan can't handle strings
                     new_cols = np.argwhere(np.isnan(self.array[row, :]))
                 else:
                     new_cols = np.argwhere(self.array[row, :]==value)
             elif condition=="neq":
-                if not isinstance(value,str) and np.isnan(value):
+                if isinstance(value,(np.ndarray,list,tuple,set)):
+                    # use numpy's isin() condition if list of values
+                    new_cols = np.argwhere(~np.isin(self.array[row, :],
+                                           value))
+                elif not isinstance(value,str) and np.isnan(value):
                     # check isinstance b/c np.isnan can't handle strings
                     new_cols = np.argwhere(~np.isnan(self.array[row, :]))
                 else:
@@ -369,14 +422,59 @@ class NavData():
         new_cols = np.squeeze(new_cols)
         return new_cols
 
-    def loop_time(self, time_row, tol_decimals=2):
+    def sort(self, order=None, ind=None, ascending=True,
+             inplace=False):
+        """Sort values along given row or using given index
+
+        Parameters
+        ----------
+        order : string/int
+            Key or index of the row on which NavData will be sorted
+        ind : list/np.ndarray
+            Ordering of indices to be used for sorting
+        ascending : bool
+            If true, sorts "ascending", otherwise sorts "descending"
+        inplace : bool
+            If False, will return new NavData instance with rows
+            sorted. If True, will sorted data rows in the
+            current NavData instance.
+
+        Returns
+        -------
+        new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+            If inplace is False, returns NavData instance after renaming
+            specified rows. If inplace is True, returns
+            None.
+
+        """
+        if ind is None:
+            assert order is not None, \
+            "Provide 'order' arg as row on which NavData is sorted"
+            if ascending:
+                ind = np.argsort(self[order])
+            else:
+                ind = np.argsort(-self[order])
+
+        if not inplace:
+            new_navdata = self.copy()   # create copy to return
+        for row_idx in range(self.shape[0]):
+            if inplace:
+                self.array[row_idx,:] = self.array[row_idx,ind]
+            else:
+                new_navdata.array[row_idx,:] = new_navdata.array[row_idx,ind]
+
+        if inplace:
+            return None
+        return new_navdata
+
+    def loop_time(self, time_row, delta_t_decimals=2):
         """Generator object to loop over columns from same times.
 
         Parameters
         ----------
         time_row : string/int
             Key or index of the row in which times are stored.
-        tol_decimals : int
+        delta_t_decimals : int
             Decimal places after which times are considered equal.
 
         Yields
@@ -392,16 +490,20 @@ class NavData():
 
         times = self[time_row]
         times_unique = np.sort(np.unique(np.around(times,
-                                         decimals=tol_decimals)))
+                                         decimals=delta_t_decimals)))
         for time_idx, time in enumerate(times_unique):
             if time_idx==0:
                 delta_t = 0
             else:
                 delta_t = time-times_unique[time_idx-1]
-            new_navdata = self.where(time_row, [time-10**(-tol_decimals),
-                                                time+10**(-tol_decimals)],
+            new_navdata = self.where(time_row, [time-10**(-delta_t_decimals),
+                                                time+10**(-delta_t_decimals)],
                                                 condition="between")
-            yield time, delta_t, new_navdata
+            if len(np.unique(new_navdata[time_row]))==1:
+                frame_time = new_navdata[time_row, 0]
+            else:
+                frame_time = time
+            yield frame_time, delta_t, new_navdata
 
     def is_str(self, row_name):
         """Check whether a row contained string values.
@@ -742,17 +844,26 @@ class NavData():
             raise KeyError(", ".join(missing_rows) + " row(s) are" \
                            + " missing from NavData object.")
 
-    def find_wildcard_indexes(self, wildcards, max_allow = None):
+    def find_wildcard_indexes(self, wildcards, max_allow = None,
+                              excludes = None):
         """Searches for indexes matching wildcard search input.
 
         For example, a search for ``x_*_m`` would find ``x_rx_m`` or
         ``x_sv_m`` or ``x_alpha_beta_gamma_m`` depending on the rows
         existing in the NavData instance.
 
+        The ``excludes`` variable allows you to exclude indexes when
+        trying to match a wildcard. For example, if there are rows named
+        ``pr_raw_m``and ``pr_raw_sigma_m`` then the input
+        ``wildcards="pr_*_m", excludes=None`` would return
+        ``{"pr_*_m", ["pr_raw_m","pr_raw_sigma_m"]}`` but with the excludes
+        parameter set, the input ``wildcards="pr_*_m", excludes="pr_*_sigma_m"``
+        would only return ``{"pr_*_m", ["pr_raw_m"]}``
+
         Will return an error no index is found matching the wildcard or
         if more than ``max_allow`` indexes are found.
 
-        Currently only allows for a single wildcard per index.
+        Currently only allows for a single wildcard '*' per index.
 
         Parameters
         ----------
@@ -761,6 +872,10 @@ class NavData():
         max_allow : int or None
             Maximum number of valid indexes to allow before throwing an
             error. If None, then no limit is placed.
+        excludes : array-like or str
+            List or string to exclude for each wildcard in wildcards.
+            Must be the same length as wildcards. Allowed to include a
+            wildcard '*' character but not necessary.
 
         Returns
         -------
@@ -777,10 +892,29 @@ class NavData():
         if not (isinstance(max_allow,int) or max_allow is None):
             raise TypeError("max_allow input in find_wildcard_indexes" \
                           + " must be an integer or None.")
+        # handle exclude types
+        if isinstance(excludes,str):
+            excludes = [excludes]
+        if excludes is None:
+            excludes = [None] * len(wildcards)
+        if not isinstance(excludes, (list,tuple,np.ndarray,set)):
+            raise TypeError("excludes input in find_wildcard_indexes" \
+                         +  " must be array-like, single string, " \
+                         + "or None for each wildcard")
+        if len(excludes) != len(wildcards):
+            raise TypeError("excludes input must match length of " \
+                          + "wildcard input.")
+        for ex_idx, exclude in enumerate(excludes):
+            if exclude is None or isinstance(exclude,str):
+                excludes[ex_idx] = [exclude]
+            if not isinstance(excludes[ex_idx], (list,tuple,np.ndarray,set)):
+                raise TypeError("excludes input in find_wildcard_indexes" \
+                             +  " must be array-like, single string, " \
+                             + "or None for each wildcard")
 
         wildcard_indexes = {}
 
-        for wildcard in wildcards:
+        for wild_idx, wildcard in enumerate(wildcards):
             if not isinstance(wildcard,str):
                 raise TypeError("wildcards must be strings")
             if wildcard.count("*") != 1:
@@ -789,6 +923,15 @@ class NavData():
             indexes = [row for row in self.rows
                    if row.startswith(wildcard.split("*",maxsplit=1)[0])
                     and row.endswith(wildcard.split("*",maxsplit=1)[1])]
+            if excludes[wild_idx] is not None:
+                for exclude in excludes[wild_idx]:
+                    if exclude is not None:
+                        if '*' in exclude:
+                            indexes = [row for row in indexes
+                                     if not (row.startswith(exclude.split("*",maxsplit=1)[0])
+                                     and row.endswith(exclude.split("*",maxsplit=1)[1]))]
+                        else:
+                            indexes = [row for row in indexes if exclude != row]
             if max_allow is not None and len(indexes) > max_allow:
                 raise KeyError("More than " + str(max_allow) \
                              + " possible row indexes for "  + wildcard)
