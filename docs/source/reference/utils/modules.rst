@@ -8,7 +8,6 @@ utils
    coordinates
    file_operations
    filters
-   gnss_models
-   sv_models
+   sim_gnss
    time_conversions
    visualizations
