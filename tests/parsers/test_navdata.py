@@ -1402,6 +1402,14 @@ def test_concat(df_simple):
                                   check_index_type=False,
                                   check_dtype=False)
 
+    navdata_a = NavData(pandas_df=pd.DataFrame({'a':[0],'b':[1],'c':[2],
+                                                'd':[3],'e':[4],'f':[5],
+                                                }))
+    navdata_b = navdata_a.concat(navdata_a.copy(),axis=0)
+    assert navdata_b.shape == (12,1)
+    navdata_b = navdata_a.concat(navdata_a.copy(),axis=1)
+    assert navdata_b.shape == (6,2)
+
 def test_concat_fails(df_simple):
     """Test when concat should fail.
 
@@ -1748,6 +1756,9 @@ def test_where_errors(csv_simple):
     # Test condition that is not defined
     with pytest.raises(ValueError):
         _ = data.where("integers", 10, condition="eq_sqrt")
+    # Test passing float in for string check
+    with pytest.raises(ValueError):
+        _ = data.where("names", 0.342, condition="eq")
 
 def test_time_looping(csv_simple):
     """Testing implementation to loop over times
@@ -1762,23 +1773,34 @@ def test_time_looping(csv_simple):
                             1.0001*np.ones([1, 1]),
                             1.0003*np.ones([1,1]),
                             1.50004*np.ones([1, 1]),
-                            1.499999*np.ones([1,1])))
+                            1.49999*np.ones([1,1])))
     compare_df = data.pandas_df()
     count = 0
-    for _, delta_t, measure in data.loop_time('times'):
+    # Testing when loop_time finds overlapping times
+    for time, delta_t, measure in data.loop_time('times', delta_t_decimals=2):
         if count == 0:
             np.testing.assert_almost_equal(delta_t, 0)
+            np.testing.assert_almost_equal(time, 0)
             row_num = [0,1]
         elif count == 1:
             np.testing.assert_almost_equal(delta_t, 1)
+            np.testing.assert_almost_equal(time, 1)
             row_num = [2,3]
         elif count == 2:
             np.testing.assert_almost_equal(delta_t, 0.5)
+            np.testing.assert_almost_equal(time, 1.5)
             row_num = [4,5]
         small_df = measure.pandas_df().reset_index(drop=True)
         expected_df = compare_df.iloc[row_num, :].reset_index(drop=True)
         pd.testing.assert_frame_equal(small_df, expected_df,
                                       check_index_type=False)
+        count += 1
+
+    # Testing for when loop_time finds only unique times
+    count = 0
+    expected_times = [0., 1.0001, 1.0003, 1.49999, 1.50004]
+    for time, _, measure in data.loop_time('times', delta_t_decimals=5):
+        np.testing.assert_almost_equal(time, expected_times[count])
         count += 1
 
 def test_col_looping(csv_simple):
@@ -1997,7 +2019,7 @@ def test_pandas_df(df_simple, df_only_header):
     navdata = NavData()
     pd.testing.assert_frame_equal(navdata.pandas_df().sort_index(axis=1),
                                   pd.DataFrame().sort_index(axis=1),
-                                  check_names=True)
+                                  check_names=True, check_column_type=False)
 
 def test_large_int():
     """Test get/set for large integers.
@@ -2102,6 +2124,85 @@ def test_find_wildcard_indexes(data):
         with pytest.raises(TypeError) as excinfo:
             multi.find_wildcard_indexes("x_*_m",max_allow)
         assert "max_allow" in str(excinfo.value)
+
+def test_find_wildcard_excludes(data):
+    """Tests find_wildcard_indexes
+
+    """
+    all_matching = data.rename({"names" : "x_alpha_m",
+                                "integers" : "x_beta_m",
+                                "floats" : "x_gamma_m",
+                                "strings" : "x_zeta_m"})
+
+    # no exclusion
+    indexes = all_matching.find_wildcard_indexes("x_*_m",excludes=None)
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m",
+                                "x_gamma_m","x_zeta_m"]
+    indexes = all_matching.find_wildcard_indexes("x_*_m",excludes=[None])
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m",
+                                "x_gamma_m","x_zeta_m"]
+
+    # single exclusion
+    indexes = all_matching.find_wildcard_indexes("x_*_m",excludes="x_beta_m")
+    assert indexes["x_*_m"] == ["x_alpha_m","x_gamma_m","x_zeta_m"]
+
+    # two exclusion
+    indexes = all_matching.find_wildcard_indexes("x_*_m",
+                                excludes=[["x_beta_m","x_zeta_m"]])
+    assert indexes["x_*_m"] == ["x_alpha_m","x_gamma_m"]
+
+    # all excluded
+    with pytest.raises(KeyError) as excinfo:
+        all_matching.find_wildcard_indexes("x_*_m",excludes=["x_*_m"])
+    assert "Missing " in str(excinfo.value)
+    assert "x_*_m" in str(excinfo.value)
+
+
+    multi = data.rename({"names" : "x_alpha_m",
+                         "integers" : "x_beta_m",
+                         "floats" : "y_alpha_deg",
+                         "strings" : "y_beta_deg"})
+
+    # no exclusion
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=None)
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg","y_beta_deg"]
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=[None,None])
+    assert indexes["x_*_m"] == ["x_alpha_m","x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg","y_beta_deg"]
+
+    # single exclusion
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=["x_alpha*",None])
+    assert indexes["x_*_m"] == ["x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg","y_beta_deg"]
+
+    # double exclusion
+    indexes = multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                                excludes=["x_alpha*","y_beta*"])
+    assert indexes["x_*_m"] == ["x_beta_m"]
+    assert indexes["y_*_deg"] == ["y_alpha_deg"]
+
+    # must match length
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                    excludes=[None])
+    assert "match length" in str(excinfo.value)
+
+    # must match length
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                    excludes={"a":"dictionary"})
+    assert "array-like" in str(excinfo.value)
+    # must match length
+    with pytest.raises(TypeError) as excinfo:
+        multi.find_wildcard_indexes(["x_*_m","y_*_deg"],
+                                    excludes=[None,{"a":"dictionary"}])
+    assert "array-like" in str(excinfo.value)
+
+
 
 @pytest.mark.parametrize('csv_path',
                         [
@@ -2243,3 +2344,62 @@ def test_interpolate_fails():
     with pytest.raises(TypeError) as excinfo:
         data.interpolate("ints",1)
     assert "y_rows" in str(excinfo.value)
+
+
+def test_keep_cols_where(data, df_simple):
+    """Test keep columns with where.
+
+    """
+    # test for strings
+    keep_cols = ['gps', 'glonass']
+
+    data_subset = data.where('strings', keep_cols,
+                                        condition="eq")
+    df_simple_subset = df_simple.loc[df_simple['strings'].isin(keep_cols), :]
+
+    df_simple_subset = df_simple_subset.reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_subset.pandas_df(), df_simple_subset, check_dtype=False)
+
+    # test for floats
+    keep_cols = [0.5, 0.45]
+
+    data_subset = data.where('floats', keep_cols,
+                                        condition="neq")
+    df_simple_subset = df_simple.loc[~df_simple['floats'].isin(keep_cols), :]
+
+    df_simple_subset = df_simple_subset.reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_subset.pandas_df(), df_simple_subset, check_dtype=False)
+
+def test_sort(data, df_simple):
+    """Test sorting function across simple dataframe.
+
+    """
+
+    df_sorted_int = df_simple.sort_values('integers').reset_index(drop=True)
+    df_sorted_float = df_simple.sort_values('floats').reset_index(drop=True)
+    data_sorted_int = data.sort('integers').pandas_df()
+    data_sorted_float = data.sort('floats').pandas_df()
+    float_ind = np.argsort(data['floats'])
+    data_sorted_ind = data.sort(ind=float_ind).pandas_df()
+    pd.testing.assert_frame_equal(data_sorted_int, df_sorted_int)
+    pd.testing.assert_frame_equal(df_sorted_float, data_sorted_float)
+    pd.testing.assert_frame_equal(df_sorted_float, data_sorted_ind)
+    # test strings as well:
+    df_sorted_names = df_simple.sort_values('names').reset_index(drop=True)
+    data_sorted_names = data.sort('names').pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_names, data_sorted_names)
+
+    df_sorted_strings = df_simple.sort_values('strings').reset_index(drop=True)
+    data_sorted_strings = data.sort('strings').pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_strings, data_sorted_strings)
+
+    # Test usecase when descending order is given
+    df_sorted_int_des = df_simple.sort_values('integers', ascending=False).reset_index(drop=True)
+    data_sorted_int_des = data.sort('integers', ascending=False).pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)
+
+    # test inplace
+    data_sorted_int_des = data.copy()
+    data_sorted_int_des.sort('integers', ascending=False, inplace=True)
+    data_sorted_int_des = data_sorted_int_des.pandas_df()
+    pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)

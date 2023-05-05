@@ -11,7 +11,7 @@ import warnings
 import pytest
 import numpy as np
 
-from gnss_lib_py.parsers.android import AndroidDerived2021
+from gnss_lib_py.parsers.android import AndroidDerived2021, AndroidDerived2022
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 
@@ -76,6 +76,7 @@ def fixture_set_sv_states():
                           z_sv_m.reshape(-1,1)))
 
     return pos_sv_m
+
 
 # Defining tests
 def test_wls(set_user_states, set_sv_states, tolerance):
@@ -305,6 +306,53 @@ def fixture_load_derived(derived_path):
     derived = AndroidDerived2021(derived_path)
     return derived
 
+
+@pytest.fixture(name="derived_2022_path")
+def fixture_derived_2022_path(root_path):
+    """Filepath of Android Derived 2022 measurements
+
+    Returns
+    -------
+    derived_2022_path : string
+        Location for the unit_test Android 2022 derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [3]_,
+    from the 2022 Decimeter Challenge. Particularly, the
+    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+
+    References
+    ----------
+    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_2022_path = os.path.join(root_path, '../android_2022/device_gnss.csv')
+    return derived_2022_path
+
+
+@pytest.fixture(name="derived_2022")
+def fixture_load_derived_2022(derived_2022_path):
+    """Load instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    derived_2022_path : pytest.fixture
+        String with location of Android derived 2022 measurement file
+
+    Returns
+    -------
+    derived_2022 : AndroidDerived2021
+        Instance of AndroidDerived2022 for testing
+    """
+    derived_2022 = AndroidDerived2022(derived_2022_path)
+    return derived_2022
+
 def test_solve_wls(derived):
     """Test that solving for wls doesn't fail
 
@@ -324,13 +372,13 @@ def test_solve_wls(derived):
 
     # should have the following contents
     assert "gps_millis" in state_estimate.rows
-    assert "x_rx_m" in state_estimate.rows
-    assert "y_rx_m" in state_estimate.rows
-    assert "z_rx_m" in state_estimate.rows
-    assert "b_rx_m" in state_estimate.rows
-    assert "lat_rx_deg" in state_estimate.rows
-    assert "lon_rx_deg" in state_estimate.rows
-    assert "alt_rx_deg" in state_estimate.rows
+    assert "x_rx_wls_m" in state_estimate.rows
+    assert "y_rx_wls_m" in state_estimate.rows
+    assert "z_rx_wls_m" in state_estimate.rows
+    assert "b_rx_wls_m" in state_estimate.rows
+    assert "lat_rx_wls_deg" in state_estimate.rows
+    assert "lon_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_deg" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
     assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
@@ -457,6 +505,65 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
         wls(rx_est_m, pos_sv_m, noisy_pr_m,
             weights=np.ones(pos_sv_m.shape[0]+1,1))
 
+
+def test_solve_wls_bias_only(derived_2022):
+    """Tests that bias only WLS estimation works as expected.
+
+    Parameters
+    ----------
+    derived_2022 : AndroidDerived2022
+        Instance of AndroidDerived2022 for testing
+    """
+
+    # Solve with receiver positions given
+    ecef_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
+    wls_rows = ['x_rx_wls_m','y_rx_wls_m','z_rx_wls_m']
+    time_length = sum(1 for _ in derived_2022.loop_time("gps_millis"))
+    input_position = NavData()
+    for row in ecef_rows:
+        input_position[row] = np.zeros(time_length)
+    col = 0
+    for _, _, measure_frame in derived_2022.loop_time('gps_millis'):
+        for row in ecef_rows:
+            input_position[row, col] = measure_frame[row, 0]
+        col += 1
+    state_estimate = solve_wls(derived_2022, only_bias=True,
+                               receiver_state=derived_2022)
+    # Verify that both structures have the same length
+    assert len(input_position) == len(state_estimate)
+    # Verify that solved positions are the same as input positions
+    for rr,row in enumerate(ecef_rows):
+        np.testing.assert_almost_equal(input_position[row], state_estimate[wls_rows[rr]])
+
+    assert isinstance(state_estimate,type(NavData()))
+
+    # should have four rows
+    assert len(state_estimate.rows) == 8
+
+    # should have the following contents
+    assert "gps_millis" in state_estimate.rows
+    assert "x_rx_wls_m" in state_estimate.rows
+    assert "y_rx_wls_m" in state_estimate.rows
+    assert "z_rx_wls_m" in state_estimate.rows
+    assert "b_rx_wls_m" in state_estimate.rows
+    assert "lat_rx_wls_deg" in state_estimate.rows
+    assert "lon_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_deg" in state_estimate.rows
+
+    # should have the same length as the number of unique timesteps
+    assert len(state_estimate) == time_length
+
+    # Solve without receiver positions given. This should cause a warning
+    derived_2022.remove(ecef_rows, inplace=True)
+    with pytest.raises(KeyError):
+        solve_wls(derived_2022, only_bias=True,
+                receiver_state=derived_2022)
+
+    # check error raised when receiver_state is not present in only_bias
+    with pytest.raises(RuntimeError):
+        solve_wls(derived_2022, only_bias=True)
+
+
 def test_wls_fails(capsys):
     """Test expected fails
 
@@ -485,7 +592,8 @@ def test_solve_wls_fails(derived):
 
     """
 
-    navdata = derived.remove(cols=list(range(3,len(derived))))
+    navdata = derived.remove(cols=list(range(3,50)) \
+                                + list(range(53,len(derived))))
 
     with pytest.warns(RuntimeWarning) as warns:
         solve_wls(navdata)

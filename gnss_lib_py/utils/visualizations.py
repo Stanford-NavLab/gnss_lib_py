@@ -7,6 +7,7 @@ __date__ = "27 Jan 2022"
 
 import os
 import pathlib
+from math import floor
 from multiprocessing import Process
 
 import numpy as np
@@ -251,7 +252,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
     receiver_state : gnss_lib_py.parsers.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters as an instance of the NavData class with the
-        following rows: ``x_*_m``, ``y_*_m``, ``z_*_m``, ``gps_millis``.
+        following rows: ``x_rx*_m``, ``y_rx*_m``, ``z_rx*_m``, ``gps_millis``.
     save : bool
         Saves figure if true to file specified by ``fname`` or defaults
         to the Results folder otherwise.
@@ -408,9 +409,9 @@ def plot_map(*args, sections=0, save=False, prefix="",
                           + "NavData.")
 
         # check for lat/lon indexes
-        traj_idxs = traj_data.find_wildcard_indexes(["lat_*_deg",
-                                                     "lon_*_deg"],
-                                                     max_allow=1)
+        traj_idxs = traj_data.find_wildcard_indexes(
+                    wildcards=["lat_*_deg","lon_*_deg"], max_allow=1,
+                    excludes=[["lat_sigma_*_deg"],["lon_sigma_*_deg"]])
 
         label_name = _get_label({"":"_".join((traj_idxs["lat_*_deg"][0].split("_"))[1:-1])})
 
@@ -806,7 +807,7 @@ def _zoom_center(lats, lons, width_to_height = 1.25):
     width = (maxlon - minlon) * margin
     lon_zoom = np.interp(width , lon_zoom_range, range(20, 0, -1))
     lat_zoom = np.interp(height, lon_zoom_range, range(20, 0, -1))
-    zoom = round(min(lon_zoom, lat_zoom), 2)
+    zoom = floor(min(lon_zoom, lat_zoom))
 
     return zoom, center
 

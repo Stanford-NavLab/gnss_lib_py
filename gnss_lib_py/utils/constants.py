@@ -6,14 +6,18 @@ References
 ----------
 .. [1] Makela, Jonathan, ECE 456, Global Nav Satellite Systems,
    Fall 2017. University of Illinois Urbana-Champaign. Coding Assignments.
+.. [2] International GNSS Service (IGS), RINEX Working Group and Radio
+   Technical Commission for Maritime Servies Special Committee. RINEX
+   Version 3.04. http://acc.igs.org/misc/rinex304.pdf
 
 """
 
 __authors__ = "Ashwin Kanhere"
 __date__ = "13 July 2021"
 
-from numpy import sqrt
 from datetime import datetime, timezone
+from numpy import sqrt
+
 
 A = 6378137.
 """float : Semi-major axis (radius) of the Earth [m]."""
@@ -64,3 +68,22 @@ WEEKSEC = 604800
 
 GPS_EPOCH_0 = datetime(1980, 1, 6, 0, 0, 0, 0, tzinfo=timezone.utc)
 """ datetime.datetime: Starting time for GPS epoch"""
+
+TROPO_DELAY_C1 = 2.47
+"""float : First coefficient of simplified tropospheric delay model developed in [1]_."""
+
+TROPO_DELAY_C2 = 0.0121
+"""float : Second coefficient of simplified tropospheric delay model developed in [1]_."""
+
+TROPO_DELAY_C3 = 1.33e-4
+"""float : Third coefficient of simplified tropospheric delay model developed in [1]_."""
+
+CONSTELLATION_CHARS = {'G':'gps',
+                       'R':'glonass',
+                       'S':'sbas',
+                       'C':'beidou',
+                       'E':'galileo',
+                       'J':'qzss',
+                       'I':'irnss',
+                       }
+"""dict : Satellite System identifier from Rinex specification p13 in [2]_."""

@@ -13,7 +13,9 @@ import pandas as pd
 from numpy.random import default_rng
 
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils.coordinates import ecef_to_geodetic, ecef_to_el_az
+from gnss_lib_py.utils.coordinates import ecef_to_geodetic
+from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
+from gnss_lib_py.parsers.navdata import NavData
 # TODO: Check if any of the functions are sorting the dataframe w.r.t SV while
 # processing the measurements
 
@@ -63,9 +65,13 @@ def _extract_pos_vel_arr(sv_posvel):
     sv_vel : ndarray
         ECEF satellite x, y and z velocities
     """
-    prns   = [int(prn[1:]) for prn in sv_posvel.index]
-    sv_pos = sv_posvel.filter(['x', 'y', 'z'])
-    sv_vel   = sv_posvel.filter(['vx', 'vy', 'vz'])
+
+    try:
+        prns   = [int(prn[1:]) for prn in sv_posvel.index]
+    except:
+        prns   = [int(prn) for prn in sv_posvel.index]
+    sv_pos = sv_posvel.filter(['x_sv_m', 'y_sv_m', 'z_sv_m'])
+    sv_vel   = sv_posvel.filter(['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps'])
     sv_pos = sv_pos.to_numpy()
     sv_vel   = sv_vel.to_numpy()
     return prns, sv_pos, sv_vel
@@ -223,14 +229,16 @@ def _find_visible_sats(gpsweek, gpstime, rx_ecef, ephem, el_mask=5.):
 
     # Find elevation and azimuth angles for all satellites
     _, approx_pos, _ = _extract_pos_vel_arr(approx_posvel)
-    approx_el_az = ecef_to_el_az(np.reshape(rx_ecef, [1, 3]), approx_pos)
+    approx_el_az = find_elaz(np.reshape(rx_ecef, [1, 3]), approx_pos)
     # Keep attributes of only those satellites which are visible
     keep_ind = approx_el_az[:,0] > el_mask
     # prns = approx_posvel.index.to_numpy()[keep_ind]
     # TODO: Remove above statement if superfluous
     # TODO: Check that a copy of the ephemeris is being generated, also if it is
     # needed
-    eph = ephem.loc[keep_ind, :]
+    ephem_df = ephem.pandas_df()
+    eph = ephem_df.loc[keep_ind, :]
+    eph = NavData(pandas_df=eph)
     return eph
 
 
@@ -263,7 +271,7 @@ def _find_sv_location(gpsweek, gpstime, ephem, pos, sv_posvel=None):
     """
     pos = np.reshape(pos, [1, 3])
     if sv_posvel is None:
-        satellites = len(ephem.index)
+        satellites = len(ephem)
         sv_posvel = find_sat(ephem, gpstime - consts.T_TRANS, gpsweek)
         del_pos, true_range = _find_delxyz_range(sv_posvel, pos, satellites)
         t_corr = true_range/consts.C
@@ -276,10 +284,10 @@ def _find_sv_location(gpsweek, gpstime, ephem, pos, sv_posvel=None):
     t_corr = true_range/consts.C
     # Corrections for the rotation of the Earth during transmission
     # _, sv_pos, sv_vel = _extract_pos_vel_arr(sv_posvel)
-    del_x = consts.OMEGA_E_DOT*sv_posvel['x'] * t_corr
-    del_y = consts.OMEGA_E_DOT*sv_posvel['y'] * t_corr
-    sv_posvel['x'] = sv_posvel['x'] + del_x
-    sv_posvel['y'] = sv_posvel['y'] + del_y
+    del_x = consts.OMEGA_E_DOT*sv_posvel['x_sv_m'] * t_corr
+    del_y = consts.OMEGA_E_DOT*sv_posvel['y_sv_m'] * t_corr
+    sv_posvel['x_sv_m'] = sv_posvel['x_sv_m'] + del_x
+    sv_posvel['y_sv_m'] = sv_posvel['y_sv_m'] + del_y
     return sv_posvel, del_pos, true_range
 
 
@@ -367,6 +375,7 @@ def find_sat(ephem, times, gpsweek):
     sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
     sma      = sqrt_sma**2      # semi-major axis
 
+    ephem['GPSWeek'], ephem["tow"] = gps_millis_to_tow(ephem["gps_millis"])
     sqrt_mu_A = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
     gpsweek_diff = (np.mod(gpsweek,1024) - np.mod(ephem['GPSWeek'],1024))*604800.
 
@@ -376,7 +385,7 @@ def find_sat(ephem, times, gpsweek):
     #     times_all = np.reshape(times_all, len(ephem))
     # times = times_all
     sv_posvel = pd.DataFrame()
-    sv_posvel.loc[:,'sv'] = ephem.index
+    sv_posvel.loc[:,'sv'] = ephem["sv_id"]
     sv_posvel.set_index('sv', inplace=True)
     #TODO: Check if 'dt' or 'times' should be stored in the final DataFrame
     sv_posvel.loc[:,'times'] = times
@@ -455,9 +464,9 @@ def find_sat(ephem, times, gpsweek):
     cos_i = np.cos(i)
     sin_i = np.sin(i)
 
-    sv_posvel.loc[:,'x'] = xp*cos_omega - yp*cos_i*sin_omega
-    sv_posvel.loc[:,'y'] = xp*sin_omega + yp*cos_i*cos_omega
-    sv_posvel.loc[:,'z'] = yp*sin_i
+    sv_posvel.loc[:,'x_sv_m'] = xp*cos_omega - yp*cos_i*sin_omega
+    sv_posvel.loc[:,'y_sv_m'] = xp*sin_omega + yp*cos_i*cos_omega
+    sv_posvel.loc[:,'z_sv_m'] = yp*sin_i
     # TODO: Add satellite clock bias here using the 'clock corrections' not to
     # be used but compared against SP3 and Android data
 
@@ -465,17 +474,17 @@ def find_sat(ephem, times, gpsweek):
     ######  Lines added for velocity (4)  ######
     ############################################
     omega_dot = ephem['OmegaDot'] - consts.OMEGA_E_DOT
-    sv_posvel.loc[:,'vx'] = (dxp * cos_omega
+    sv_posvel.loc[:,'vx_sv_mps'] = (dxp * cos_omega
                          - dyp * cos_i*sin_omega
                          + yp  * sin_omega*sin_i*di
                          - (xp * sin_omega + yp*cos_i*cos_omega)*omega_dot)
 
-    sv_posvel.loc[:,'vy'] = (dxp * sin_omega
+    sv_posvel.loc[:,'vy_sv_mps'] = (dxp * sin_omega
                          + dyp * cos_i * cos_omega
                          - yp  * sin_i * cos_omega * di
                          + (xp * cos_omega - (yp*cos_i*sin_omega)) * omega_dot)
 
-    sv_posvel.loc[:,'vz'] = dyp*sin_i + yp*cos_i*di
+    sv_posvel.loc[:,'vz_sv_mps'] = dyp*sin_i + yp*cos_i*di
     return sv_posvel
 
 
@@ -622,7 +631,7 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     _, sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
 
     # compute elevation and azimuth
-    el_az = ecef_to_el_az(rx_ecef, sv_pos)
+    el_az = find_elaz(rx_ecef, sv_pos)
     el_r  = np.deg2rad(el_az[:,0])
 
     # Calculate the WGS-84 latitude/longitude of the receiver
@@ -642,6 +651,81 @@ def calculate_tropo_delay(gpstime, gpsweek, ephem, rx_ecef):
     tropo_delay = c_1/(np.sin(el_r)+c_2) * np.exp(-height*c_3)/consts.C
 
     return tropo_delay
+
+
+def find_elaz(rx_pos, sv_pos):
+    """Calculate the elevation and azimuth from a single receiver to multiple
+    satellites.
+
+    Parameters
+    ----------
+    rx_pos : ndarray
+        1x3 vector containing [X, Y, Z] coordinate of receiver
+    sv_pos : ndarray
+        Nx3 array  containing [X, Y, Z] coordinates of satellites
+
+    Returns
+    -------
+    el_az : ndarray
+        Nx2 array containing the elevation and azimuth from the
+        receiver to the requested satellites. Elevation and azimuth are
+        given in decimal degrees.
+
+    Notes
+    -----
+    Code written by J. Makela.
+    AE 456, Global Navigation Sat Systems, University of Illinois
+    Urbana-Champaign. Fall 2017
+
+    """
+
+    # check for 1D case:
+    dim = len(rx_pos.shape)
+    if dim == 1:
+        rx_pos = np.reshape(rx_pos,(1,3))
+
+    dim = len(sv_pos.shape)
+    if dim == 1:
+        sv_pos = np.reshape(sv_pos,(1,3))
+
+    # Convert the receiver location to WGS84
+    rx_lla = ecef_to_geodetic(rx_pos)
+    assert np.shape(rx_lla)==(1,3)
+
+    # Create variables with the latitude and longitude in radians
+    lat = np.deg2rad(rx_lla[0,0])
+    lon = np.deg2rad(rx_lla[0,1])
+
+    # Create the 3 x 3 transform matrix from ECEF to ecef_to_ven
+    cos_lon = np.cos(lon)
+    cos_lat = np.cos(lat)
+    sin_lon = np.sin(lon)
+    sin_lat = np.sin(lat)
+    ecef_to_ven = np.array([[ cos_lat*cos_lon,  cos_lat*sin_lon, sin_lat],
+                            [-sin_lon        ,  cos_lon        , 0.     ],
+                            [-sin_lat*cos_lon, -sin_lat*sin_lon, cos_lat]])
+
+    # Replicate the rx_pos array to be the same size as the satellite array
+    rx_array = np.ones_like(sv_pos) * rx_pos
+
+    # Calculate the pseudorange for each satellite
+    p = sv_pos - rx_array
+
+    # Calculate the length of this vector
+    n = np.array([np.sqrt(p[:,0]**2 + p[:,1]**2 + p[:,2]**2)])
+
+    # Create the normalized unit vector
+    p = p / (np.ones_like(p) * n.T)
+
+    # Perform the transform of the normalized pseudorange from ECEF to VEN
+    p_ven = np.dot(ecef_to_ven, p.T)
+
+    # Calculate elevation and azimuth in degrees
+    el_az = np.zeros([sv_pos.shape[0],2])
+    el_az[:,0] = np.rad2deg((np.pi/2. - np.arccos(p_ven[0,:])))
+    el_az[:,1] = np.rad2deg(np.arctan2(p_ven[1,:],p_ven[2,:]))
+
+    return el_az
 
 def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
     """Compute the eccentric anomaly from mean anomaly using the Newton-Raphson
@@ -671,7 +755,7 @@ def _compute_eccentric_anomoly(M, e, tol=1e-5, max_iter=10):
         dE   = -f / dfdE
         E    = E + dE
 
-    if any(dE.iloc[:] > tol):
+    if any(dE > tol):
         print("Eccentric Anomaly may not have converged: dE = ", dE)
 
     return E

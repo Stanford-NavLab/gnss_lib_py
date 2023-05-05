@@ -8,3 +8,4 @@ parsers
    ephemeris
    navdata
    precise_ephemerides
+   smart_loc
