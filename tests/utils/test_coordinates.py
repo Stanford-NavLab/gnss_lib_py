@@ -441,7 +441,7 @@ def test_wrap_0_to_2pi():
     angles_out = np.linspace(0,7*np.pi/4.,8)
     np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
 
-    # test greater than loop
+    # test less than loop
     angles_in = np.linspace(0,7*np.pi/4.,8) - 12*np.pi
     angles_out = np.linspace(0,7*np.pi/4.,8)
     np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
@@ -452,7 +452,7 @@ def test_wrap_0_to_2pi():
                                  np.linspace(0,3*np.pi/4.,4)))
     np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
 
-    # test positive offset loop
+    # test negative offset loop
     angles_in = np.linspace(0,7*np.pi/4.,8) - 11*np.pi
     angles_out = np.concatenate((np.linspace(np.pi,7*np.pi/4.,4),
                                  np.linspace(0,3*np.pi/4.,4)))

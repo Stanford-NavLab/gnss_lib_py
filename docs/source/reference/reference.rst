@@ -200,8 +200,9 @@ State estimate naming conventions are as follows:
   degrees.
 * :code:`alt_rx_m` : (float) receiver altitude position estimate in
   meters. Referenced to the WGS-84 ellipsoid.
-* :code:`heading_rx_rad` : (float) receiver heading estimate in radians
-  where 0 radians is North and pi/2 radians is East, etc.
+* :code:`heading_rx_rad` : (float) receiver heading estimate in radians,
+  clockwise from North, where to 0 radians is North, pi/2
+  radians is East and so on.
   Assumed to be radians in the range between 0 and 2pi.
 
 Receiver ground truth naming conventions are as follows:
@@ -238,8 +239,9 @@ Receiver ground truth naming conventions are as follows:
   degrees.
 * :code:`alt_rx_gt_m` : (float) receiver ground truth altitude in meters.
   Referenced to the WGS-84 ellipsoid.
-* :code:`heading_rx_gt_rad` : (float) receiver heading estimate in
-  radians where 0 radians is North and pi/2 radians is East, etc.
+* :code:`heading_rx_gt_rad` : (float) receiver heading ground truth in
+  radians, clockwise from North, where to 0 radians is North, pi/2
+  radians is East and so on.
   Assumed to be radians in the range between 0 and 2pi.
 
 Module Level Function References

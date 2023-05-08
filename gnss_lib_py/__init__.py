@@ -14,8 +14,8 @@ from gnss_lib_py.parsers.precise_ephemerides import *
 
 from gnss_lib_py.utils.coordinates import *
 from gnss_lib_py.utils.filters import *
-from gnss_lib_py.utils.gnss_models import *
 from gnss_lib_py.utils.sv_models import *
+from gnss_lib_py.utils.gnss_models import *
 from gnss_lib_py.utils.time_conversions import *
 from gnss_lib_py.utils.visualizations import *
 

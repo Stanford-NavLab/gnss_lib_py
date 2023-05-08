@@ -564,9 +564,6 @@ def wrap_0_to_2pi(angles):
         Angles wrapped between 0 and 2pi in radians.
 
     """
-    while np.any(angles < 0.):
-        angles = np.where(angles<0. , 2.*np.pi+angles, angles)
-    while np.any(angles >= 2*np.pi):
-        angles = np.where(angles>= 2*np.pi , angles-2.*np.pi, angles)
+    angles = np.mod(angles, 2*np.pi)
 
     return angles
