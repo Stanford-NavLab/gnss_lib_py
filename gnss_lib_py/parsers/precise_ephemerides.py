@@ -123,7 +123,7 @@ def parse_clockfile(input_path):
 
     Notes
     -----
-    The format for .sp3 files can be viewed in [2]_.
+    The format for .clk files can be viewed in [2]_.
 
     Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois
@@ -193,7 +193,7 @@ def extract_sp3(sp3data, sidx, ipos = 10, \
 
     Parameters
     ----------
-    sp3data : list
+    sp3data : gnss_lib_py.parsers.precise_ephemerides.Sp3
         Instance of GPS-only Sp3 class list with len == # sats
     sidx : int
         Nearest index within sp3 time series around which interpolated
@@ -238,16 +238,16 @@ def extract_clk(clkdata, sidx, ipos = 10, \
 
     Parameters
     ----------
-    clkdata : list
-        Instance of GPS-only Sp3 class list with len == # sats
+    clkdata : gnss_lib_py.parsers.precise_ephemerides.Sp3
+        Instance of GPS-only Clk class list with len == # sats
     sidx : int
-        Nearest index within sp3 time series around which interpolated
+        Nearest index within clk time series around which interpolated
         function needs to be centered
     ipos : int
-        No. of data points from sp3 data on either side of sidx
+        No. of data points from clk data on either side of sidx
         that will be used for computing interpolated function
     method : string
-        Type of interpolation method used for sp3 data (the default is
+        Type of interpolation method used for clk data (the default is
         CubicSpline, which depicts third-order polynomial)
 
     Returns
@@ -375,8 +375,6 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
     clk_iref_old = {}
     satfunc_t_old = {}
 
-    # Compute satellite information for desired time steps
-    unique_timesteps = np.unique(navdata["gps_millis"])
 
     # combine gnss_id and sv_id into gnss_sv_ids
     if inplace:
@@ -518,7 +516,6 @@ def multi_gnss_from_precise_eph(navdata, sp3_path, clk_path,
         Updated NavData class with satellite information computed using
         precise ephemerides from .sp3 and .clk files
     """
-
     sp3_parsed_gnss = parse_sp3(sp3_path)
     clk_parsed_gnss = parse_clockfile(clk_path)
     precise_navdata = single_gnss_from_precise_eph(navdata,
@@ -546,7 +543,6 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
         Updated NavData class with satellite information computed using
         broadcast ephemerides from .n files
     """
-    navdata_offset = 0 #1000 # Set this to zero, when android errors get fixed
     unique_gnss_id = np.unique(navdata['gnss_id'])
     if len(unique_gnss_id)==1:
         if unique_gnss_id == 'gps':
@@ -560,7 +556,7 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
     repo = EphemerisManager()
     unique_timesteps = np.unique(navdata["gps_millis"])
 
-    for t_idx, timestep in enumerate(unique_timesteps):
+    for _, timestep in enumerate(unique_timesteps):
         # Compute indices where gps_millis match, sort them
         # sorting is done for consistency across all satellite pos. estimation
         # algorithms as ephemerismanager inherently sorts based on prns
@@ -571,12 +567,12 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
         desired_sats = [unique_gnss_id_str + str(int(i)).zfill(2) \
                                            for i in navdata["sv_id", sorted_idxs]]
         rxdatetime = datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc) + \
-                     timedelta( seconds = (timestep - navdata_offset) * 1e-3 )
+                     timedelta( seconds = (timestep) * 1e-3 )
         ephem = repo.get_ephemeris(rxdatetime, satellites = desired_sats)
 
         # compute satellite position and velocity based on ephem and gps_time
         # Transform satellite position to account for earth's rotation
-        get_sat_from_ephem = find_sv_states(timestep - navdata_offset, ephem)
+        get_sat_from_ephem = find_sv_states(timestep, ephem)
         satpos_ephemeris = np.transpose([get_sat_from_ephem["x_sv_m"], \
                                          get_sat_from_ephem["y_sv_m"], \
                                          get_sat_from_ephem["z_sv_m"]])
