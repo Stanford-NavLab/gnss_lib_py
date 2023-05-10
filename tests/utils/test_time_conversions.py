@@ -11,6 +11,7 @@ import pytest
 
 import numpy as np
 
+from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.time_conversions as tc
 from gnss_lib_py.utils.constants import GPS_EPOCH_0
 
@@ -290,3 +291,170 @@ def test_tz_conversion():
     western_time = us_western.localize(datetime(2022, 8, 10, 12, 51, 9))
     out_utc_time = tc.tzinfo_to_utc(western_time)
     assert exp_utc_time == out_utc_time
+
+
+def test_array_conversions():
+    """Test array conversions between time types.
+
+    """
+    num_checks = 10 # number of times to check
+    datetimes_list = [datetime(np.random.randint(1981,2024),
+                               np.random.randint(1,13),
+                               np.random.randint(1,29),
+                               np.random.randint(0,24),
+                               np.random.randint(0,60),
+                               np.random.randint(0,60),
+                               np.random.randint(0,1000000),
+                               tzinfo=timezone.utc
+                               ) for _ in range(num_checks)]
+    datetimes_np = np.array(datetimes_list)
+
+    # Datetime <--> GPS Millis
+    gps_millis = tc.datetime_to_gps_millis(datetimes_list)
+    assert len(gps_millis) == num_checks
+    assert isinstance(gps_millis,np.ndarray)
+    assert gps_millis.dtype is np.dtype(np.float64)
+    datetimes_back = tc.gps_millis_to_datetime(gps_millis)
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    gps_millis = tc.datetime_to_gps_millis(datetimes_np)
+    assert len(gps_millis) == num_checks
+    assert isinstance(gps_millis,np.ndarray)
+    assert gps_millis.dtype is np.dtype(np.float64)
+    datetimes_back = tc.gps_millis_to_datetime(gps_millis)
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    # Datetime <--> UNIX Millis
+    unix_millis = tc.datetime_to_unix_millis(datetimes_list)
+    assert len(unix_millis) == num_checks
+    assert isinstance(unix_millis,np.ndarray)
+    assert unix_millis.dtype is np.dtype(np.float64)
+    datetimes_back = tc.unix_millis_to_datetime(unix_millis)
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    unix_millis = tc.datetime_to_unix_millis(datetimes_np)
+    assert len(unix_millis) == num_checks
+    assert isinstance(unix_millis,np.ndarray)
+    assert unix_millis.dtype is np.dtype(np.float64)
+    datetimes_back = tc.unix_millis_to_datetime(unix_millis)
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    # Datetime <--> TOW
+    gps_week, tow = tc.datetime_to_tow(datetimes_list)
+    assert len(gps_week) == num_checks
+    assert gps_week.dtype == np.int64
+    assert len(tow) == num_checks
+    assert isinstance(gps_week,np.ndarray)
+    assert isinstance(tow,np.ndarray)
+    datetimes_back = tc.tow_to_datetime(gps_week, tow)
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    gps_week, tow = tc.datetime_to_tow(datetimes_np)
+    assert len(gps_week) == num_checks
+    assert gps_week.dtype == np.int64
+    assert len(tow) == num_checks
+    assert isinstance(gps_week,np.ndarray)
+    assert isinstance(tow,np.ndarray)
+    datetimes_back = tc.tow_to_datetime(gps_week, tow)
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    # GPS Millis <--> UNIX Millis
+    unix_millis = tc.gps_to_unix_millis(gps_millis.tolist())
+    assert len(unix_millis) == num_checks
+    assert isinstance(unix_millis,np.ndarray)
+    assert unix_millis.dtype is np.dtype(np.float64)
+    gps_millis_back = tc.unix_to_gps_millis(unix_millis)
+    np.testing.assert_array_equal(gps_millis_back, gps_millis)
+
+    unix_millis = tc.gps_to_unix_millis(gps_millis)
+    assert len(unix_millis) == num_checks
+    assert isinstance(unix_millis,np.ndarray)
+    assert unix_millis.dtype is np.dtype(np.float64)
+    gps_millis_back = tc.unix_to_gps_millis(unix_millis)
+    np.testing.assert_array_equal(gps_millis_back, gps_millis)
+
+    # GPS Millis <--> TOW
+    gps_week, tow = tc.gps_millis_to_tow(gps_millis.tolist())
+    assert len(gps_week) == num_checks
+    assert gps_week.dtype == np.int64
+    assert len(tow) == num_checks
+    assert isinstance(gps_week,np.ndarray)
+    assert isinstance(tow,np.ndarray)
+    gps_millis_back = tc.tow_to_gps_millis(gps_week, tow)
+    np.testing.assert_array_equal(gps_millis_back, gps_millis)
+
+    gps_week, tow = tc.gps_millis_to_tow(gps_millis)
+    assert len(gps_week) == num_checks
+    assert gps_week.dtype == np.int64
+    assert len(tow) == num_checks
+    assert isinstance(gps_week,np.ndarray)
+    assert isinstance(tow,np.ndarray)
+    gps_millis_back = tc.tow_to_gps_millis(gps_week, tow)
+    np.testing.assert_array_equal(gps_millis_back, gps_millis)
+
+    # UNIX Millis <--> TOW
+    gps_week, tow = tc.unix_millis_to_tow(unix_millis.tolist())
+    assert len(gps_week) == num_checks
+    assert gps_week.dtype == np.int64
+    assert len(tow) == num_checks
+    assert isinstance(gps_week,np.ndarray)
+    assert isinstance(tow,np.ndarray)
+    unix_millis_back = tc.tow_to_unix_millis(gps_week, tow)
+    np.testing.assert_array_equal(unix_millis_back, unix_millis)
+
+    gps_week, tow = tc.unix_millis_to_tow(unix_millis)
+    assert len(gps_week) == num_checks
+    assert gps_week.dtype == np.int64
+    assert len(tow) == num_checks
+    assert isinstance(gps_week,np.ndarray)
+    assert isinstance(tow,np.ndarray)
+    unix_millis_back = tc.tow_to_unix_millis(gps_week, tow)
+    np.testing.assert_array_equal(unix_millis_back, unix_millis)
+
+def test_zero_arrays():
+    """Test zero array conversions between time types.
+
+    """
+    datetimes_list = datetime(np.random.randint(1981,2024),
+                              np.random.randint(1,13),
+                              np.random.randint(1,29),
+                              np.random.randint(0,24),
+                              np.random.randint(0,60),
+                              np.random.randint(0,60),
+                              np.random.randint(0,1000000),
+                              tzinfo=timezone.utc
+                              )
+    datetimes_np = np.array(datetimes_list)
+
+    # Datetime <--> GPS Millis
+    gps_millis = tc.datetime_to_gps_millis(datetimes_np)
+    datetimes_back = tc.gps_millis_to_datetime(np.array(gps_millis))
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    # Datetime <--> UNIX Millis
+    unix_millis = tc.datetime_to_unix_millis(datetimes_np)
+    datetimes_back = tc.unix_millis_to_datetime(np.array(unix_millis))
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    # Datetime <--> TOW
+    gps_week, tow = tc.datetime_to_tow(datetimes_np)
+    datetimes_back = tc.tow_to_datetime(np.array(gps_week),
+                                            np.array(tow))
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+
+    # GPS Millis <--> UNIX Millis
+    unix_millis = tc.gps_to_unix_millis(np.array(gps_millis))
+    gps_millis_back = tc.unix_to_gps_millis(np.array(unix_millis))
+    np.testing.assert_array_equal(gps_millis_back, gps_millis)
+
+    # GPS Millis <--> TOW
+    gps_week, tow = tc.gps_millis_to_tow(np.array(gps_millis))
+    gps_millis_back = tc.tow_to_gps_millis(np.array(gps_week),
+                                            np.array(tow))
+    np.testing.assert_array_equal(gps_millis_back, gps_millis)
+
+    # UNIX Millis <--> TOW
+    gps_week, tow = tc.unix_millis_to_tow(np.array(unix_millis))
+    unix_millis_back = tc.tow_to_unix_millis(np.array(gps_week),
+                                            np.array(tow))
+    np.testing.assert_array_equal(unix_millis_back, unix_millis)
