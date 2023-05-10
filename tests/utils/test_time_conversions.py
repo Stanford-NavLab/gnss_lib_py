@@ -306,7 +306,7 @@ def test_array_conversions():
                                np.random.randint(0,60),
                                np.random.randint(0,1000000),
                                tzinfo=timezone.utc
-                               ) for d in range(num_checks)]
+                               ) for _ in range(num_checks)]
     datetimes_np = np.array(datetimes_list)
 
     # Datetime <--> GPS Millis
