@@ -162,7 +162,7 @@ If you wish to add python dependencies:
 
     * add the new dependency to the poetry dependency list with
       :code:`poetry add package=version` or if the dependency is a
-      development tool :code:`poetry add --dev package=version`
+      development tool :code:`poetry add package=version --group dev`
 
 If you wish to remove python dependencies, use :code:`poetry remove package`.
 

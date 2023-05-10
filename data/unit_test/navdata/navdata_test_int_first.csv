@@ -1,0 +1,7 @@
+﻿integers,names,floats,strings
+10,ab,0.5,gps
+2,cde,0.4,glonass
+45,alpha,0.3,galileo
+67,epsilon,0.99,gps
+98,gamma,0.45,gps
+300,xyzuvw,0.74,galileo

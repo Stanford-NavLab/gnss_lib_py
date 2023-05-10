@@ -1,0 +1,7 @@
+﻿names,integers,floats,strings
+ab,10,0.5,NaN
+cde,nan,nan,glonass
+alpha,45,0.3,galileo
+epsilon,nan,0.99,gps
+nan,nan,0.45,nan
+xyzuvw,300,0.74,galileo

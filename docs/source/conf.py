@@ -42,6 +42,7 @@ extensions = [
                 'sphinx.ext.napoleon',
                 'nbsphinx',
                 'nbsphinx_link',
+                'IPython.sphinxext.ipython_console_highlighting',
 ]
 
 # Specify which files are source files for Sphinx
@@ -67,7 +68,7 @@ autodoc_default_options = {
                             "undoc-members": True,
                             "private-members": True,
                             # "special-members": True,
-                            "inherited-members": True,
+                            "inherited-members": False,
                             "show-inheritance": True,
                            }
 
