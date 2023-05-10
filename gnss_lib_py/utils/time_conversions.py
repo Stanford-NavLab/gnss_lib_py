@@ -11,8 +11,8 @@ Frame options include:
 
 """
 
-__authors__ = "Ashwin Kanhere, Sriramya Bhamidipati, Shubh Gupta"
-__date__ = "28 Jul 2022"
+__authors__ = "Derek Knowles, Ashwin Kanhere, Sriramya Bhamidipati, Shubh Gupta"
+__date__ = "10 May, 2023"
 
 from datetime import datetime, timedelta, timezone
 import warnings
@@ -45,6 +45,7 @@ LEAPSECONDS_TABLE = [datetime(2017, 1, 1, 0, 0, tzinfo=timezone.utc),
                      datetime(1981, 7, 1, 0, 0, tzinfo=timezone.utc),
                      GPS_EPOCH_0]
 
+
 def get_leap_seconds(gps_time):
     """Compute leap seconds to be added in time conversions.
 
@@ -76,6 +77,7 @@ def get_leap_seconds(gps_time):
             break
     return out_leapsecs
 
+
 def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
     """Convert milliseconds since GPS epoch to GPS week number and time.
 
@@ -87,16 +89,21 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
     millis : float or array-like of floats
         Float object for Time of Clock [ms].
     add_leap_secs : bool
-        Flag for whether output is in UTC seconds or GPS seconds.
+        Flag for whether input is in UTC seconds or GPS seconds.
+        If True, we assume that input millis do not contain leap seconds
+        and add them to the output time.
+        If False, we assume that input millis contain leap seconds and
+        do not add them.
     verbose : bool
         Flag for whether to print that leapseconds were added.
 
     Returns
     -------
-    gps_week : int or np.ndarray<int>
-        GPS week.
-    tow : float or np.ndarray<float>
-        GPS time of week [s].
+    gps_weeks : int or np.ndarray
+        GPS week. Either `int` or `np.ndarray` with `dtype = int`.
+    tows : float or np.ndarray
+        GPS time of week [s]. Either `float` or `np.ndarray` with
+        `dtype = float`.
 
     """
 
@@ -116,15 +123,16 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
         if add_leap_secs:
             out_leapsecs = get_leap_seconds(milli)
             if verbose: #pragma: no cover
-                print('leapSecs added')
+                print('Leap seconds added')
             tow = tow + out_leapsecs
 
         gps_weeks.append(np.int64(gps_week))
         tows.append(tow)
 
-    if len(gps_weeks) == 1 and len(tows) == 1:
-        return gps_weeks[0], tows[0]
-    return np.array(gps_weeks,dtype=np.int64), np.array(tows)
+    gps_weeks = np.squeeze(np.array(gps_weeks, dtype=np.int64))
+    tows = np.squeeze(np.array(tows))
+    return gps_weeks, tows
+
 
 def datetime_to_tow(t_datetimes, add_leap_secs=True, verbose=False):
     """Convert Python datetime object to GPS Week and time of week.
@@ -135,15 +143,20 @@ def datetime_to_tow(t_datetimes, add_leap_secs=True, verbose=False):
         Datetime object for Time of Clock.
     add_leap_secs : bool
         Flag for whether output is in UTC seconds or GPS seconds.
+        If True, the output is in the GPS timing frame of reference and
+        leap seconds are added.
+        If False, the output is in the UTC timing frame of reference and
+        leap seconds are not added.
     verbose : bool
         Flag for whether to print that leapseconds were added.
 
     Returns
     -------
-    gps_week : int or np.ndarray<int>
-        GPS week.
-    tow : float or np.ndarray<int>
-        GPS time of week [s].
+    gps_weeks : int or np.ndarray
+        GPS week. Either `int` or `np.ndarray` with `dtype = int`.
+    tows : float or np.ndarray
+        GPS time of week [s]. Either `float` or `np.ndarray` with
+        `dtype = float`.
 
     """
     if isinstance(t_datetimes,datetime):
@@ -164,7 +177,7 @@ def datetime_to_tow(t_datetimes, add_leap_secs=True, verbose=False):
             out_leapsecs = get_leap_seconds(t_datetime)
             t_datetime = t_datetime + timedelta(seconds=out_leapsecs)
             if verbose: # pragma: no cover
-                print("leapSecs added")
+                print("Leap seconds added")
         gps_week = (t_datetime - GPS_EPOCH_0).days // 7
 
         tow = ((t_datetime - GPS_EPOCH_0) - timedelta(gps_week* 7.0)).total_seconds()
@@ -172,9 +185,9 @@ def datetime_to_tow(t_datetimes, add_leap_secs=True, verbose=False):
         gps_weeks.append(np.int64(gps_week))
         tows.append(tow)
 
-    if len(gps_weeks) == 1 and len(tows) == 1:
-        return gps_weeks[0], tows[0]
-    return np.array(gps_weeks,dtype=np.int64), np.array(tows)
+    gps_weeks = np.squeeze(np.array(gps_weeks, dtype=np.int64))
+    tows = np.squeeze(np.array(tows))
+    return gps_weeks, tows
 
 
 def tow_to_datetime(gps_weeks, tows, rem_leap_secs=True):
@@ -194,6 +207,9 @@ def tow_to_datetime(gps_weeks, tows, rem_leap_secs=True):
     t_datetimes: datetime.datetime or np.ndarray<datetime.datetime>
         Datetime in UTC timezone, with or without leap seconds based on
         flag.
+        If single gps_weeks, tows is given, output is single
+        datetime.datetime instance and `np.ndarray` of `datetime.datetime`
+        if multiple inputs are given.
     """
 
     if np.issubdtype(type(gps_weeks), np.integer):
@@ -221,9 +237,12 @@ def tow_to_datetime(gps_weeks, tows, rem_leap_secs=True):
 
         t_datetimes.append(t_datetime)
 
+    # np.squeeze(np.array(t_datetimes)) not used because other conversions
+    # relying on this conversion break on doing so
     if len(t_datetimes) == 1:
         return t_datetimes[0]
     return np.array(t_datetimes)
+
 
 def tow_to_unix_millis(gps_weeks, tows):
     """Convert GPS week and time of week (seconds) to UNIX milliseconds.
@@ -242,8 +261,10 @@ def tow_to_unix_millis(gps_weeks, tows):
 
     Returns
     -------
-    unix_millis: float or np.ndarray<float>
-        Milliseconds since UNIX epoch (midnight 1/1/1970 UTC).
+    unix_millis: float or np.ndarray
+        Milliseconds since UNIX epoch (midnight 1/1/1970 UTC). Either
+        `float` or `np.ndarray` with `dtype = float`.
+
 
     """
     #NOTE: Don't need to remove leapseconds here because they're
@@ -271,9 +292,9 @@ def tow_to_unix_millis(gps_weeks, tows):
         unix_milli = datetime_to_unix_millis(t_utc)
         unix_millis.append(unix_milli)
 
-    if len(unix_millis) == 1:
-        return unix_millis[0]
+    unix_millis = np.squeeze(np.array(unix_millis))
     return unix_millis
+
 
 def tow_to_gps_millis(gps_week, tow):
     """Convert GPS week and time of week (seconds) to GPS milliseconds.
@@ -292,16 +313,18 @@ def tow_to_gps_millis(gps_week, tow):
 
     Returns
     -------
-    gps_millis: float or np.ndarray<float>
+    gps_millis: float or np.ndarray
         Milliseconds since GPS epoch
-        (midnight 6th January, 1980 UTC with leap seconds).
+        (midnight 6th January, 1980 UTC with leap seconds). Either
+        `float` or `np.ndarray` with `dtype = float`.
+
 
     """
     gps_millis = 1000*(WEEKSEC * gps_week + tow)
 
-    if isinstance(gps_millis,np.ndarray):
-        return gps_millis.astype(np.float64)
-    return np.float64(gps_millis)
+    gps_millis = np.squeeze(np.asarray(gps_millis, dtype=np.float64))
+    return gps_millis
+
 
 def datetime_to_unix_millis(t_datetimes):
     """Convert datetime to milliseconds since UNIX Epoch (1/1/1970 UTC).
@@ -315,8 +338,10 @@ def datetime_to_unix_millis(t_datetimes):
 
     Returns
     -------
-    unix_millis : float or np.ndarray<float>
-        Milliseconds since UNIX Epoch (1/1/1970 UTC).
+    unix_millis : float or np.ndarray
+        Milliseconds since UNIX Epoch (1/1/1970 UTC). Either `float` or
+        `np.ndarray` with `dtype = float`.
+
 
     """
 
@@ -333,11 +358,12 @@ def datetime_to_unix_millis(t_datetimes):
         unix_millis = 1000*(t_datetime - UNIX_EPOCH_0).total_seconds()
         unix_millis_list.append(unix_millis)
 
-    if len(unix_millis_list) == 1:
-        return unix_millis_list[0]
-    return np.array(unix_millis_list)
+    unix_millis_list = np.squeeze(np.asarray(unix_millis_list,
+                                             dtype=np.float64))
+    return unix_millis_list
 
-def datetime_to_gps_millis(t_datetime, add_leap_secs=True):
+
+def datetime_to_gps_millis(t_datetimes, add_leap_secs=True):
     """Convert datetime to milliseconds since GPS Epoch.
 
     GPS Epoch starts at the 6th January 1980.
@@ -354,26 +380,31 @@ def datetime_to_gps_millis(t_datetime, add_leap_secs=True):
 
     Returns
     -------
-    gps_millis : float or np.ndarray<float>
-        Milliseconds since GPS Epoch (6th January 1980 GPS).
+    gps_millis : float or np.ndarray
+        Milliseconds since GPS Epoch (6th January 1980 GPS). Either
+        `float` or `np.ndarray` with `dtype = float`.
+
 
     """
-    gps_week, tow = datetime_to_tow(t_datetime, add_leap_secs=add_leap_secs)
-    gps_millis = tow_to_gps_millis(gps_week, tow)
+    gps_weeks, tows = datetime_to_tow(t_datetimes, add_leap_secs=add_leap_secs)
+    gps_millis = tow_to_gps_millis(gps_weeks, tows)
     return gps_millis
+
 
 def unix_millis_to_datetime(unix_millis):
     """Convert milliseconds since UNIX epoch (1/1/1970) to UTC datetime.
 
     Parameters
     ----------
-    unix_millis : float or int or np.ndarray<float or int>
-        Milliseconds that have passed since UTC epoch.
+    unix_millis : float or int or np.ndarray
+        Milliseconds that have passed since UTC epoch. `np.ndarray` of
+        `float` or `int` to be passed in for cases with multiple values.
 
     Returns
     -------
-    t_utc : datetime.datetime or np.ndarray<datetime.datetime>
-        UTC time as a datetime object.
+    t_utc : datetime.datetime or np.ndarray
+        UTC time as a datetime object. Either `datetime.datetime` or
+        `np.ndarray` with `dtype = datetime.datetime`.
     """
     if np.issubdtype(type(unix_millis), np.integer):
         unix_millis = float(unix_millis)
@@ -409,10 +440,11 @@ def unix_millis_to_tow(unix_millis):
 
     Returns
     -------
-    gps_week : int or np.ndarray<int>
-        GPS week.
-    tow : float or np.ndarray<float>
-        GPS time of week [s].
+    gps_week : int or np.ndarray
+        GPS week. Either `int` or `np.ndarray` with `dtype = int`.
+    tow : float or np.ndarray
+        GPS time of week [s]. Either `float` or `np.ndarray` with
+        `dtype = float`.
     """
 
     t_utc = unix_millis_to_datetime(unix_millis)
@@ -435,8 +467,9 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
 
     Returns
     -------
-    gps_millis : int or np.ndarray<int>
-        Milliseconds since GPS Epoch (6th January 1980 GPS).
+    gps_millis : int or np.ndarray
+        Milliseconds since GPS Epoch (6th January 1980 GPS). Either
+        `int` or `np.ndarray` with `dtype = int`.
     """
     # Add leapseconds should always be true here
     if isinstance(unix_millis, np.ndarray) \
@@ -468,8 +501,9 @@ def gps_millis_to_datetime(gps_millis, rem_leap_secs=True):
 
     Returns
     -------
-    t_utc : datetime.datetime or np.ndarray<datetime.datetime>
-        UTC time as a datetime object
+    t_utc : datetime.datetime or np.ndarray
+        UTC time as a datetime object. Either `datetime.datetime` or
+        `np.ndarray` with `dtype = datetime.datetime`.
     """
     gps_week, tow = gps_millis_to_tow(gps_millis, add_leap_secs=False)
     t_utc = tow_to_datetime(gps_week, tow, rem_leap_secs=rem_leap_secs)
@@ -492,8 +526,9 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
 
     Returns
     -------
-    unix_millis : float or np.ndarray<float>
-        Milliseconds since UNIX Epoch (1/1/1970 UTC)
+    unix_millis : float or np.ndarray
+        Milliseconds since UNIX Epoch (1/1/1970 UTC). Either `float`
+        or `np.ndarray` with `dtype = float`.
 
     """
     #NOTE: Ensure that one of these methods is always adding/removing
@@ -509,6 +544,7 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
         t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
         unix_millis = np.float64(datetime_to_unix_millis(t_utc))
     return unix_millis
+
 
 def tzinfo_to_utc(t_datetime):
     """Raises warning if time doesn't have timezone and converts to UTC.
