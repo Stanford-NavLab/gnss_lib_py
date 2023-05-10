@@ -6,7 +6,6 @@ __authors__ = "Sriramya Bhamidipati"
 __date__ = "09 June 2022"
 
 import os
-import warnings
 
 from datetime import datetime, timedelta, timezone
 
@@ -14,9 +13,7 @@ import numpy as np
 from scipy import interpolate
 
 from gnss_lib_py.parsers.ephemeris import EphemerisManager
-from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.sv_models import find_sv_states, _combine_gnss_sv_ids
-from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 import gnss_lib_py.utils.constants as consts
 
