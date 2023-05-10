@@ -13,6 +13,7 @@ __authors__ = "Ashwin Kanhere"
 __date__ = "13 July 2021"
 
 from numpy import sqrt
+from datetime import datetime, timezone
 
 A = 6378137.
 """float : Semi-major axis (radius) of the Earth [m]."""
@@ -60,3 +61,6 @@ GRAV = -9.80665
 
 WEEKSEC = 604800
 """ int : Number of seconds in a week [s]."""
+
+GPS_EPOCH_0 = datetime(1980, 1, 6, 0, 0, 0, 0, tzinfo=timezone.utc)
+""" datetime.datetime: Starting time for GPS epoch"""

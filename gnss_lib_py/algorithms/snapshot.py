@@ -14,6 +14,7 @@ import warnings
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
 def solve_wls(measurements, weight_type = None,
               only_bias = False, tol = 1e-7, max_count = 20):
@@ -51,44 +52,62 @@ def solve_wls(measurements, weight_type = None,
 
     """
 
-    if "x_sv_m" not in measurements.rows:
-        raise KeyError("x_sv_m (ECEF x position of sv) missing.")
-    if "y_sv_m" not in measurements.rows:
-        raise KeyError("y_sv_m (ECEF y position of sv) missing.")
-    if "z_sv_m" not in measurements.rows:
-        raise KeyError("z_sv_m (ECEF z position of sv) missing.")
-    if "b_sv_m" not in measurements.rows:
-        raise KeyError("b_sv_m (clock bias of sv) missing.")
+    # check that all necessary rows exist
+    measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","gps_millis"])
 
-    unique_timesteps = np.unique(measurements["millisSinceGpsEpoch",:])
+    states = []
 
-    states = np.nan*np.ones((4,len(unique_timesteps)))
+    position = np.zeros((4,1))
+    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
 
-    for t_idx, timestep in enumerate(unique_timesteps):
-        idxs = np.where(measurements["millisSinceGpsEpoch",:] == timestep)[1]
-        pos_sv_m = np.hstack((measurements["x_sv_m",idxs].reshape(-1,1),
-                              measurements["y_sv_m",idxs].reshape(-1,1),
-                              measurements["z_sv_m",idxs].reshape(-1,1)))
-        corr_pr_m = measurements["corr_pr_m",idxs].reshape(-1,1)
+        pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
+        pos_sv_m = np.atleast_2d(pos_sv_m)
+
+        corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
+
+        # remove NaN indexes
+        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=1)
+        pos_sv_m = pos_sv_m[not_nan_indexes]
+        corr_pr_m = corr_pr_m[not_nan_indexes]
+
         if weight_type is not None:
             if isinstance(weight_type,str) and weight_type in measurements.rows:
-                weights = measurements[weight_type, idxs].reshape(-1,1)
+                weights = measurement_subset[weight_type].reshape(-1,1)
             else:
                 raise TypeError("WLS weights must be None or row"\
                                 +" in NavData")
         else:
             weights = None
 
-        position = wls(np.zeros((4,1)), pos_sv_m, corr_pr_m, weights,
-                       only_bias, tol, max_count)
+        try:
+            position = wls(position, pos_sv_m, corr_pr_m, weights,
+                           only_bias, tol, max_count)
+            states.append([timestamp] + np.squeeze(position).tolist())
+        except RuntimeError as error:
+            warnings.warn("RuntimeError encountered at gps_millis: " \
+                        + str(int(timestamp)) + " RuntimeError: " \
+                        + str(error), RuntimeWarning)
+            states.append([timestamp, np.nan, np.nan, np.nan, np.nan])
 
-        states[:,t_idx:t_idx+1] = position
+    states = np.array(states)
 
     state_estimate = NavData()
-    state_estimate["x_rx_m"] = states[0,:]
-    state_estimate["y_rx_m"] = states[1,:]
-    state_estimate["z_rx_m"] = states[2,:]
-    state_estimate["b_rx_m"] = states[3,:]
+    state_estimate["gps_millis"] = states[:,0]
+    state_estimate["x_rx_m"] = states[:,1]
+    state_estimate["y_rx_m"] = states[:,2]
+    state_estimate["z_rx_m"] = states[:,3]
+    state_estimate["b_rx_m"] = states[:,4]
+
+    if np.isnan(states[:,1:]).all():
+        warnings.warn("No valid state estimate computed in WLS, "\
+                    + "returning NaNs.", RuntimeWarning)
+        return state_estimate
+
+    lat,lon,alt = ecef_to_geodetic(state_estimate[["x_rx_m","y_rx_m",
+                                   "z_rx_m"]].reshape(3,-1))
+    state_estimate["lat_rx_deg"] = lat
+    state_estimate["lon_rx_deg"] = lon
+    state_estimate["alt_rx_deg"] = alt
 
     return state_estimate
 
@@ -168,10 +187,15 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
             geometry_matrix[:,:3] = np.divide(pos_rx_m - pos_sv_m,
                                               gt_r_m.reshape(-1,1))
 
-
+        # assumes the use of corrected pseudoranges with the satellite
+        # clock bias already removed
         pr_delta = corr_pr_m - gt_r_m - rx_est_m[3,0]
-        pos_x_delta = np.linalg.pinv(geometry_matrix.T @ weight_matrix @ geometry_matrix) \
-                    @ geometry_matrix.T @ weight_matrix @ pr_delta
+        try:
+            pos_x_delta = np.linalg.pinv(geometry_matrix.T @ weight_matrix @ geometry_matrix) \
+                        @ geometry_matrix.T @ weight_matrix @ pr_delta
+        except np.linalg.LinAlgError as exception:
+            print(exception)
+            break
 
         if only_bias:
             rx_est_m[3,0] += pos_x_delta[0,0]

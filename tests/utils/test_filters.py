@@ -213,9 +213,9 @@ def msd_ekf_params():
     ekf_init_dict : Dict
         Dictionary with KF state dimension, initial state and covariance
     """
-    ekf_init_dict = {'x_dim': 2,
-                     'x0': np.array([[1], [1]]),
-                     'P0': np.eye(2)}
+    ekf_init_dict = {
+                     'state_0': np.array([[1], [1]]),
+                     'sigma_0': np.eye(2)}
     return ekf_init_dict
 
 
@@ -228,9 +228,9 @@ def msd_ukf_params():
     ekf_init_dict : Dict
         Dictionary with UKF state dimension, initial state and covariance
     """
-    ukf_init_dict = {'x_dim': 2,
-                     'x0': np.array([[1], [1]]),
-                     'P0': np.eye(2)}
+    ukf_init_dict = {
+                     'state_0': np.array([[1], [1]]),
+                     'sigma_0': np.eye(2)}
     return ukf_init_dict
 
 
@@ -279,11 +279,11 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
         State covariance after update step, dimension T x 2 x 2
     """
     if filter_type == 'ekf':
-        init_dict['Q'] = q * np.eye(init_dict['x_dim'])
+        init_dict['Q'] = q * np.eye(init_dict['state_0'].size)
         init_dict['R'] = r * np.eye(1)
         msd_filter = MsdEkf(init_dict, params_dict)
     elif filter_type == 'ukf':
-        init_dict['Q'] = q * np.eye(init_dict['x_dim'])
+        init_dict['Q'] = q * np.eye(init_dict['state_0'].size)
         init_dict['R'] = r * np.eye(1)
         msd_filter = MSD_UKF(init_dict, params_dict)
         # TODO: elif for 'ukf' - Done
@@ -299,13 +299,13 @@ def msd_filter_sol(times, x_exact, init_dict, params_dict, q, r, filter_type):
 
     for t_idx in range(t_len):
         msd_filter.predict(u)
-        P_pre_temp = np.reshape(msd_filter.P, [1, msd_filter.x_dim, msd_filter.x_dim])
+        P_pre_temp = np.reshape(msd_filter.sigma, [1, msd_filter.state_dim, msd_filter.state_dim])
         P_pre = np.concatenate([P_pre, P_pre_temp], axis=0)
         z = np.reshape(x_exact[t_idx] + run_rng.normal(0, r, size=1), [-1, 1])
         msd_filter.update(z)
         # Save positions and covariance matrices
-        x_filter = np.append(x_filter, msd_filter.x[0])
-        P_post_temp = np.reshape(msd_filter.P, [1, msd_filter.x_dim, msd_filter.x_dim])
+        x_filter = np.append(x_filter, msd_filter.state[0])
+        P_post_temp = np.reshape(msd_filter.sigma, [1, msd_filter.state_dim, msd_filter.state_dim])
         P_post = np.concatenate([P_post, P_post_temp], axis=0)
     return x_filter, P_pre, P_post
 

@@ -1,0 +1,96 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Python ${{ matrix.python-version }}, OS ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.11"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast : false
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      id: setup-python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true # default option selected currently
+    # Load cached environment, if it exists
+    - name: Load cached poetry environment
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    - name: Install dependencies and root package
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: |
+        poetry install --no-interaction --no-root
+        poetry install --no-interaction
+    # Install pandoc for building docs
+    - name: Install pandoc for Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt install pandoc
+    - name: Install pandoc for Windows
+      if: matrix.os == 'windows-latest'
+      run: choco install pandoc --no-progress
+    - name: Install pandoc for MacOS
+      if: matrix.os == 'macos-latest'
+      run: brew install pandoc
+
+    - name: Test with pytest
+      run: |
+        source $VENV
+        pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+    - name: Upload coverage report to code-cov
+      uses: codecov/codecov-action@v3
+      with:
+        fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+    - name: Test if docs are building
+      run: |
+        ./build_docs.sh
+  readme:
+    runs-on: ubuntu-latest
+    name: Check if index.rst and README.md weren't changed together
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files since last remote commit
+        id: changed-files
+        uses: tj-actions/changed-files@v34
+
+      - name: Check if index.rst changed when README.md file changes
+        if: contains(steps.changed-files.outputs.modified_files, 'README.md') && !contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst')
+        run: |
+          echo "README.md has changed but index.rst has not!"
+          exit 1
+
+      - name: Check if README.md changed when index.rst file changes
+        if: contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst') && !contains(steps.changed-files.outputs.modified_files, 'README.md')
+        run: |
+          echo "index.rst has changed but README.md has not!"
+          exit 1

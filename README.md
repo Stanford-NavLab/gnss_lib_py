@@ -1,4 +1,4 @@
-[![build](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml/badge.svg)](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/python-app.yml)
+[![build](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml/badge.svg)](https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/Stanford-NavLab/gnss_lib_py/branch/main/graph/badge.svg?token=1FBGEWRFM6)](https://codecov.io/gh/Stanford-NavLab/gnss_lib_py)
 [![Documentation Status](https://readthedocs.org/projects/gnss_lib_py/badge/?version=latest)](https://gnss_lib_py.readthedocs.io/en/latest/?badge=latest)
 
@@ -6,14 +6,15 @@ gnss_lib_py
 ===========
 
 `gnss_lib_py` is a modular Python tool for parsing, analyzing, and
-visualizing Global Navigation Satellite Systems (GNSS) data.
+visualizing Global Navigation Satellite Systems (GNSS) data and state
+estimates.
 It also provides an intuitive and modular framework allowing users to
 quickly prototype, implement, and visualize GNSS algorithms.
 `gnss_lib_py` is modular in the sense that multiple types of
 algorithms can be easily exchanged for each other and extendable in
 facilitating user-specific extensions of existing implementations.
 
-<img src="docs/source/img/skyplot.png" alt="satellite skyplot" width="600"/>
+<img src="https://raw.githubusercontent.com/Stanford-NavLab/gnss_lib_py/main/docs/source/img/skyplot.png" alt="satellite skyplot" width="600"/>
 
 `gnss_lib_py` contains parsers for common file types used for
 storing GNSS measurements, benchmark algorithms for processing
@@ -60,8 +61,7 @@ Code Organization
    ├── build_docs.sh                  # Bash script to build docs
    ├── poetry.lock                    # Poetry specific Lock file
    ├── pyproject.toml                 # List of package dependencies
-   ├── requirements.txt               # List of packages for pip install
-   └── setup.py                       # Setup file
+   └── requirements.txt               # List of packages for pip install
 ```
 In the directory organization above:
 
@@ -70,32 +70,32 @@ In the directory organization above:
     algorithms are implemented in the `algorithms`:
 
       * Weighted Least Squares
+      * Extended Kalman Filter
       * Calculating pseudorange residuals
-  * The data parsers in the `parsers` directory allow for loading
-    GNSS data into `gnss_lib_py`'s unifying `NavData` class.
+      * Calculating multi-GNSS satellite PVT information
+  * The data parsers in the `parsers` directory allow for either loading
+    GNSS data into `gnss_lib_py`'s unifying `NavData` class or parsing
+    precise ephemerides data.
     Currently, the following datasets and types are supported:
 
       * [2021 Google Android Derived Dataset](https://www.kaggle.com/c/google-smartphone-decimeter-challenge)
+      * [2022 Google Android Derived Dataset](https://www.kaggle.com/competitions/smartphone-decimeter-2022)
+      * [Precise Ephemeris Data](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html)
 
   * The `utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite
     simulation, file operations, etc.
-  * Currently, the following data visualization tools are available in the
-    `utils` directory:
-
-        * Skyplot: showing the movement of GNSS satellites during the
-          elapsed time of the provided `NavData` class.
-        * Metric plotting: allows you to plot a specific array of data
-          from the `NavData` class
-        * Metric plotting by constellation: allows you to plot a specific
-          array of data but broken up by individual constellations and
-          signal types.
-        * Residual plotting: specifically optimized for plotting residuals.
-
 
 Installation
 ------------
-For directions on how to install the `gnss_lib_py` project, please
+
+`gnss_lib_py` is available through `pip` installation with:
+
+```
+pip install gnss-lib-py
+```
+
+For directions on how to install an editable or developer installation of `gnss_lib_py` on Linux, MacOS, and Windows, please
 see the [install instructions](https://gnss-lib-py.readthedocs.io/en/latest/install.html).
 
 Tutorials

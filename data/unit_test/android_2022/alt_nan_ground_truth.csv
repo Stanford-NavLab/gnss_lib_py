@@ -1,0 +1,4 @@
+MessageType,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis
+Fix,GT,37.4166186,-122.082065,,0.002044282,0.1,92.96875,1.58957E+12
+Fix,GT,37.4166186,-122.082065,,0.002198359,0.1,92.969666,1.58957E+12
+Fix,GT,37.4166186,-122.082065,,0.001414214,0.1,92.96985,1.58957E+12
