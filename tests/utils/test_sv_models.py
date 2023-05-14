@@ -213,7 +213,7 @@ def test_visible_sv_posvel(gps_measurement_frames, android_gt):
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
         # Test that actually visible satellites are subset of expected satellites
-        vis_posvel = sv_models._find_visible_sv_posvel(curr_millis, x_ecef, sv_posvel, el_mask=0.)
+        vis_posvel = sv_models._find_visible_sv_posvel(x_ecef, sv_posvel, el_mask=0.)
         vis_svs = set(vis_posvel['sv_id'])
         assert vis_svs.issubset(set(sv_posvel['sv_id']))
 
@@ -272,3 +272,11 @@ def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_de
             np.testing.assert_almost_equal(android_gps_states[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['brd_eph'])
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_filter_ephemeris_none(android_gps_l1, ephemeris_path):
+    android_subset,_ = sv_models._filter_ephemeris_measurements(android_gps_l1,
+                                                                constellations=None,
+                                                                ephemeris_path=ephemeris_path)
+    assert len(android_gps_l1)==len(android_subset)

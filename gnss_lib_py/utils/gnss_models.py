@@ -27,7 +27,35 @@ from gnss_lib_py.parsers.ephemeris import DEFAULT_DATA_PATH
 def add_measures(measurements, ephemeris_path = DEFAULT_DATA_PATH,
                  iono_params=None,pseudorange=True, doppler=True,
                  corrections=True, delta_t_dec = -2):
-    """Estimate measurements and add to given measurements
+    """Estimate measurements and add to given navdata with rx measures.
+
+    Given measurements that were received, containing time, GNSS ID and
+    SV ID, computes estimated pseudorange and doppler measurements and
+    adds them to the input navdata.
+
+    If the input navdata does not contain SV positions and velocities,
+    which are required to estimate measurements, they are added to the
+    navdata as well.
+
+    Must contain rows:
+    * :code:`gps_millis`
+    * :code:`gnss_id`
+    * :code:`sv_id`
+    * :code:`x_rx*_m`
+    * :code:`y_rx*_m`
+    * :code:`z_rx*_m`
+    * :code:`vx_rx*_mps`
+    * :code:`vy_rx*_mps`
+    * :code:`vz_rx*_mps`
+
+    To use previously computed SV states, provide following rows:
+    * :code:`x_sv_m`
+    * :code:`y_sv_m`
+    * :code:`z_sv_m`
+    * :code:`vx_sv_mps`
+    * :code:`vy_sv_mps`
+    * :code:`vz_sv_mps`
+
 
     Parameters
     ----------
@@ -212,7 +240,7 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
         ephem = _find_visible_ephem(gps_millis, rx_ecef, ephem, el_mask=el_mask)
         sv_posvel = None
     else:
-        sv_posvel = _find_visible_sv_posvel(gps_millis, rx_ecef, sv_posvel, el_mask=el_mask)
+        sv_posvel = _find_visible_sv_posvel(rx_ecef, sv_posvel, el_mask=el_mask)
         ephem = None
 
     measurements, sv_posvel = expected_measures(gps_millis, state,
