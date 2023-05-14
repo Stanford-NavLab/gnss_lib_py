@@ -21,11 +21,12 @@ from gnss_lib_py.utils.sv_models import _find_visible_ephem, _extract_pos_vel_ar
                         _find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
                         _find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
+from gnss_lib_py.parsers.ephemeris import DEFAULT_DATA_PATH
 
 
-def add_measures(measurements, ephemeris_path, iono_params=None,
-                 pseudorange=True, doppler=True, corrections=True,
-                 delta_t_dec = -2):
+def add_measures(measurements, ephemeris_path = DEFAULT_DATA_PATH,
+                 iono_params=None,pseudorange=True, doppler=True,
+                 corrections=True, delta_t_dec = -2):
     """Estimate measurements and add to given measurements
 
     Parameters
