@@ -40,6 +40,7 @@ author = 'Ashwin Kanhere, Derek Knowles'
 extensions = [
                 'sphinx.ext.autodoc',
                 'sphinx.ext.napoleon',
+                'sphinx.ext.viewcode',
                 'nbsphinx',
                 'nbsphinx_link',
                 'IPython.sphinxext.ipython_console_highlighting',
