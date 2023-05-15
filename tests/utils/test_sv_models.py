@@ -147,7 +147,7 @@ def test_sv_state_model(gps_measurement_frames, android_gt):
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
 
-        est_sv_posvel, _, _ = sv_models._find_sv_location(curr_millis, x_ecef, ephem=vis_ephems[idx])
+        est_sv_posvel, _, _ = sv_models.find_sv_location(curr_millis, x_ecef, ephem=vis_ephems[idx])
         np.testing.assert_almost_equal(and_sv_posvel[['x_sv_m']], est_sv_posvel['x_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['y_sv_m']], est_sv_posvel['y_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['z_sv_m']], est_sv_posvel['z_sv_m'], decimal=-1)
@@ -183,12 +183,12 @@ def test_visible_ephem(all_gps_ephem, gps_measurement_frames, android_gt):
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
         # Test visible satellite computation with ephemeris
-        eph = sv_models._find_visible_ephem(curr_millis, x_ecef, ephem=vis_ephems[idx], el_mask=0.)
+        eph = sv_models.find_visible_ephem(curr_millis, x_ecef, ephem=vis_ephems[idx], el_mask=0.)
         vis_svs = set(eph['sv_id'])
         assert vis_svs == set(vis_ephems[idx]['sv_id'])
 
         # Test that actually visible satellites are subset of expected satellites
-        eph = sv_models._find_visible_ephem(curr_millis, x_ecef, ephem=all_gps_ephem, el_mask=0.)
+        eph = sv_models.find_visible_ephem(curr_millis, x_ecef, ephem=all_gps_ephem, el_mask=0.)
         vis_svs = set(eph['sv_id'])
         assert set(vis_ephems[idx]['sv_id']).issubset(vis_svs)
 
@@ -213,7 +213,7 @@ def test_visible_sv_posvel(gps_measurement_frames, android_gt):
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
         # Test that actually visible satellites are subset of expected satellites
-        vis_posvel = sv_models._find_visible_sv_posvel(x_ecef, sv_posvel, el_mask=0.)
+        vis_posvel = sv_models.find_visible_sv_posvel(x_ecef, sv_posvel, el_mask=0.)
         vis_svs = set(vis_posvel['sv_id'])
         assert vis_svs.issubset(set(sv_posvel['sv_id']))
 

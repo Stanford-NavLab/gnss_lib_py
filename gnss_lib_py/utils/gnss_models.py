@@ -17,9 +17,9 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
-from gnss_lib_py.utils.sv_models import _find_visible_ephem, _extract_pos_vel_arr, \
-                        _find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
-                        _find_visible_sv_posvel, _sort_ephem_measures, \
+from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr, \
+                        find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
+                        find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
 from gnss_lib_py.parsers.ephemeris import DEFAULT_DATA_PATH
 
@@ -237,10 +237,10 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
     rx_ecef, _, _, _ = _extract_state_variables(state)
 
     if ephem is not None:
-        ephem = _find_visible_ephem(gps_millis, rx_ecef, ephem, el_mask=el_mask)
+        ephem = find_visible_ephem(gps_millis, rx_ecef, ephem, el_mask=el_mask)
         sv_posvel = None
     else:
-        sv_posvel = _find_visible_sv_posvel(rx_ecef, sv_posvel, el_mask=el_mask)
+        sv_posvel = find_visible_sv_posvel(rx_ecef, sv_posvel, el_mask=el_mask)
         ephem = None
 
     measurements, sv_posvel = expected_measures(gps_millis, state,
@@ -293,7 +293,7 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     """
     # and satellite positions in sv_posvel
     rx_ecef, rx_v_ecef, clk_bias, clk_drift = _extract_state_variables(state)
-    sv_posvel, del_pos, true_range = _find_sv_location(gps_millis,
+    sv_posvel, del_pos, true_range = find_sv_location(gps_millis,
                                                          rx_ecef, ephem, sv_posvel)
     # sv_pos, sv_vel, del_pos are both Nx3
     _, sv_vel = _extract_pos_vel_arr(sv_posvel)
