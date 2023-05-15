@@ -280,3 +280,7 @@ def test_filter_ephemeris_none(android_gps_l1, ephemeris_path):
                                                                 constellations=None,
                                                                 ephemeris_path=ephemeris_path)
     assert len(android_gps_l1)==len(android_subset)
+
+
+def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path):
+    # Create list of times from 

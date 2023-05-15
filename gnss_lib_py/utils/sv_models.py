@@ -117,7 +117,7 @@ def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
     return sv_states_all_time
 
 
-def add_visible_svs_for_trajectory(gps_millis, rx_states,
+def add_visible_svs_for_trajectory(rx_states,
                                    ephemeris_path=DEFAULT_EPHEM_PATH,
                                    constellations=['gps'], el_mask = 5.):
     """Wrapper to add visible satellite states for given times and positions.
@@ -127,14 +127,13 @@ def add_visible_svs_for_trajectory(gps_millis, rx_states,
     trajectory at given times (assuming open sky conditions).
 
     rx_states must contain the following rows in order of increasing time:
+    * :code:`gps_millis`
     * :code:`x_rx*_m`
     * :code:`y_rx*_m`
     * :code:`z_rx*_m`
 
     Parameters
     ----------
-    gps_millis : list
-        Times for which SV states are needed. List of floats.
     rx_states : gnss_lib_py.parsers.navdata.NavData
         NavData containing position states of receiver at which SV states
         are needed.
@@ -156,6 +155,7 @@ def add_visible_svs_for_trajectory(gps_millis, rx_states,
 
     """
     # Checks to ensure that the same number of times and states are given
+    gps_millis = rx_states['gps_millis']
     assert len(gps_millis) == len(rx_states), \
         "Please give same number of times and ECEF points"
     assert isinstance(rx_states, NavData), \
