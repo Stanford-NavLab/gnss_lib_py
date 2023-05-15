@@ -8,6 +8,7 @@ __date__ = "17 Jan, 2023"
 
 import warnings
 import numpy as np
+from datetime import timedelta
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
@@ -15,7 +16,7 @@ from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.ephemeris import EphemerisManager
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
 
-from gnss_lib_py.parsers.ephemeris import DEFAULT_DATA_PATH
+from gnss_lib_py.parsers.ephemeris import DEFAULT_EPHEM_PATH
 
 def svs_from_el_az(elaz_deg):
     """Generate NED satellite positions for given elevation and azimuth.
@@ -46,7 +47,7 @@ def svs_from_el_az(elaz_deg):
     return svs_ned
 
 
-def add_sv_states(measurements, ephemeris_path= DEFAULT_DATA_PATH,
+def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
                   constellations=['gps'], delta_t_dec = -2):
     """
     Add SV states (ECEF position and velocities) to measurements.
@@ -114,6 +115,96 @@ def add_sv_states(measurements, ephemeris_path= DEFAULT_DATA_PATH,
         else:
             sv_states_all_time.concat(measure_frame, inplace=True)
     return sv_states_all_time
+
+
+def add_visible_svs_for_trajectory(gps_millis, rx_states,
+                                   ephemeris_path=DEFAULT_EPHEM_PATH,
+                                   constellations=['gps'], el_mask = 5.):
+    """Wrapper to add visible satellite states for given times and positions.
+
+    Given a sequence of times and rx points in ECEF, along with desired
+    constellations, give SV states for satellites that are visible along
+    trajectory at given times (assuming open sky conditions).
+
+    rx_states must contain the following rows in order of increasing time:
+    * :code:`x_rx*_m`
+    * :code:`y_rx*_m`
+    * :code:`z_rx*_m`
+
+    Parameters
+    ----------
+    gps_millis : list
+        Times for which SV states are needed. List of floats.
+    rx_states : gnss_lib_py.parsers.navdata.NavData
+        NavData containing position states of receiver at which SV states
+        are needed.
+    ephemeris_path : string
+        Path at which ephemeris files are to be stored. Uses directory
+        default if not given.
+    constellations : list
+        List of constellations for which states are to be estimated.
+        Default is :code:`['gps']`. If :code:`None` is given, will estimate
+        states for all available constellations.
+    el_mask : float
+        Elevation value above which satellites are considered visible.
+
+    Returns
+    -------
+    sv_posvel_trajectory : gnss_lib_py.parsers.navdata.Navdata
+        NavData instance containing
+
+
+    """
+    # Checks to ensure that the same number of times and states are given
+    assert len(gps_millis) == len(rx_states), \
+        "Please give same number of times and ECEF points"
+    assert isinstance(rx_states, NavData), \
+        "rx_states must be a NavData instance"
+
+
+    # Find starting time to download broadcast ephemeris file
+    start_millis = gps_millis[0]
+    start_time = gps_millis_to_datetime(start_millis)
+    # Initialize all satellites
+    inv_const_chars = {value : key for key, value in consts.CONSTELLATION_CHARS.items()}
+    all_sats = []
+    if constellations is None:
+        constellations = list(consts.CONSTELLATION_CHARS.values())
+    for const in constellations:
+        if const != 'gps':
+            warnings.warn(const + " not available in received constellations", RuntimeWarning)
+            continue
+        gnss_char = inv_const_chars[const]
+        num_sats = consts.NUMSATS[const]
+        all_sats_const = [f"{gnss_char}{sv:02}" for sv in range(1, num_sats)]
+        all_sats.extend(all_sats_const)
+
+    # Initialize file with broadcast ephemeris parameters
+    ephemeris_manager = EphemerisManager(ephemeris_path)
+    ephem_all_sats = ephemeris_manager.get_ephemeris(start_time, all_sats)
+
+    # Find rows that correspond to receiver positions
+    rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
+    rx_idxs = rx_states.find_wildcard_indexes(rx_rows_to_find,
+                                              max_allow=1)
+
+    # Loop through all times and positions, estimated SV states and adding
+    # them to a NavData instance that is returned
+    sv_posvel_trajectory = NavData()
+    for idx, milli in enumerate(gps_millis):
+        rx_ecef = rx_states[[rx_idxs["x_rx*_m"][0],
+                                rx_idxs["y_rx*_m"][0],
+                                rx_idxs["z_rx*_m"][0]],
+                                idx]
+        ephem_viz = find_visible_ephem(milli, rx_ecef, ephem_all_sats, el_mask=el_mask)
+        sv_posvel, _, _ = find_sv_location(milli, rx_ecef, ephem_viz)
+        sv_posvel['gps_millis'] = milli
+        if len(sv_posvel_trajectory) == 0:
+            sv_posvel_trajectory = sv_posvel
+        else:
+            sv_posvel_trajectory.concat(sv_posvel, inplace=True)
+
+    return sv_posvel_trajectory
 
 
 def find_sv_states(gps_millis, ephem):
@@ -412,7 +503,7 @@ def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
 
 
 def _filter_ephemeris_measurements(measurements, constellations,
-                                   ephemeris_path = DEFAULT_DATA_PATH):
+                                   ephemeris_path = DEFAULT_EPHEM_PATH):
     """Return subset of input measurements and ephmeris containing
     constellations and received SVs.
 

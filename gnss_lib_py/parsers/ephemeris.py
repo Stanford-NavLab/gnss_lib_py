@@ -41,7 +41,7 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, tzinfo_to_utc
 
-DEFAULT_DATA_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
+DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
 
 class EphemerisManager():
     """Download, store and process ephemeris files
@@ -94,7 +94,7 @@ class EphemerisManager():
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     """
-    def __init__(self, data_directory=DEFAULT_DATA_PATH,
+    def __init__(self, data_directory=DEFAULT_EPHEM_PATH,
                  verbose=False):
         self.data_directory = data_directory
         nasa_dir = os.path.join(data_directory, 'nasa')
