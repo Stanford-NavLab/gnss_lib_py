@@ -319,6 +319,20 @@ class EphemerisManager():
 
 
     def get_decompressed_filename(self, fileinfo):
+        """Returns decompressed filename from filepaths in get_filepaths. If 
+        the file does not already exist on the machine, the file is retrieved
+        from the url specified in fileinfo.
+
+        Parameters
+        ----------
+        fileinfo : dict
+            Filenames for ephemeris with ftp server and constellation details
+
+        Returns
+        -------
+        decompressed_filename : string
+            Postprocessed filename for retrieving ephemeris locally
+        """
         filepath = fileinfo['filepath']
         url = fileinfo['url']
         directory = os.path.split(filepath)[0]
@@ -335,6 +349,23 @@ class EphemerisManager():
         return decompressed_filename
 
     def get_iono_params(self, timestamp, data_source):
+        """Gets ionosphere parameters from RINEX file header for calculation of
+        ionosphere delay
+
+        Parameters
+        ----------
+        timestamp : datetime.datetime
+            Timestamp corresponding to desired ephemeris data.
+
+        data_source : string
+            Specifies which ephemeris file from which to extract parameters
+
+
+        Returns
+        -------
+        iono_params : np.ndarray
+            Array of ionosphere parameters ION ALPHA and ION BETA
+        """
         fileinfo = EphemerisManager.get_filepaths(timestamp)[data_source]
         decompressed_filename = self.get_decompressed_filename(fileinfo)
         ion_alpha_str = georinex.rinexheader(decompressed_filename)['ION ALPHA'].replace('D', 'E')
