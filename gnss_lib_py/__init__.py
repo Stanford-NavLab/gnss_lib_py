@@ -11,6 +11,7 @@ from gnss_lib_py.parsers.android import *
 from gnss_lib_py.parsers.ephemeris import *
 from gnss_lib_py.parsers.navdata import *
 from gnss_lib_py.parsers.precise_ephemerides import *
+from gnss_lib_py.parsers.smart_loc import *
 
 from gnss_lib_py.utils.coordinates import *
 from gnss_lib_py.utils.filters import *
