@@ -59,7 +59,7 @@ def fixture_raw_path(root_path):
     .. [2] https://www.tu-chemnitz.de/projekt/smartLoc/gnss_dataset.html.en#Home
 
     """
-    raw_path = os.path.join(root_path, 'tu_chemnitz_berlin_1_raw.csv')
+    raw_path = os.path.join(root_path, 'smart_loc', 'tu_chemnitz_berlin_1_raw.csv')
     return raw_path
 
 @pytest.fixture(name="pd_df")
