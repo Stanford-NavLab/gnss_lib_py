@@ -13,7 +13,7 @@ import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
-from gnss_lib_py.parsers.smart_loc import SmartLocRaw, remove_nlos, \
+from gnss_lib_py.parsers.smartloc import SmartLocRaw, remove_nlos, \
                                         calculate_gt_ecef, calculate_gt_vel
 
 
@@ -59,7 +59,7 @@ def fixture_raw_path(root_path):
     .. [2] https://www.tu-chemnitz.de/projekt/smartLoc/gnss_dataset.html.en#Home
 
     """
-    raw_path = os.path.join(root_path, 'smart_loc', 'tu_chemnitz_berlin_1_raw.csv')
+    raw_path = os.path.join(root_path, 'smartloc', 'tu_chemnitz_berlin_1_raw.csv')
     return raw_path
 
 @pytest.fixture(name="pd_df")
@@ -221,7 +221,7 @@ def test_nlos_removal(smartloc_raw):
 
     Parameters
     ----------
-    smartloc_raw : gnss_lib_py.parsers.smart_loc.SmartLocRaw
+    smartloc_raw : gnss_lib_py.parsers.smartloc.SmartLocRaw
         Instance of SmartLocRaw for testing
     """
     first_shape = smartloc_raw.shape
@@ -245,7 +245,7 @@ def test_calculate_gt_ecef(smartloc_raw):
 
     Parameters
     ----------
-    smartloc_raw : gnss_lib_py.parsers.smart_loc.SmartLocRaw
+    smartloc_raw : gnss_lib_py.parsers.smartloc.SmartLocRaw
         Instance of SmartLocRaw for testing
     """
     old_shape = np.asarray(smartloc_raw.shape)
@@ -262,7 +262,7 @@ def test_calculate_gt_vel_ecef(smartloc_raw):
 
     Parameters
     ----------
-    smartloc_raw : gnss_lib_py.parsers.smart_loc.SmartLocRaw
+    smartloc_raw : gnss_lib_py.parsers.smartloc.SmartLocRaw
         Instance of SmartLocRaw for testing
     """
     old_shape = np.asarray(smartloc_raw.shape)
