@@ -290,6 +290,14 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
             np.testing.assert_almost_equal(measures[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['clock'])
+
+    # Test measurement estimation without given ionosphere parameters
+
+    measures_extract_iono = gnss_models.add_measures(android_measurements,
+                                                    ephemeris_path,
+                                                    iono_params=None)
+    for row in corr_rows:
+        np.testing.assert_almost_equal(measures[row], measures_extract_iono[row])
     # Test measurement estimation when SV states are not provided
 
     android_without_sv = android_measurements.remove(sv_rows)

@@ -91,6 +91,8 @@ def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         # measure_frame = measure_frame.sort('sv_id', order="descending")
         # Sort the satellites
         rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
+        if rx_ephem.shape[1] != measure_frame.shape[1]: #pragma: no cover
+            raise RuntimeError('Some ephemeris data is missing')
         try:
             # The following statement raises a KeyError if rows don't exist
             rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
@@ -458,7 +460,7 @@ def find_visible_sv_posvel(rx_ecef, sv_posvel, el_mask=5.):
     vis_posvel = sv_posvel.copy(cols=np.nonzero(keep_ind))
     return vis_posvel
 
-def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
+def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None, get_iono=False):
     """Given time, return SV positions, difference from Rx, and ranges.
 
     Parameters
@@ -503,7 +505,7 @@ def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
 
 
 def _filter_ephemeris_measurements(measurements, constellations,
-                                   ephemeris_path = DEFAULT_EPHEM_PATH):
+                                   ephemeris_path = DEFAULT_EPHEM_PATH, get_iono=False):
     """Return subset of input measurements and ephmeris containing
     constellations and received SVs.
 
@@ -555,7 +557,12 @@ def _filter_ephemeris_measurements(measurements, constellations,
     # Download the ephemeris file for all the satellites in the measurement files
     ephemeris_manager = EphemerisManager(ephemeris_path)
     ephem = ephemeris_manager.get_ephemeris(start_time, lookup_sats)
-    return measurements_subset, ephem
+    if get_iono:
+        # TODO: Don't hardcode gps source
+        iono_params = ephemeris_manager.get_iono_params(start_time, 'nasa_daily_gps')
+        return measurements_subset, ephem, iono_params
+    else:
+        return measurements_subset, ephem
 
 
 def _combine_gnss_sv_ids(measurement_frame):
@@ -586,8 +593,8 @@ def _combine_gnss_sv_ids(measurement_frame):
 
     """
     constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
-    gnss_chars = [constellation_char_inv[const] for const in measurement_frame['gnss_id']]
-    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(measurement_frame['sv_id'])])
+    gnss_chars = [constellation_char_inv[const] for const in np.array(measurement_frame['gnss_id'], ndmin=1)]
+    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(np.array(measurement_frame['sv_id'], ndmin=1))])
     return gnss_sv_id
 
 
@@ -662,6 +669,7 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
     rx_ecef = np.reshape(rx_ecef, [3, 1])
     satellites = len(sv_posvel)
     sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    sv_pos = sv_pos.reshape(rx_ecef.shape[0], satellites)
     del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
     true_range = np.linalg.norm(del_pos, axis=0)
     return del_pos, true_range
