@@ -91,7 +91,7 @@ def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         # measure_frame = measure_frame.sort('sv_id', order="descending")
         # Sort the satellites
         rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
-        if rx_ephem.shape[1] != measure_frame.shape[1]:
+        if rx_ephem.shape[1] != measure_frame.shape[1]: #pragma: no cover
             raise RuntimeError('Some ephemeris data is missing')
         try:
             # The following statement raises a KeyError if rows don't exist

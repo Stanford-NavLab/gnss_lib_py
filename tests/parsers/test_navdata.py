@@ -2405,11 +2405,11 @@ def test_sort(data, df_simple):
     pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)
 
     # Test sorting for only one column
-    navdata_single_col = NavData()
-    navdata_single_col['name'] = 'NAVLab'
-    navdata_single_col['number'] = 1
-    navdata_single_col['weight'] = 100
-    sorted_single_col = navdata_single_col.sort()
+    unsort_navdata_single_col = NavData()
+    unsort_navdata_single_col['name'] = np.asarray(['NAVLab'], dtype=object)
+    unsort_navdata_single_col['number'] = 1
+    unsort_navdata_single_col['weight'] = 100
+    sorted_single_col = unsort_navdata_single_col.sort()
     pd.testing.assert_frame_equal(sorted_single_col.pandas_df(),
-                                navdata_single_col.pandas_df())
+                                unsort_navdata_single_col.pandas_df())
 
