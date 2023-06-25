@@ -10,143 +10,148 @@ import numpy as np
 import pandas as pd
 import calendar
 import datetime
+import warnings
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils import coordinates as coord
+from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 from pynmea2.nmea_utils import timestamp, datestamp
 
-class NMEA(NavData):
+class Nmea(NavData):
     """Class used to parse through NMEA files
 
     """
-    def __init__(self, filename, msg_types=['GGA', 'RMC'], float_coords=True):
-        """Initialize NMEA class.
+    def __init__(self, filename, msg_types=['GGA', 'RMC'],
+                 check=False, keep_raw=False, include_ecef=False):
+        """Read instance of NMEA file following NMEA 1803 standard.
+
+        This class uses the NMEA parser from `pynmea2`, which supports
+        the NMEA 1803 standard.
+        With the introduction of the NMEA 2300 standard, an extra field
+        is added to the RMC message type. Support for these statements is
+        added by
 
         Parameters
         ----------
         filename : str
-            filepath to .NMEA file to read
-
+            filepath to NMEA file to read
+        msg_types : list
+            List of strings describing messages that can be parsed.
+        check : bool
+            `True` if the checksum at the end of the NMEA sentence should
+            be ignored. `False` if the checksum should be checked and lines
+            with incorrect checksums will be ignored.
+        raw_coord : bool
+            Flag for whether coordinates should be processed into commonly
+            used latitude and longitude formats. If 'True', returned
+            `NavData` has the same coordinates as the input NMEA file,
+            including the cardinal directions.
+            If `False`, the coordinates are processed into the decimal
+            format between -180&deg; and 180&deg; for longitude and between
+            -90&deg; and 90&deg; for latitude.
         """
         pd_df = pd.DataFrame()
         field_dict = {}
         prev_timestamp = None
-        with open(filename, "r") as f:
-            for line in f:
+        with open(filename, "r", encoding='UTF-8') as open_file:
+            for line in open_file:
+                check_ind = line.find('*')
+                if not check and '*' in line:
+                        # This is the case where a checksum exists but
+                        # the user wants to ignore it
+                        check_ind = line.find('*')
+                        line = line[:check_ind]
                 try:
-                    msg = pynmea2.parse(line, check = False)
+                    msg = pynmea2.parse(line, check = check)
                     if 'timestamp' in list(msg.name_to_idx.keys()):
                         # find first timestamp
-                        if prev_timestamp == None:
+                        if prev_timestamp is None:
                             prev_timestamp = msg.timestamp
 
                         elif msg.timestamp != prev_timestamp:
-                            # TODO: put in try/except block if there is no date
-                            # convert timestamp and datestamp into gps_millis
                             time = field_dict.pop('timestamp')
                             date = field_dict.pop('datestamp')
 
-                            dt = datetime.datetime.combine(datestamp(date), timestamp(time))
-                            field_dict['gps_millis'] = datetime_to_gps_millis(dt)
+                            delta_t = datetime.datetime.combine(datestamp(date), timestamp(time))
+                            field_dict['gps_millis'] = datetime_to_gps_millis(delta_t)
 
                             new_row = pd.DataFrame([field_dict])
                             pd_df = pd.concat([pd_df, new_row])
                             field_dict = {}
                             prev_timestamp = msg.timestamp
                     if msg.sentence_type in msg_types:
-                        if float_coords:
-                            ignore = ['lat', 'lat_dir', 'lon', 'lon_dir']
-                            try:
-                                field_dict['lat'] = msg.latitude
-                                field_dict['lon'] = msg.longitude
-                            except NameError:
-                                pass
-                        else:
+                        try:
+                            field_dict['lat_float'] = msg.latitude
+                            field_dict['lon_float'] = msg.longitude
+                        except NameError:
+                            warnings.warn('Unable to extract float LLH', \
+                                           RuntimeWarning)
+                        if keep_raw:
                             ignore = []
+                        else:
+                            ignore = ['lat', 'lat_dir', 'lon', 'lon_dir']
+                        ignore += ['mag_variation',
+                                  'mag_var_dir',
+                                  'mode_indicator',
+                                  'nav_status']
                         for field in msg.name_to_idx:
                             if field not in ignore:
                                 field_dict[field] = msg.data[msg.name_to_idx[field]]
-                except pynmea2.ChecksumError as e:
-                    pass
-
+                except pynmea2.ChecksumError:
+                    # If a checksum error is found, the transmitted message
+                    # is wrong and that statement should be skipped
+                    warnings.warn("Checksum failed, skipping corresponding" \
+                                  + f"line:\n {line}" , RuntimeWarning)
             time = field_dict.pop('timestamp')
             date = field_dict.pop('datestamp')
-            dt = datetime.datetime.combine(datestamp(date), timestamp(time))
-            field_dict['gps_millis'] = datetime_to_gps_millis(dt)
+            delta_t = datetime.datetime.combine(datestamp(date), timestamp(time))
+            field_dict['gps_millis'] = datetime_to_gps_millis(delta_t)
             new_row = pd.DataFrame([field_dict])
             pd_df = pd.concat([pd_df, new_row])
-            
+        # As per `gnss_lib_py` standards, convert the heading from degrees
+        # to radians
+        pd_df['true_course_rad'] = (180/np.pi)*pd_df['true_course'].astype(float)
+        # Convert the given altitude value to float based on the given units
+        # TODO: Check which of the two (ellipsoidal and geoidal, values
+        # we use)
+        # Assuming that altitude units are always meters
+        pd_df['altitude'] = pd_df['altitude'].astype(float)
         super().__init__(pandas_df=pd_df)
-    
+        if include_ecef:
+            self.include_ecef()
 
-    def ecef_gt_w_time(self, date):
-        """Get ECEF ground truth as well as measurement timesself.
 
-        NavData times are returned in UTC secondsself.
-
-        Parameters
-        ----------
-        date : datetime object
-            Calendar day of the start of recording.
+    @staticmethod
+    def _row_map():
+        """Map of row names from loaded Nmea to gnss_lib_py standard
 
         Returns
         -------
-        ecef : np.array
-            ECEF coordinates in array of shape [timesteps x 3] [m]
-        times : np.array
-            UTC time for ground truth measurements [s]
-        geo_ls : np.array
-            lat, lon, alt ground truth of shape [timesteps x 3]
-
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
         """
-        geo_ls = []
-        times = []
-
-        # calculate date based on datestring
-        date_ts = calendar.timegm(date.timetuple())
-
-        for msg in self.gga_msgs:
-            geo_ls.append([float(msg.latitude),
-                           float(msg.longitude),
-                           float(msg.altitude)])
-            day_ts = (msg.timestamp.hour*3600 \
-                   + msg.timestamp.minute*60 \
-                   + msg.timestamp.second \
-                   + msg.timestamp.microsecond*1e-6)
-            times.append(date_ts + day_ts)
-
-        ecef = coord.geodetic_to_ecef(geo_ls)
-        times = np.array(times)
-        geo_ls = np.array(geo_ls)
-
-        return ecef, times, geo_ls
+        row_map = {'lat_float' : 'lat_rx_deg',
+                   'lon_float' : 'lon_rx_deg',
+                   'altitude' : 'alt_rx_m',
+                   'spd_over_grnd': 'vx_rx_mps',
+                   'true_course': 'heading_rx_deg_raw',
+                   'true_course_rad' : 'heading_rx_rad'}
+        return row_map
 
 
-    def lla_gt(self):
-        """Get latitude, longitude, and altitude ground truthself.
+    def include_ecef(self):
+        """Include ECEF coordinates for NMEA data.
 
-        Returns
-        -------
-        geo_ls : list
-            A list of lists of latitude, longitude, and alitutde for
-            each line of the NMEA file.
-
+        The ECEF coordinates are always added inplace to the same instance
+        of Nmea that is input.
         """
-        geo_ls = []
-        for msg in self.gga_msgs:
-            geo_ls.append([float(msg.latitude),
-                           float(msg.longitude),
-                           float(msg.altitude)])
-        return np.array(geo_ls)
 
-    def ecef_gt(self):
-        """Get ECEF ground truth.
+        lla = np.vstack([self['lat_rx_deg'],
+                        self['lon_rx_deg'],
+                        self['alt_rx_m']])
+        ecef = geodetic_to_ecef(lla)
+        self['x_rx_m'] = ecef[0,:]
+        self['y_rx_m'] = ecef[1,:]
+        self['z_rx_m'] = ecef[2,:]
 
-        Returns
-        -------
-        ecef??? : list????
-            Returns ECEF coordinates of ground truth????
 
-        """
-        return coord.geodetic_to_ecef(self.lla_gt())
