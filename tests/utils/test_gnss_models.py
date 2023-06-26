@@ -123,49 +123,42 @@ def test_pseudorange_corrections(gps_measurement_frames, android_gt, iono_params
         # Get Android Derived states, sorted by SVs
         tropo_delay_sort = frame['tropo_delay_m'][sort_arg]
         iono_delay_sort = frame['iono_delay_m'][sort_arg]
-        clock_corr_sort = frame['b_sv_m'][sort_arg]
         curr_millis = frame['gps_millis', 0]
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
         state = calculate_state(android_gt, gt_slice_idx)
 
         # Test corrections with ephemeris parameters
-        est_clk, est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
-                                        curr_millis, state=state, ephem=vis_ephems[idx],
-                                        iono_params =iono_params)
+        est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
+            curr_millis, state=state, ephem=vis_ephems[idx],
+            iono_params =iono_params)
         np.testing.assert_almost_equal(tropo_delay_sort, est_trp, decimal=0)
         np.testing.assert_almost_equal(iono_delay_sort, est_iono, decimal=0)
-        np.testing.assert_almost_equal(clock_corr_sort, est_clk, decimal=0)
 
-        # Test corrections without ephemeris parameters
+        # Test corrections without ephemeris parameters buit SV position
         sv_posvel = sv_states[idx]
-        with pytest.warns(RuntimeWarning):
-            est_clk, est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
-                                        curr_millis, state=state, sv_posvel=sv_posvel,
-                                        iono_params =iono_params)
-            np.testing.assert_almost_equal(tropo_delay_sort, est_trp, decimal=0)
-            np.testing.assert_almost_equal(iono_delay_sort, est_iono, decimal=0)
-            # Clock correction should be zero without epehemeris parameters
-            np.testing.assert_almost_equal(np.zeros(len(frame)), est_clk)
+        est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
+            curr_millis, state=state, sv_posvel=sv_posvel,
+            iono_params =iono_params)
+        np.testing.assert_almost_equal(tropo_delay_sort, est_trp, decimal=0)
+        np.testing.assert_almost_equal(iono_delay_sort, est_iono, decimal=0)
 
         # Test corrections without ionosphere parameters
         with pytest.warns(RuntimeWarning):
-            est_clk, est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
-                                        curr_millis, state=state, ephem=vis_ephems[idx])
+            est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
+                curr_millis, state=state, ephem=vis_ephems[idx])
             np.testing.assert_almost_equal(tropo_delay_sort, est_trp, decimal=0)
             # Ionosphere delay should be zero without iono parameters
             np.testing.assert_almost_equal(np.zeros(len(frame)), est_iono, decimal=0)
-            np.testing.assert_almost_equal(clock_corr_sort, est_clk, decimal=0)
 
 
         # Test corrections without receiver position
         with pytest.warns(RuntimeWarning):
-            est_clk, est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
-                                        curr_millis, ephem=vis_ephems[idx],
-                                        iono_params =iono_params)
+            est_trp, est_iono = gnss_models.calculate_pseudorange_corr(
+                curr_millis, ephem=vis_ephems[idx],
+                iono_params =iono_params)
             # Ionosphere and troposphere delay should be zero without receiver position
             np.testing.assert_almost_equal(np.zeros(len(frame)), est_trp, decimal=0)
             np.testing.assert_almost_equal(np.zeros(len(frame)), est_iono, decimal=0)
-            np.testing.assert_almost_equal(clock_corr_sort, est_clk, decimal=0)
 
 
 def test_measure_generation(gps_measurement_frames, android_gt):
@@ -259,10 +252,10 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
         Derived measurements.
 
     """
-    corr_rows = ['iono_delay_m', 'tropo_delay_m', 'b_sv_m']
+    corr_rows = ['iono_delay_m', 'tropo_delay_m']
     measure_rows = ['est_pr_m', 'est_doppler_hz']
     sv_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
-            'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
+            'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps', 'b_sv_m']
     rx_pos_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
     rx_vel_rows = ['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps']
     all_rows = corr_rows + sv_rows
@@ -286,10 +279,6 @@ def test_add_measures_wrapper(android_measurements, ephemeris_path, iono_params,
             np.testing.assert_almost_equal(measures[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['delay'])
-        elif row=='b_sv_m':
-            np.testing.assert_almost_equal(measures[row],
-                                        comparison_states[row],
-                                        decimal=error_tol_dec['clock'])
 
     # Test measurement estimation without given ionosphere parameters
 

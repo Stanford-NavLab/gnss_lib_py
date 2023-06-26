@@ -395,6 +395,12 @@ def find_sv_states(gps_millis, ephem):
 
     sv_posvel['vz_sv_mps'] = dyp*sin_i + y_plane*cos_i*delta_i
 
+    # Estimate SV clock corrections, including polynomial and relativistic
+    # clock corrections
+    clock_corr, _, _ = _estimate_sv_clock_corr(gps_millis, ephem)
+
+    sv_posvel['b_sv_m'] = clock_corr
+
     return sv_posvel
 
 
@@ -502,6 +508,65 @@ def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None, get_iono=F
     t_corr = true_range/consts.C
 
     return sv_posvel, del_pos, true_range
+
+
+def _estimate_sv_clock_corr(gps_millis, ephem):
+    """Calculate the modelled satellite clock delay
+
+    Parameters
+    ---------
+    gps_millis : int
+        Time at which measurements are needed, measured in milliseconds
+        since start of GPS epoch [ms].
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        Satellite ephemeris parameters for measurement SVs.
+
+    Returns
+    -------
+    clock_corr : np.ndarray
+        Satellite clock corrections containing all terms [m].
+    corr_polynomial : np.ndarray
+        Polynomial clock perturbation terms [m].
+    clock_relativistic : np.ndarray
+        Relativistic clock correction terms [m].
+
+    """
+    # Extract required GPS constants
+    ecc        = ephem['e']     # eccentricity
+    sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
+
+    # if np.abs(delta_t).any() > 302400:
+    #     delta_t = delta_t - np.sign(delta_t)*604800
+
+    gps_week, gps_tow = gps_millis_to_tow(gps_millis)
+
+    # Compute Eccentric Anomaly
+    ecc_anom = _compute_eccentric_anomaly(gps_week, gps_tow, ephem)
+
+    # Determine pseudorange corrections due to satellite clock corrections.
+    # Calculate time offset from satellite reference time
+    t_offset = gps_tow - ephem['t_oc']
+    if np.abs(t_offset).any() > 302400:  # pragma: no cover
+        t_offset = t_offset-np.sign(t_offset)*604800
+
+    # Calculate clock corrections from the polynomial corrections in
+    # broadcast message
+    corr_polynomial = (ephem['SVclockBias']
+                     + ephem['SVclockDrift']*t_offset
+                     + ephem['SVclockDriftRate']*t_offset**2)
+
+    # Calcualte the relativistic clock correction
+    corr_relativistic = consts.F * ecc * sqrt_sma * np.sin(ecc_anom)
+
+    # Calculate the total clock correction including the Tgd term
+    clk_corr = (corr_polynomial - ephem['TGD'] + corr_relativistic)
+
+    #Convert values to equivalent meters from seconds
+    clk_corr = np.array(consts.C*clk_corr, ndmin=1)
+    corr_polynomial = np.array(consts.C*corr_polynomial, ndmin=1)
+    corr_relativistic = np.array(consts.C*corr_relativistic, ndmin=1)
+
+    return clk_corr, corr_polynomial, corr_relativistic
 
 
 def _filter_ephemeris_measurements(measurements, constellations,

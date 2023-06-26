@@ -146,14 +146,15 @@ def test_sv_state_model(gps_measurement_frames, android_gt):
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
-
         est_sv_posvel, _, _ = sv_models.find_sv_location(curr_millis, x_ecef, ephem=vis_ephems[idx])
+
         np.testing.assert_almost_equal(and_sv_posvel[['x_sv_m']], est_sv_posvel['x_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['y_sv_m']], est_sv_posvel['y_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['z_sv_m']], est_sv_posvel['z_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['vx_sv_mps']], est_sv_posvel['vx_sv_mps'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['vy_sv_mps']], est_sv_posvel['vy_sv_mps'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['vz_sv_mps']], est_sv_posvel['vz_sv_mps'], decimal=-1)
+        np.testing.assert_almost_equal(and_sv_posvel[['b_sv_m']], est_sv_posvel['b_sv_m'], decimal=1)
 
 
 def test_visible_ephem(all_gps_ephem, gps_measurement_frames, android_gt):

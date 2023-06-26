@@ -313,6 +313,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
         android_posvel['vx_sv_mps'] = frame['vx_sv_mps'][sort_arg]
         android_posvel['vy_sv_mps'] = frame['vy_sv_mps'][sort_arg]
         android_posvel['vz_sv_mps'] = frame['vz_sv_mps'][sort_arg]
+        android_posvel['b_sv_m'] = frame['b_sv_m'][sort_arg]
 
         frames.append(frame)
         ephems.append(vis_ephem)
