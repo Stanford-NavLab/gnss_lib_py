@@ -36,6 +36,17 @@ results/*
 # Include unit test NMEA files
 !data/unit_test/*/*.nmea
 
+# Ignore downloaded broadcast ephimerides files by default
+*.*n
+*.*o
+*.*g
+*.rnx
+# Include unit test files for broadcast ephemerides
+!data/unit_test/*/*.*n
+!data/unit_test/*/*.*o
+!data/unit_test/*/*.*g
+!data/unit_test/*/*.rnx
+
 ########################################
 ##### Common Python and IDE files ######
 ########################################
