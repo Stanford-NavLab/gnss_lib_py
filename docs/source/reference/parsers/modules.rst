@@ -10,5 +10,5 @@ parsers
    nmea
    precise_ephemerides
    rinex
-   sp3
    smartloc
+   sp3
