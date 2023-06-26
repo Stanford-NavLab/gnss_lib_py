@@ -5,17 +5,16 @@
 __authors__ = "Adam Dai, Shubh Gupta, Derek Knowles"
 __date__ = "16 Jul 2021"
 
+import datetime
+
 import pynmea2
 import numpy as np
 import pandas as pd
-import calendar
-import datetime
-import warnings
+from pynmea2.nmea_utils import timestamp, datestamp
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
-from pynmea2.nmea_utils import timestamp, datestamp
 
 class Nmea(NavData):
     """Class used to parse through NMEA files
@@ -68,10 +67,10 @@ class Nmea(NavData):
             for line in open_file:
                 check_ind = line.find('*')
                 if not check and '*' in line:
-                        # This is the case where a checksum exists but
-                        # the user wants to ignore it
-                        check_ind = line.find('*')
-                        line = line[:check_ind]
+                    # This is the case where a checksum exists but
+                    # the user wants to ignore it
+                    check_ind = line.find('*')
+                    line = line[:check_ind]
                 try:
                     msg = pynmea2.parse(line, check = check)
                     if 'timestamp' in list(msg.name_to_idx.keys()):
@@ -125,8 +124,7 @@ class Nmea(NavData):
         # to radians
         pd_df['true_course_rad'] = (np.pi/180.)*pd_df['true_course'].astype(float)
         # Convert the given altitude value to float based on the given units
-        # TODO: Check which of the two (ellipsoidal and geoidal, values
-        # we use)
+
         # Assuming that altitude units are always meters
         pd_df['altitude'] = pd_df['altitude'].astype(float)
         super().__init__(pandas_df=pd_df)
@@ -166,5 +164,3 @@ class Nmea(NavData):
         self['x_rx_m'] = ecef[0,:]
         self['y_rx_m'] = ecef[1,:]
         self['z_rx_m'] = ecef[2,:]
-
-
