@@ -21,22 +21,23 @@ class Nmea(NavData):
     """Class used to parse through NMEA files
 
     """
-    def __init__(self, filename, msg_types=['GGA', 'RMC'],
+    def __init__(self, filename, msg_types=None,
                  check=False, keep_raw=False, include_ecef=False):
         """Read instance of NMEA file following NMEA 1803 standard.
 
         This class uses the NMEA parser from `pynmea2`, which supports
-        the NMEA 1803 standard.
+        the NMEA 1803 standard [1]_.
         With the introduction of the NMEA 2300 standard, an extra field
-        is added to the RMC message type. Support for these statements is
-        added by
+        is added to the RMC message type, as seen in Page 1-5 in [2]_.
 
         Parameters
         ----------
         filename : str
-            filepath to NMEA file to read
+            filepath to NMEA file to read.
         msg_types : list
             List of strings describing messages that can be parsed.
+            `None` is the default argument which defaults to `[GGA, RMC]`
+            message types.
         check : bool
             `True` if the checksum at the end of the NMEA sentence should
             be ignored. `False` if the checksum should be checked and lines
@@ -49,7 +50,17 @@ class Nmea(NavData):
             If `False`, the coordinates are processed into the decimal
             format between -180&deg; and 180&deg; for longitude and between
             -90&deg; and 90&deg; for latitude.
+
+        References
+        ----------
+        .. [1] https://github.com/Knio/pynmea2/blob/5d3d2013bff9c5bce2e14132d21fff865b1e58fd/NMEA0183.pdf
+               Accessed 24 June, 2023
+        .. [2] https://www.sparkfun.com/datasheets/GPS/NMEA%20Reference%20Manual-Rev2.1-Dec07.pdf
+               Accessed 24 June, 2023
         """
+        if msg_types is None:
+            # Use default message types
+            msg_types = ['GGA', 'RMC']
         pd_df = pd.DataFrame()
         field_dict = {}
         prev_timestamp = None
@@ -80,12 +91,12 @@ class Nmea(NavData):
                             field_dict = {}
                             prev_timestamp = msg.timestamp
                     if msg.sentence_type in msg_types:
-                        try:
-                            field_dict['lat_float'] = msg.latitude
-                            field_dict['lon_float'] = msg.longitude
-                        except NameError:
-                            warnings.warn('Unable to extract float LLH', \
-                                           RuntimeWarning)
+                        # Both GGA and RMC messages have the latitude and
+                        # longitude in them and the following lines should
+                        # extract the relevant coordinates in decimal form
+                        # from the given degree and decimal minutes format
+                        field_dict['lat_float'] = msg.latitude
+                        field_dict['lon_float'] = msg.longitude
                         if keep_raw:
                             ignore = []
                         else:
@@ -97,11 +108,13 @@ class Nmea(NavData):
                         for field in msg.name_to_idx:
                             if field not in ignore:
                                 field_dict[field] = msg.data[msg.name_to_idx[field]]
-                except pynmea2.ChecksumError:
+                except pynmea2.ChecksumError as check_err:
                     # If a checksum error is found, the transmitted message
                     # is wrong and that statement should be skipped
-                    warnings.warn("Checksum failed, skipping corresponding" \
-                                  + f"line:\n {line}" , RuntimeWarning)
+                    raise Exception('Cannot skip any messages. Need both' \
+                                    + ' GGA and RMC messages for ' \
+                                    + 'all of date, time, and all of LLH') \
+                                        from check_err
             time = field_dict.pop('timestamp')
             date = field_dict.pop('datestamp')
             delta_t = datetime.datetime.combine(datestamp(date), timestamp(time))
@@ -110,7 +123,7 @@ class Nmea(NavData):
             pd_df = pd.concat([pd_df, new_row])
         # As per `gnss_lib_py` standards, convert the heading from degrees
         # to radians
-        pd_df['true_course_rad'] = (180/np.pi)*pd_df['true_course'].astype(float)
+        pd_df['true_course_rad'] = (np.pi/180.)*pd_df['true_course'].astype(float)
         # Convert the given altitude value to float based on the given units
         # TODO: Check which of the two (ellipsoidal and geoidal, values
         # we use)
