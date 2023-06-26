@@ -8,4 +8,4 @@ parsers
    test_ephemeris
    test_navdata
    test_precise_ephemerides
-   test_smart_loc
+   test_smartloc

@@ -1400,7 +1400,8 @@ class NavData():
             self.in_rows(key_idx)
             rows = [self.map[key_idx]]
             cols = slice(None, None)
-        elif isinstance(key_idx, list) and isinstance(key_idx[0], str):
+        elif isinstance(key_idx, (list,tuple)) \
+            and all(isinstance(idx, str) for idx in key_idx):
             rows = [self.map[k] for k in key_idx]
             cols = slice(None, None)
         elif isinstance(key_idx, slice):
@@ -1421,7 +1422,7 @@ class NavData():
             elif isinstance(key_idx[0], int):
                 rows = [key_idx[0]]
             else:
-                if not isinstance(key_idx[0],list):
+                if not isinstance(key_idx[0],(tuple,list)):
                     row_key = [key_idx[0]]
                 else:
                     row_key = key_idx[0]
