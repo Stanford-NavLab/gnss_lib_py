@@ -2,8 +2,8 @@
 
 """
 
-__authors__ = "Adam Dai, Shubh Gupta, Derek Knowles"
-__date__ = "16 Jul 2021"
+__authors__ = "Ashwin Kanhere, Dalton Vega"
+__date__ = "24 Jun, 2023"
 
 import datetime
 
