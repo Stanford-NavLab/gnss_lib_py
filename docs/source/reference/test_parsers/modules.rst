@@ -9,4 +9,4 @@ parsers
    test_navdata
    test_nmea
    test_precise_ephemerides
-   test_smart_loc
+   test_smartloc
