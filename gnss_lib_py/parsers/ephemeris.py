@@ -193,7 +193,7 @@ class EphemerisManager():
         # Move sv to DataFrame columns, reset index
         data = data.reset_index()
         # Replace datetime with gps_millis
-        gps_millis = [datetime_to_gps_millis(df_row['time']) \
+        gps_millis = [np.float64(datetime_to_gps_millis(df_row['time'])) \
                         for _, df_row in data.iterrows()]
         data['gps_millis'] = gps_millis
         data = data.drop(columns=['time'])
