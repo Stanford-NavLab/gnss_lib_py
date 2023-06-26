@@ -9,6 +9,4 @@ parsers
    navdata
    nmea
    precise_ephemerides
-   rinex
    smartloc
-   sp3
