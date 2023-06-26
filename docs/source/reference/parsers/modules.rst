@@ -7,5 +7,8 @@ parsers
    android
    ephemeris
    navdata
+   nmea
    precise_ephemerides
+   rinex
    smart_loc
+   sp3

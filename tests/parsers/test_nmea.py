@@ -79,7 +79,7 @@ def fixture_nmea_file_w_wrong_checksum(root_path):
 def fixture_nmea_file_no_checksum(root_path):
     """Location of NMEA file without checksum values.
 
-    The checksum values are at the end of each NMEA sentence (after a *).
+    The checksum values are at the end of each NMEA sentence (after a \*).
     This instance of the NMEA file has no checksums at the end.
 
     Parameters
