@@ -7,6 +7,7 @@ __date__ = "30 Apr 2022"
 
 
 import os
+import pathlib
 import itertools
 
 import pytest
@@ -211,7 +212,11 @@ def test_init_csv(csv_path):
 
     # should work when csv is passed
     data = NavData(csv_path=csv_path)
+    # data should contain full csv
+    assert data.shape == (4,6)
 
+    # should work when csv is passed as pathlib object
+    data = NavData(csv_path=pathlib.Path(csv_path))
     # data should contain full csv
     assert data.shape == (4,6)
 
