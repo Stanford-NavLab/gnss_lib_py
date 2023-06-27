@@ -22,10 +22,10 @@ class Nmea(NavData):
     """
     def __init__(self, filename, msg_types=None,
                  check=False, keep_raw=False, include_ecef=False):
-        """Read instance of NMEA file following NMEA 1803 standard.
+        """Read instance of NMEA file following NMEA 0183 standard.
 
         This class uses the NMEA parser from `pynmea2`, which supports
-        the NMEA 1803 standard [1]_.
+        the NMEA 0183 standard [1]_.
         With the introduction of the NMEA 2300 standard, an extra field
         is added to the RMC message type, as seen in Page 1-5 in [2]_.
 
@@ -145,7 +145,7 @@ class Nmea(NavData):
                    'lon_float' : 'lon_rx_deg',
                    'altitude' : 'alt_rx_m',
                    'spd_over_grnd': 'vx_rx_mps',
-                   'true_course': 'heading_rx_deg_raw',
+                   'true_course': 'heading_raw_rx_deg',
                    'true_course_rad' : 'heading_rx_rad'}
         return row_map
 
@@ -157,10 +157,9 @@ class Nmea(NavData):
         of Nmea that is input.
         """
 
-        lla = np.vstack([self['lat_rx_deg'],
-                        self['lon_rx_deg'],
-                        self['alt_rx_m']])
-        ecef = geodetic_to_ecef(lla)
+        ecef = geodetic_to_ecef(self[['lat_rx_deg',
+                                      'lon_rx_deg',
+                                      'alt_rx_m']])
         self['x_rx_m'] = ecef[0,:]
         self['y_rx_m'] = ecef[1,:]
         self['z_rx_m'] = ecef[2,:]
