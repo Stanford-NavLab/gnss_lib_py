@@ -53,7 +53,7 @@ def add_sv_states(measurements, ephemeris_path, constellations=['gps'], delta_t_
     measurements : gnss_lib_py.parsers.navdata.NavData
         Received measurements for which SV states are required. Must
         contain `gps_millis`, `gnss_id`, and `sv_id` fields.
-    ephemeris_path : string
+    ephemeris_path : string or path-like
         Location where ephemeris files are stored. Files will be
         downloaded if they don't exist for the given date and constellation.
     constellations : list
@@ -289,7 +289,7 @@ def _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
         Recevied measurements that are filtered based on constellations.
     constellations : list
         List of strings indicating constellations that we want to use.
-    ephemeris_path : string
+    ephemeris_path : string or path-like
         Path where the ephermis files are stored or downloaded to.
 
     Returns

@@ -33,7 +33,7 @@ def add_measures(measurements, ephemeris_path, iono_params=None,
     measurements : gnss_lib_py.parsers.navdata.NavData
         Received measurements for which SV states are required. Must
         contain `gps_millis`, `gnss_id`, and `sv_id` fields.
-    ephemeris_path : string
+    ephemeris_path : string or path-like
         Location where ephemeris files are stored. Files will be
         downloaded if they don't exist for the given date and constellation.
     iono_params : np.ndarray
