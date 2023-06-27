@@ -6,6 +6,7 @@ __authors__ = "Ashwin Kanhere"
 __date__ = "24 Jun, 2023"
 
 import os
+import pathlib
 
 import numpy as np
 import pytest
@@ -51,7 +52,6 @@ def fixture_nmea_file_w_correct_checksum(root_path):
     """
     nmea_checksum = os.path.join(root_path, 'nmea_w_correct_checksum.nmea')
     return nmea_checksum
-
 
 @pytest.fixture(name="nmea_wrong_checksum")
 def fixture_nmea_file_w_wrong_checksum(root_path):
@@ -129,6 +129,18 @@ def test_nmea_loading(nmea_file, check, row_name, exp_value, eq_decimal):
     # Testing base version of loading with all default parameters
     nmea_navdata = Nmea(nmea_file, check=check)
     compare_nmea_values(nmea_navdata, row_name, exp_value, eq_decimal)
+
+    nmea_navdata = Nmea(pathlib.Path(nmea_file), check=check)
+
+    # raises exception if not a file path
+    with pytest.raises(FileNotFoundError):
+        Nmea(pathlib.Path("not_a_file.txt"), check=check)
+    with pytest.raises(FileNotFoundError):
+        Nmea("not_a_file.txt", check=check)
+
+    # raises exception if input not string or path-like
+    with pytest.raises(TypeError):
+        Nmea([], check=check)
 
     # Testing loading with raw latitude and longitude preserved
     nmea_raw = Nmea(nmea_file, check=check, keep_raw=True)

@@ -24,7 +24,7 @@ class NavData():
 
     Parameters
     ----------
-    csv_path : string
+    csv_path : string or path-like
         Path to csv file containing data
     pandas_df : pd.DataFrame
         Data used to initialize NavData instance.
@@ -93,7 +93,7 @@ class NavData():
 
         Parameters
         ----------
-        csv_path : string
+        csv_path : string or path-like
             Path to csv file containing data
         header : string, int, or None
             "infer" uses the first row as column names, setting to
@@ -102,8 +102,8 @@ class NavData():
             Delimiter to use when reading in csv file.
 
         """
-        if not isinstance(csv_path, str):
-            raise TypeError("csv_path must be string")
+        if not isinstance(csv_path, (str, os.PathLike)):
+            raise TypeError("csv_path must be string or path-like")
         if not os.path.exists(csv_path):
             raise FileNotFoundError("file not found")
 

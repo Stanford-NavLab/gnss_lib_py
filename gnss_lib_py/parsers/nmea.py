@@ -5,6 +5,7 @@
 __authors__ = "Ashwin Kanhere, Dalton Vega"
 __date__ = "24 Jun, 2023"
 
+import os
 import datetime
 
 import pynmea2
@@ -31,7 +32,7 @@ class Nmea(NavData):
 
         Parameters
         ----------
-        filename : str
+        filename : str or path-like
             filepath to NMEA file to read.
         msg_types : list
             List of strings describing messages that can be parsed.
@@ -63,6 +64,12 @@ class Nmea(NavData):
         pd_df = pd.DataFrame()
         field_dict = {}
         prev_timestamp = None
+
+        if not isinstance(filename, (str, os.PathLike)):
+            raise TypeError("filename must be string or path-like")
+        if not os.path.exists(filename):
+            raise FileNotFoundError("file not found")
+
         with open(filename, "r", encoding='UTF-8') as open_file:
             for line in open_file:
                 check_ind = line.find('*')

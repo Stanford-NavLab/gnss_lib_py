@@ -36,7 +36,7 @@ class SmartLocRaw(NavData):
 
         Parameters
         ----------
-        input_path : string
+        input_path : string or path-like
             Path to measurement csv file
 
         """

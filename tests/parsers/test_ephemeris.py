@@ -287,7 +287,15 @@ def test_request_igs(ephem_download_path, fileinfo):
 
     requests_url = fileinfo['url'] + fileinfo['filepath']
 
-    response = requests.get(requests_url, timeout=5)
+
+    fail_count = 0
+    while fail_count < 3:
+        try:
+            response = requests.get(requests_url, timeout=5)
+            break
+        except ConnectionError:
+            fail_count += 1
+
     with open(dest_filepath,'wb') as file:
         file.write(response.content)
 
