@@ -30,7 +30,7 @@ class AndroidDerived2021(NavData):
 
         Parameters
         ----------
-        input_path : string
+        input_path : string or path-like
             Path to measurement csv file
         remove_timing_outliers : bool
             Flag for whether to remove measures that are too close or
@@ -157,7 +157,7 @@ class AndroidDerived2022(NavData):
 
         Parameters
         ----------
-        input_path : string
+        input_path : string or path-like
             Path to measurement csv file
         """
         super().__init__(csv_path=input_path)
@@ -255,7 +255,7 @@ class AndroidGroundTruth2021(NavData):
 
         Parameters
         ----------
-        input_path : string
+        input_path : string or path-like
             Path to measurement csv file
         """
 
@@ -369,7 +369,7 @@ class AndroidRawImu(NavData):
 
         Parameters
         ----------
-        input_path : string
+        input_path : string or path-like
             File location of data file to read.
 
         Returns
@@ -380,6 +380,12 @@ class AndroidRawImu(NavData):
             Dataframe that contains the gyro measurements from the log.
 
         """
+
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError("file not found")
+
         with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
@@ -435,7 +441,7 @@ class AndroidRawFixes(NavData):
 
         Parameters
         ----------
-        input_path : string
+        input_path : string or path-like
             File location of data file to read.
 
         Returns
@@ -444,6 +450,12 @@ class AndroidRawFixes(NavData):
             Dataframe that contains the location fixes from the log.
 
         """
+
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError("file not found")
+
         with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
@@ -463,7 +475,7 @@ def make_csv(input_path, output_directory, field, show_path=False):
 
     Parameters
     ----------
-    input_path : string
+    input_path : string or path-like
         File location of data file to read.
     output_directory : string
         Directory where new csv file should be created
@@ -488,6 +500,12 @@ def make_csv(input_path, output_directory, field, show_path=False):
     output_path = os.path.join(output_directory, field + ".csv")
     with open(output_path, 'w', encoding="utf8") as out_csv:
         writer = csv.writer(out_csv)
+
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError("file not found")
+
         with open(input_path, 'r', encoding="utf8") as in_txt:
             for line in in_txt:
                 # Comments in the log file

@@ -6,6 +6,7 @@ __authors__ = "Ashwin Kanhere, Derek Knowles"
 __date__ = "10 Nov 2021"
 
 import os
+import pathlib
 
 import pytest
 import numpy as np
@@ -341,9 +342,22 @@ def test_imu_raw(android_raw_path):
     test_imu = android.AndroidRawImu(android_raw_path)
     isinstance(test_imu, NavData)
 
+    test_imu = android.AndroidRawImu(pathlib.Path(android_raw_path))
+    isinstance(test_imu, NavData)
+
+    # raises exception if not a file path
+    with pytest.raises(FileNotFoundError):
+        android.AndroidRawImu("not_a_file.txt")
+    with pytest.raises(FileNotFoundError):
+        android.AndroidRawImu(pathlib.Path("not_a_file.txt"))
+
+    # raises exception if input not string or path-like
+    with pytest.raises(TypeError):
+        android.AndroidRawImu([])
+
 
 def test_fix_raw(android_raw_path):
-    """Test that AndroidRawImu initialization
+    """Test that AndroidRawFixes initialization
 
     Parameters
     ----------
@@ -352,6 +366,19 @@ def test_fix_raw(android_raw_path):
     """
     test_fix = android.AndroidRawFixes(android_raw_path)
     isinstance(test_fix, NavData)
+
+    test_fix = android.AndroidRawFixes(pathlib.Path(android_raw_path))
+    isinstance(test_fix, NavData)
+
+    # raises exception if not a file path
+    with pytest.raises(FileNotFoundError):
+        android.AndroidRawFixes("not_a_file.txt")
+    with pytest.raises(FileNotFoundError):
+        android.AndroidRawFixes(pathlib.Path("not_a_file.txt"))
+
+    # raises exception if input not string or path-like
+    with pytest.raises(TypeError):
+        android.AndroidRawFixes([])
 
 
 def test_navdata_type(derived):
@@ -449,7 +476,17 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         df_slice = test_df[col_name].values
         np.testing.assert_almost_equal(measure_slice, df_slice)
     os.remove(csv_loc)
+    for file in os.listdir(output_directory):
+        os.remove(os.path.join(output_directory, file))
     os.rmdir(output_directory)
+
+    # raises exception if not a file path
+    with pytest.raises(FileNotFoundError):
+        android.make_csv("", output_directory, file_type)
+
+    # raises exception if input not string or path-like
+    with pytest.raises(TypeError):
+        android.make_csv([], output_directory, file_type)
 
 @pytest.fixture(name="android_gtruth_path")
 def fixture_gtruth_path(root_path):
