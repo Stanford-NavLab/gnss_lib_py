@@ -808,6 +808,8 @@ def _zoom_center(lats, lons, width_to_height = 1.25):
     lon_zoom = np.interp(width , lon_zoom_range, range(20, 0, -1))
     lat_zoom = np.interp(height, lon_zoom_range, range(20, 0, -1))
     zoom = floor(min(lon_zoom, lat_zoom))
+    # zoom level higher than 18 won't load load properly as of June 2023
+    zoom = min(zoom, 18)
 
     return zoom, center
 

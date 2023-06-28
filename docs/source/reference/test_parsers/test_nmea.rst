@@ -1,7 +1,7 @@
-smart\_loc module
+test\_nmea module
 =================
 
-.. automodule:: smart_loc
+.. automodule:: test_nmea
    :members:
    :undoc-members:
    :show-inheritance:

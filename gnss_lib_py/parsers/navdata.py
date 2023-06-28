@@ -24,7 +24,7 @@ class NavData():
 
     Parameters
     ----------
-    csv_path : string
+    csv_path : string or path-like
         Path to csv file containing data
     pandas_df : pd.DataFrame
         Data used to initialize NavData instance.
@@ -93,7 +93,7 @@ class NavData():
 
         Parameters
         ----------
-        csv_path : string
+        csv_path : string or path-like
             Path to csv file containing data
         header : string, int, or None
             "infer" uses the first row as column names, setting to
@@ -102,8 +102,8 @@ class NavData():
             Delimiter to use when reading in csv file.
 
         """
-        if not isinstance(csv_path, str):
-            raise TypeError("csv_path must be string")
+        if not isinstance(csv_path, (str, os.PathLike)):
+            raise TypeError("csv_path must be string or path-like")
         if not os.path.exists(csv_path):
             raise FileNotFoundError("file not found")
 
@@ -1405,7 +1405,8 @@ class NavData():
             self.in_rows(key_idx)
             rows = [self.map[key_idx]]
             cols = slice(None, None)
-        elif isinstance(key_idx, list) and isinstance(key_idx[0], str):
+        elif isinstance(key_idx, (list,tuple)) \
+            and all(isinstance(idx, str) for idx in key_idx):
             rows = [self.map[k] for k in key_idx]
             cols = slice(None, None)
         elif isinstance(key_idx, slice):
@@ -1426,7 +1427,7 @@ class NavData():
             elif isinstance(key_idx[0], int):
                 rows = [key_idx[0]]
             else:
-                if not isinstance(key_idx[0],list):
+                if not isinstance(key_idx[0],(tuple,list)):
                     row_key = [key_idx[0]]
                 else:
                     row_key = key_idx[0]
