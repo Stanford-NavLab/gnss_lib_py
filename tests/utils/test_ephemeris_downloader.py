@@ -14,7 +14,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.ephemeris import EphemerisManager
+from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 
@@ -61,7 +61,7 @@ def remove_download_eph(ephem_download_path):
 
     """
     # Remove old files in the ephemeris directory, this tests the
-    # download component of EphemerisManager()
+    # download component of EphemerisDownloader()
     if os.path.isdir(ephem_download_path):
         for dir_name in os.listdir(ephem_download_path):
             dir_loc = os.path.join(ephem_download_path, dir_name)
@@ -103,7 +103,7 @@ def test_get_ephem(ephem_path, ephem_time, satellites):
 
     """
 
-    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_path, verbose=True)
     if ephem_time.tzinfo is None:
         with pytest.warns(RuntimeWarning):
             ephem = ephem_man.get_ephemeris(ephem_time, satellites)
@@ -156,7 +156,7 @@ def test_prev_ephem(ephem_path, ephem_time, satellites):
 
     """
 
-    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_path, verbose=True)
     ephem = ephem_man.get_ephemeris(ephem_time, satellites)
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
@@ -204,7 +204,7 @@ def test_load_ephem(ephem_path, ephem_time, constellations):
 
     """
 
-    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_path, verbose=True)
     ephem_man.load_data(ephem_time, constellations, same_day=True)
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
@@ -236,7 +236,7 @@ def test_download_ephem(ephem_download_path, fileinfo):
     remove_download_eph(ephem_download_path)
     os.makedirs(ephem_download_path)
 
-    ephem_man = EphemerisManager(ephem_download_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_download_path, verbose=True)
 
     filepath = fileinfo['filepath']
     url = fileinfo['url']
@@ -279,7 +279,7 @@ def test_request_igs(ephem_download_path, fileinfo):
     remove_download_eph(ephem_download_path)
     os.makedirs(ephem_download_path)
 
-    ephem_man = EphemerisManager(ephem_download_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_download_path, verbose=True)
 
     filepath = fileinfo['filepath']
     filename = os.path.split(filepath)[1]
@@ -315,7 +315,7 @@ def test_ftp_errors(ephem_download_path):
 
     fileinfo = {'filepath': 'gnss/data/daily/2020/brdc/notAfile.20n.Z', 'url': 'gdc.cddis.eosdis.nasa.gov'}
 
-    ephem_man = EphemerisManager(ephem_download_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_download_path, verbose=True)
 
     filepath = fileinfo['filepath']
     url = fileinfo['url']
@@ -357,7 +357,7 @@ def test_get_ephem_fails(ephem_path, ephem_time, satellites):
 
     """
 
-    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_path, verbose=True)
     with pytest.raises(RuntimeError) as excinfo:
         ephem_man.get_ephemeris(ephem_time, satellites)
     assert "ephemeris data" in str(excinfo.value)
@@ -374,7 +374,7 @@ def test_get_constellation(ephem_path):
 
     """
 
-    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_path, verbose=True)
 
     assert ephem_man.get_constellations(set('R')) is None
 
@@ -389,7 +389,7 @@ def test_load_leapseconds(ephem_path):
 
     """
 
-    ephem_man = EphemerisManager(ephem_path, verbose=True)
+    ephem_man = EphemerisDownloader(ephem_path, verbose=True)
 
     # check what happens when a file with an incomplete header is passed
     incomplete_path = os.path.join(ephem_path,"nasa",
@@ -421,9 +421,8 @@ def test_load_iono_params_gps(ephem_path, gps_iono_params):
         Location where ephemeris files are stored/to be downloaded to.
 
     """
-    ephem_man = EphemerisManager(ephem_path, verbose=False)
+    ephem_man = EphemerisDownloader(ephem_path, verbose=False)
     iono_time = datetime(2020, 5, 15, 3, 47, 48, tzinfo=timezone.utc)
     file_type = 'nasa_daily_gps'
     ext_iono_params = ephem_man.get_iono_params(iono_time, file_type)
     np.testing.assert_almost_equal(ext_iono_params, gps_iono_params)
-

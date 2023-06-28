@@ -1,7 +1,7 @@
 """Functions to download, save and process satellite ephemeris files.
 
 The Ephemeris Manager provides broadcast ephemeris for specific
-satellites at a specific timestep. The EphemerisManager class should be
+satellites at a specific timestep. The EphemerisDownloader class should be
 initialized and then the ``get_ephemeris`` function can be used to
 retrieve ephemeris for specific satellites. ``get_ephemeris`` returns
 the most recent broadcast ephemeris for the provided list of satellites
@@ -43,7 +43,7 @@ from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, tzinfo_to
 
 DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
 
-class EphemerisManager():
+class EphemerisDownloader():
     """Download, store and process ephemeris files
 
     Attributes
@@ -110,7 +110,7 @@ class EphemerisManager():
         """Return ephemeris DataFrame for satellites input.
 
         The Ephemeris Manager provides broadcast ephemeris for specific
-        satellites at a specific timestep. The EphemerisManager class
+        satellites at a specific timestep. The EphemerisDownloader class
         should be initialized and then the ``get_ephemeris`` function
         can be used to retrieve ephemeris for specific satellites.
         ``get_ephemeris`` returns the most recent broadcast ephemeris
@@ -153,7 +153,7 @@ class EphemerisManager():
         ``GPSWeek``. See http://acc.igs.org/misc/rinex304.pdf page A26
 
         """
-        systems = EphemerisManager.get_constellations(satellites)
+        systems = EphemerisDownloader.get_constellations(satellites)
         # add UTC timezone if datatime os offset-naive
         timestamp = tzinfo_to_utc(timestamp)
         if not isinstance(self.data, pd.DataFrame):
@@ -171,7 +171,7 @@ class EphemerisManager():
             # is provided. For example, 12:01am
             if len(time_cropped_data) != 0:
                 satellites = list(set(satellites) - set(time_cropped_data.index))
-            systems = EphemerisManager.get_constellations(satellites)
+            systems = EphemerisDownloader.get_constellations(satellites)
             prev_day_timestamp = datetime(year=timestamp.year,
                                           month=timestamp.month,
                                           day=timestamp.day - 1,
@@ -236,7 +236,7 @@ class EphemerisManager():
             Whether or not ephemeris is for same-day aquisition.
 
         """
-        filepaths = EphemerisManager.get_filepaths(timestamp)
+        filepaths = EphemerisDownloader.get_filepaths(timestamp)
         data_list = []
 
         if constellations == None:
@@ -297,7 +297,7 @@ class EphemerisManager():
         """
         decompressed_filename = self.get_decompressed_filename(fileinfo)
         if not self.leapseconds:
-            self.leapseconds = EphemerisManager.load_leapseconds(
+            self.leapseconds = EphemerisDownloader.load_leapseconds(
                 decompressed_filename)
         if constellations is not None:
             data = georinex.load(decompressed_filename,
@@ -319,7 +319,7 @@ class EphemerisManager():
 
 
     def get_decompressed_filename(self, fileinfo):
-        """Returns decompressed filename from filepaths in get_filepaths. If 
+        """Returns decompressed filename from filepaths in get_filepaths. If
         the file does not already exist on the machine, the file is retrieved
         from the url specified in fileinfo.
 
@@ -366,7 +366,7 @@ class EphemerisManager():
         iono_params : np.ndarray
             Array of ionosphere parameters ION ALPHA and ION BETA
         """
-        fileinfo = EphemerisManager.get_filepaths(timestamp)[data_source]
+        fileinfo = EphemerisDownloader.get_filepaths(timestamp)[data_source]
         decompressed_filename = self.get_decompressed_filename(fileinfo)
         ion_alpha_str = georinex.rinexheader(decompressed_filename)['ION ALPHA'].replace('D', 'E')
         ion_alpha = np.array(list(map(float, ion_alpha_str.split())))
@@ -547,7 +547,7 @@ class EphemerisManager():
             Dictionary of dictionaries containing filepath and directory for ephemeris files
         """
         timetuple = timestamp.timetuple()
-        extension = EphemerisManager.get_filetype(timestamp)
+        extension = EphemerisDownloader.get_filetype(timestamp)
         filepaths = {}
 
         directory = 'gnss/data/daily/' + str(timetuple.tm_year) + '/brdc/'

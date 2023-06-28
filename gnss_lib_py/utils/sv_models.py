@@ -13,10 +13,10 @@ from datetime import timedelta
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.ephemeris import EphemerisManager
+from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
 
-from gnss_lib_py.parsers.ephemeris import DEFAULT_EPHEM_PATH
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 def svs_from_el_az(elaz_deg):
     """Generate NED satellite positions for given elevation and azimuth.
@@ -182,7 +182,7 @@ def add_visible_svs_for_trajectory(rx_states,
         all_sats.extend(all_sats_const)
 
     # Initialize file with broadcast ephemeris parameters
-    ephemeris_manager = EphemerisManager(ephemeris_path)
+    ephemeris_manager = EphemerisDownloader(ephemeris_path)
     ephem_all_sats = ephemeris_manager.get_ephemeris(start_time, all_sats)
 
     # Find rows that correspond to receiver positions
@@ -620,7 +620,7 @@ def _filter_ephemeris_measurements(measurements, constellations,
     start_gps_millis = np.min(measurements['gps_millis'])
     start_time = gps_millis_to_datetime(start_gps_millis)
     # Download the ephemeris file for all the satellites in the measurement files
-    ephemeris_manager = EphemerisManager(ephemeris_path)
+    ephemeris_manager = EphemerisDownloader(ephemeris_path)
     ephem = ephemeris_manager.get_ephemeris(start_time, lookup_sats)
     if get_iono:
         # TODO: Don't hardcode gps source

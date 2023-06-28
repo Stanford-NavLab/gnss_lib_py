@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 from scipy import interpolate
 
-from gnss_lib_py.parsers.ephemeris import EphemerisManager
+from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader
 from gnss_lib_py.utils.sv_models import find_sv_states, _combine_gnss_sv_ids
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 import gnss_lib_py.utils.constants as consts
@@ -557,7 +557,7 @@ def sv_gps_from_brdcst_eph(navdata, verbose = False):
     else:
         raise RuntimeError("Multi-GNSS constellations cannot be updated simultaneously")
 
-    repo = EphemerisManager()
+    repo = EphemerisDownloader()
     unique_timesteps = np.unique(navdata["gps_millis"])
 
     for _, timestep in enumerate(unique_timesteps):

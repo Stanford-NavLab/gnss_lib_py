@@ -21,7 +21,7 @@ from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr
                         find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
-from gnss_lib_py.parsers.ephemeris import DEFAULT_EPHEM_PATH
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 
 def add_measures(measurements, state_estimate,

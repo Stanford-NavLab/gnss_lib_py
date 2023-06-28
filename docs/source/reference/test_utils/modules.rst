@@ -6,6 +6,7 @@ utils
 
    conftest
    test_coordinates
+   test_ephemeris_downloader
    test_file_operations
    test_filters
    test_gnss_models
