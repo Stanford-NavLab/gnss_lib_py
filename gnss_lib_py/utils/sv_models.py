@@ -82,7 +82,7 @@ def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
     sv_states_all_time : gnss_lib_py.parsers.navdata.NavData
         Input measurements with rows containing SV states appended.
     """
-    measurements_subset, ephem = \
+    measurements_subset, ephem, _ = \
         _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
     sv_states_all_time = NavData()
     # Loop through the measurement file per time step
@@ -625,9 +625,9 @@ def _filter_ephemeris_measurements(measurements, constellations,
     if get_iono:
         # TODO: Don't hardcode gps source
         iono_params = ephemeris_manager.get_iono_params(start_time, 'nasa_daily_gps')
-        return measurements_subset, ephem, iono_params
     else:
-        return measurements_subset, ephem
+        iono_params = None
+    return measurements_subset, ephem, iono_params
 
 
 def _combine_gnss_sv_ids(measurement_frame):

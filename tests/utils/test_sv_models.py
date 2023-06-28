@@ -288,7 +288,7 @@ def test_filter_ephemeris_none(android_gps_l1, ephemeris_path):
         The location where ephemeris files are read from or downloaded to
         if they don't exist.
     """
-    android_subset,_ = sv_models._filter_ephemeris_measurements(android_gps_l1,
+    android_subset,_, _ = sv_models._filter_ephemeris_measurements(android_gps_l1,
                                                                 constellations=None,
                                                                 ephemeris_path=ephemeris_path)
     assert len(android_gps_l1)==len(android_subset)
