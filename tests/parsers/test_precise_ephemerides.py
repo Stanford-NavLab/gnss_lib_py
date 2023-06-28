@@ -103,13 +103,13 @@ def fixture_load_sp3data(sp3_path):
     sp3data : list
         Instance of GPS-only Sp3 class list with len = NUMSATS-GPS
     """
-    sp3data_gps = parse_sp3(sp3_path, constellation = 'gps')
+    sp3data = parse_sp3(sp3_path)
 
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
         parse_sp3([])
 
-    return sp3data_gps
+    return sp3data
 
 @pytest.fixture(name="clkdata_gps")
 def fixture_load_clkdata_gps(clk_path):
@@ -125,13 +125,13 @@ def fixture_load_clkdata_gps(clk_path):
     clkdata : list
         Instance of GPS-only Clk class list with len = NUMSATS-GPS
     """
-    clkdata_gps = parse_clockfile(clk_path, constellation = 'gps')
+    clkdata = parse_clockfile(clk_path)
 
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
         parse_clockfile([])
 
-    return clkdata_gps
+    return clkdata
 
 @pytest.fixture(name="clkdata")
 def fixture_load_clkdata(clk_path):
