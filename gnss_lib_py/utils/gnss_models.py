@@ -24,9 +24,10 @@ from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr
 from gnss_lib_py.parsers.ephemeris import DEFAULT_EPHEM_PATH
 
 
-def add_measures(measurements, ephemeris_path = DEFAULT_EPHEM_PATH,
-                 iono_params=None,pseudorange=True, doppler=True,
-                 corrections=True, delta_t_dec = -2):
+def add_measures(measurements, state_estimate,
+                 ephemeris_path = DEFAULT_EPHEM_PATH, iono_params=None,
+                 pseudorange=True, doppler=True, corrections=True,
+                 delta_t_dec = -2):
     """Estimate measurements and add to given navdata with rx measures.
 
     Given measurements that were received, containing time, GNSS ID and
@@ -41,12 +42,6 @@ def add_measures(measurements, ephemeris_path = DEFAULT_EPHEM_PATH,
     * :code:`gps_millis`
     * :code:`gnss_id`
     * :code:`sv_id`
-    * :code:`x_rx*_m`
-    * :code:`y_rx*_m`
-    * :code:`z_rx*_m`
-    * :code:`vx_rx*_mps`
-    * :code:`vy_rx*_mps`
-    * :code:`vz_rx*_mps`
 
     To use previously computed SV states, provide following rows:
     * :code:`x_sv_m`
@@ -56,12 +51,26 @@ def add_measures(measurements, ephemeris_path = DEFAULT_EPHEM_PATH,
     * :code:`vy_sv_mps`
     * :code:`vz_sv_mps`
 
+    To estimate the expected measurements, the receiver state is needed.
+    This state is stored in `state_estimate` and must contain the
+    following rows
+    * :code:`x_rx*_m`
+    * :code:`y_rx*_m`
+    * :code:`z_rx*_m`
+    * :code:`vx_rx*_mps`
+    * :code:`vy_rx*_mps`
+    * :code:`vz_rx*_mps`
+
 
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.navdata.NavData
         Received measurements for which SV states are required. Must
         contain `gps_millis`, `gnss_id`, and `sv_id` fields.
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Estimate for receiver states --- ECEF x, y, and z positions in meters,
+        ECEF x, y, and z velocities in meters, clock bias in meters, and
+        the clock drift in meters per second --- stored in a NavData instance.
     ephemeris_path : string
         Location where ephemeris files are stored. Files will be
         downloaded if they don't exist for the given date and constellation.
@@ -78,16 +87,28 @@ def add_measures(measurements, ephemeris_path = DEFAULT_EPHEM_PATH,
     delta_t_dec : int
         Decimal places after which times are considered as belonging to
         the same discrete time interval.
+
+    Notes
+    -----
+    In some cases, such as when using derived versions of the collected
+    data from the Google Decimeter Challenge, the measurements contain
+    state estimates in the same data structure as the received measurements.
+    In such a case, a separate `state_estimate` can be generated using
+    the particular class' method for generating a separate `state_estimate`.
     """
     constellations = np.unique(measurements['gnss_id'])
     if iono_params is None:
-        measurements, ephem, iono_params = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path, get_iono=True)
+        measurements, ephem, iono_params = _filter_ephemeris_measurements(
+            measurements, constellations, ephemeris_path, get_iono=True)
     else:
-        measurements, ephem = _filter_ephemeris_measurements(measurements, constellations, ephemeris_path, get_iono=False)
+        measurements, ephem, _ = _filter_ephemeris_measurements(
+            measurements, constellations, ephemeris_path, get_iono=False)
     info_rows = ['gps_millis', 'gnss_id', 'sv_id']
-    sv_state_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
+    sv_state_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m',
+                     'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps',
+                     'b_sv_m']
     rx_pos_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-    rx_pos_rows_idxs = measurements.find_wildcard_indexes(
+    rx_pos_rows_idxs = state_estimate.find_wildcard_indexes(
                                             rx_pos_rows_to_find,
                                             max_allow=1)
     rx_pos_rows = [rx_pos_rows_idxs['x_rx*_m'][0],
@@ -98,7 +119,6 @@ def add_measures(measurements, ephemeris_path = DEFAULT_EPHEM_PATH,
     # clock rows
     rx_clk_rows_to_find = ['b_rx*_m', 'b_dot_rx*_mps']
 
-    # Check if SV states exist, if they don't, add them
     est_measurements = NavData()
     # Loop through the measurement file per time step
     for gps_millis, _, measure_frame in measurements.loop_time('gps_millis',
@@ -121,16 +141,19 @@ def add_measures(measurements, ephemeris_path = DEFAULT_EPHEM_PATH,
             sv_posvel = None
             use_posvel = True
 
+        # Find the column of the state_estimate which best matches time
+        # from loop
+        state_col = np.argmin(np.abs(state_estimate['gps_millis'] - gps_millis))
         # Extract RX states into State NavData
         state = NavData()
         for row in rx_pos_rows:
-            state[row] = measure_frame[row, 0]
+            state[row] = state_estimate[row, state_col]
         # velocity and clock rows
         vel_clk_rows = rx_vel_rows_to_find + rx_clk_rows_to_find
         for row in vel_clk_rows:
             try:
-                row_idx = measure_frame.find_wildcard_indexes(row,max_allow=1)
-                state[row_idx[row][0]] = measure_frame[row_idx[row][0], 0]
+                row_idx = state_estimate.find_wildcard_indexes(row,max_allow=1)
+                state[row_idx[row][0]] = state_estimate[row_idx[row][0], state_col]
             except KeyError:
                 warnings.warn("Assuming 0 "+ row + " for Rx", RuntimeWarning)
                 state[row] = 0
@@ -167,6 +190,7 @@ def add_measures(measurements, ephemeris_path = DEFAULT_EPHEM_PATH,
             est_frame['tropo_delay_m'] = est_trp
             est_frame['iono_delay_m'] = est_iono
         if use_posvel:
+            # Update the SV states with those estimated in this function
             for row in sv_state_rows:
                 est_frame[row] = sv_posvel[row]
         if len(est_measurements)==0:
@@ -312,6 +336,16 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     measurements['est_pr_m'] = prange
     measurements['est_doppler_hz'] = doppler
     return measurements, sv_posvel
+
+
+# def _matching_state_for_measure(measurements, state_estimate,
+#                                 delta_t_decimals=2):
+#     measurement_times = np.sort(np.unique(np.around(times,
+#                                          decimals=delta_t_decimals)))
+#     for
+
+
+#     return measure_time_state_row
 
 
 def _extract_state_variables(state):
