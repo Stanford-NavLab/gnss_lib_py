@@ -144,6 +144,9 @@ def fixture_derived(derived_path):
         Android Derived measurements for testing
     """
     derived = AndroidDerived2022(derived_path)
+    rx_rows_no_pos = ['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps', 'b_rx_m', 'b_dot_rx_mps']
+    for row in rx_rows_no_pos:
+        derived[row] = 0
     return derived
 
 
@@ -190,6 +193,26 @@ def fixture_derived_gps_l1_reversed(android_gps_l1):
         else:
             android_gps_l1_reversed.concat(measure_frame, inplace=True)
     return android_gps_l1_reversed
+
+
+@pytest.fixture(name="android_state")
+@pytest.mark.filterwarnings("ignore:.*not found*: RuntimeWarning")
+def fixture_android_state(android_derived):
+    """State estimate corresponding to Android measurements for GPS L1.
+
+    Parameters
+    ----------
+    android_derived : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived measurements for testing
+
+    Returns
+    -------
+    android_state_estimate : gnss_lib_py.parsers.navdata.NavData
+        Instance of `NavData` containing `gps_millis` and Rx position
+        estimates from Android Derived.
+    """
+    android_state_estimate = android_derived.get_state_estimate()
+    return android_state_estimate
 
 
 @pytest.fixture(name="android_gt")
@@ -313,6 +336,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
         android_posvel['vx_sv_mps'] = frame['vx_sv_mps'][sort_arg]
         android_posvel['vy_sv_mps'] = frame['vy_sv_mps'][sort_arg]
         android_posvel['vz_sv_mps'] = frame['vz_sv_mps'][sort_arg]
+        android_posvel['b_sv_m'] = frame['b_sv_m'][sort_arg]
 
         frames.append(frame)
         ephems.append(vis_ephem)

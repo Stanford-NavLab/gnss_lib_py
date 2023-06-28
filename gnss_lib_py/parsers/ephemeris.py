@@ -41,6 +41,7 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, tzinfo_to_utc
 
+DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
 
 class EphemerisManager():
     """Download, store and process ephemeris files
@@ -93,7 +94,7 @@ class EphemerisManager():
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     """
-    def __init__(self, data_directory=os.path.join(os.getcwd(), 'data', 'ephemeris'),
+    def __init__(self, data_directory=DEFAULT_EPHEM_PATH,
                  verbose=False):
         self.data_directory = data_directory
         nasa_dir = os.path.join(data_directory, 'nasa')
@@ -102,6 +103,7 @@ class EphemerisManager():
         os.makedirs(igs_dir, exist_ok=True)
         self.data = None
         self.leapseconds = None
+        self.iono_params = None
         self.verbose = verbose
 
     def get_ephemeris(self, timestamp, satellites=None):
@@ -293,18 +295,7 @@ class EphemerisManager():
         data : pd.DataFrame
             Parsed ephemeris DataFrame
         """
-        filepath = fileinfo['filepath']
-        url = fileinfo['url']
-        directory = os.path.split(filepath)[0]
-        filename = os.path.split(filepath)[1]
-        if url == 'igs-ftp.bkg.bund.de':
-            dest_filepath = os.path.join(self.data_directory, 'igs', filename)
-        else:
-            dest_filepath = os.path.join(self.data_directory, 'nasa', filename)
-        decompressed_filename = os.path.splitext(dest_filepath)[0]
-        if not os.path.isfile(decompressed_filename): # pragma: no cover
-            self.retrieve_file(url, directory, filename,
-                               dest_filepath)
+        decompressed_filename = self.get_decompressed_filename(fileinfo)
         if not self.leapseconds:
             self.leapseconds = EphemerisManager.load_leapseconds(
                 decompressed_filename)
@@ -325,6 +316,65 @@ class EphemerisManager():
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
         return data
+
+
+    def get_decompressed_filename(self, fileinfo):
+        """Returns decompressed filename from filepaths in get_filepaths. If 
+        the file does not already exist on the machine, the file is retrieved
+        from the url specified in fileinfo.
+
+        Parameters
+        ----------
+        fileinfo : dict
+            Filenames for ephemeris with ftp server and constellation details
+
+        Returns
+        -------
+        decompressed_filename : string
+            Postprocessed filename for retrieving ephemeris locally
+        """
+        filepath = fileinfo['filepath']
+        url = fileinfo['url']
+        directory = os.path.split(filepath)[0]
+        filename = os.path.split(filepath)[1]
+        if url == 'igs-ftp.bkg.bund.de':
+            dest_filepath = os.path.join(self.data_directory, 'igs', filename)
+        else:
+            dest_filepath = os.path.join(self.data_directory, 'nasa', filename)
+        decompressed_filename = os.path.splitext(dest_filepath)[0]
+        if not os.path.isfile(decompressed_filename): # pragma: no cover
+            self.retrieve_file(url, directory, filename,
+                               dest_filepath)
+
+        return decompressed_filename
+
+    def get_iono_params(self, timestamp, data_source):
+        """Gets ionosphere parameters from RINEX file header for calculation of
+        ionosphere delay
+
+        Parameters
+        ----------
+        timestamp : datetime.datetime
+            Timestamp corresponding to desired ephemeris data.
+
+        data_source : string
+            Specifies which ephemeris file from which to extract parameters
+
+
+        Returns
+        -------
+        iono_params : np.ndarray
+            Array of ionosphere parameters ION ALPHA and ION BETA
+        """
+        fileinfo = EphemerisManager.get_filepaths(timestamp)[data_source]
+        decompressed_filename = self.get_decompressed_filename(fileinfo)
+        ion_alpha_str = georinex.rinexheader(decompressed_filename)['ION ALPHA'].replace('D', 'E')
+        ion_alpha = np.array(list(map(float, ion_alpha_str.split())))
+        ion_beta_str = georinex.rinexheader(decompressed_filename)['ION BETA'].replace('D', 'E')
+        ion_beta = np.array(list(map(float, ion_beta_str.split())))
+        iono_params = np.vstack((ion_alpha, ion_beta))
+
+        return iono_params
 
 
     @staticmethod

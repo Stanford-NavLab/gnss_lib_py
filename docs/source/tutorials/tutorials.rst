@@ -57,3 +57,5 @@ available in the :code:`utils` directory.
    tutorials_visualizations_notebook
    tutorials_coordinates_notebook
    tutorials_utilities_notebook
+   tutorials_sv_models_notebook
+   tutorials_gnss_models_notebook
