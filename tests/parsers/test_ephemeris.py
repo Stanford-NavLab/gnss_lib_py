@@ -370,6 +370,7 @@ def test_get_constellation(ephem_path):
 
     assert ephem_man.get_constellations(set('R')) is None
 
+
 def test_load_leapseconds(ephem_path):
     """Test load leapseconds.
 
@@ -386,3 +387,35 @@ def test_load_leapseconds(ephem_path):
     incomplete_path = os.path.join(ephem_path,"nasa",
                                    "brdc1370_incomplete.20n")
     assert ephem_man.load_leapseconds(incomplete_path) is None
+
+
+@pytest.fixture(name="gps_iono_params")
+def fixture_gps_iono_params():
+    """Fixture for manually extracted values of GPS ionosphere params.
+
+    Returns
+    -------
+    gps_iono_params : np.ndarray
+        GPS ionospheric correction parameters for test date.
+    """
+    gps_iono_params = np.asarray([
+                    [0.7451E-08,  0.2235E-07, -0.5960E-07, -0.1192E-06],
+                    [0.8602E+05,  0.8192E+05, -0.1311E+06, -0.5243E+06]])
+    return gps_iono_params
+
+
+def test_load_iono_params_gps(ephem_path, gps_iono_params):
+    """Test loading of GPS Ionosphere correction parameters.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+
+    """
+    ephem_man = EphemerisManager(ephem_path, verbose=False)
+    iono_time = datetime(2020, 5, 15, 3, 47, 48, tzinfo=timezone.utc)
+    file_type = 'nasa_daily_gps'
+    ext_iono_params = ephem_man.get_iono_params(iono_time, file_type)
+    np.testing.assert_almost_equal(ext_iono_params, gps_iono_params)
+

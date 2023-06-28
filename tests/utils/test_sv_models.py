@@ -146,14 +146,15 @@ def test_sv_state_model(gps_measurement_frames, android_gt):
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
+        est_sv_posvel, _, _ = sv_models.find_sv_location(curr_millis, x_ecef, ephem=vis_ephems[idx])
 
-        est_sv_posvel, _, _ = sv_models._find_sv_location(curr_millis, x_ecef, ephem=vis_ephems[idx])
         np.testing.assert_almost_equal(and_sv_posvel[['x_sv_m']], est_sv_posvel['x_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['y_sv_m']], est_sv_posvel['y_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['z_sv_m']], est_sv_posvel['z_sv_m'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['vx_sv_mps']], est_sv_posvel['vx_sv_mps'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['vy_sv_mps']], est_sv_posvel['vy_sv_mps'], decimal=-1)
         np.testing.assert_almost_equal(and_sv_posvel[['vz_sv_mps']], est_sv_posvel['vz_sv_mps'], decimal=-1)
+        np.testing.assert_almost_equal(and_sv_posvel[['b_sv_m']], est_sv_posvel['b_sv_m'], decimal=1)
 
 
 def test_visible_ephem(all_gps_ephem, gps_measurement_frames, android_gt):
@@ -183,12 +184,12 @@ def test_visible_ephem(all_gps_ephem, gps_measurement_frames, android_gt):
         gt_slice_idx = android_gt.argwhere('gps_millis', curr_millis)
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
         # Test visible satellite computation with ephemeris
-        eph = sv_models._find_visible_ephem(curr_millis, x_ecef, ephem=vis_ephems[idx], el_mask=0.)
+        eph = sv_models.find_visible_ephem(curr_millis, x_ecef, ephem=vis_ephems[idx], el_mask=0.)
         vis_svs = set(eph['sv_id'])
         assert vis_svs == set(vis_ephems[idx]['sv_id'])
 
         # Test that actually visible satellites are subset of expected satellites
-        eph = sv_models._find_visible_ephem(curr_millis, x_ecef, ephem=all_gps_ephem, el_mask=0.)
+        eph = sv_models.find_visible_ephem(curr_millis, x_ecef, ephem=all_gps_ephem, el_mask=0.)
         vis_svs = set(eph['sv_id'])
         assert set(vis_ephems[idx]['sv_id']).issubset(vis_svs)
 
@@ -213,7 +214,7 @@ def test_visible_sv_posvel(gps_measurement_frames, android_gt):
         x_ecef = android_gt[['x_rx_gt_m', 'y_rx_gt_m', 'z_rx_gt_m'], gt_slice_idx]
 
         # Test that actually visible satellites are subset of expected satellites
-        vis_posvel = sv_models._find_visible_sv_posvel(curr_millis, x_ecef, sv_posvel, el_mask=0.)
+        vis_posvel = sv_models.find_visible_sv_posvel(x_ecef, sv_posvel, el_mask=0.)
         vis_svs = set(vis_posvel['sv_id'])
         assert vis_svs.issubset(set(sv_posvel['sv_id']))
 
@@ -272,3 +273,82 @@ def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_de
             np.testing.assert_almost_equal(android_gps_states[row],
                                         comparison_states[row],
                                         decimal=error_tol_dec['brd_eph'])
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_filter_ephemeris_none(android_gps_l1, ephemeris_path):
+    """Test the case when _filter_ephemeris_measurements is given None.
+
+    Parameters
+    ----------
+    android_gps_l1 : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing L1 measurements for received GPS
+        measurements.
+    ephemeris_path : string
+        The location where ephemeris files are read from or downloaded to
+        if they don't exist.
+    """
+    android_subset,_, _ = sv_models._filter_ephemeris_measurements(android_gps_l1,
+                                                                constellations=None,
+                                                                ephemeris_path=ephemeris_path)
+    assert len(android_gps_l1)==len(android_subset)
+
+
+def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
+                                        error_tol_dec):
+    """
+    Test add_visible_svs_for_trajectory wrapper in sv_models
+
+    Parameters
+    ----------
+    android_gps_l1 : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing L1 measurements for received GPS
+        measurements.
+    ephemeris_path : string
+        The location where ephemeris files are read from or downloaded to
+        if they don't exist.
+    error_tol_dec : Dict
+        Dictionary containing decimals for error tolerances in computed
+        states. Used for comparing to SV states provided in Android
+        Derived measurements.
+    """
+    # Create list of times and states from android_gps_l1 into an estimate
+    state_estimate = NavData()
+    unique_svs = np.unique(android_gps_l1['sv_id'])
+    android_sv = android_gps_l1.where("sv_id", unique_svs[0])
+    state_estimate['gps_millis'] = android_sv['gps_millis']
+    state_estimate['x_rx_m'] = android_sv['x_rx_m']
+    state_estimate['y_rx_m'] = android_sv['y_rx_m']
+    state_estimate['z_rx_m'] = android_sv['z_rx_m']
+    sv_posvel_traj = sv_models.add_visible_svs_for_trajectory(state_estimate,
+                                                             ephemeris_path)
+    # assert that actually received SVs in the given times are a
+    # subset of those considered visible
+    true_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps',
+                 'vz_sv_mps']
+    for milli, _, measure_frame in android_gps_l1.loop_time("gps_millis",
+                                                                 delta_t_decimals=-2):
+        se_frame = sv_posvel_traj.where("gps_millis", milli)
+        se_svs = set(np.unique(se_frame['sv_id']))
+        measure_svs = set(np.unique(measure_frame['sv_id']))
+        assert measure_svs.issubset(se_svs)
+        # Check that estimated states match
+        for sv_id in measure_svs:
+            measure_frame_sv = measure_frame.where("sv_id", sv_id)
+            se_frame_sv = se_frame.where("sv_id", sv_id)
+            for row in true_rows:
+                if 'mps' in row:
+                    np.testing.assert_almost_equal(se_frame_sv[row],
+                                                measure_frame_sv[row],
+                                                decimal=error_tol_dec['vel'])
+                elif 'sv_m' in row:
+                    np.testing.assert_almost_equal(se_frame_sv[row],
+                                                measure_frame_sv[row],
+                                                decimal=error_tol_dec['brd_eph'])
+
+    # Test same function with None for satellites. No support for non-GPS
+    # constellations currently and should raise an error
+    with pytest.warns(RuntimeWarning):
+        _ = sv_models.add_visible_svs_for_trajectory(state_estimate,
+                                                    ephemeris_path,
+                                                    constellations=None)

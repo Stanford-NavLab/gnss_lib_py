@@ -2403,3 +2403,13 @@ def test_sort(data, df_simple):
     data_sorted_int_des.sort('integers', ascending=False, inplace=True)
     data_sorted_int_des = data_sorted_int_des.pandas_df()
     pd.testing.assert_frame_equal(df_sorted_int_des, data_sorted_int_des)
+
+    # Test sorting for only one column
+    unsort_navdata_single_col = NavData()
+    unsort_navdata_single_col['name'] = np.asarray(['NAVLab'], dtype=object)
+    unsort_navdata_single_col['number'] = 1
+    unsort_navdata_single_col['weight'] = 100
+    sorted_single_col = unsort_navdata_single_col.sort()
+    pd.testing.assert_frame_equal(sorted_single_col.pandas_df(),
+                                unsort_navdata_single_col.pandas_df())
+

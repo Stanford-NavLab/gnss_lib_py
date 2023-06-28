@@ -87,3 +87,10 @@ CONSTELLATION_CHARS = {'G':'gps',
                        'I':'irnss',
                        }
 """dict : Satellite System identifier from Rinex specification p13 in [2]_."""
+
+NUMSATS = {'gps': (32),
+            'galileo': (36),
+            'beidou': (46),
+            'glonass': (24),
+            'qzss': (3)}
+"""dict : Number of satellites, for identifiers from Rinex specification p13 in [2]_."""
