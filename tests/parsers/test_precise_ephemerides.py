@@ -105,10 +105,6 @@ def fixture_load_sp3data(sp3_path):
     """
     sp3data = parse_sp3(sp3_path)
 
-    # raises exception if input not string or path-like
-    with pytest.raises(TypeError):
-        parse_sp3([])
-
     return sp3data
 
 @pytest.fixture(name="clkdata_gps")
@@ -126,10 +122,6 @@ def fixture_load_clkdata_gps(clk_path):
         Instance of GPS-only Clk class list with len = NUMSATS-GPS
     """
     clkdata = parse_clockfile(clk_path)
-
-    # raises exception if input not string or path-like
-    with pytest.raises(TypeError):
-        parse_clockfile([])
 
     return clkdata
 
@@ -308,6 +300,11 @@ def test_load_sp3data_missing(sp3_path_missing):
     with pytest.raises(FileNotFoundError):
         parse_sp3(sp3_path_missing)
 
+    # raises exception if input not string or path-like
+    with pytest.raises(TypeError):
+        parse_sp3([])
+
+
 def test_load_clkdata_missing(clk_path_missing):
     """Load instance of clk for GPS constellation from missing file
 
@@ -320,6 +317,10 @@ def test_load_clkdata_missing(clk_path_missing):
     # Create a sp3 class for each expected satellite
     with pytest.raises(FileNotFoundError):
         parse_clockfile(clk_path_missing)
+
+    # raises exception if input not string or path-like
+    with pytest.raises(TypeError):
+        parse_clockfile([])
 
 @pytest.fixture(name="sp3_path_nodata")
 def fixture_sp3_path_nodata(root_path):

@@ -7,16 +7,16 @@ __authors__ = "Ashwin Kanhere, Bradley Collicott"
 __date__ = "17 Jan, 2023"
 
 import warnings
+
 import numpy as np
-from datetime import timedelta
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader
+from gnss_lib_py.parsers.rinex import get_time_cropped_rinex
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
 
-from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 def svs_from_el_az(elaz_deg):
     """Generate NED satellite positions for given elevation and azimuth.
@@ -118,7 +118,6 @@ def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
             sv_states_all_time.concat(measure_frame, inplace=True)
     return sv_states_all_time
 
-
 def add_visible_svs_for_trajectory(rx_states,
                                    ephemeris_path=DEFAULT_EPHEM_PATH,
                                    constellations=['gps'], el_mask = 5.):
@@ -182,8 +181,8 @@ def add_visible_svs_for_trajectory(rx_states,
         all_sats.extend(all_sats_const)
 
     # Initialize file with broadcast ephemeris parameters
-    ephemeris_manager = EphemerisDownloader(ephemeris_path)
-    ephem_all_sats = ephemeris_manager.get_ephemeris(start_time, all_sats)
+    ephem_all_sats = get_time_cropped_rinex(start_time, all_sats,
+                                            ephemeris_path)
 
     # Find rows that correspond to receiver positions
     rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
@@ -620,11 +619,10 @@ def _filter_ephemeris_measurements(measurements, constellations,
     start_gps_millis = np.min(measurements['gps_millis'])
     start_time = gps_millis_to_datetime(start_gps_millis)
     # Download the ephemeris file for all the satellites in the measurement files
-    ephemeris_manager = EphemerisDownloader(ephemeris_path)
-    ephem = ephemeris_manager.get_ephemeris(start_time, lookup_sats)
+    ephem = get_time_cropped_rinex(start_time, lookup_sats,
+                                   ephemeris_path)
     if get_iono:
-        # TODO: Don't hardcode gps source
-        iono_params = ephemeris_manager.get_iono_params(start_time, 'nasa_daily_gps')
+        iono_params = ephem.iono_params[0]
     else:
         iono_params = None
     return measurements_subset, ephem, iono_params
