@@ -158,11 +158,7 @@ if not tagged and not in_main:
 linkcode_url = "https://github.com/Stanford-NavLab/gnss_lib_py/blob/" \
                + linkcode_revision + "/{filepath}#L{linestart}-L{linestop}"
 
-print(f'linkcode_revision: {linkcode_revision}')
-print(f'linkcode_revision: {main}')
-print(f'linkcode_revision: {head}')
-print(f'Root file path: {os.path.abspath(gnss_lib_py.__file__)}')
-print(f'Root directory: {dirname(gnss_lib_py.__file__)}')
+print(f'Root directory: {os.path.join(dirname(os.path.abspath(__file__)), "../..")}')
 
 
 def linkcode_resolve(domain, info):
@@ -232,9 +228,10 @@ def linkcode_resolve(domain, info):
         # of gnss_lib_py and the tests directory adjacent to it
 
         print(f'filepath before: {filepath}')
-        filepath = relpath(filepath, dirname(gnss_lib_py.__file__))
-        filepath = os.path.join('gnss_lib_py', filepath)
-        print(f'filepath after: {filepath}')
+        root_glp_path = os.path.join(dirname(os.path.abspath(__file__)), '../..')
+        filepath = relpath(filepath, root_glp_path)
+        # filepath = os.path.join('gnss_lib_py', filepath)
+        print(f'filepath after: {os.path.relpath(filepath)}')
 
     if lineno:
         linestart = lineno
