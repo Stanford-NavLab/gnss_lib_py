@@ -158,7 +158,6 @@ if not tagged and not in_main:
 linkcode_url = "https://github.com/Stanford-NavLab/gnss_lib_py/blob/" \
                + linkcode_revision + "/{filepath}#L{linestart}-L{linestop}"
 
-print(f'Root directory: {os.path.join(dirname(os.path.abspath(__file__)), "../..")}')
 
 
 def linkcode_resolve(domain, info):
@@ -183,9 +182,6 @@ def linkcode_resolve(domain, info):
     submod = sys.modules.get(modname)
     if submod is None:
         return None
-    # print('modname:', modname)
-    # print('fullname:', fullname)
-    # print(f"submod:{submod}")
 
     obj = submod
     for part in fullname.split('.'):
@@ -223,15 +219,10 @@ def linkcode_resolve(domain, info):
         except Exception:
             lineno = ""
         # The following line of code first finds the relative path from
-        # the location of gnss_lib_py.__init__.py and then adds gnss_lib_py
-        # to the beginning to give the path of that file from the root folder
-        # of gnss_lib_py and the tests directory adjacent to it
+        # the location of conf.py and then goes up to the root directory
 
-        print(f'filepath before: {filepath}')
         root_glp_path = os.path.join(dirname(os.path.abspath(__file__)), '../..')
         filepath = relpath(filepath, root_glp_path)
-        # filepath = os.path.join('gnss_lib_py', filepath)
-        print(f'filepath after: {os.path.relpath(filepath)}')
 
     if lineno:
         linestart = lineno
