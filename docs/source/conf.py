@@ -15,6 +15,7 @@ import sys
 import inspect
 import subprocess
 from os.path import relpath, dirname
+from pygit2 import Repository
 
 import gnss_lib_py
 
@@ -114,32 +115,38 @@ autoclass_content = 'both'
 
 # Function to find URLs for the source code on GitHub for built docs
 
-# The following code to find the head tag is taken from:
+# The original code to find the head tag was taken from:
 # https://gist.github.com/nlgranger/55ff2e7ff10c280731348a16d569cb73
+# This code was modified to use branch names when the code differs from
+# main or a tag
 
-linkcode_revision = "main"
+#Default to the main branch
+branch_name = "main"
+
+
+branch_name = Repository('.').head.shorthand
+# lock to commit number
+cmd = "git log -n1 --pretty=%H"
+head = subprocess.check_output(cmd.split()).strip().decode('utf-8')
+linkcode_revision = head
+# if we are on main's HEAD, use main as reference irrespective of
+# what branch you are on
+cmd = "git log --first-parent main -n1 --pretty=%H"
+main = subprocess.check_output(cmd.split()).strip().decode('utf-8')
+if head == main:
+    branch_name = "main"
+
+# if we have a tag, use tag as reference, irrespective of what branch
+# you are actually on
 try:
-    # lock to commit number
-    cmd = "git log -n1 --pretty=%H"
-    head = subprocess.check_output(cmd.split()).strip().decode('utf-8')
-    linkcode_revision = head
-
-    # if we are on main's HEAD, use main as reference
-    cmd = "git log --first-parent main -n1 --pretty=%H"
-    main = subprocess.check_output(cmd.split()).strip().decode('utf-8')
-    if head == main:
-        linkcode_revision = "main"
-
-    # if we have a tag, use tag as reference
     cmd = "git describe --exact-match --tags " + head
     tag = subprocess.check_output(cmd.split(" ")).strip().decode('utf-8')
-    linkcode_revision = tag
-
+    branch_name = tag
 except subprocess.CalledProcessError:
     pass
 
 linkcode_url = "https://github.com/Stanford-NavLab/gnss_lib_py/blob/" \
-               + linkcode_revision + "/{filepath}#L{linestart}-L{linestop}"
+               + branch_name + "/{filepath}#L{linestart}-L{linestop}"
 
 
 def linkcode_resolve(domain, info):
