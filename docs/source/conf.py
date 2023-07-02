@@ -15,9 +15,7 @@ import sys
 import inspect
 import subprocess
 from os.path import relpath, dirname
-from pygit2 import Repository
 
-import gnss_lib_py
 
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
