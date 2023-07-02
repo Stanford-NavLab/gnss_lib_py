@@ -158,6 +158,10 @@ if not tagged and not in_main:
 linkcode_url = "https://github.com/Stanford-NavLab/gnss_lib_py/blob/" \
                + linkcode_revision + "/{filepath}#L{linestart}-L{linestop}"
 
+print(f'linkcode_revision: {linkcode_revision}')
+print(f'linkcode_revision: {main}')
+print(f'linkcode_revision: {head}')
+
 
 def linkcode_resolve(domain, info):
     """Return GitHub link to Python file for docs.
