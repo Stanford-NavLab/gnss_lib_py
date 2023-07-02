@@ -229,8 +229,10 @@ def linkcode_resolve(domain, info):
         # to the beginning to give the path of that file from the root folder
         # of gnss_lib_py and the tests directory adjacent to it
 
+        print(f'filepath before: {filepath}')
         filepath = relpath(filepath, dirname(gnss_lib_py.__file__))
         filepath = os.path.join('gnss_lib_py', filepath)
+        print(f'filepath after: {filepath}')
 
     if lineno:
         linestart = lineno
@@ -238,7 +240,6 @@ def linkcode_resolve(domain, info):
     else:
         linestart = ""
         linestop = ""
-    print(f'filepath: {filepath}')
     codelink = linkcode_url.format(
             filepath=filepath, linestart=linestart, linestop=linestop)
     return codelink
