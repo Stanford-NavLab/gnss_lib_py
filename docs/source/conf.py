@@ -117,36 +117,46 @@ autoclass_content = 'both'
 
 # The original code to find the head tag was taken from:
 # https://gist.github.com/nlgranger/55ff2e7ff10c280731348a16d569cb73
-# This code was modified to use branch names when the code differs from
+# This code was modified to use the current commit when the code differs from
 # main or a tag
 
 #Default to the main branch
-branch_name = "main"
+linkcode_revision = "main"
 
 
-branch_name = Repository('.').head.shorthand
+#Default to the main branch, default to main and tags not existing
+linkcode_revision = "main"
+in_main = False
+tagged = False
+
+
 # lock to commit number
 cmd = "git log -n1 --pretty=%H"
 head = subprocess.check_output(cmd.split()).strip().decode('utf-8')
-linkcode_revision = head
 # if we are on main's HEAD, use main as reference irrespective of
 # what branch you are on
 cmd = "git log --first-parent main -n1 --pretty=%H"
 main = subprocess.check_output(cmd.split()).strip().decode('utf-8')
 if head == main:
-    branch_name = "main"
+    in_main = True
 
 # if we have a tag, use tag as reference, irrespective of what branch
 # you are actually on
 try:
     cmd = "git describe --exact-match --tags " + head
     tag = subprocess.check_output(cmd.split(" ")).strip().decode('utf-8')
-    branch_name = tag
+    linkcode_revision = tag
+    tagged = True
 except subprocess.CalledProcessError:
     pass
 
+# If the current branch is main, or a tag exists, use the branch name.
+# If not, use the commit number
+if not tagged and not in_main:
+    linkcode_revision = head
+
 linkcode_url = "https://github.com/Stanford-NavLab/gnss_lib_py/blob/" \
-               + branch_name + "/{filepath}#L{linestart}-L{linestop}"
+               + linkcode_revision + "/{filepath}#L{linestart}-L{linestop}"
 
 
 def linkcode_resolve(domain, info):
