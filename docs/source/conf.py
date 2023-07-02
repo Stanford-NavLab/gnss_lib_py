@@ -238,7 +238,7 @@ def linkcode_resolve(domain, info):
     else:
         linestart = ""
         linestop = ""
-
+    print(f'filepath: {filepath}')
     codelink = linkcode_url.format(
             filepath=filepath, linestart=linestart, linestop=linestop)
     return codelink
