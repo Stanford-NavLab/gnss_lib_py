@@ -161,6 +161,8 @@ linkcode_url = "https://github.com/Stanford-NavLab/gnss_lib_py/blob/" \
 print(f'linkcode_revision: {linkcode_revision}')
 print(f'linkcode_revision: {main}')
 print(f'linkcode_revision: {head}')
+print(f'Root file path: {os.path.abspath(gnss_lib_py.__file__)}')
+print(f'Root directory: {dirname(gnss_lib_py.__file__)}')
 
 
 def linkcode_resolve(domain, info):
