@@ -33,22 +33,22 @@ GNSS constellations and receivers use standardized file formats to transfer
 information such as estimated receiver coordinates, broadcast ephemeris
 parameters, and precise ephimerides.
 The parsers in ``gnss_lib_py`` are based on standard documentation for
-the systems and file systems, which are listed below along with their use
-in ``gnss_lib_py``.
+the GNSS constellations and file types, which are listed below along with
+their use in ``gnss_lib_py``.
 
-  * *Rinex v2.11* (`version format document <https://geodesy.noaa.gov/corsdata/RINEX211.txt>` __
+  * *Rinex v2.11* (`version format document <https://geodesy.noaa.gov/corsdata/RINEX211.txt>`__
     retrieved on 2nd July, 2023): for parsing broadcast navigation ephimerides.
-  * *Rinex v3.05* (`version format document <https://files.igs.org/pub/data/format/rinex305.pdf>` __
+  * *Rinex v3.05* (`version format document <https://files.igs.org/pub/data/format/rinex305.pdf>`__
     retrieved on 2nd July, 2023): for parsing broadcast navigation ephimerides.
-  * *Rinex v4.00* (`version format document <https://files.igs.org/pub/data/format/rinex_4.00.pdf>` __
+  * *Rinex v4.00* (`version format document <https://files.igs.org/pub/data/format/rinex_4.00.pdf>`__
     retrieved on 2nd July, 2023): currently not supported by ``gnss_lib_py``.
-    *NMEA* (`reference manual <https://www.sparkfun.com/datasheets/GPS/NMEA%20Reference%20Manual-Rev2.1-Dec07.pdf>` __
+  * *NMEA* (`reference manual <https://www.sparkfun.com/datasheets/GPS/NMEA%20Reference%20Manual-Rev2.1-Dec07.pdf>`__
     retrieved on 23rd June, 2023): for parsing NMEA files with GGA and RMC messages.
   * *SP3*: used to determine SV positions for precise
-  * *GLONASS ICD* (retrieved from this `link <https://www.unavco.org/help/glossary/docs/ICD_GLONASS_4.0_(1998)_en.pdf>` __
+  * *GLONASS ICD* (retrieved from this `link <https://www.unavco.org/help/glossary/docs/ICD_GLONASS_4.0_(1998)_en.pdf>`__
     retrieved on 27th June, 2023): for determining GLOASS SV states from
     broadcast satellite positions, velocities, and accelerations.
-    
+
 Package Architecture
 --------------------
 
