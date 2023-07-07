@@ -7,6 +7,7 @@ __date__ = "30 Apr 2022"
 
 
 import os
+import pathlib
 import itertools
 
 import pytest
@@ -211,7 +212,11 @@ def test_init_csv(csv_path):
 
     # should work when csv is passed
     data = NavData(csv_path=csv_path)
+    # data should contain full csv
+    assert data.shape == (4,6)
 
+    # should work when csv is passed as pathlib object
+    data = NavData(csv_path=pathlib.Path(csv_path))
     # data should contain full csv
     assert data.shape == (4,6)
 
@@ -903,11 +908,18 @@ def fixture_flt_int_slc(df_rows):
                         (('integers', slice(None, None)),
                           lazy_fixture('integers')),
                         (['integers', 'floats'], lazy_fixture('int_flt')),
+                        (('integers', 'floats'), lazy_fixture('int_flt')),
+                        ((['integers', 'floats'], 0), np.array([10., 0.5])),
+                        ((('integers', 'floats'), 0), np.array([10., 0.5])),
                         (('integers', 0), 10.),
                         (('strings', 0), np.asarray([['gps']], dtype=object)),
                         (['names', 'strings'], lazy_fixture('nm_str')),
+                        (('names', 'strings'), lazy_fixture('nm_str')),
                         (['strings', 'names'], lazy_fixture('str_nm')),
+                        (('strings', 'names'), lazy_fixture('str_nm')),
                         ((['integers', 'floats'], slice(3, None)),
+                           lazy_fixture('flt_int_slc')),
+                        ((('integers', 'floats'), slice(3, None)),
                            lazy_fixture('flt_int_slc')),
                         (1, lazy_fixture('integers'))
                         ])

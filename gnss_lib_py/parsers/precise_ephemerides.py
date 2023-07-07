@@ -33,7 +33,7 @@ def parse_sp3(input_path):
 
     Parameters
     ----------
-    input_path : string
+    input_path : string or path-like
         Path to sp3 file
 
     Returns
@@ -56,6 +56,8 @@ def parse_sp3(input_path):
             Accessed as of August 20, 2022
     """
     # Initial checks for loading sp3_path
+    if not isinstance(input_path, (str, os.PathLike)):
+        raise TypeError("input_path must be string or path-like")
     if not os.path.exists(input_path):
         raise FileNotFoundError("file not found")
 
@@ -112,7 +114,7 @@ def parse_clockfile(input_path):
 
     Parameters
     ----------
-    input_path : string
+    input_path : string or path-like
         Path to clk file
 
     Returns
