@@ -46,6 +46,10 @@ results/*
 !data/unit_test/*/*.*o
 !data/unit_test/*/*.*g
 !data/unit_test/*/*.rnx
+!data/unit_test/*/*/*.*n
+!data/unit_test/*/*/*.*o
+!data/unit_test/*/*/*.*g
+!data/unit_test/*/*/*.rnx
 
 ########################################
 ##### Common Python and IDE files ######
