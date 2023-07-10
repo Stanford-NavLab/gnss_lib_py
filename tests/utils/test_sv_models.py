@@ -5,18 +5,25 @@
 __authors__ = "Ashwin Kanhere"
 __date__ = "21 Mar 2023"
 
+import os
+
 import pytest
 import numpy as np
-
+import pandas as pd
 from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
+from gnss_lib_py.parsers.android import AndroidDerived2021
 # pylint: disable=protected-access
 
 # Number of time to run meausurement simulation code
 TEST_REPEAT_COUNT = 10
 
+# Define the keys relevant for satellite information
+SV_KEYS = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
+           'vx_sv_mps','vy_sv_mps','vz_sv_mps', \
+           'b_sv_m', 'b_dot_sv_mps']
 
 @pytest.fixture(name="scaling_value")
 def fixture_scaling_value():
@@ -353,7 +360,6 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
                                                     ephemeris_path,
                                                     constellations=None)
 
-
 @pytest.fixture(name="navdata_path")
 def fixture_navdata_path(root_path):
     """Filepath of Android Derived measurements
@@ -475,7 +481,7 @@ def fixture_load_navdata_glonassg1(navdata):
     return navdata_glonassg1
 
 def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata):
-    """Tests that single_gnss_from_precise_eph does not fail for GPS
+    """Tests that sv_models.single_gnss_from_precise_eph does not fail for GPS
 
     Notes
     ----------
@@ -492,7 +498,7 @@ def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata):
         Instance of Clk class dictionary
     """
     navdata_prcs_gps = navdata_gps.copy()
-    navdata_prcs_gps = single_gnss_from_precise_eph(navdata_prcs_gps, \
+    navdata_prcs_gps = sv_models.single_gnss_from_precise_eph(navdata_prcs_gps, \
                                                         sp3data,
                                                         clkdata,
                                                         verbose=True)
@@ -532,7 +538,7 @@ def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata):
                                   check_dtype=False, check_names=True)
 
 def test_compute_glonass_precise_eph(navdata_glonass, sp3data, clkdata):
-    """Tests that single_gnss_from_precise_eph does not fail for GPS
+    """Tests that sv_models.single_gnss_from_precise_eph does not fail for GPS
 
     Notes
     ----------
@@ -550,7 +556,7 @@ def test_compute_glonass_precise_eph(navdata_glonass, sp3data, clkdata):
     """
     navdata_prcs_glonass = navdata_glonass.copy()
     navdata_prcs_glonass.remove(rows=SV_KEYS,inplace=True)
-    new_navdata = single_gnss_from_precise_eph(navdata_prcs_glonass,
+    new_navdata = sv_models.single_gnss_from_precise_eph(navdata_prcs_glonass,
                                                sp3data, clkdata)
 
     # Check if the resulting derived is NavData class
@@ -586,7 +592,7 @@ def test_compute_glonass_precise_eph(navdata_glonass, sp3data, clkdata):
                                   navdata_prcs_glonass_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
     # test inplace
-    new_navdata = single_gnss_from_precise_eph(navdata_prcs_glonass,
+    new_navdata = sv_models.single_gnss_from_precise_eph(navdata_prcs_glonass,
                                                sp3data, clkdata,
                                                inplace=True)
 
@@ -638,10 +644,10 @@ def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data, clkdata):
     """
 
     navdata_sp3_result = navdata_gpsl1.copy()
-    navdata_sp3_result = single_gnss_from_precise_eph(navdata_sp3_result, \
+    navdata_sp3_result = sv_models.single_gnss_from_precise_eph(navdata_sp3_result, \
                                                           sp3data, clkdata)
     navdata_eph_result = navdata_gpsl1.copy()
-    navdata_eph_result = sv_gps_from_brdcst_eph_duplicate(navdata_eph_result)
+    navdata_eph_result = sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph_result)
 
     for sval in SV_KEYS[0:6]:
         # Check if satellite info from sp3 and eph closely resemble
@@ -677,7 +683,7 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
     navdata_merged = NavData()
     navdata_merged = navdata.where('gnss_id',gnss_consts)
 
-    navdata_prcs_merged = add_sv_states_sp3_and_clk(navdata, sp3_path,
+    navdata_prcs_merged = sv_models.add_sv_states_sp3_and_clk(navdata, sp3_path,
                                             clk_path,  verbose = True)
 
     navdata_prcs_merged = navdata_prcs_merged.where("gnss_id",gnss_consts)
@@ -730,17 +736,17 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
     # test what happens when extra (multi-GNSS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_eph = navdata.copy()
-        sv_gps_from_brdcst_eph_duplicate(navdata_eph, verbose=True)
+        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph, verbose=True)
     assert "Multi-GNSS" in str(excinfo.value)
 
     # test what happens when invalid (non-GPS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_glonassg1_eph = navdata_glonassg1.copy()
-        sv_gps_from_brdcst_eph_duplicate(navdata_glonassg1_eph, verbose=True)
+        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_glonassg1_eph, verbose=True)
     assert "non-GPS" in str(excinfo.value)
 
     navdata_gpsl1_eph = navdata_gpsl1.copy()
-    navdata_gpsl1_eph = sv_gps_from_brdcst_eph_duplicate(navdata_gpsl1_eph,
+    navdata_gpsl1_eph = sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_gpsl1_eph,
                                                verbose=True)
 
     # Check if the resulting derived is NavData class

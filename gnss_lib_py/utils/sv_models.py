@@ -9,6 +9,7 @@ __date__ = "17 Jan, 2023"
 import warnings
 
 import numpy as np
+from datetime import datetime, timezone, timedelta
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
@@ -907,14 +908,14 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
             # if does not hold, recompute the interpolation function based on current iref
             if verbose:
                 print('CLK: Computing new interpolation for',gnss_sv_id)
-            func_satbias = extract_clk(clk_parsed_file[gnss_sv_id],
-                                            clk_iref)
+            func_satbias = clk_parsed_file.extract_clk(gnss_sv_id,
+                                                       clk_iref)
             # Update the relevant interp function and iref values
             satfunc_t_old[gnss_sv_id] = func_satbias
             clk_iref_old[gnss_sv_id] = clk_iref
 
         # Compute satellite clock bias and drift using interpolated function
-        satbias_clk, satdrift_clk = clk_snapshot(func_satbias, timestep)
+        satbias_clk, satdrift_clk = clk_parsed_file.clk_snapshot(func_satbias, timestep)
 
         if inplace:
             # update *_sv_m of navdata with the estimated values from .sp3 files
@@ -928,8 +929,8 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
             navdata["vz_sv_mps", row_idx] = np.array([satvel_sp3[2]])
 
             # update clock data of navdata with the estimated values from .clk files
-            navdata["b_sv_m", row_idx] = np.array([consts.C * satbias_clk])
-            navdata["b_dot_sv_mps", row_idx] = np.array([consts.C * satdrift_clk])
+            navdata["b_sv_m", row_idx] = np.array([satbias_clk])
+            navdata["b_dot_sv_mps", row_idx] = np.array([satdrift_clk])
         else:
             # update *_sv_m of navdata with the estimated values from .sp3 files
             new_navdata['x_sv_m', row_idx] = np.array([satpos_sp3[0]])
@@ -942,8 +943,8 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
             new_navdata["vz_sv_mps", row_idx] = np.array([satvel_sp3[2]])
 
             # update clock data of navdata with the estimated values from .clk files
-            new_navdata["b_sv_m", row_idx] = np.array([consts.C * satbias_clk])
-            new_navdata["b_dot_sv_mps", row_idx] = np.array([consts.C * satdrift_clk])
+            new_navdata["b_sv_m", row_idx] = np.array([satbias_clk])
+            new_navdata["b_dot_sv_mps", row_idx] = np.array([satdrift_clk])
 
     if inplace:
         return None

@@ -163,6 +163,7 @@ def test_sp3gps_value_check(sp3data, prn, row_name, index, exp_value):
     """
 
     assert len(np.unique(sp3data.where("gnss_id","gps")["sv_id"])) == 31
+    assert len(np.unique(sp3data.where("gnss_id","glonass")["sv_id"])) == 20
 
     curr_value = sp3data.where("gnss_sv_id",prn)[row_name][index]
     np.testing.assert_equal(curr_value, exp_value)

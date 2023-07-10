@@ -9,7 +9,6 @@ import random
 
 import pytest
 import numpy as np
-from datetime import datetime, timezone
 
 from gnss_lib_py.parsers.clk import Clk
 import gnss_lib_py.utils.constants as consts
@@ -52,6 +51,13 @@ def fixture_clk_path(root_path):
     -----
     Downloaded the relevant .clk files from either CORS website [1]_ or
     CDDIS website [2]_
+
+    References
+    ----------
+    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
+    
     """
     clk_path = os.path.join(root_path, 'clk/grg21553_short.clk')
     return clk_path
@@ -70,7 +76,7 @@ def fixture_load_clkdata_gps(clk_path):
     clkdata : list
         Instance of GPS-only Clk class list with len = NUMSATS-GPS
     """
-    clkdata = parse_clockfile(clk_path)
+    clkdata = Clk(clk_path)
 
     return clkdata
 
@@ -88,7 +94,7 @@ def fixture_load_clkdata(clk_path):
     clkdata : list
         Instances of Clk class for each satellite
     """
-    clkdata = parse_clockfile(clk_path)
+    clkdata = Clk(clk_path)
 
     return clkdata
 
@@ -115,11 +121,11 @@ def test_load_clkdata_missing(clk_path_missing):
     """
     # Create a sp3 class for each expected satellite
     with pytest.raises(FileNotFoundError):
-        parse_clockfile(clk_path_missing)
+        Clk(clk_path_missing)
 
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
-        parse_clockfile([])
+        Clk([])
 
 @pytest.fixture(name="clk_path_nodata")
 def fixture_clk_path_nodata(root_path):
@@ -143,14 +149,16 @@ def test_load_clkdata_nodata(clk_path_nodata):
         measurements
     """
 
-    clkdata_nodata = parse_clockfile(clk_path_nodata)
+    clkdata_nodata = Clk(clk_path_nodata)
 
     assert len(clkdata_nodata) == 0
 
 @pytest.mark.parametrize('row_name, prn, index, exp_value',
-                        [('clk_bias', 'G15', 0, -0.00015303409205),
-                         ('tym', 'G05', 5, 1303668150000.0),
-                         ('utc_time', 'G32', 4, datetime(2021, 4, 28, 18, 2, tzinfo=timezone.utc)) ]
+                        [('b_sv_m', 'G15', 0, -0.00015303409205*consts.C),
+                         ('gps_millis', 'G05', 5, 1303668150000.0),
+                         ('b_sv_m', 'R08', 16, -5.87550990462e-05*consts.C),
+                         ('gps_millis', 'R14', 10, 1303668300000.0),
+                        ]
                         )
 def test_clkgps_value_check(clkdata, prn, row_name, index, exp_value):
     """Check Clk array entries of GPS constellation against
@@ -158,8 +166,8 @@ def test_clkgps_value_check(clkdata, prn, row_name, index, exp_value):
 
     Parameters
     ----------
-    clkdata : pytest.fixture
-        Instance of Clk class dictionary
+    clkdata : gnss_lib_py.parsers.clk.Clk
+        CLK data.
     prn : int
         Satellite PRN for test example
     row_name : string
@@ -170,87 +178,41 @@ def test_clkgps_value_check(clkdata, prn, row_name, index, exp_value):
         Expected value at queried indices
     """
 
-    assert sum([1 for key in clkdata if key[0] == 'G']) == 31
+    assert len(np.unique(clkdata.where("gnss_id","gps")["sv_id"])) == 31
+    assert len(np.unique(clkdata.where("gnss_id","glonass")["sv_id"])) == 20
 
-    curr_value = getattr(clkdata[prn], row_name)[index]
-    np.testing.assert_equal(curr_value, exp_value)
-
-@pytest.mark.parametrize('row_name, prn, index, exp_value',
-                        [('clk_bias', 'R08', 16, -5.87550990462e-05),
-                         ('tym', 'R14', 10, 1303668300000.0),
-                         ('utc_time', 'R04', 4, datetime(2021, 4, 28, 18, 2, tzinfo=timezone.utc)) ]
-                        )
-def test_clkglonass_value_check(clkdata, prn, row_name, index, exp_value):
-    """Check array of Clk entries for GLONASS against known values
-
-    Parameters
-    ----------
-    clkdata : pytest.fixture
-        Instance of Clk class dictionary
-    prn : int
-        Satellite PRN for test example
-    row_name : string
-        Row key for test example
-    index : int
-        Index to query data at
-    exp_value : float/datetime
-        Expected value at queried indices
-    """
-
-    assert sum([1 for key in clkdata if key[0] == 'R']) == 20
-
-    curr_value = getattr(clkdata[prn], row_name)[index]
+    curr_value = clkdata.where("gnss_sv_id",prn)[row_name][index]
     np.testing.assert_equal(curr_value, exp_value)
 
 def test_gps_clk_funcs(clkdata):
-    """Tests extract_sp3, sp3_snapshot for GPS-Clk
+    """Tests extract_clk, clk_snapshot for Clk
 
     Notes
     ----------
     Last index interpolation does not work well, so eliminating this index
-    while extracting random samples from tym in Clk
+    while extracting random samples from gps_millis in Clk
 
     Parameters
     ----------
-    clkdata : pytest.fixture
-        Instance of Clk class dictionary
-    """
-    for prn in [key for key in clkdata if key[0] == 'G']:
-        if len(clkdata[prn].tym) != 0:
-            clk_subset = random.sample(range(len(clkdata[prn].tym)-1), NUMSAMPLES)
-            for sidx, _ in enumerate(clk_subset):
-                func_satbias = extract_clk(clkdata[prn], sidx, \
-                                                ipos = 10, method='CubicSpline')
-                cxtime = clkdata[prn].tym[sidx]
-                satbias_clk, _ = clk_snapshot(func_satbias, cxtime, \
-                                                      hstep = 5e-1, method='CubicSpline')
-                assert consts.C * np.linalg.norm(satbias_clk - \
-                                                 clkdata[prn].clk_bias[sidx]) < 1e-6
+    clkdata : gnss_lib_py.parsers.clk.Clk
+        CLK data.
 
-def test_glonass_clk_funcs(clkdata):
-    """Tests extract_clk, clk_snapshot for GLONASS-Clk
-
-
-    Notes
-    ----------
-    Last index interpolation does not work well, so eliminating this index
-    while extracting random samples from tym in Clk
-
-    Parameters
-    ----------
-    clkdata : pytest.fixture
-        Instance of Clk class dictionary
     """
 
-    for prn in [key for key in clkdata if key[0] == 'R']:
-        if len(clkdata[prn].tym) != 0:
-            clk_subset = random.sample(range(len(clkdata[prn].tym)-1), NUMSAMPLES)
-            for sidx, _ in enumerate(clk_subset):
-                func_satbias = extract_clk(clkdata[prn], sidx, \
-                                             ipos = 10, method='CubicSpline',
-                                             verbose=True)
-                cxtime = clkdata[prn].tym[sidx]
-                satbias_clk, _ = clk_snapshot(func_satbias, cxtime, \
-                                                      hstep = 5e-1, method='CubicSpline')
-                assert consts.C * np.linalg.norm(satbias_clk - \
-                                                 clkdata[prn].clk_bias[sidx]) < 1e-6
+
+    gnss_sv_ids = np.unique(clkdata["gnss_sv_id"])
+
+    for prn in gnss_sv_ids:
+        clkdata_sv = clkdata.where("gnss_sv_id",prn)
+        gps_millis_prn = clkdata_sv["gps_millis"]
+        clk_subset = random.sample(range(len(gps_millis_prn)-1), NUMSAMPLES)
+        for sidx, _ in enumerate(clk_subset):
+            func_satbias = clkdata.extract_clk(prn, sidx, \
+                                            ipos = 10,
+                                            method='CubicSpline',
+                                            verbose=True)
+            cxtime = gps_millis_prn[sidx]
+            satbias_clk, _ = clkdata.clk_snapshot(func_satbias, cxtime, \
+                                                  hstep = 5e-1, method='CubicSpline')
+            assert np.linalg.norm(satbias_clk - \
+                                  clkdata_sv["b_sv_m"][sidx]) < 1e-6
