@@ -863,10 +863,10 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
     for row_idx, row in enumerate(iterate_navdata):
         gnss_sv_id = str(row["gnss_sv_id"])
         # continue if no sp3 or clk data availble
-        if gnss_sv_id not in sp3_parsed_file \
-          or gnss_sv_id not in clk_parsed_file \
-          or len(sp3_parsed_file[gnss_sv_id].gps_millis) == 0 \
-          or len(clk_parsed_file[gnss_sv_id].gps_millis) == 0: continue
+        if gnss_sv_id not in sp3_parsed_file["gnss_sv_id"] \
+          or gnss_sv_id not in clk_parsed_file["gnss_sv_id"] \
+          or len(sp3_parsed_file.where("gnss_sv_id",gnss_sv_id)) == 0 \
+          or len(clk_parsed_file.where("gnss_sv_id",gnss_sv_id)) == 0: continue
 
         timestep = row["gps_millis"]
 
@@ -895,8 +895,8 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
 
         # Adjust the satellite position based on Earth's rotation
         trans_time = row["raw_pr_m"] / consts.C
-        del_x = (consts.OMEGA_E_DOT * satpos_sp3[1] * trans_time)
-        del_y = (-consts.OMEGA_E_DOT * satpos_sp3[0] * trans_time)
+        del_x = consts.OMEGA_E_DOT * satpos_sp3[1] * trans_time
+        del_y = -consts.OMEGA_E_DOT * satpos_sp3[0] * trans_time
         satpos_sp3[0] = satpos_sp3[0] + del_x
         satpos_sp3[1] = satpos_sp3[1] + del_y
 

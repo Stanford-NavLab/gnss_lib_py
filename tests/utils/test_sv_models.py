@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 from pytest_lazyfixture import lazy_fixture
 
+from gnss_lib_py.parsers.clk import Clk
+from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
 from gnss_lib_py.parsers.android import AndroidDerived2021
@@ -359,6 +361,105 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
         _ = sv_models.add_visible_svs_for_trajectory(state_estimate,
                                                     ephemeris_path,
                                                     constellations=None)
+
+@pytest.fixture(name="root_path")
+def fixture_root_path():
+    """Location of measurements for unit test
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/')
+    return root_path
+
+@pytest.fixture(name="sp3_path")
+def fixture_sp3_path(root_path):
+    """Filepath of valid .sp3 measurements
+
+    Returns
+    -------
+    sp3_path : string
+        String with location for the unit_test sp3 measurements
+
+    Notes
+    -----
+    Downloaded the relevant .sp3 files from either CORS website [1]_ or
+    CDDIS website [2]_
+
+    References
+    ----------
+    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
+    """
+    sp3_path = os.path.join(root_path, 'sp3/grg21553_short.sp3')
+    return sp3_path
+
+@pytest.fixture(name="sp3data")
+def fixture_load_sp3data(sp3_path):
+    """Load instance of sp3 data.
+
+    Parameters
+    ----------
+    sp3_path : pytest.fixture
+        String with location for the unit_test sp3 measurements
+
+    Returns
+    -------
+    sp3data : list
+        Instance of GPS-only Sp3 class list with len = NUMSATS-GPS
+    """
+    sp3data = Sp3(sp3_path)
+
+    return sp3data
+
+@pytest.fixture(name="clk_path")
+def fixture_clk_path(root_path):
+    """Filepath of valid .clk measurements
+
+    Returns
+    -------
+    clk_path : string
+        String with location for the unit_test clk measurements
+
+    Notes
+    -----
+    Downloaded the relevant .clk files from either CORS website [1]_ or
+    CDDIS website [2]_
+
+    References
+    ----------
+    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
+
+    """
+    clk_path = os.path.join(root_path, 'clk/grg21553_short.clk')
+    return clk_path
+
+@pytest.fixture(name="clkdata")
+def fixture_load_clkdata(clk_path):
+    """Load instance of clk data.
+
+    Parameters
+    ----------
+    clk_path : pytest.fixture
+        String with location for the unit_test clk measurements
+
+    Returns
+    -------
+    clkdata : list
+        Instances of Clk class for each satellite
+    """
+    clkdata = Clk(clk_path)
+
+    return clkdata
 
 @pytest.fixture(name="navdata_path")
 def fixture_navdata_path(root_path):

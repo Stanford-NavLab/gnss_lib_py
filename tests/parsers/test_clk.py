@@ -57,28 +57,10 @@ def fixture_clk_path(root_path):
     .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
     .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
             Accessed as of August 2, 2022
-    
+
     """
     clk_path = os.path.join(root_path, 'clk/grg21553_short.clk')
     return clk_path
-
-@pytest.fixture(name="clkdata_gps")
-def fixture_load_clkdata_gps(clk_path):
-    """Load instance of clk data for GPS constellation
-
-    Parameters
-    ----------
-    clk_path : pytest.fixture
-        String with location for the unit_test clk measurements
-
-    Returns
-    -------
-    clkdata : list
-        Instance of GPS-only Clk class list with len = NUMSATS-GPS
-    """
-    clkdata = Clk(clk_path)
-
-    return clkdata
 
 @pytest.fixture(name="clkdata")
 def fixture_load_clkdata(clk_path):
