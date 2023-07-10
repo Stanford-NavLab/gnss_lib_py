@@ -92,10 +92,8 @@ class EphemerisDownloader():
     def __init__(self, ephemeris_directory=DEFAULT_EPHEM_PATH,
                  verbose=False):
         self.ephemeris_directory = ephemeris_directory
-        nasa_dir = os.path.join(ephemeris_directory, 'nasa')
-        igs_dir = os.path.join(ephemeris_directory, 'igs')
-        os.makedirs(nasa_dir, exist_ok=True)
-        os.makedirs(igs_dir, exist_ok=True)
+        rinex_dir = os.path.join(ephemeris_directory, 'rinex')
+        os.makedirs(rinex_dir, exist_ok=True)
         self.data = None
         self.leapseconds = None
         self.iono_params = None
@@ -211,10 +209,7 @@ class EphemerisDownloader():
         url = fileinfo['url']
         directory = os.path.split(filepath)[0]
         filename = os.path.split(filepath)[1]
-        if url == 'igs-ftp.bkg.bund.de':
-            dest_filepath = os.path.join(self.ephemeris_directory, 'igs', filename)
-        else:
-            dest_filepath = os.path.join(self.ephemeris_directory, 'nasa', filename)
+        dest_filepath = os.path.join(self.ephemeris_directory, 'rinex', filename)
         rinex_path = os.path.splitext(dest_filepath)[0]
         if not os.path.isfile(rinex_path): # pragma: no cover
             self.retrieve_file(url, directory, filename,

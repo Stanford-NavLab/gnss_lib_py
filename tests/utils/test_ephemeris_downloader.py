@@ -27,7 +27,7 @@ def fixture_ephem_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    ephem_path = os.path.join(root_path, 'data/unit_test/ephemeris')
+    ephem_path = os.path.join(root_path, 'data/unit_test')
     return ephem_path
 
 @pytest.fixture(name="ephem_download_path", scope='session')
@@ -43,7 +43,7 @@ def fixture_ephem_download_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    ephem_path = os.path.join(root_path, 'data/unit_test/ephemeris_download')
+    ephem_path = os.path.join(root_path, 'data/unit_test/rinex_download')
     return ephem_path
 
 def remove_download_eph(ephem_download_path):
@@ -136,10 +136,7 @@ def test_download_ephem(ephem_download_path, fileinfo):
     url = fileinfo['url']
     directory = os.path.split(filepath)[0]
     filename = os.path.split(filepath)[1]
-    if url == 'igs-ftp.bkg.bund.de':
-        dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'igs', filename)
-    else:
-        dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'nasa', filename)
+    dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'rinex', filename)
 
     # download the ephemeris file
     try:
@@ -177,7 +174,7 @@ def test_request_igs(ephem_download_path, fileinfo):
 
     filepath = fileinfo['filepath']
     filename = os.path.split(filepath)[1]
-    dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'igs', filename)
+    dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'rinex', filename)
 
     requests_url = fileinfo['url'] + fileinfo['filepath']
 
@@ -216,7 +213,7 @@ def test_ftp_errors(ephem_download_path):
     url = fileinfo['url']
     directory = os.path.split(filepath)[0]
     filename = os.path.split(filepath)[1]
-    dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'nasa',
+    dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'rinex',
                                  filename)
 
     # download the ephemeris file

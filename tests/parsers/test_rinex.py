@@ -29,7 +29,7 @@ def fixture_ephem_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    ephem_path = os.path.join(root_path, 'data/unit_test/ephemeris')
+    ephem_path = os.path.join(root_path, 'data/unit_test')
     return ephem_path
 
 
@@ -173,18 +173,18 @@ def test_load_leapseconds(ephem_path):
 
     """
 
-    rinex_path = os.path.join(ephem_path,"nasa",
+    rinex_path = os.path.join(ephem_path,"rinex",
                                    "brdc1370.20n")
     rinex_data = Rinex(rinex_path)
     assert rinex_data['leap_seconds'] == 18
 
     # check what happens when a file with an incomplete header is passed
-    incomplete_path = os.path.join(ephem_path,"nasa",
+    incomplete_path = os.path.join(ephem_path,"rinex",
                                    "brdc1370_no_leapseconds.20n")
     rinex_data = Rinex(incomplete_path)
     assert len(rinex_data.where('leap_seconds',np.nan)) == 1
 
     # check what happens when a file with an incomplete header is passed
-    incomplete_path = os.path.join(ephem_path,"nasa",
+    incomplete_path = os.path.join(ephem_path,"rinex",
                                    "brdc1370_incomplete.20n")
     assert rinex_data.load_leapseconds(incomplete_path) == None

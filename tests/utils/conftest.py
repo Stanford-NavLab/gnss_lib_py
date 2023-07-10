@@ -124,7 +124,7 @@ def fixture_ephemeris_path(root_path):
     ephemeris_path : string
         Path where ephemeris files are to be stored.
     """
-    ephemeris_path = os.path.join(root_path, 'ephemeris')
+    ephemeris_path = os.path.join(root_path)
     return ephemeris_path
 
 

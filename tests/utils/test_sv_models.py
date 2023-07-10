@@ -730,7 +730,7 @@ def test_compute_glonass_precise_eph(navdata_glonass, sp3data, clkdata):
                                   navdata_prcs_glonass_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
 
-def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data, clkdata):
+def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data, clkdata, ephemeris_path):
     """Tests that validates GPS satellite 3-D position and velocity
 
     Parameters
@@ -742,13 +742,17 @@ def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data, clkdata):
         Instance of Sp3 class dictionary
     clkdata : pytest.fixture
         Instance of Clk class dictionary
+    ephemeris_path : string
+        The location where ephemeris files are read from or downloaded to
+        if they don't exist.
     """
 
     navdata_sp3_result = navdata_gpsl1.copy()
     navdata_sp3_result = sv_models.single_gnss_from_precise_eph(navdata_sp3_result, \
                                                           sp3data, clkdata)
     navdata_eph_result = navdata_gpsl1.copy()
-    navdata_eph_result = sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph_result)
+    navdata_eph_result = sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph_result,
+                                        ephemeris_path)
 
     for sval in SV_KEYS[0:6]:
         # Check if satellite info from sp3 and eph closely resemble
@@ -769,7 +773,7 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
     The threshold for assertion checks are set heuristically; not applicable if
     input unit test files are changed.
 
-    Parameters
+    Parametersephemeris_directory
     ----------
     navdata : pytest.fixture
         Instance of AndroidDerived for testing
@@ -821,7 +825,8 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
                                   navdata_prcs_merged_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
 
-def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
+def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1,
+                                ephemeris_path):
     """Tests that sv_gps_from_brdcst_eph_duplicate does not fail for GPS
 
     Parameters
@@ -832,23 +837,28 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1):
         Instance of NavData class that depicts entire android derived dataset
     navdata_glonassg1 : pytest.fixture
         Instance of NavData class that depicts GLONASS-G1 only derived dataset
+    ephemeris_path : string
+        The location where ephemeris files are read from or downloaded to
+        if they don't exist.
     """
 
     # test what happens when extra (multi-GNSS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_eph = navdata.copy()
-        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph, verbose=True)
+        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph, ephemeris_path,
+                                                   verbose=True)
     assert "Multi-GNSS" in str(excinfo.value)
 
     # test what happens when invalid (non-GPS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_glonassg1_eph = navdata_glonassg1.copy()
-        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_glonassg1_eph, verbose=True)
+        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_glonassg1_eph,
+                            ephemeris_path, verbose=True)
     assert "non-GPS" in str(excinfo.value)
 
     navdata_gpsl1_eph = navdata_gpsl1.copy()
     navdata_gpsl1_eph = sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_gpsl1_eph,
-                                               verbose=True)
+                                        ephemeris_path, verbose=True)
 
     # Check if the resulting derived is NavData class
     assert isinstance( navdata_gpsl1_eph, type(NavData()) )

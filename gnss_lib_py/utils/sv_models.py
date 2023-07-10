@@ -986,13 +986,19 @@ def add_sv_states_sp3_and_clk(navdata, sp3_path, clk_path,
 
     return precise_navdata
 
-def sv_gps_from_brdcst_eph_duplicate(navdata, verbose = False):
+def sv_gps_from_brdcst_eph_duplicate(navdata,
+                                     ephemeris_path=DEFAULT_EPHEM_PATH,
+                                     verbose = False):
     """Compute satellite information using .n for any GNSS constellation
 
     Parameters
-    ----------
+    ----------                                   ephemeris_path=DEFAULT_EPHEM_PATH,
+
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
+    ephemeris_path : string
+        Path at which ephemeris files are to be stored. Uses directory
+        default if not given.
     verbose : bool
         Flag (True/False) for whether to print intermediate steps useful
         for debugging/reviewing (the default is False)
@@ -1027,7 +1033,8 @@ def sv_gps_from_brdcst_eph_duplicate(navdata, verbose = False):
                                            for i in navdata["sv_id", sorted_idxs]]
         rxdatetime = datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc) + \
                      timedelta( seconds = (timestep) * 1e-3 )
-        ephem = get_time_cropped_rinex(rxdatetime, satellites = desired_sats)
+        ephem = get_time_cropped_rinex(rxdatetime, satellites = desired_sats,
+                                        ephemeris_directory=ephemeris_path)
 
         # compute satellite position and velocity based on ephem and gps_time
         # Transform satellite position to account for earth's rotation
