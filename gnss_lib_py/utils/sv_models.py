@@ -16,7 +16,8 @@ from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.rinex import get_time_cropped_rinex
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
-
+from gnss_lib_py.parsers.sp3 import Sp3
+from gnss_lib_py.parsers.clk import Clk
 
 def svs_from_el_az(elaz_deg):
     """Generate NED satellite positions for given elevation and azimuth.
@@ -809,10 +810,10 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that depicts android derived dataset
-    sp3_parsed_file : list
-        Instance with list of gnss_lib_py.parsers.precise_ephemerides.Sp3
-    clk_parsed_file : list
-        Instance with list of gnss_lib_py.parsers.precise_ephemerides.Clk
+    sp3_parsed_file : gnss_lib_py.parsers.sp3.Sp3
+        SP3 data
+    clk_parsed_file : gnss_lib_py.parsers.clk.Clk
+        Clk data
     inplace : bool
         If true, adds satellite positions and clock bias to the input
         navdata object, otherwise returns a new NavData object with the
@@ -853,7 +854,6 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
             else:
                 new_navdata[sv_idx_key] = np.nan
 
-
     if inplace:
         iterate_navdata = navdata
     else:
@@ -864,16 +864,16 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
         # continue if no sp3 or clk data availble
         if gnss_sv_id not in sp3_parsed_file \
           or gnss_sv_id not in clk_parsed_file \
-          or len(sp3_parsed_file[gnss_sv_id].tym) == 0 \
-          or len(clk_parsed_file[gnss_sv_id].tym) == 0: continue
+          or len(sp3_parsed_file[gnss_sv_id].gps_millis) == 0 \
+          or len(clk_parsed_file[gnss_sv_id].gps_millis) == 0: continue
 
         timestep = row["gps_millis"]
 
         # Perform nearest time step search to compute iref values for sp3 and clk
-        sp3_iref = np.argmin(abs(np.array(sp3_parsed_file[gnss_sv_id].tym) - \
-                                 timestep ))
-        clk_iref = np.argmin(abs(np.array(clk_parsed_file[gnss_sv_id].tym) - \
-                                 timestep ))
+        sp3_iref = np.argmin(abs(np.array(sp3_parsed_file.where("gnss_sv_id",
+                            gnss_sv_id)["gps_millis"]) - timestep ))
+        clk_iref = np.argmin(abs(np.array(clk_parsed_file.where("gnss_sv_id",
+                            gnss_sv_id)["gps_millis"]) - timestep ))
 
         # Carry out .sp3 processing by first checking if
         # previous interpolated function holds
@@ -883,14 +883,14 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
             # if does not hold, recompute the interpolation function based on current iref
             if verbose:
                 print('SP3: Computing new interpolation for',gnss_sv_id)
-            func_satpos = extract_sp3(sp3_parsed_file[gnss_sv_id], \
-                                           sp3_iref)
+            func_satpos = sp3_parsed_file.extract_sp3(gnss_sv_id,
+                                                      sp3_iref)
             # Update the relevant interp function and iref values
             satfunc_xyz_old[gnss_sv_id] = func_satpos
             sp3_iref_old[gnss_sv_id] = sp3_iref
 
         # Compute satellite position and velocity using interpolated function
-        satpos_sp3, satvel_sp3 = sp3_snapshot(func_satpos, timestep)
+        satpos_sp3, satvel_sp3 = sp3_parsed_file.sp3_snapshot(func_satpos, timestep)
 
         # Adjust the satellite position based on Earth's rotation
         trans_time = row["raw_pr_m"] / consts.C
@@ -975,8 +975,8 @@ def add_sv_states_sp3_and_clk(navdata, sp3_path, clk_path,
         Updated NavData class with satellite information computed using
         precise ephemerides from .sp3 and .clk files
     """
-    sp3_parsed_gnss = parse_sp3(sp3_path)
-    clk_parsed_gnss = parse_clockfile(clk_path)
+    sp3_parsed_gnss = Sp3(sp3_path)
+    clk_parsed_gnss = Clk(clk_path)
     precise_navdata = single_gnss_from_precise_eph(navdata,
                                                    sp3_parsed_gnss,
                                                    clk_parsed_gnss,

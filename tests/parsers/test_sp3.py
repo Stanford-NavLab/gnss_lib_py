@@ -6,11 +6,10 @@ __date__ = "25 August 2022"
 
 import os
 import random
+from datetime import timezone
 
 import pytest
 import numpy as np
-from datetime import datetime, timezone
-
 
 from gnss_lib_py.parsers.sp3 import Sp3
 
@@ -59,7 +58,7 @@ def fixture_sp3_path(root_path):
     .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
             Accessed as of August 2, 2022
     """
-    sp3_path = os.path.join(root_path, 'precise_ephemeris/grg21553_short.sp3')
+    sp3_path = os.path.join(root_path, 'sp3/grg21553_short.sp3')
     return sp3_path
 
 @pytest.fixture(name="sp3data")
@@ -89,7 +88,7 @@ def fixture_sp3_path_missing(root_path):
     sp3_path : string
         String with location for the unit_test sp3 measurements
     """
-    sp3_path_missing = os.path.join(root_path, 'precise_ephemeris/grg21553_missing.sp3')
+    sp3_path_missing = os.path.join(root_path, 'sp3/grg21553_missing.sp3')
     return sp3_path_missing
 
 def test_load_sp3data_missing(sp3_path_missing):
@@ -118,7 +117,7 @@ def fixture_sp3_path_nodata(root_path):
     sp3_path : string
         String with location for the unit_test sp3 measurements
     """
-    sp3_path_nodata = os.path.join(root_path, 'precise_ephemeris/grg21553_nodata.sp3')
+    sp3_path_nodata = os.path.join(root_path, 'sp3/grg21553_nodata.sp3')
     return sp3_path_nodata
 
 def test_load_sp3data_nodata(sp3_path_nodata):
@@ -136,11 +135,15 @@ def test_load_sp3data_nodata(sp3_path_nodata):
     assert len(sp3data_nodata) == 0
 
 @pytest.mark.parametrize('row_name, prn, index, exp_value',
-                        [('xpos', 'G01', 2, 13222742.845),
-                         ('ypos', 'G12', 5, 9753305.474000001),
-                         ('zpos', 'G32', 25, 21728484.688),
-                         ('tym', 'G08', 8, 1303670400000.0),
-                         ('utc_time', 'G12', 3, datetime(2021, 4, 28, 18, 15, tzinfo=timezone.utc)) ]
+                        [('x_sv_m', 'G01', 2, 13222742.845),
+                         ('y_sv_m', 'G12', 5, 9753305.474000001),
+                         ('z_sv_m', 'G32', 25, 21728484.688),
+                         ('gps_millis', 'G08', 8, 1303670400000.0),
+                         ('x_sv_m', 'R24', 1, 13383401.364),
+                         ('y_sv_m', 'R02', 7, 3934479.152),
+                         ('z_sv_m', 'R18', 45, 10107376.674999999),
+                         ('gps_millis', 'R12', 17, 1303673100000.0),
+                        ]
                         )
 def test_sp3gps_value_check(sp3data, prn, row_name, index, exp_value):
     """Check array of Sp3 entries for GPS against known values
@@ -159,38 +162,9 @@ def test_sp3gps_value_check(sp3data, prn, row_name, index, exp_value):
         Expected value at queried indices
     """
 
-    assert sum([1 for key in sp3data if key[0] == 'G']) == 31
+    assert len(np.unique(sp3data.where("gnss_id","gps")["sv_id"])) == 31
 
-    curr_value = getattr(sp3data[prn], row_name)[index]
-    np.testing.assert_equal(curr_value, exp_value)
-
-@pytest.mark.parametrize('row_name, prn, index, exp_value',
-                        [('xpos', 'R24', 1, 13383401.364),
-                         ('ypos', 'R02', 7, 3934479.152),
-                         ('zpos', 'R18', 45, 10107376.674999999),
-                         ('tym', 'R12', 17, 1303673100000.0),
-                         ('utc_time', 'R09', 34, datetime(2021, 4, 28, 20, 50, tzinfo=timezone.utc)) ]
-                        )
-def test_sp3glonass_value_check(sp3data, prn, row_name, index, exp_value):
-    """Check array of Sp3 entries for GLONASS against known values
-
-    Parameters
-    ----------
-    sp3data : pytest.fixture
-        Instance of Sp3 class dictionary
-    prn : int
-        Satellite PRN for test example
-    row_name : string
-        Row key for test example
-    index : int
-        Index to query data at
-    exp_value : float/datetime
-        Expected value at queried indices
-    """
-
-    assert sum([1 for key in sp3data if key[0] == 'R']) == 20
-
-    curr_value = getattr(sp3data[prn], row_name)[index]
+    curr_value = sp3data.where("gnss_sv_id",prn)[row_name][index]
     np.testing.assert_equal(curr_value, exp_value)
 
 def test_gps_sp3_funcs(sp3data):
@@ -199,7 +173,7 @@ def test_gps_sp3_funcs(sp3data):
     Notes
     ----------
     Last index interpolation does not work well, so eliminating this index
-    while extracting random samples from tym in Sp3
+    while extracting random samples from gps_millis in Sp3
 
     Parameters
     ----------
@@ -207,45 +181,21 @@ def test_gps_sp3_funcs(sp3data):
         Instance of Sp3 class dictionary
     """
 
-    for prn in [key for key in sp3data if key[0] == 'G']:
-        if len(sp3data[prn].tym) != 0:
-            sp3_subset = random.sample(range(len(sp3data[prn].tym)-1), NUMSAMPLES)
-            for sidx, _ in enumerate(sp3_subset):
-                func_satpos = extract_sp3(sp3data[prn], sidx, \
-                                               ipos = 10, method='CubicSpline',
-                                               verbose=True)
-                cxtime = sp3data[prn].tym[sidx]
-                satpos_sp3, _ = sp3_snapshot(func_satpos, cxtime, \
-                                                     hstep = 5e-1, method='CubicSpline')
-                satpos_sp3_exact = np.array([ sp3data[prn].xpos[sidx], \
-                                              sp3data[prn].ypos[sidx], \
-                                              sp3data[prn].zpos[sidx] ])
-                assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 1e-6
+    gnss_sv_ids = np.unique(sp3data["gnss_sv_id"])
 
-def test_glonass_sp3_funcs(sp3data):
-    """Tests extract_sp3, sp3_snapshot for GLONASS-Sp3
-
-    Notes
-    ----------
-    Last index interpolation does not work well, so eliminating this index
-    while extracting random samples from tym in Sp3
-
-    Parameters
-    ----------
-    sp3data : pytest.fixture
-        Instance of Sp3 class dictionary
-    """
-
-    for prn in [key for key in sp3data if key[0] == 'R']:
-        if len(sp3data[prn].tym) != 0:
-            sp3_subset = random.sample(range(len(sp3data[prn].tym)-1), NUMSAMPLES)
-            for sidx, _ in enumerate(sp3_subset):
-                func_satpos = extract_sp3(sp3data[prn], sidx, \
-                                               ipos = 10, method='CubicSpline')
-                cxtime = sp3data[prn].tym[sidx]
-                satpos_sp3, _ = sp3_snapshot(func_satpos, cxtime, \
-                                                     hstep = 5e-1, method='CubicSpline')
-                satpos_sp3_exact = np.array([ sp3data[prn].xpos[sidx], \
-                                              sp3data[prn].ypos[sidx], \
-                                              sp3data[prn].zpos[sidx] ])
-                assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 1e-6
+    for prn in gnss_sv_ids:
+        sp3data_sv = sp3data.where("gnss_sv_id",prn)
+        gps_millis_prn = sp3data_sv["gps_millis"]
+        sp3_subset = random.sample(range(len(gps_millis_prn)-1), NUMSAMPLES)
+        for sidx, _ in enumerate(sp3_subset):
+            func_satpos = sp3data.extract_sp3(prn, sidx, \
+                                            ipos = 10, method='CubicSpline',
+                                            verbose=True)
+            cxtime = gps_millis_prn[sidx]
+            satpos_sp3, _ = sp3data.sp3_snapshot(func_satpos, cxtime, \
+                                                 hstep = 5e-1,
+                                                 method='CubicSpline')
+            satpos_sp3_exact = np.array([sp3data_sv["x_sv_m"][sidx], \
+                                         sp3data_sv["y_sv_m"][sidx], \
+                                         sp3data_sv["z_sv_m"][sidx] ])
+            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 1e-6

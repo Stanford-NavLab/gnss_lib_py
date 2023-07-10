@@ -6,14 +6,15 @@ __authors__ = "Sriramya Bhamidipati"
 __date__ = "09 June 2022"
 
 import os
+from datetime import datetime, timezone
 
 import numpy as np
 from scipy import interpolate
-from datetime import datetime, timezone
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
+from gnss_lib_py.utils.time_conversions import datetime_to_unix_millis
 
 class Sp3(NavData):
     """sp3 specific loading and preprocessing for any GNSS constellation
@@ -42,7 +43,7 @@ class Sp3(NavData):
 
         gps_millis = []
         unix_millis = []
-        gnss_sv_id = []
+        gnss_sv_ids = []
         gnss_id = []
         sv_id = []
         x_sv_m = []
@@ -71,19 +72,21 @@ class Sp3(NavData):
                 temp = dval.split()
                 curr_time = datetime( int(temp[1]), int(temp[2]), \
                                       int(temp[3]), int(temp[4]), \
-                                      int(temp[5]),int(float(temp[6])), \
+                                      int(temp[5]),int(float(temp[6])),\
                                       tzinfo=timezone.utc )
-                gps_millis = datetime_to_gps_millis(curr_time, add_leap_secs = False)
+                gps_millis_timestep = datetime_to_gps_millis(curr_time,
+                                                add_leap_secs = False)
+                unix_millis_timestep = datetime_to_unix_millis(curr_time)
 
             if 'P' in dval[0]:
                 # A satellite record.  Get the satellite number, and coordinate (X,Y,Z) info
                 temp = dval.split()
 
-                gnss_sv_id = temp[0]
+                gnss_sv_id = temp[0][1:]
 
-                gps_millis.append(gps_millis)
-                unix_millis.append(curr_time)
-                gnss_sv_id.append(gnss_sv_id)
+                gps_millis.append(gps_millis_timestep)
+                unix_millis.append(unix_millis_timestep)
+                gnss_sv_ids.append(gnss_sv_id)
                 gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
                 sv_id.append(int(gnss_sv_id[1:]))
                 x_sv_m.append(float(temp[1])*1e3)
@@ -92,21 +95,21 @@ class Sp3(NavData):
 
         self["gps_millis"] = gps_millis
         self["unix_millis"] = unix_millis
-        self["gnss_sv_id"] = gnss_sv_id
-        self["gnss_id"] = gnss_id
+        self["gnss_sv_id"] = np.array(gnss_sv_ids,dtype=object)
+        self["gnss_id"] = np.array(gnss_id, dtype=object)
         self["sv_id"] = sv_id
         self["x_sv_m"] = x_sv_m
         self["y_sv_m"] = y_sv_m
         self["z_sv_m"] = z_sv_m
 
-    def extract_sp3(self, sp3data, sidx, ipos = 10, \
+    def extract_sp3(self, gnss_sv_id, sidx, ipos = 10, \
                          method = 'CubicSpline', verbose = False):
         """Computing interpolated function over sp3 data for any GNSS
 
         Parameters
         ----------
-        sp3data : gnss_lib_py.parsers.precise_ephemerides.Sp3
-            Instance of GPS-only Sp3 class list with len == # sats
+        gnss_sv_id : string
+            PRN of satellite for which position should be determined.
         sidx : int
             Nearest index within sp3 time series around which interpolated
             function needs to be centered
@@ -124,23 +127,27 @@ class Sp3(NavData):
             that is loaded with .sp3 data
         """
 
+        sp3data = self.where("gnss_sv_id",gnss_sv_id)
+
         func_satpos = np.empty((3,), dtype=object)
         func_satpos[:] = np.nan
 
         if method=='CubicSpline':
             low_i = (sidx - ipos) if (sidx - ipos) >= 0 else 0
-            high_i = (sidx + ipos) if (sidx + ipos) <= len(sp3data.tym) else -1
+            high_i = (sidx + ipos) if (sidx + ipos) <= len(sp3data["gps_millis"]) else -1
 
             if verbose:
-                print('Nearest sp3: ', sidx, sp3data.tym[sidx], \
-                                       sp3data.xpos[sidx], sp3data.ypos[sidx], sp3data.zpos[sidx])
+                print('Nearest sp3: ', sidx, sp3data["gps_millis"][sidx], \
+                                       sp3data["x_sv_m"][sidx],
+                                       sp3data["y_sv_m"][sidx],
+                                       sp3data["z_sv_m"][sidx])
 
-            func_satpos[0] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
-                                                     sp3data.xpos[low_i:high_i])
-            func_satpos[1] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
-                                                     sp3data.ypos[low_i:high_i])
-            func_satpos[2] = interpolate.CubicSpline(sp3data.tym[low_i:high_i], \
-                                                     sp3data.zpos[low_i:high_i])
+            func_satpos[0] = interpolate.CubicSpline(sp3data["gps_millis"][low_i:high_i], \
+                                                     sp3data["x_sv_m"][low_i:high_i])
+            func_satpos[1] = interpolate.CubicSpline(sp3data["gps_millis"][low_i:high_i], \
+                                                     sp3data["y_sv_m"][low_i:high_i])
+            func_satpos[2] = interpolate.CubicSpline(sp3data["gps_millis"][low_i:high_i], \
+                                                     sp3data["z_sv_m"][low_i:high_i])
 
         return func_satpos
 

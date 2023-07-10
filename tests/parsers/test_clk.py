@@ -53,7 +53,7 @@ def fixture_clk_path(root_path):
     Downloaded the relevant .clk files from either CORS website [1]_ or
     CDDIS website [2]_
     """
-    clk_path = os.path.join(root_path, 'precise_ephemeris/grg21553_short.clk')
+    clk_path = os.path.join(root_path, 'clk/grg21553_short.clk')
     return clk_path
 
 @pytest.fixture(name="clkdata_gps")
@@ -101,7 +101,7 @@ def fixture_clk_path_missing(root_path):
     clk_path : string
         String with location for the unit_test clk measurements
     """
-    clk_path_missing = os.path.join(root_path, 'precise_ephemeris/grg21553_missing.clk')
+    clk_path_missing = os.path.join(root_path, 'clk/grg21553_missing.clk')
     return clk_path_missing
 
 def test_load_clkdata_missing(clk_path_missing):
@@ -130,7 +130,7 @@ def fixture_clk_path_nodata(root_path):
     clk_path : string
         String with location for the unit_test clk measurements
     """
-    clk_path_nodata = os.path.join(root_path, 'precise_ephemeris/grg21553_nodata.clk')
+    clk_path_nodata = os.path.join(root_path, 'clk/grg21553_nodata.clk')
     return clk_path_nodata
 
 def test_load_clkdata_nodata(clk_path_nodata):

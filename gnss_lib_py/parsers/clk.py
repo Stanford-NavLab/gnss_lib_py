@@ -6,16 +6,11 @@ __authors__ = "Sriramya Bhamidipati"
 __date__ = "09 June 2022"
 
 import os
+from datetime import datetime, timezone
 
-from datetime import datetime, timedelta, timezone
-
-import numpy as np
 from scipy import interpolate
 
-from gnss_lib_py.parsers.rinex import get_time_cropped_rinex
-from gnss_lib_py.utils.sv_models import find_sv_states, _combine_gnss_sv_ids
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
-import gnss_lib_py.utils.constants as consts
 
 class Clk:
     """Class handling satellite clock bias data from precise ephemerides
@@ -37,7 +32,7 @@ def parse_clockfile(input_path):
     Returns
     -------
     clkdata : dict
-        Populated gnss_lib_py.parsers.precise_ephemerides.Clk objects
+        Populated gnss_lib_py.parsers.clk.Clk objects
         with key of `gnss_sv_id` for each satellite.
 
     Notes
@@ -114,7 +109,7 @@ def extract_clk(clkdata, sidx, ipos = 10, \
 
     Parameters
     ----------
-    clkdata : gnss_lib_py.parsers.precise_ephemerides.Sp3
+    clkdata : gnss_lib_py.parsers.clk.Clk
         Instance of GPS-only Clk class list with len == # sats
     sidx : int
         Nearest index within clk time series around which interpolated
