@@ -430,13 +430,13 @@ def fixture_clk_path(root_path):
 
     Notes
     -----
-    Downloaded the relevant .clk files from either CORS website [1]_ or
-    CDDIS website [2]_
+    Downloaded the relevant .clk files from either CORS website [3]_ or
+    CDDIS website [4]_
 
     References
     ----------
-    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
-    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+    .. [3]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [4]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
             Accessed as of August 2, 2022
 
     """
@@ -472,14 +472,14 @@ def fixture_navdata_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset [3]_,
+    Test data is a subset of the Android Raw Measurement Dataset [5]_,
     particularly the train/2021-04-28-US-SJC-1/Pixel4 trace. The dataset
     was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [5] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -769,11 +769,11 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
     """Tests that add_sv_states_sp3_and_clk does not fail for multi-GNSS
 
     Notes
-    ----------
+    -----
     The threshold for assertion checks are set heuristically; not applicable if
     input unit test files are changed.
 
-    Parametersephemeris_directory
+    Parameters
     ----------
     navdata : pytest.fixture
         Instance of AndroidDerived for testing
