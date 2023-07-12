@@ -14,6 +14,7 @@ import warnings
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.utils import constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
 def solve_wls(measurements, weight_type = None, only_bias = False,
@@ -29,13 +30,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     in rx_est_m will be updated if only_bias is set to True.
 
     If only_bias is set to True, then the receiver position must also
-    be passed in as the receiver_state
-
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
-        Either estimated or ground truth receiver position in ECEF frame
-        in meters as an instance of the NavData class with the
-        following rows: ``x_rx*_m``, `y_rx*_m``, ``z_rx*_m``,
-        ``gps_millis``.
+    be passed in as the receiver_state.
 
     Parameters
     ----------
@@ -170,7 +165,7 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
         array with shape (4 x 1) and the following order:
         x_rx_m, y_rx_m, z_rx_m, b_rx_m.
     pos_sv_m : np.ndarray
-        Satellite positions as an array of shape [# svs x 3] where
+        Satellite ECEF positions as an array of shape [# svs x 3] where
         the columns contain in order x_sv_m, y_sv_m, and z_sv_m.
     corr_pr_m : np.ndarray
         Corrected pseudoranges for all satellites with shape of
@@ -195,11 +190,35 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
         array with shape (4 x 1) and the following order:
         x_rx_m, y_rx_m, z_rx_m, b_rx_m.
 
+    Notes
+    -----
+    This function internally updates the used SV position to account for
+    the time taken for the signal to travel to the Earth from the GNSS
+    satellites.
+    Since the SV and receiver positions are calculated in an ECEF frame
+    of reference, which is moving with the Earth's rotation, the reference
+    frame is slightly (about 30 m along longitude) different when the
+    signals are received than when the signals were transmitted. Given
+    the receiver's position is estimated when the signal is received,
+    the SV positions need to be updated to reflect the change in the
+    frame of reference in which their position is calculated.
+
+    This update happens after every Gauss-Newton update step and is
+    adapted from [1]__.
+
+    References
+    ----------
+        .. [1] https://github.com/google/gps-measurement-tools/blob/master/opensource/FlightTimeCorrection.m
+
     """
 
     rx_est_m = rx_est_m.copy() # don't change referenced value
 
     count = 0
+    # Store the SV position at the original receiver time.
+    # This position will be modified by the time taken by the signal to
+    # travel to the receiver.
+    rx_time_pos_sv_m = pos_sv_m.copy()
     num_svs = pos_sv_m.shape[0]
     if num_svs < 4 and not only_bias:
         raise RuntimeError("Need at least four satellites for WLS.")
@@ -244,6 +263,14 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
             rx_est_m[3,0] += pos_x_delta[0,0]
         else:
             rx_est_m += pos_x_delta
+
+
+        # Update the satellite positions based on the time taken for
+        # the signal to reach the Earth and the satellite clock bias.
+        tx_time = (corr_pr_m.reshape(-1) - rx_est_m[3,0])/consts.C
+        dtheta = consts.OMEGA_E_DOT*tx_time
+        pos_sv_m[:, 0] = np.cos(dtheta)*rx_time_pos_sv_m[:,0] + np.sin(dtheta)*rx_time_pos_sv_m[:,1]
+        pos_sv_m[:, 1] = -np.sin(dtheta)*rx_time_pos_sv_m[:,0] + np.cos(dtheta)*rx_time_pos_sv_m[:,1]
 
         count += 1
 
