@@ -316,7 +316,10 @@ def _find_delxyz_range(sv_posvel, pos, satellites):
     pos = np.reshape(pos, [1, 3])
     if np.size(pos)!=3:
         raise ValueError('Position is not in XYZ')
-    _, sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    if isinstance(sv_posvel, NavData):
+        _, sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    else:
+        sv_pos = sv_posvel[:, :3]
     del_pos = sv_pos - np.tile(np.reshape(pos, [-1, 3]), (satellites, 1))
     true_range = np.linalg.norm(del_pos, axis=1)
     return del_pos, true_range
