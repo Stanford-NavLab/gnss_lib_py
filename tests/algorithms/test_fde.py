@@ -141,12 +141,12 @@ def test_fde_edm(derived):
 
     # test without removing outliers
     navdata = derived.copy()
-    navdata = solve_fde(navdata,"edm")
+    navdata = solve_fde(navdata,"edm",verbose=True)
     assert "fault_edm" in navdata.rows
 
     # test with removing outliers
     navdata = derived.copy()
-    navdata = solve_fde(navdata,"edm",remove_outliers=True)
+    navdata = solve_fde(navdata,"edm",remove_outliers=True,verbose=True)
     assert "fault_edm" in navdata.rows
     np.testing.assert_array_equal(np.unique(navdata["fault_edm"]),
                                   np.array([0]))
