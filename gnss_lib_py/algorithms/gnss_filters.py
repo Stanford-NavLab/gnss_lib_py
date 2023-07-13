@@ -59,7 +59,6 @@ def solve_gnss_ekf(measurements, init_dict = None,
                                                                "z_rx*_m",
                                                                "b_rx*_m"],
                                                                max_allow=1)
-
             not_nan_idxs = measurements.argwhere(pos_est_rows['x_rx*_m'],
                                                  np.nan, 'neq')
             state_0 = np.zeros((7,1))
@@ -83,10 +82,11 @@ def solve_gnss_ekf(measurements, init_dict = None,
                 state_0[1,0] = measurements[pos_est_rows['y_rx*_m'], not_nan_idxs[0]]
                 state_0[2,0] = measurements[pos_est_rows['z_rx*_m'], not_nan_idxs[0]]
                 pos_0 = NavData()
-                pos_0[pos_est_rows['x_rx*_m']] = state_0[0,0]
-                pos_0[pos_est_rows['y_rx*_m']] = state_0[1,0]
-                pos_0[pos_est_rows['z_rx*_m']] = state_0[2,0]
-                measurement_subset = measurements.copy(col=not_nan_idxs[0])
+                pos_0['gps_millis'] = measurements['gps_millis', not_nan_idxs[0]]
+                pos_0['x_rx_m'] = state_0[0,0]
+                pos_0['y_rx_m'] = state_0[1,0]
+                pos_0['z_rx_m'] = state_0[2,0]
+                measurement_subset = measurements.copy(cols=not_nan_idxs[0])
                 pos_0 = solve_wls(measurement_subset,
                                     receiver_state=pos_0,
                                     only_bias=True)
@@ -111,7 +111,6 @@ def solve_gnss_ekf(measurements, init_dict = None,
                 if pos_0 is not None:
                     state_0[:3,0] = pos_0[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]]
                     state_0[6,0] = pos_0[["b_rx_wls_m"]]
-
         init_dict["state_0"] = state_0
 
     if "sigma_0" not in init_dict:
@@ -123,6 +122,9 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
     if "R" not in init_dict:
         raise RuntimeError("Measurement noise must be specified in init_dict")
+
+    if "use_tx_time" not in init_dict:
+        init_dict["use_tx_time"] = False
 
     # initialize parameter dictionary
     if params_dict is None:
@@ -210,6 +212,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         self.delta_t = params_dict.get('dt',1.0)
         self.motion_type = params_dict.get('motion_type','stationary')
         self.measure_type = params_dict.get('measure_type','pseudorange')
+        self.use_tx_time = init_dict.get('use_tx_time', False)
 
     def dyn_model(self, u, predict_dict=None):
         """Nonlinear dynamics
@@ -266,7 +269,13 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         ----------
         update_dict : dict
             Update dictionary containing satellite positions with key
-            ``pos_sv_m``.
+            ``pos_sv_m`` and optionally ``tx_time``. ``tx_time`` specifies
+            if the filter should use the SV positions at time of
+            transmission (if True). If False, the the time it takes for
+            the signal to propagate from the satellite to the receiver
+            is accounted for and the SV positions are propagated forward
+            to the ECEF coordinate frame at the receiver time. By default,
+            ``tx_time`` is True.
 
         Returns
         -------
@@ -282,17 +291,18 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         """
         if self.measure_type=='pseudorange':
             pos_sv_m = update_dict['pos_sv_m']
-            rx_pos_m = np.array([[self.state[0]], [self.state[1]], [self.state[2]]])
-            num_svs = np.shape(pos_sv_m)[1]
-            _, true_range = _find_delxyz_range(pos_sv_m.T, rx_pos_m, num_svs)
-            tx_time = (true_range - self.state[6])/consts.C
-            dtheta = consts.OMEGA_E_DOT*tx_time
-            # The following two lines are expanded position updates for a
-            # rotation by dtheta radians about the z-axis, which updates
-            # the positions along the x and y axes but the position along
-            # the z-axis is unchanged.
-            pos_sv_m[0, :] = np.cos(dtheta)*pos_sv_m[0,:] + np.sin(dtheta)*pos_sv_m[1,:]
-            pos_sv_m[1, :] = -np.sin(dtheta)*pos_sv_m[0,:] + np.cos(dtheta)*pos_sv_m[1,:]
+            if not self.use_tx_time:
+                rx_pos_m = np.array([[self.state[0]], [self.state[1]], [self.state[2]]])
+                num_svs = np.shape(pos_sv_m)[1]
+                _, true_range = _find_delxyz_range(pos_sv_m.T, rx_pos_m, num_svs)
+                tx_time = (true_range - self.state[6])/consts.C
+                dtheta = consts.OMEGA_E_DOT*tx_time
+                # The following two lines are expanded position updates for a
+                # rotation by dtheta radians about the z-axis, which updates
+                # the positions along the x and y axes but the position along
+                # the z-axis is unchanged.
+                pos_sv_m[0, :] = np.cos(dtheta)*pos_sv_m[0,:] + np.sin(dtheta)*pos_sv_m[1,:]
+                pos_sv_m[1, :] = -np.sin(dtheta)*pos_sv_m[0,:] + np.cos(dtheta)*pos_sv_m[1,:]
             pseudo = np.sqrt((self.state[0] - pos_sv_m[0, :])**2
                            + (self.state[1] - pos_sv_m[1, :])**2
                            + (self.state[2] - pos_sv_m[2, :])**2) \
