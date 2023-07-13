@@ -11,6 +11,7 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.algorithms.fde import solve_fde
+from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived2022
 
 @pytest.fixture(name="root_path_2022")
@@ -83,24 +84,50 @@ def fixture_load_derived(derived_2022_path):
     derived = AndroidDerived2022(derived_2022_path)
     return derived
 
-def test_fde_residual(derived):
-    """Test residual-based FDE.
+@pytest.fixture(name="state_estimate")
+def fixture_compute_state_estimate(derived):
+    """Load instance of AndroidDerived2022.
 
     Parameters
     ----------
     derived : AndroidDerived2022
         Instance of AndroidDerived2022 for testing.
 
+    Returns
+    -------
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        WLS state estimate.
+
+
+    """
+    state_estimate = solve_wls(derived, only_bias=True,
+                               receiver_state=derived)
+    return state_estimate
+
+def test_fde_residual(derived, state_estimate):
+    """Test residual-based FDE.
+
+    Parameters
+    ----------
+    derived : AndroidDerived2022
+        Instance of AndroidDerived2022 for testing.
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        WLS state estimate.
+
     """
 
     # test without removing outliers
     navdata = derived.copy()
-    navdata = solve_fde(navdata)
+
+    navdata = solve_fde(navdata, receiver_state=state_estimate.copy(),
+                        verbose=True)
     assert "fault_residual" in navdata.rows
+    print(navdata["MultipathIndicator"])
 
     # test with removing outliers
     navdata = derived.copy()
-    navdata = solve_fde(navdata,remove_outliers=True)
+    navdata = solve_fde(navdata, receiver_state=state_estimate.copy(),
+                        remove_outliers=True)
     assert "fault_residual" in navdata.rows
     np.testing.assert_array_equal(np.unique(navdata["fault_residual"]),
                                   np.array([0]))
@@ -120,6 +147,7 @@ def test_fde_ss(derived):
     navdata = derived.copy()
     navdata = solve_fde(navdata,"ss")
     assert "fault_ss" in navdata.rows
+    print(navdata["MultipathIndicator"])
 
     # test with removing outliers
     navdata = derived.copy()
@@ -143,6 +171,7 @@ def test_fde_edm(derived):
     navdata = derived.copy()
     navdata = solve_fde(navdata,"edm",verbose=True)
     assert "fault_edm" in navdata.rows
+    print(navdata["MultipathIndicator"])
 
     # test with removing outliers
     navdata = derived.copy()

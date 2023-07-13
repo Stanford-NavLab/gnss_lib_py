@@ -7,6 +7,8 @@ __date__ = "11 Jul 2023"
 
 import numpy as np
 
+from gnss_lib_py.algorithms.residuals import solve_residuals
+
 def solve_fde(navdata, method="residual", remove_outliers=False,
               max_faults=None, threshold=None,
               **kwargs):
@@ -37,21 +39,25 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Result includes a new row of ``fault_<method>`` which has a
-        boolean 0/1 value where 1 indicates a fault and 0 indicates that
-        no fault was detected.
+        Result includes a new row of ``fault_<method>`` where a
+        value of 1 indicates a detected fault and 0 indicates that
+        no fault was detected, and 2 indicates an unknown fault status
+        usually due to lack of necessary columns or information.
 
     """
 
     if method == "residual":
-        navdata = fde_residual(navdata, max_faults, threshold,
-                               **kwargs)
+        navdata = fde_residual(navdata, max_faults=max_faults,
+                                        threshold=threshold,
+                                        **kwargs)
     elif method == "ss":
-        navdata = fde_solution_separation(navdata, max_faults, threshold,
-                                          **kwargs)
+        navdata = fde_solution_separation(navdata, max_faults=max_faults,
+                                                   threshold=threshold,
+                                                   **kwargs)
     elif method == "edm":
-        navdata = fde_edm(navdata, max_faults, threshold,
-                          **kwargs)
+        navdata = fde_edm(navdata, max_faults=max_faults,
+                                   threshold=threshold,
+                                   **kwargs)
     else:
         raise ValueError("invalid method input for solve_fde()")
 
@@ -61,7 +67,8 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
     return navdata
 
 
-def fde_residual(navdata, max_faults, threshold):
+def fde_residual(navdata, receiver_state, max_faults, threshold,
+                 verbose=False):
     """Residual-based fault detection and exclusion.
 
     Parameters
@@ -71,25 +78,107 @@ def fde_residual(navdata, max_faults, threshold):
         estimated state: x_rx*_m, y_rx*_m, z_rx*_m, b_rx*_m as well as
         the satellite states: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
         as timing "gps_millis" and the corrected pseudorange corr_pr_m.
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Either estimated or ground truth receiver position in ECEF frame
+        in meters and the estimated or ground truth receiver clock bias
+        also in meters as an instance of the NavData class with the
+        following rows: x_rx*_m, y_rx*_m, z_rx*_m, b_rx*_m.
     max_faults : int
         Maximum number of faults to detect and/or exclude.
     threshold : float
         Detection threshold.
+    verbose : bool
+        Prints extra debugging print statements if true.
 
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Result includes a new row of ``fault_residual`` which has a
-        boolean 0/1 value where 1 indicates a fault and 0 indicates that
-        no fault was detected.
+        Result includes a new row of ``fault_residual`` where a
+        value of 1 indicates a detected fault and 0 indicates that
+        no fault was detected, and 2 indicates an unknown fault status
+        usually due to lack of necessary columns or information.
 
     """
 
-    navdata["fault_residual"] = 0
+    fault_residual = []
+    if threshold is None:
+        threshold = 10
+
+    solve_residuals(navdata, receiver_state, inplace=True)
+
+    for _, _, navdata_subset in navdata.loop_time('gps_millis'):
+
+        subset_length = len(navdata_subset)
+
+        sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        corr_pr_m = navdata_subset["corr_pr_m"]
+
+        # remove NaN indexes
+        nan_indexes = sorted(list(set(np.arange(subset_length)[np.isnan(sv_m).any(axis=0)]).union( \
+                                  set(np.arange(subset_length)[np.isnan(corr_pr_m)]).union( \
+                                  ))))[::-1]
+
+        original_indexes = np.arange(subset_length)
+        # remove NaN indexes
+        navdata_subset.remove(cols=nan_indexes,inplace=True)
+        original_indexes = np.delete(original_indexes, nan_indexes)
+
+        if len(navdata_subset) < 6:
+            ri = []
+        else:
+            residuals = navdata_subset["residuals_m"].reshape(-1,1)
+
+            # test statistic
+            r = np.sqrt(residuals.T.dot(residuals)[0,0] \
+                         / (subset_length - 4) )
+
+            if verbose:
+                print("residual test statistic:",r)
+
+            # iterate through subsets if r is above detection threshold
+            if r > threshold:
+                ri = set()
+                r_subsets = []
+                for ss in range(len(navdata_subset)):
+                    residual_subset = np.delete(residuals,ss,axis=0)
+                    r_subset = np.sqrt(residual_subset.T.dot(residual_subset)[0,0] \
+                                 / (len(residual_subset) - 4) )
+                    if verbose:
+                        r_subsets.append(r_subset)
+                    # adjusted threshold metric
+                    if r_subset/r < 1.:
+                        ri.add(ss)
+
+                if len(ri) == 0:
+                    if verbose:
+                        print("NONE fail:")
+                        print("r: ",r)
+                        print("ri: ",ri)
+                        for rri, rrr in enumerate(residuals):
+                            print(rri, rrr, r_subsets[rri]/r)
+            else:
+                if verbose:
+                    print("threshold fail:")
+                    print("r: ",r)
+                    for rri, rrr in enumerate(residuals):
+                        print(rri, rrr)
+
+            ri = list(ri)
+
+        fault_residual_subset = np.array([0] * subset_length)
+        fault_residual_subset[original_indexes[ri]] = 1
+        fault_residual_subset[nan_indexes] = 2
+        fault_residual += list(fault_residual_subset)
+
+
+    navdata["fault_residual"] = fault_residual
+    if verbose:
+        print(navdata["fault_residual"])
 
     return navdata
 
-def fde_solution_separation(navdata, max_faults, threshold):
+def fde_solution_separation(navdata, max_faults, threshold,
+                            verbose=False):
     """Solution separation fault detection and exclusion.
 
     Parameters
@@ -103,16 +192,41 @@ def fde_solution_separation(navdata, max_faults, threshold):
         Maximum number of faults to detect and/or exclude.
     threshold : float
         Detection threshold.
+    verbose : bool
+        Prints extra debugging print statements if true.
 
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Result includes a new row of ``fault_ss`` which has a
-        boolean 0/1 value where 1 indicates a fault and 0 indicates that
-        no fault was detected.
+        Result includes a new row of ``fault_ss`` where a
+        value of 1 indicates a detected fault and 0 indicates that
+        no fault was detected, and 2 indicates an unknown fault status
+        usually due to lack of necessary columns or information.
 
     """
 
+    fault_ss = []
+    if threshold is None:
+        threshold = 100
+
+    for _, _, navdata_subset in navdata.loop_time('gps_millis'):
+
+        subset_length = len(navdata_subset)
+
+        sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        corr_pr_m = navdata_subset["corr_pr_m"]
+
+        # remove NaN indexes
+        nan_indexes = sorted(list(set(np.arange(subset_length)[np.isnan(sv_m).any(axis=0)]).union( \
+                                  set(np.arange(subset_length)[np.isnan(corr_pr_m)]).union( \
+                                  ))))[::-1]
+
+        # fault_ss_subset = np.array([0] * len(navdata_subset))
+        # fault_ss_subset[tri] = 1
+        # fault_ss_subset[nan_indexes] = 2
+        # fault_ss += list(fault_ss_subset)
+
+    # navdata["fault_ss"] = fault_ss
     navdata["fault_ss"] = 0
 
     return navdata
@@ -139,9 +253,10 @@ def fde_edm(navdata, max_faults, threshold=1.0, verbose=False):
     Returns
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Result includes a new row of ``fault_edm`` which has a
-        boolean 0/1 value where 1 indicates a fault and 0 indicates that
-        no fault was detected.
+        Result includes a new row of ``fault_edm`` where a
+        value of 1 indicates a detected fault and 0 indicates that
+        no fault was detected, and 2 indicates an unknown fault status
+        usually due to lack of necessary columns or information.
 
     References
     ----------
@@ -154,16 +269,11 @@ def fde_edm(navdata, max_faults, threshold=1.0, verbose=False):
     fault_edm = []
     dims = 3
     if threshold is None:
-        threshold = 1000
+        threshold = 100
 
-    for timestep, _, navdata_subset in navdata.loop_time('gps_millis'):
-
-        # navdata_subset = navdata_subset.where("signal_type",("l5","e5a"),"neq")
-        # print()
+    for _, _, navdata_subset in navdata.loop_time('gps_millis'):
 
         nsl = len(navdata_subset)
-        if nsl < 5:
-            break
 
         sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
         corr_pr_m = navdata_subset["corr_pr_m"]
@@ -171,14 +281,13 @@ def fde_edm(navdata, max_faults, threshold=1.0, verbose=False):
         # remove NaN indexes
         nan_indexes = sorted(list(set(np.arange(nsl)[np.isnan(sv_m).any(axis=0)]).union( \
                                   set(np.arange(nsl)[np.isnan(corr_pr_m)]).union( \
-                                  set(navdata_subset.argwhere("signal_type",
-                                  ("l5","e5a","nan")))))))[::-1]
+                                  ))))[::-1]
 
         D = _edm_from_satellites_ranges(sv_m,corr_pr_m)
 
         # add one to account for the receiver in D
         ri = list(np.array(nan_indexes)+1)  # index to remove
-        tri = nan_indexes                   # removed indexes (in transmitter frame)
+        tri = nan_indexes.copy()            # removed indexes (in transmitter frame)
         reci = 0                            # index of the receiver
         oi = np.arange(D.shape[0])                 # original indexes
 
@@ -303,16 +412,17 @@ def fde_edm(navdata, max_faults, threshold=1.0, verbose=False):
                     ri = ri_tested[idx_best]
                     if verbose:
                         print("chosen ri: ", ri)
-
             else:
                 break
 
-
         fault_edm_subset = np.array([0] * len(navdata_subset))
         fault_edm_subset[tri] = 1
+        fault_edm_subset[nan_indexes] = 2
         fault_edm += list(fault_edm_subset)
 
     navdata["fault_edm"] = fault_edm
+    if verbose:
+        print(navdata["fault_edm"])
 
     return navdata
 
