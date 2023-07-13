@@ -218,11 +218,11 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
     frame of reference in which their position is calculated.
 
     This update happens after every Gauss-Newton update step and is
-    adapted from [1]__.
+    adapted from [1]_.
 
     References
     ----------
-        .. [1] https://github.com/google/gps-measurement-tools/blob/master/opensource/FlightTimeCorrection.m
+    .. [1] https://github.com/google/gps-measurement-tools/blob/master/opensource/FlightTimeCorrection.m
 
     """
 
