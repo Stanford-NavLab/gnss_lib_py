@@ -411,10 +411,9 @@ class AndroidRawImu(NavData):
 
         Returns
         -------
-        accel : pd.DataFrame
-            Dataframe that contains the accel measurements from the log.
-        gyro : pd.DataFrame
-            Dataframe that contains the gyro measurements from the log.
+        measurements : pd.DataFrame
+            Dataframe that contains the accel and gyro measurements from
+            the log.
 
         """
 

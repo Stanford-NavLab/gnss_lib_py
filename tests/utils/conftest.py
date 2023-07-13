@@ -14,7 +14,7 @@ import numpy as np
 from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import AndroidDerived2022, AndroidGroundTruth2022
-from gnss_lib_py.parsers.ephemeris import EphemerisManager
+from gnss_lib_py.parsers.rinex import get_time_cropped_rinex
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -124,7 +124,7 @@ def fixture_ephemeris_path(root_path):
     ephemeris_path : string
         Path where ephemeris files are to be stored.
     """
-    ephemeris_path = os.path.join(root_path, 'ephemeris')
+    ephemeris_path = os.path.join(root_path)
     return ephemeris_path
 
 
@@ -287,8 +287,9 @@ def fixture_all_gps_ephem(ephemeris_path, start_time, all_gps_sats):
         NavData instance containing ephemeris parameters for all GPS
         satellites at the start time for measurement reception.
     """
-    ephem_man_nav = EphemerisManager(ephemeris_path)
-    ephem = ephem_man_nav.get_ephemeris(start_time, all_gps_sats)
+
+    ephem = get_time_cropped_rinex(start_time, all_gps_sats,
+                                   ephemeris_path)
     return ephem
 
 

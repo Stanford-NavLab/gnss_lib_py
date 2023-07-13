@@ -21,7 +21,7 @@ from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr
                         find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
-from gnss_lib_py.parsers.ephemeris import DEFAULT_EPHEM_PATH
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 
 def add_measures(measurements, state_estimate,
@@ -71,7 +71,7 @@ def add_measures(measurements, state_estimate,
         Estimate for receiver states --- ECEF x, y, and z positions in meters,
         ECEF x, y, and z velocities in meters, clock bias in meters, and
         the clock drift in meters per second --- stored in a NavData instance.
-    ephemeris_path : string
+    ephemeris_path : string or path-like
         Location where ephemeris files are stored. Files will be
         downloaded if they don't exist for the given date and constellation.
     iono_params : np.ndarray

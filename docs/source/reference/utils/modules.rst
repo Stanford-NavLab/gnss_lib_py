@@ -6,6 +6,7 @@ utils
 
    constants
    coordinates
+   ephemeris_downloader
    file_operations
    filters
    gnss_models

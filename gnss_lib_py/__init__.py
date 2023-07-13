@@ -8,13 +8,15 @@ from gnss_lib_py.algorithms.residuals import *
 from gnss_lib_py.algorithms.snapshot import *
 
 from gnss_lib_py.parsers.android import *
-from gnss_lib_py.parsers.ephemeris import *
+from gnss_lib_py.parsers.clk import *
 from gnss_lib_py.parsers.navdata import *
-from gnss_lib_py.parsers.precise_ephemerides import *
 from gnss_lib_py.parsers.nmea import *
+from gnss_lib_py.parsers.rinex import *
 from gnss_lib_py.parsers.smartloc import *
+from gnss_lib_py.parsers.sp3 import *
 
 from gnss_lib_py.utils.coordinates import *
+from gnss_lib_py.utils.ephemeris_downloader import *
 from gnss_lib_py.utils.filters import *
 from gnss_lib_py.utils.sv_models import *
 from gnss_lib_py.utils.gnss_models import *

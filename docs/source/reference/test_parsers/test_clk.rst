@@ -1,7 +1,7 @@
-ephemeris module
+test\_clk module
 ================
 
-.. automodule:: ephemeris
+.. automodule:: test_clk
    :members:
    :undoc-members:
    :show-inheritance:
