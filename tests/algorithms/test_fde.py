@@ -10,9 +10,9 @@ import os
 import pytest
 import numpy as np
 
-from gnss_lib_py.algorithms.fde import solve_fde
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived2022
+from gnss_lib_py.algorithms.fde import solve_fde, evaluate_fde
 
 @pytest.fixture(name="root_path_2022")
 def fixture_root_path_2022():
@@ -104,7 +104,7 @@ def fixture_compute_state_estimate(derived):
                                receiver_state=derived)
     return state_estimate
 
-def test_fde_residual(derived, state_estimate):
+def test_fde_residual_old(derived, state_estimate):
     """Test residual-based FDE.
 
     Parameters
@@ -156,7 +156,7 @@ def test_fde_ss(derived):
     np.testing.assert_array_equal(np.unique(navdata["fault_ss"]),
                                   np.array([0]))
 
-def test_fde_edm(derived):
+def test_fde_edm_old(derived):
     """Test Euclidean distance matrix-based FDE.
 
     Parameters
@@ -193,3 +193,29 @@ def test_fde_fails(derived):
     with pytest.raises(ValueError) as excinfo:
         solve_fde(derived, method="perfect_method")
     assert "invalid method" in str(excinfo.value)
+
+
+def test_evaluate_fde(derived, state_estimate):
+    """Evaluate FDE methods.
+
+    Parameters
+    ----------
+    derived : AndroidDerived2022
+        Instance of AndroidDerived2022 for testing.
+    state_estimate : gnss_lib_py.parsers.navdata.NavData
+        WLS state estimate.
+
+    """
+
+    # test EDM FDE
+    navdata = derived.copy()
+    evaluate_fde(navdata,"edm",
+                 fault_truth_row="MultipathIndicator",
+                 verbose=True)
+
+    # test residual FDE
+    navdata = derived.copy()
+    evaluate_fde(navdata,"residual",
+                 fault_truth_row="MultipathIndicator",
+                 receiver_state=state_estimate,
+                 verbose=True)

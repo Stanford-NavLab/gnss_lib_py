@@ -47,15 +47,15 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
     """
 
     if method == "residual":
-        navdata = fde_residual(navdata, max_faults=max_faults,
+        navdata = fde_residual_old(navdata, max_faults=max_faults,
                                         threshold=threshold,
                                         **kwargs)
     elif method == "ss":
-        navdata = fde_solution_separation(navdata, max_faults=max_faults,
+        navdata = fde_solution_separation_old(navdata, max_faults=max_faults,
                                                    threshold=threshold,
                                                    **kwargs)
     elif method == "edm":
-        navdata = fde_edm(navdata, max_faults=max_faults,
+        navdata = fde_edm_old(navdata, max_faults=max_faults,
                                    threshold=threshold,
                                    **kwargs)
     else:
@@ -67,7 +67,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
     return navdata
 
 
-def fde_residual(navdata, receiver_state, max_faults, threshold,
+def fde_residual_old(navdata, receiver_state, max_faults, threshold,
                  verbose=False):
     """Residual-based fault detection and exclusion.
 
@@ -177,7 +177,7 @@ def fde_residual(navdata, receiver_state, max_faults, threshold,
 
     return navdata
 
-def fde_solution_separation(navdata, max_faults, threshold,
+def fde_solution_separation_old(navdata, max_faults, threshold,
                             verbose=False):
     """Solution separation fault detection and exclusion.
 
@@ -231,7 +231,7 @@ def fde_solution_separation(navdata, max_faults, threshold,
 
     return navdata
 
-def fde_edm(navdata, max_faults, threshold=1.0, verbose=False):
+def fde_edm_old(navdata, max_faults, threshold=1.0, verbose=False):
     """Euclidean distance matrix-based fault detection and exclusion.
 
     See [1]_ for more detailed explanation of algorithm.
@@ -425,6 +425,143 @@ def fde_edm(navdata, max_faults, threshold=1.0, verbose=False):
         print(navdata["fault_edm"])
 
     return navdata
+
+def evaluate_fde(navdata, method, fault_truth_row, verbose=True,
+                 **kwargs):
+    """Evaluate FDE methods and compute accuracy scores
+
+    Measurements that are returned as "unknown" (fault=2) by the fault
+    detection method are excluded from all accuracy scores.
+
+    Accuracy metrics are defined accordingly.
+
+    True Positive (TP) : estimated = 1, truth = 1
+    True Negative (TN) : estimated = 0, truth = 0
+    Missed Detection (MD), False Negative : estimated = 0, truth = 1
+    False Alarm (FA), False Positive : estimated = 1, truth = 0
+
+    True Positive Rate (TPR) : TP / (TP + MD)
+    True Negative Rate (TNR) : TN / (TN + FA)
+    Missed Detection Rate (MDR) : MD / (MD + TP)
+    False Alarm Rate (FAR) : FA / (FA + TN)
+
+    Accuracy : (TP + TN) / (TP + TN + MD + FA)
+    Balanced Accuracy (BA) : (TPR + TNR) / 2
+    Precision : TP / (TP + FA)
+    Recall : TPR
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        NavData of GNSS measurements which must include the receiver's
+        estimated state: x_rx*_m, y_rx*_m, z_rx*_m, b_rx*_m as well as
+        the satellite states: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
+        as timing "gps_millis" and the corrected pseudorange corr_pr_m.
+    method : string
+        Method for fault detection and exclusion either "residual" for
+        residual-based, "ss" for solution separation or "edm" for
+        Euclidean Distance Matrix-based.
+    verbose : bool
+        Prints extra debugging print statements if true.
+
+    """
+    truth_fault_counts = []
+    measurement_counts = []
+    fault_percentages = []
+    timesteps = 0
+    for _, _, navdata_subset in navdata.loop_time("gps_millis"):
+        measurement_count = len(navdata_subset)
+        truth_fault_count = len(np.argwhere(navdata_subset[fault_truth_row]==1))
+        measurement_counts.append(measurement_count)
+        truth_fault_counts.append(truth_fault_count)
+        fault_percentages.append(truth_fault_count/measurement_count)
+        timesteps += 1
+
+
+    if verbose:
+        print("\nDATASET METRICS")
+        print("timesteps:",timesteps)
+        print("\nmeasurement counts:",
+              "\nmin:", int(min(measurement_counts)),
+              "\nmean:", np.round(np.mean(measurement_counts),3),
+              "\nmedian:", np.round(np.median(measurement_counts),3),
+              "\nmax:", int(max(measurement_counts)),
+              )
+        print("\ntruth fault counts:",
+              "\nmin:", int(min(truth_fault_counts)),
+              "\nmean:", np.round(np.mean(truth_fault_counts),3),
+              "\nmedian:", np.round(np.median(truth_fault_counts),3),
+              "\nmax:", int(max(truth_fault_counts)),
+              )
+        print("\npercentage faulty per timestep as decimal:",
+              "\nmin:", np.round(min(fault_percentages),3),
+              "\nmean:", np.round(np.mean(fault_percentages),3),
+              "\nmedian:", np.round(np.median(fault_percentages),3),
+              "\nmax:", np.round(max(fault_percentages),3),
+              )
+
+    # remove_outliers must be false so that faults aren't removed
+    solve_fde(navdata, method=method, remove_outliers=False, **kwargs)
+
+    estimated_faults = navdata["fault_" + method]
+    truth_faults = navdata[fault_truth_row]
+
+    total = len(estimated_faults)
+    true_positive = len(np.argwhere((estimated_faults==1) & (truth_faults==1)))
+    true_negative = len(np.argwhere((estimated_faults==0) & (truth_faults==0)))
+    missed_detection = len(np.argwhere((estimated_faults==0) & (truth_faults==1)))
+    false_alarm = len(np.argwhere((estimated_faults==1) & (truth_faults==0)))
+    unknown = len(np.argwhere(estimated_faults==2))
+    assert total == true_positive + false_alarm + true_negative \
+                  + missed_detection + unknown
+
+    # compute accuracy metrics
+    try:
+        tpr = true_positive / (true_positive + missed_detection)
+    except ZeroDivisionError:
+        tpr = 0.0
+    try:
+        tnr = true_negative / (true_negative + false_alarm)
+    except ZeroDivisionError:
+        tnr = 0.0
+    try:
+        mdr = missed_detection / (missed_detection + true_positive)
+    except ZeroDivisionError:
+        mdr = 0.0
+    try:
+        far = false_alarm / (false_alarm + true_negative)
+    except ZeroDivisionError:
+        far = 0.0
+
+    accuracy = (true_positive + true_negative) / (true_positive \
+             + true_negative + missed_detection + false_alarm)
+    balanced_accuracy = (tpr + tnr) / 2.
+    try:
+        precision = true_positive / (true_positive + false_alarm)
+    except ZeroDivisionError:
+        precision = 0
+    recall = tpr
+
+    if verbose:
+        print("\n")
+        print(method.upper() + " FDE METRICS")
+
+        print("total measurements:",total)
+        print("true positives count, TPR:",
+              true_positive, np.round(tpr,3))
+        print("true negatives count, TNR:",
+              true_negative, np.round(tnr,3))
+        print("missed detection count, MDR:",
+              missed_detection, np.round(mdr,3))
+        print("false alarm count, FAR:",
+              false_alarm, np.round(far,3))
+        print("unknown count:",unknown)
+
+        # accuracy metrics
+        print("\nprecision:",precision)
+        print("recall:",recall)
+        print("accuracy:",accuracy)
+        print("balanced accuracy:",balanced_accuracy)
 
 def _edm(X):
     """Creates a Euclidean distance matrix (EDM) from point locations.
