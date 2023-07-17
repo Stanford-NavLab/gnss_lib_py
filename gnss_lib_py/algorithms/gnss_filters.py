@@ -123,8 +123,8 @@ def solve_gnss_ekf(measurements, init_dict = None,
     if "R" not in init_dict:
         raise RuntimeError("Measurement noise must be specified in init_dict")
 
-    if "use_tx_time" not in init_dict:
-        init_dict["use_tx_time"] = False
+    if "sv_rx_time" not in init_dict:
+        init_dict["sv_rx_time"] = False
 
     # initialize parameter dictionary
     if params_dict is None:
@@ -212,7 +212,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         self.delta_t = params_dict.get('dt',1.0)
         self.motion_type = params_dict.get('motion_type','stationary')
         self.measure_type = params_dict.get('measure_type','pseudorange')
-        self.use_tx_time = init_dict.get('use_tx_time', False)
+        self.sv_rx_time = init_dict.get('sv_rx_time', False)
 
     def dyn_model(self, u, predict_dict=None):
         """Nonlinear dynamics
@@ -291,7 +291,7 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         """
         if self.measure_type=='pseudorange':
             pos_sv_m = update_dict['pos_sv_m']
-            if not self.use_tx_time:
+            if not self.sv_rx_time:
                 rx_pos_m = np.array([[self.state[0]], [self.state[1]], [self.state[2]]])
                 num_svs = np.shape(pos_sv_m)[1]
                 _, true_range = _find_delxyz_range(pos_sv_m.T, rx_pos_m, num_svs)

@@ -36,7 +36,7 @@ def gnss_init_params():
                 'sigma_0': 5*np.eye(state_dim),
                 'Q': Q,
                 'R': R,
-                'use_tx_time': True}
+                'sv_rx_time': True}
     return init_dict
 
 
@@ -221,7 +221,7 @@ def fixture_android_init_dict():
     init_dict = {}
     init_dict['Q'] = np.eye(7)
     init_dict['R'] = np.eye(1)
-    init_dict['use_tx_time'] = False
+    init_dict['sv_rx_time'] = False
     return init_dict
 
 def test_solve_gnss_ekf(derived, noise_tx_init_dict):
@@ -326,19 +326,19 @@ def test_solve_gnss_ekf_initializations(derived_2022):
     reset_init_dict = {}
     reset_init_dict['Q'] = np.eye(7)
     reset_init_dict['R'] = np.eye(1)
-    reset_init_dict['use_tx_time'] = True
+    reset_init_dict['sv_rx_time'] = True
     _ = solve_gnss_ekf(derived_2022, reset_init_dict)
     # GNSS EKF solution when initial positions are given
     derived_2022.remove(rows=['b_rx_m'], inplace=True)
     reset_init_dict = {}
     reset_init_dict['Q'] = np.eye(7)
     reset_init_dict['R'] = np.eye(1)
-    reset_init_dict['use_tx_time'] = True
+    reset_init_dict['sv_rx_time'] = True
     _ = solve_gnss_ekf(derived_2022, reset_init_dict)
     # GNSS EKF solution when no initial states are given
     derived_no_rx_rows = derived_2022.remove(rows=['x_rx_m', 'y_rx_m', 'z_rx_m'])
     reset_init_dict = {}
     reset_init_dict['Q'] = np.eye(7)
     reset_init_dict['R'] = np.eye(1)
-    reset_init_dict['use_tx_time'] = True
+    reset_init_dict['sv_rx_time'] = True
     _ = solve_gnss_ekf(derived_no_rx_rows, reset_init_dict)
