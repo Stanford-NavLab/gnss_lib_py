@@ -19,7 +19,7 @@ from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
 def solve_wls(measurements, weight_type = None, only_bias = False,
               receiver_state=None, tol = 1e-7, max_count = 20,
-              use_tx_time=False, delta_t_decimals=-2):
+              sv_rx_time=False, delta_t_decimals=-2):
     """Runs weighted least squares across each timestep.
 
     Runs weighted least squares across each timestep and adds a new
@@ -51,11 +51,14 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     max_count : int
         Number of maximum iterations before process is aborted and
         solution returned.
-    use_tx_time : bool
-        Flag that specifies whether the SV positions at transmit time
-        should be used as is or if they should be transformed to the
-        corresponding ECEF coordinates when the signal is received. If
-        True, the SV positions will not be modified.
+    sv_rx_time : bool
+        Flag that specifies whether the input SV positions are in the ECEF
+        frame of reference corresponding to when the measurements were
+        received. If set to `True`, the satellite positions are used as
+        is. The default value is `False`, in which case the ECEF positions
+        are assumed to in the ECEF frame at the time of signal transmission
+        and are converted to the ECEF frame at the time of signal reception,
+        while solving the WLS problem.
     delta_t_decimals : int
             Decimal places after which times are considered equal.
 
@@ -119,7 +122,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
                                               ,0].reshape(-1,1),
                                              position[3])) # clock bias
             position = wls(position, pos_sv_m, corr_pr_m, weights,
-                           only_bias, tol, max_count, use_tx_time)
+                           only_bias, tol, max_count, sv_rx_time=sv_rx_time)
             states.append([timestamp] + np.squeeze(position).tolist())
         except RuntimeError as error:
             if str(error) not in runtime_error_idxs:
@@ -156,7 +159,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     return state_estimate
 
 def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
-        only_bias = False, tol = 1e-7, max_count = 20, use_tx_time=False):
+        only_bias = False, tol = 1e-7, max_count = 20, sv_rx_time=False):
     """Weighted least squares solver for GNSS measurements.
 
     The option for only_bias allows the user to only calculate the clock
@@ -187,14 +190,17 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
     max_count : int
         Number of maximum iterations before process is aborted and
         solution returned.
-    use_tx_time : bool
+    sv_rx_time : bool
         Flag to indicate if the satellite positions at the time of
         transmission should be used as is or if they should be transformed
         to the ECEF frame of reference at the time of reception. For real
-        measurements, use ``use_tx_time=False`` to account for the Earth's
-        rotation. For simulations, ``use_tx_time=True`` can be used to
-        simplify the simulation and estimation. By default,
-        ``use_tx_time=True``.
+        measurements, use ``sv_rx_time=False`` to account for the Earth's
+        rotation and convert SV positions from the ECEF frame at the time
+        of signal transmission to the ECEF frame at the time of signal
+        reception. If the SV positions should be used as is, set
+        ``sv_rx_time=True`` to indicate that the given positions are in
+        the ECEF frame of reference for when the signals are received.
+        By default, ``sv_rx_time=False``.
 
     Returns
     -------
@@ -278,11 +284,11 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
         else:
             rx_est_m += pos_x_delta
 
-        if not use_tx_time:
+        if not sv_rx_time:
             # Update the satellite positions based on the time taken for
             # the signal to reach the Earth and the satellite clock bias.
-            tx_time = (corr_pr_m.reshape(-1) - rx_est_m[3,0])/consts.C
-            dtheta = consts.OMEGA_E_DOT*tx_time
+            delta_t = (corr_pr_m.reshape(-1) - rx_est_m[3,0])/consts.C
+            dtheta = consts.OMEGA_E_DOT*delta_t
             pos_sv_m[:, 0] = np.cos(dtheta)*rx_time_pos_sv_m[:,0] + \
                              np.sin(dtheta)*rx_time_pos_sv_m[:,1]
             pos_sv_m[:, 1] = -np.sin(dtheta)*rx_time_pos_sv_m[:,0] + \

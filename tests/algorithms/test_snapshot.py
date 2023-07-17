@@ -101,7 +101,7 @@ def test_wls(set_user_states, set_sv_states, tolerance):
                              keepdims = True) + rx_truth_m[3,0]
 
     rx_est_m = np.zeros((4,1))
-    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, use_tx_time=True)
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, sv_rx_time=True)
     truth_fix = rx_truth_m
 
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
@@ -229,7 +229,7 @@ def test_wls_only_bias(set_user_states, set_sv_states, tolerance):
 
     # check that position doesn't change but clock bias does change
     rx_est_m = np.zeros((4,1))
-    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True, use_tx_time=True)
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True, sv_rx_time=True)
     np.testing.assert_array_almost_equal(user_fix[:3], np.zeros((3,1)),
                                          decimal=tolerance)
     assert abs(user_fix[3]) >= 1E5
@@ -237,7 +237,7 @@ def test_wls_only_bias(set_user_states, set_sv_states, tolerance):
     # check that correct clock bias is calculated
     rx_est_m = np.zeros((4,1))
     rx_est_m[:3] = rx_truth_m[:3]
-    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True, use_tx_time=True)
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True, sv_rx_time=True)
     truth_fix = rx_truth_m
 
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
@@ -362,7 +362,7 @@ def test_solve_wls(derived):
         Instance of AndroidDerived2021 for testing.
 
     """
-    state_estimate = solve_wls(derived, use_tx_time=False)
+    state_estimate = solve_wls(derived, sv_rx_time=False)
 
     # result should be a NavData Class instance
     assert isinstance(state_estimate,type(NavData()))
@@ -403,12 +403,12 @@ def test_solve_wls_weights(derived, tolerance):
         Error threshold for test pass/fail
     """
 
-    state_estimate_1 = solve_wls(derived, use_tx_time=False)
-    state_estimate_2 = solve_wls(derived, None, use_tx_time=False)
+    state_estimate_1 = solve_wls(derived, sv_rx_time=False)
+    state_estimate_2 = solve_wls(derived, None, sv_rx_time=False)
 
     # create new column of unity weights
     derived["unity_weights"] = 1
-    state_estimate_3 = solve_wls(derived, "unity_weights",  use_tx_time=False)
+    state_estimate_3 = solve_wls(derived, "unity_weights",  sv_rx_time=False)
 
     # all of the above should be the same
     np.testing.assert_array_almost_equal(state_estimate_1.array,
@@ -418,7 +418,7 @@ def test_solve_wls_weights(derived, tolerance):
                                          state_estimate_3.array,
                                          decimal=tolerance)
 
-    state_estimate_4 = solve_wls(derived, "raw_pr_sigma_m",  use_tx_time=False)
+    state_estimate_4 = solve_wls(derived, "raw_pr_sigma_m",  sv_rx_time=False)
     with np.testing.assert_raises(AssertionError):
         np.testing.assert_array_almost_equal(state_estimate_1.array,
                                              state_estimate_4.array,
@@ -464,10 +464,10 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
 
     # should work if None is passed
     user_fix_1 = wls(rx_est_m, pos_sv_m, noisy_pr_m, weights=None,
-                     use_tx_time=True)
+                     sv_rx_time=True)
     user_fix_2 = wls(rx_est_m, pos_sv_m, noisy_pr_m,
                      weights=np.ones((pos_sv_m.shape[0],1)),
-                     use_tx_time=True)
+                     sv_rx_time=True)
     # both should be unity weights and return the same result
     np.testing.assert_array_almost_equal(user_fix_1,
                                          user_fix_2,
@@ -476,7 +476,7 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
     # result should be different if different weights are used
     user_fix_3 = wls(rx_est_m, pos_sv_m, noisy_pr_m,
                      weights=np.arange(pos_sv_m.shape[0]).reshape(-1,1),
-                     use_tx_time=True)
+                     sv_rx_time=True)
     with np.testing.assert_raises(AssertionError):
         np.testing.assert_array_almost_equal(user_fix_1,
                                              user_fix_3,
@@ -531,7 +531,7 @@ def test_solve_wls_bias_only(derived_2022):
             input_position[row, col] = measure_frame[row, 0]
         col += 1
     state_estimate = solve_wls(derived_2022, only_bias=True,
-                               receiver_state=derived_2022, use_tx_time=False)
+                               receiver_state=derived_2022, sv_rx_time=False)
     # Verify that both structures have the same length
     assert len(input_position) == len(state_estimate)
     # Verify that solved positions are the same as input positions
@@ -560,11 +560,11 @@ def test_solve_wls_bias_only(derived_2022):
     derived_2022.remove(ecef_rows, inplace=True)
     with pytest.raises(KeyError):
         solve_wls(derived_2022, only_bias=True,
-                receiver_state=derived_2022, use_tx_time=False)
+                receiver_state=derived_2022, sv_rx_time=False)
 
     # check error raised when receiver_state is not present in only_bias
     with pytest.raises(RuntimeError):
-        solve_wls(derived_2022, only_bias=True, use_tx_time=False)
+        solve_wls(derived_2022, only_bias=True, sv_rx_time=False)
 
 
 def test_wls_fails(capsys):
@@ -632,13 +632,13 @@ def test_rotation_of_earth_fix(derived_2022):
         google_wls[:, idx] = frame[['x_rx_m', 'y_rx_m', 'z_rx_m'], 0]
     derived_2022['wls_weights'] = 1/derived_2022['raw_pr_sigma_m']
     state_with_rotn = solve_wls(derived_2022, weight_type='wls_weights',
-                               use_tx_time=False)
+                               sv_rx_time=False)
     glp_wls = state_with_rotn[['x_rx_wls_m', 'y_rx_wls_m', 'z_rx_wls_m']]
     # Verify that the mean error between both estimates is less than 10m
     for idx in range(3):
         assert np.mean(np.abs(google_wls[idx, :] - glp_wls[idx, :])) < 30
     state_without_rotn = solve_wls(derived_2022, weight_type='wls_weights',
-                                   use_tx_time=True)
+                                   sv_rx_time=True)
     glp_wls_no_rotn = state_without_rotn[['x_rx_wls_m',
                                           'y_rx_wls_m',
                                           'z_rx_wls_m']]
