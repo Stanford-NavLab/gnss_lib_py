@@ -750,13 +750,7 @@ def test_solve_kaggle_dataset(root_path):
                    solve_gnss_ekf,
                   ]:
         for verbose in [True, False]:
-            if solver == solve_gnss_ekf:
-                init_dict = {'Q': np.eye(7), 'R': np.eye(1)}
-                solution = android.solve_kaggle_dataset(folder_path, solver,
-                                                    verbose, init_dict=init_dict)
-
-            else:
-                solution = android.solve_kaggle_dataset(folder_path, solver,
+            solution = android.solve_kaggle_dataset(folder_path, solver,
                                                     verbose)
 
             solution.in_rows(["tripId","UnixTimeMillis",
