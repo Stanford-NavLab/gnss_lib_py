@@ -147,12 +147,24 @@ def test_download_ephem(ephem_download_path, fileinfo):
 
     remove_download_eph(ephem_download_path)
 
+def download_igs(requests_url):
+    """Helper function to capture ConnectionError.
+
+    """
+    response = None
+    try:
+        response = requests.get(requests_url, timeout=5)
+    except requests.exceptions.ConnectionError:
+        print("ConnectionError.")
+
+    return response
+
 @pytest.mark.parametrize('fileinfo',
     [
      {'filepath': 'IGS/BRDC/2023/099/BRDC00WRD_S_20230990000_01D_MN.rnx.gz',
        'url': 'http://igs.bkg.bund.de/root_ftp/'},
      ])
-def test_request_igs(ephem_download_path, fileinfo):
+def test_request_igs(capsys, ephem_download_path, fileinfo):
     """Test requests download for igs files.
 
     The reason for this test is that Github workflow actions seem to
@@ -178,14 +190,17 @@ def test_request_igs(ephem_download_path, fileinfo):
 
     requests_url = fileinfo['url'] + fileinfo['filepath']
 
-
     fail_count = 0
-    while fail_count < 3:
-        try:
-            response = requests.get(requests_url, timeout=5)
-            break
-        except ConnectionError:
+    while fail_count < 3:# download the ephemeris file
+        response = download_igs(requests_url)
+        captured = capsys.readouterr()
+        if "ConnectionError." in captured.out:
             fail_count += 1
+        else:
+            break
+
+    if response is None:
+        raise requests.exceptions.ConnectionError("IGS ConnectionError.")
 
     with open(dest_filepath,'wb') as file:
         file.write(response.content)

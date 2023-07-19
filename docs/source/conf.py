@@ -12,6 +12,11 @@
 #
 import os
 import sys
+import inspect
+import subprocess
+from os.path import relpath, dirname
+
+
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
@@ -40,7 +45,7 @@ author = 'Ashwin Kanhere, Derek Knowles'
 extensions = [
                 'sphinx.ext.autodoc',
                 'sphinx.ext.napoleon',
-                'sphinx.ext.viewcode',
+                'sphinx.ext.linkcode',
                 'nbsphinx',
                 'nbsphinx_link',
                 'IPython.sphinxext.ipython_console_highlighting',
@@ -105,3 +110,124 @@ html_theme_options = {
 
 # document __init__ methods
 autoclass_content = 'both'
+
+# Function to find URLs for the source code on GitHub for built docs
+
+# The original code to find the head tag was taken from:
+# https://gist.github.com/nlgranger/55ff2e7ff10c280731348a16d569cb73
+# This code was modified to use the current commit when the code differs from
+# main or a tag
+
+#Default to the main branch
+linkcode_revision = "main"
+
+
+#Default to the main branch, default to main and tags not existing
+linkcode_revision = "main"
+in_main = False
+tagged = False
+
+
+# lock to commit number
+cmd = "git log -n1 --pretty=%H"
+head = subprocess.check_output(cmd.split()).strip().decode('utf-8')
+# if we are on main's HEAD, use main as reference irrespective of
+# what branch you are on
+cmd = "git log --first-parent main -n1 --pretty=%H"
+main = subprocess.check_output(cmd.split()).strip().decode('utf-8')
+if head == main:
+    in_main = True
+
+# if we have a tag, use tag as reference, irrespective of what branch
+# you are actually on
+try:
+    cmd = "git describe --exact-match --tags " + head
+    tag = subprocess.check_output(cmd.split(" ")).strip().decode('utf-8')
+    linkcode_revision = tag
+    tagged = True
+except subprocess.CalledProcessError:
+    pass
+
+# If the current branch is main, or a tag exists, use the branch name.
+# If not, use the commit number
+if not tagged and not in_main:
+    linkcode_revision = head
+
+linkcode_url = "https://github.com/Stanford-NavLab/gnss_lib_py/blob/" \
+               + linkcode_revision + "/{filepath}#L{linestart}-L{linestop}"
+
+
+
+def linkcode_resolve(domain, info):
+    """Return GitHub link to Python file for docs.
+
+    This function does not return a link for non-Python objects.
+    For Python objects, `domain == 'py'`, `info['module']` contains the
+    name of the module containing the method being documented, and
+    `info['fullname']` contains the name of the method.
+
+    Notes
+    -----
+    Based off the numpy implementation of linkcode_resolve:
+    https://github.com/numpy/numpy/blob/2f375c0f9f19085684c9712d602d22a2b4cb4c8e/doc/source/conf.py#L443
+    Retrieved on 1 Jul, 2023.
+    """
+    if domain != 'py':
+        return None
+
+    modname = info['module']
+    fullname = info['fullname']
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split('.'):
+        try:
+            obj = getattr(obj, part)
+        except Exception:
+            return None
+
+    # strip decorators, which would resolve to the source of the decorator
+    # possibly an upstream bug in getsourcefile, bpo-1764286
+    try:
+        unwrap = inspect.unwrap
+    except AttributeError:
+        pass
+    else:
+        obj = unwrap(obj)
+    filepath = None
+    lineno = None
+
+    if filepath is None:
+        try:
+            filepath = inspect.getsourcefile(obj)
+        except Exception:
+            filepath = None
+        if not filepath:
+            return None
+        #NOTE: Re-export filtering turned off because
+        # # Ignore re-exports as their source files are not within the gnss_lib_py repo
+        # module = inspect.getmodule(obj)
+        # if module is not None and not module.__name__.startswith("gnss_lib_py"):
+        #     return "no_module_not_gnss_lib_py"
+
+        try:
+            source, lineno = inspect.getsourcelines(obj)
+        except Exception:
+            lineno = ""
+        # The following line of code first finds the relative path from
+        # the location of conf.py and then goes up to the root directory
+
+        root_glp_path = os.path.join(dirname(os.path.abspath(__file__)), '../..')
+        filepath = relpath(filepath, root_glp_path)
+
+    if lineno:
+        linestart = lineno
+        linestop = lineno + len(source) - 1
+    else:
+        linestart = ""
+        linestop = ""
+    codelink = linkcode_url.format(
+            filepath=filepath, linestart=linestart, linestop=linestop)
+    return codelink
