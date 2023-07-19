@@ -16,6 +16,32 @@ from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import AndroidDerived2022, AndroidGroundTruth2022
 from gnss_lib_py.parsers.rinex import get_time_cropped_rinex
 
+def pytest_collection_modifyitems(items):
+    """Run download tests last!
+
+    Parameters
+    ----------
+    items : list
+        List of test items.
+
+    Notes
+    -----
+    Taken from https://stackoverflow.com/a/70759482
+
+    pytest_collection_modifyitems is documented here:
+    https://docs.pytest.org/en/latest/_modules/_pytest/hookspec.html#pytest_collection_modifyitems
+
+    """
+
+    module_mapping = {item: item.module.__name__ for item in items}
+    download_tests = [
+                      "test_ephemeris_downloader"
+                     ]
+    sorted_items = [item for item in items if module_mapping[item] not in download_tests] \
+                 + [item for item in items if module_mapping[item] in download_tests]
+
+    items[:] = sorted_items
+
 @pytest.fixture(name="root_path")
 def fixture_root_path():
     """Location of Android Derived 2022 measurements for unit test
