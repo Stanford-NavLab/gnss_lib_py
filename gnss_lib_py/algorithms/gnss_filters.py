@@ -11,8 +11,6 @@ import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
-from gnss_lib_py.utils import constants as consts
-from gnss_lib_py.utils.sim_gnss import _find_delxyz_range
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
 
@@ -51,66 +49,18 @@ def solve_gnss_ekf(measurements, init_dict = None,
         init_dict = {}
 
     if "state_0" not in init_dict:
-        try:
-            # if the given measurement frame has a state estimate, use
-            # that, including the clock bias estimate
-            pos_est_rows = measurements.find_wildcard_indexes(["x_rx*_m",
-                                                               "y_rx*_m",
-                                                               "z_rx*_m",
-                                                               "b_rx*_m"],
-                                                               max_allow=1)
-            not_nan_idxs = measurements.argwhere(pos_est_rows['x_rx*_m'],
-                                                 np.nan, 'neq')
-            state_0 = np.zeros((7,1))
-            state_0[0,0] = measurements[pos_est_rows['x_rx*_m'], not_nan_idxs[0]]
-            state_0[1,0] = measurements[pos_est_rows['y_rx*_m'], not_nan_idxs[0]]
-            state_0[2,0] = measurements[pos_est_rows['z_rx*_m'], not_nan_idxs[0]]
-            state_0[6,0] = measurements[pos_est_rows['b_rx*_m'], not_nan_idxs[0]]
-        except KeyError:
-            try:
-                # a key error happened and one of the rows from the last
-                # try clause is not present. Try again without bias,
-                # which often missing from datasets
-                pos_est_rows = measurements.find_wildcard_indexes(["x_rx*_m",
-                                                                   "y_rx*_m",
-                                                                   "z_rx*_m"],
-                                                                    max_allow=1)
-                not_nan_idxs = measurements.argwhere(pos_est_rows['x_rx*_m'],
-                                                 np.nan, 'neq')
-                state_0 = np.zeros((7,1))
-                state_0[0,0] = measurements[pos_est_rows['x_rx*_m'], not_nan_idxs[0]]
-                state_0[1,0] = measurements[pos_est_rows['y_rx*_m'], not_nan_idxs[0]]
-                state_0[2,0] = measurements[pos_est_rows['z_rx*_m'], not_nan_idxs[0]]
-                pos_0 = NavData()
-                pos_0['gps_millis'] = measurements['gps_millis', not_nan_idxs[0]]
-                pos_0['x_rx_m'] = state_0[0,0]
-                pos_0['y_rx_m'] = state_0[1,0]
-                pos_0['z_rx_m'] = state_0[2,0]
-                measurement_subset = measurements.copy(cols=not_nan_idxs[0])
-                pos_0 = solve_wls(measurement_subset,
-                                    receiver_state=pos_0,
-                                    only_bias=True)
-                    # if len(pos_0.where('b_rx_wls_m', np.nan, 'eq'))==0:
-                    #     break
-                state_0[6,0] = pos_0['b_rx_wls_m']
-            except KeyError:
-                # position rows were not found again, use a WLS estimate
-                pos_0 = None
-                for _, _, measurement_subset in measurements.loop_time("gps_millis",
-                                                delta_t_decimals=delta_t_decimals):
-                    pos_0 = solve_wls(measurement_subset)
-                    # Assume that if 'x_rx_wls_m' is np.nan, then a state estimate
-                    # has not been found and all x, y, and z are np.nan.
-                    # If the length of elements where 'x_rx_wls_m' is np.nan is
-                    # 0, then a solution has been found and can be used as an
-                    # initialization
-                    if len(pos_0.where('x_rx_wls_m', np.nan, 'eq'))==0:
-                        break
+        pos_0 = None
+        for _, _, measurement_subset in measurements.loop_time("gps_millis",
+                                        delta_t_decimals=delta_t_decimals):
+            pos_0 = solve_wls(measurement_subset)
+            if pos_0 is not None:
+                break
 
-                state_0 = np.zeros((7,1))
-                if pos_0 is not None:
-                    state_0[:3,0] = pos_0[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]]
-                    state_0[6,0] = pos_0[["b_rx_wls_m"]]
+        state_0 = np.zeros((7,1))
+        if pos_0 is not None:
+            state_0[:3,0] = pos_0[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]]
+            state_0[6,0] = pos_0[["b_rx_wls_m"]]
+
         init_dict["state_0"] = state_0
 
     if "sigma_0" not in init_dict:
@@ -118,13 +68,12 @@ def solve_gnss_ekf(measurements, init_dict = None,
         init_dict["sigma_0"] = sigma_0
 
     if "Q" not in init_dict:
-        raise RuntimeError("Process noise must be specified in init_dict")
+        process_noise = np.eye(init_dict["state_0"].size)
+        init_dict["Q"] = process_noise
 
     if "R" not in init_dict:
-        raise RuntimeError("Measurement noise must be specified in init_dict")
-
-    if "sv_rx_time" not in init_dict:
-        init_dict["sv_rx_time"] = False
+        measurement_noise = np.eye(1) # gets overwritten
+        init_dict["R"] = measurement_noise
 
     # initialize parameter dictionary
     if params_dict is None:
@@ -212,7 +161,6 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         self.delta_t = params_dict.get('dt',1.0)
         self.motion_type = params_dict.get('motion_type','stationary')
         self.measure_type = params_dict.get('measure_type','pseudorange')
-        self.sv_rx_time = init_dict.get('sv_rx_time', False)
 
     def dyn_model(self, u, predict_dict=None):
         """Nonlinear dynamics
@@ -248,34 +196,11 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         of shape [3 x N] with rows of x_sv_m, y_sv_m, and z_sv_m in that
         order.
 
-        This measurment model uses the current state estimate to find
-        the time taken for signals to propagate from the satellites to
-        the receiver and updates the SV positions to reflect the changed
-        ECEF reference frame.
-
-        Since the ECEF reference frame moves with the Earth, the frame
-        of reference is different at different times.
-        SV positions are calculated for the time at which the signal was
-        transmitted but the receiver position is computed for the ECEF
-        frame of reference when the signals are received. Consequently,
-        the SV positions must be updated to account for the change in the
-        ECEF frame between signal transmission and reception.
-        However, given the EKF has an initial position guess around the
-        true position (either through prior knowledge or a prior state
-        estimation process such as WLS), we can simply correct the SV
-        positions once and use them as such, without further modification.
-
         Parameters
         ----------
         update_dict : dict
             Update dictionary containing satellite positions with key
-            ``pos_sv_m`` and optionally ``tx_time``. ``tx_time`` specifies
-            if the filter should use the SV positions at time of
-            transmission (if True). If False, the the time it takes for
-            the signal to propagate from the satellite to the receiver
-            is accounted for and the SV positions are propagated forward
-            to the ECEF coordinate frame at the receiver time. By default,
-            ``tx_time`` is True.
+            ``pos_sv_m``.
 
         Returns
         -------
@@ -291,18 +216,6 @@ class GNSSEKF(BaseExtendedKalmanFilter):
         """
         if self.measure_type=='pseudorange':
             pos_sv_m = update_dict['pos_sv_m']
-            if not self.sv_rx_time:
-                rx_pos_m = np.array([[self.state[0]], [self.state[1]], [self.state[2]]])
-                num_svs = np.shape(pos_sv_m)[1]
-                _, true_range = _find_delxyz_range(pos_sv_m.T, rx_pos_m, num_svs)
-                tx_time = (true_range - self.state[6])/consts.C
-                dtheta = consts.OMEGA_E_DOT*tx_time
-                # The following two lines are expanded position updates for a
-                # rotation by dtheta radians about the z-axis, which updates
-                # the positions along the x and y axes but the position along
-                # the z-axis is unchanged.
-                pos_sv_m[0, :] = np.cos(dtheta)*pos_sv_m[0,:] + np.sin(dtheta)*pos_sv_m[1,:]
-                pos_sv_m[1, :] = -np.sin(dtheta)*pos_sv_m[0,:] + np.cos(dtheta)*pos_sv_m[1,:]
             pseudo = np.sqrt((self.state[0] - pos_sv_m[0, :])**2
                            + (self.state[1] - pos_sv_m[1, :])**2
                            + (self.state[2] - pos_sv_m[2, :])**2) \
