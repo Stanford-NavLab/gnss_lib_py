@@ -1,28 +1,8 @@
-"""Functions to download, save and process satellite ephemeris files.
-
-The Ephemeris Manager provides broadcast ephemeris for specific
-satellites at a specific timestep. The EphemerisDownloader class should be
-initialized and then the ``get_ephemeris`` function can be used to
-retrieve ephemeris for specific satellites. ``get_ephemeris`` returns
-the most recent broadcast ephemeris for the provided list of satellites
-that was broadcast BEFORE the provided timestamp. For example GPS daily
-ephemeris files contain data at a two hour frequency, so if the
-timestamp provided is 5am, then ``get_ephemeris`` will return the 4am
-data but not 6am. If provided a timestamp between midnight and 2am then
-the ephemeris from around midnight (might be the day before) will be
-provided. If no list of satellites is provided, then ``get_ephemeris``
-will return data for all satellites.
-
-When multiple observations are provided for the same satellite and same
-timestep, the Ephemeris Manager will only return the first instance.
-This is applicable when requesting ephemeris for multi-GNSS for the
-current day. Same-day multi GNSS data is pulled from  same day. For
-same-day multi-GNSS from https://igs.org/data/ which often has multiple
-observations.
+"""Functions to download Rinex, SP3, and CLK ephemeris files.
 
 """
 
-__authors__ = "Shubh Gupta, Ashwin Kanhere"
+__authors__ = "Shubh Gupta, Ashwin Kanhere, Derek Knowles"
 __date__ = "13 July 2021"
 
 import os
@@ -37,6 +17,115 @@ import unlzw3
 from gnss_lib_py.utils.time_conversions import tzinfo_to_utc
 
 DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
+
+def load_ephemeris(file_type, gps_millis,
+                   constellations=None, paths=[],
+                   verbose=False):
+    """
+    Verify which ephemeris to download and download if not in paths.
+
+    Parameters
+    ----------
+    file_type : string
+        File type to download either "rinex", "sp3", or "clk".
+    gps_millis : float
+        GPS milliseconds for which downloaded ephemeris should be
+        obtained.
+    constellations : list, set, or array-like
+        Constellations for which to download ephemeris.
+    paths : string or path-like
+        Paths to existing ephemeris files if they exist.
+    verbose : bool
+        Prints extra debugging statements if true.
+
+    Returns
+    -------
+    paths : list
+        Paths to downloaded and/or existing ephemeris files. Only files
+        that need to be used are returned. Superfluous path inputs that
+        are not needed are not returned
+
+    """
+    existing_paths, needed_files = verify_ephemeris(file_type,
+                                                    gps_millis,
+                                                    paths,
+                                                    verbose)
+
+    downloaded_paths = download_ephemeris(needed_files)
+
+    paths = existing_paths + downloaded_paths
+
+    return paths
+
+def verify_ephemeris(file_type, gps_millis, paths, verbose):
+    """Check what ephemeris files to download and if they already exist.
+
+    Parameters
+    ----------
+    file_type : string
+        File type to download either "rinex", "sp3", or "clk".
+    gps_millis : float
+        GPS milliseconds for which downloaded ephemeris should be
+        obtained.
+    constellations : list, set, or array-like
+        Constellations for which to download ephemeris.
+    paths : string or path-like
+        Paths to existing ephemeris files if they exist.
+    verbose : bool
+        Prints extra debugging statements if true.
+
+    Returns
+    -------
+    existing_paths : list
+        List of existing paths to files from input that will be used.
+    needed_files : list
+        List of files to download for ephemeris.
+
+    """
+
+    # in broadcast first timestep may be 02:00am so pull earlier day if
+    # before that.
+
+    # In broadcast if before 2:00am also pull previous day and if after
+    # 10pm also pull next day (but only if not current day)
+
+    # broadcast names
+    # https://igs.org/mgex/data-products/#bce
+
+    # broadcast ephemeris 2013 - 001 to 2019 - 328 and before uses "R"
+    # https://cddis.nasa.gov/archive/gnss/data/daily/2019/328/19p/
+    # BRDM00DLR_R_20193280000_01D_MN.rnx.gz
+
+    # broadcast epehemeris 2019 - 329 and after uses "S":
+    # https://cddis.nasa.gov/archive/gnss/data/daily/2019/329/19p/
+    # BRDM00DLR_S_20193290000_01D_MN.rnx.gz
+
+    # current day
+    # BRDC00WRD_S_
+    # IGS/BRDC/2023/099/BRDC00WRD_S_20230990000_01D_MN.rnx.gz
+    existing_paths = paths - []
+    needed_files = []
+
+    return existing_paths, needed_files
+
+def download_ephemeris(url):
+    """Download ephemeris files.
+
+    Parameters
+    ----------
+    needed_files : list
+        List of files to download for ephemeris.
+
+    Returns
+    -------
+    paths : string
+        Paths to downloaded and/or existing ephemeris files.
+
+    """
+
+    paths = []
+
+    return paths
 
 class EphemerisDownloader():
     """Download, store and process ephemeris files
