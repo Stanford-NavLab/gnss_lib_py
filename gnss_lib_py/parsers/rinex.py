@@ -34,12 +34,12 @@ class RinexObs3(NavData):
     def __init__(self, input_path):
         """Loading Rinex 3 observation files into a NavData based class.
 
-        Should input path to RXM-RAWX.csv file.
+        Should input path to `.yyo` file.
 
         Parameters
         ----------
         input_path : string or path-like
-            Path to measurement csv file
+            Path to rinex .o file
 
         """
 
