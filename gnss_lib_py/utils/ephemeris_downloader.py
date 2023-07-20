@@ -81,6 +81,10 @@ def verify_ephemeris(file_type, gps_millis, paths, verbose):
     needed_files : list
         List of files to download for ephemeris.
 
+    References
+    ----------
+    [1] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
+
     """
 
     # in broadcast first timestep may be 02:00am so pull earlier day if
@@ -89,20 +93,42 @@ def verify_ephemeris(file_type, gps_millis, paths, verbose):
     # In broadcast if before 2:00am also pull previous day and if after
     # 10pm also pull next day (but only if not current day)
 
-    # broadcast names
+    # broadcast name reference
     # https://igs.org/mgex/data-products/#bce
 
     # broadcast ephemeris 2013 - 001 to 2019 - 328 and before uses "R"
+    # rinex3 ?
+    # GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS
     # https://cddis.nasa.gov/archive/gnss/data/daily/2019/328/19p/
     # BRDM00DLR_R_20193280000_01D_MN.rnx.gz
 
     # broadcast epehemeris 2019 - 329 and after uses "S":
+    # rinex3 ?
+    # GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS
     # https://cddis.nasa.gov/archive/gnss/data/daily/2019/329/19p/
     # BRDM00DLR_S_20193290000_01D_MN.rnx.gz
 
     # current day
+    # rinex3 ?
+    # GPS+GLO+GAL+BDS+QZSS+SBAS
     # BRDC00WRD_S_
     # IGS/BRDC/2023/099/BRDC00WRD_S_20230990000_01D_MN.rnx.gz
+
+    # GPS - only
+    # rinex2
+    # https://cddis.nasa.gov/archive/gnss/data/daily/2023/054/23n/
+    # brdc0540.23n.gz
+
+    # GLONASS
+    # rinex2
+    # https://cddis.nasa.gov/archive/gnss/data/daily/2023/054/23g/
+    # brdc0540.23g.gz
+
+    # Galileo
+    # USN switches from USN8 to USN7
+
+
+
     existing_paths = paths - []
     needed_files = []
 
