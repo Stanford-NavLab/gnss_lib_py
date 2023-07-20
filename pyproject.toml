@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gnss-lib-py"
-version = "0.1.12"
+version = "0.1.13"
 description = "Modular Python tool for parsing, analyzing, and visualizing Global Navigation Satellite Systems (GNSS) data and state estimates"
 authors = ["Derek Knowles <dcknowles@stanford.edu>",
            "Ashwin Kanhere <akanhere@stanford.edu>",
