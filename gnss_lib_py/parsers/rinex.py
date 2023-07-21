@@ -29,7 +29,6 @@ __date__ = "13 July 2021"
 import os
 from datetime import datetime, timezone
 
-import georinex
 import numpy as np
 import pandas as pd
 import georinex as gr
@@ -183,11 +182,11 @@ class Rinex(NavData):
         """
 
         if constellations is not None:
-            data = georinex.load(rinex_path,
+            data = gr.load(rinex_path,
                                  use=constellations,
                                  verbose=self.verbose).to_dataframe()
         else:
-            data = georinex.load(rinex_path,
+            data = gr.load(rinex_path,
                                  verbose=self.verbose).to_dataframe()
 
         leap_seconds = self.load_leapseconds(rinex_path)
@@ -222,12 +221,12 @@ class Rinex(NavData):
             Array of ionosphere parameters ION ALPHA and ION BETA
         """
         try:
-            ion_alpha_str = georinex.rinexheader(rinex_path)['ION ALPHA'].replace('D', 'E')
+            ion_alpha_str = gr.rinexheader(rinex_path)['ION ALPHA'].replace('D', 'E')
             ion_alpha = np.array(list(map(float, ion_alpha_str.split())))
         except KeyError:
             ion_alpha = np.array([[np.nan]])
         try:
-            ion_beta_str = georinex.rinexheader(rinex_path)['ION BETA'].replace('D', 'E')
+            ion_beta_str = gr.rinexheader(rinex_path)['ION BETA'].replace('D', 'E')
             ion_beta = np.array(list(map(float, ion_beta_str.split())))
         except KeyError:
             ion_beta = np.array([[np.nan]])
@@ -392,7 +391,7 @@ class RinexObs3(NavData):
 
         obs_file.reset_index(inplace=True)
         # Convert time to gps_millis
-        gps_millis = [datetime_to_gps_millis(df_row['time']) \
+        gps_millis = [np.float64(datetime_to_gps_millis(df_row['time'])) \
                                 for _, df_row in obs_file.iterrows()]
         obs_file['gps_millis'] = gps_millis
         obs_file = obs_file.drop(columns=['time'])

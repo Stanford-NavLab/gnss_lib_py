@@ -309,6 +309,9 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
     """
     count = 0
     for _, _, rinex_frame in rinex_single_values.loop_time('gps_millis'):
+        print(f'count {count}')
+        print('rinex_frame')
+        print(rinex_frame)
         #For each time case, check that the expected values are correct
         for case in single_exp_values:
             if case[0] == count:
