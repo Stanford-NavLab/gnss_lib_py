@@ -13,8 +13,8 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 
 
-class RinexObs3(NavData):
-    """Class handling Rinex 3 observation files [1]_.
+class RinexObs(NavData):
+    """Class handling Rinex observation files [1]_.
 
     The Rinex Observation files (of the format .yyo) contain measured
     pseudoranges, carrier phase, doppler and signal-to-noise ratio
@@ -22,6 +22,9 @@ class RinexObs3(NavData):
     This loader converts those file types into a NavData in which
     measurements from different bands are treated as separate measurement
     instances. Inherits from NavData().
+
+    This class has primarily been built with Rinex v3.05 in mind but it
+    should also work for prior Rinex versions.
 
 
     References
@@ -32,7 +35,7 @@ class RinexObs3(NavData):
     """
 
     def __init__(self, input_path):
-        """Loading Rinex 3 observation files into a NavData based class.
+        """Loading Rinex observation files into a NavData based class.
 
         Should input path to `.yyo` file.
 

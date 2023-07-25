@@ -53,7 +53,7 @@ Editable Installation
 
           python -m pip install -U pip
 
-4. Install :code:`gnss_lib_py` locally from directory containing :code:`setup.py`
+4. Install :code:`gnss_lib_py` locally from directory containing :code:`pyproject.toml`
 
    .. code-block:: bash
 

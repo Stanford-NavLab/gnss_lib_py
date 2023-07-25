@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
-from gnss_lib_py.parsers.rinex import RinexObs3
+from gnss_lib_py.parsers.rinex import RinexObs
 
 # pylint: disable=protected-access
 
@@ -47,12 +47,12 @@ def fixture_rinex_mixed_values(root_path):
 
     Returns
     -------
-    rinex_mixed : gnss_lib_py.parsers.rinex.RinexObs3
-        Instance of RinexObs3 class with mixed values.
+    rinex_mixed : gnss_lib_py.parsers.rinex.RinexObs
+        Instance of RinexObs class with mixed values.
     """
     rinex_mixed_path = os.path.join(root_path, 'rinex_obs_mixed_types.20o')
     with pytest.warns(RuntimeWarning):
-        rinex_mixed = RinexObs3(rinex_mixed_path)
+        rinex_mixed = RinexObs(rinex_mixed_path)
     return rinex_mixed
 
 
@@ -71,13 +71,13 @@ def fixture_rinex_single_values(root_path):
 
     Returns
     -------
-    rinex_single : gnss_lib_py.parsers.rinex.RinexObs3
-        Instance of RinexObs3 class with single values.
+    rinex_single : gnss_lib_py.parsers.rinex.RinexObs
+        Instance of RinexObs class with single values.
     """
     rinex_single_path = os.path.join(root_path,
                                 'rinex_obs_single_type_only.22o')
     with pytest.warns(RuntimeWarning):
-        rinex_single = RinexObs3(rinex_single_path)
+        rinex_single = RinexObs(rinex_single_path)
     return rinex_single
 
 
@@ -123,8 +123,8 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
 
     Parameters
     ----------
-    rinex_single_values : gnss_lib_py.parsers.rinex.RinexObs3
-        Instance of RinexObs3 class with data loaded from appropriate
+    rinex_single_values : gnss_lib_py.parsers.rinex.RinexObs
+        Instance of RinexObs class with data loaded from appropriate
         file.
     compare_values : list
         List of lists containing time instance, gnss_sv_id, and expected
@@ -148,8 +148,8 @@ def test_rinex_obs_3_load_mixed(rinex_mixed_values, mixed_exp_values):
 
     Parameters
     ----------
-    rinex_navdata : gnss_lib_py.parsers.rinex.RinexObs3
-        Instance of RinexObs3 class with data loaded from appropriate
+    rinex_navdata : gnss_lib_py.parsers.rinex.RinexObs
+        Instance of RinexObs class with data loaded from appropriate
         file.
     compare_values : list
         List of indices and values to compare against.
@@ -206,7 +206,7 @@ def test_rinex_obs_3_complete_load(rinex_navdata, time_steps, sats_per_time):
     Parameters
     ----------
     rinex_navdata : str
-        Instance of RinexObs3 class with data loaded from appropriate
+        Instance of RinexObs class with data loaded from appropriate
         file.
     time_steps : int
         Total times that have measurements in the observation file.
@@ -223,16 +223,16 @@ def test_rinex_obs_3_complete_load(rinex_navdata, time_steps, sats_per_time):
 
 
 def test_rinex_obs_3_fails(rinex_mixed_values):
-    """Test for cases when no measurements should exist in RinexObs3.
+    """Test for cases when no measurements should exist in RinexObs.
 
     The cases where no measurements should be loaded are: 1) when the
     SV hasn't been received, and 2) when the SV has been received but
     a measurement is unavailable.
-    
+
     Parameters
     ----------
-    rinex_mixed_values : gnss_lib_py.parsers.rinex.RinexObs3
-        Instance of RinexObs3 class with data loaded from file with
+    rinex_mixed_values : gnss_lib_py.parsers.rinex.RinexObs
+        Instance of RinexObs class with data loaded from file with
         measurements received in both, single and double bands.
     """
     for count , (_, _, rinex_frame) in enumerate(rinex_mixed_values.loop_time('gps_millis')):

@@ -26,6 +26,6 @@ poetry run make clean
 echo "Building docs in html"
 poetry run make html
 
-# export requirements.txt for setup.py
+# export requirements.txt for Conda environment setup
 cd ..
 poetry export -f requirements.txt --output ./requirements.txt --without-hashes
