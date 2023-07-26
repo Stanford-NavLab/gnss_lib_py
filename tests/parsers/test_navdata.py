@@ -1690,6 +1690,19 @@ def test_where_str(csv_simple):
     compare_df = compare_df[compare_df['strings']!="gps"].reset_index(drop=True)
     pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
 
+    #Test equality for cases where there is only one column
+    data_single_column = data.where('strings', 'glonass', 'eq')
+    data_new = data_single_column.where('strings', 'glonass', 'eq')
+    compare_df = data.pandas_df()
+    compare_df = compare_df[compare_df['strings']=="glonass"].reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_new.pandas_df(), compare_df)
+
+    #Test inequality for cases where there is only one column
+    data_new = data_single_column.where('strings', 'gps', 'neq')
+    # Both cases should return the same dataframe as before
+    pd.testing.assert_frame_equal(data_new.pandas_df(), compare_df)
+
+
 def test_where_empty(df_simple):
     """Verify empty slices.
 
@@ -1749,6 +1762,17 @@ def test_where_numbers(csv_simple):
         compare_df = data.pandas_df()
         compare_df = compare_df.iloc[pd_rows[idx], :].reset_index(drop=True)
         pd.testing.assert_frame_equal(data_small.pandas_df(), compare_df)
+
+    #Test equality for cases where there is only one column
+    data_single_column = data.where('integers', 10, 'eq')
+    data_new = data_single_column.where('integers', 10, 'eq')
+    compare_df = data.pandas_df()
+    compare_df = compare_df[compare_df['integers']==10].reset_index(drop=True)
+    pd.testing.assert_frame_equal(data_new.pandas_df(), compare_df)
+
+    #Test inequality for cases where there is only one column
+    data_new = data_single_column.where('integers', 56, 'neq')
+    pd.testing.assert_frame_equal(data_new.pandas_df(), compare_df)
 
 def test_where_errors(csv_simple):
     """Testing error cases for NavData.where
