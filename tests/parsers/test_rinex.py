@@ -106,7 +106,7 @@ def fixture_single_compare():
 
     Returns
     -------
-    single_compare : list
+    single_exp_values : list
         List of time instance, row names, gnss_sv_id and expected values
         for single case.
     """
@@ -126,7 +126,7 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
     rinex_single_values : gnss_lib_py.parsers.rinex.RinexObs
         Instance of RinexObs class with data loaded from appropriate
         file.
-    compare_values : list
+    single_exp_values : list
         List of lists containing time instance, gnss_sv_id, and expected
         value for different
         Rinex use cases.
@@ -148,10 +148,10 @@ def test_rinex_obs_3_load_mixed(rinex_mixed_values, mixed_exp_values):
 
     Parameters
     ----------
-    rinex_navdata : gnss_lib_py.parsers.rinex.RinexObs
+    rinex_mixed_values : gnss_lib_py.parsers.rinex.RinexObs
         Instance of RinexObs class with data loaded from appropriate
         file.
-    compare_values : list
+    mixed_exp_values : list
         List of indices and values to compare against.
     """
     count = 0
@@ -174,7 +174,7 @@ def fixture_sats_per_time_single():
 
     Returns
     -------
-    sats_per_time : list
+    sats_per_time_single : list
         List of number of satellites that are present at each time step.
     """
     sats_per_time_single = [25, 24, 24]
@@ -187,7 +187,7 @@ def fixture_sats_per_time_mixed():
 
     Returns
     -------
-    sats_per_time : list
+    sats_per_time_mixed : list
         List of number of satellites that are present at each time step.
     """
     sats_per_time_mixed = [25, 25, 26, 26, 24]
