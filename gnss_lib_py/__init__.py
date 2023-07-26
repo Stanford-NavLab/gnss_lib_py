@@ -13,6 +13,7 @@ from gnss_lib_py.parsers.navdata import *
 from gnss_lib_py.parsers.precise_ephemerides import *
 from gnss_lib_py.parsers.nmea import *
 from gnss_lib_py.parsers.smartloc import *
+from gnss_lib_py.parsers.rinex import *
 
 from gnss_lib_py.utils.coordinates import *
 from gnss_lib_py.utils.filters import *
