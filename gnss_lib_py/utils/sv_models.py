@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex import get_time_cropped_rinex
+from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
 from gnss_lib_py.parsers.sp3 import Sp3
@@ -511,63 +511,7 @@ def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None, get_iono=F
     return sv_posvel, del_pos, true_range
 
 
-def _estimate_sv_clock_corr(gps_millis, ephem):
-    """Calculate the modelled satellite clock delay
 
-    Parameters
-    ---------
-    gps_millis : int
-        Time at which measurements are needed, measured in milliseconds
-        since start of GPS epoch [ms].
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        Satellite ephemeris parameters for measurement SVs.
-
-    Returns
-    -------
-    clock_corr : np.ndarray
-        Satellite clock corrections containing all terms [m].
-    corr_polynomial : np.ndarray
-        Polynomial clock perturbation terms [m].
-    clock_relativistic : np.ndarray
-        Relativistic clock correction terms [m].
-
-    """
-    # Extract required GPS constants
-    ecc        = ephem['e']     # eccentricity
-    sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
-
-    # if np.abs(delta_t).any() > 302400:
-    #     delta_t = delta_t - np.sign(delta_t)*604800
-
-    gps_week, gps_tow = gps_millis_to_tow(gps_millis)
-
-    # Compute Eccentric Anomaly
-    ecc_anom = _compute_eccentric_anomaly(gps_week, gps_tow, ephem)
-
-    # Determine pseudorange corrections due to satellite clock corrections.
-    # Calculate time offset from satellite reference time
-    t_offset = gps_tow - ephem['t_oc']
-    if np.abs(t_offset).any() > 302400:  # pragma: no cover
-        t_offset = t_offset-np.sign(t_offset)*604800
-
-    # Calculate clock corrections from the polynomial corrections in
-    # broadcast message
-    corr_polynomial = (ephem['SVclockBias']
-                     + ephem['SVclockDrift']*t_offset
-                     + ephem['SVclockDriftRate']*t_offset**2)
-
-    # Calcualte the relativistic clock correction
-    corr_relativistic = consts.F * ecc * sqrt_sma * np.sin(ecc_anom)
-
-    # Calculate the total clock correction including the Tgd term
-    clk_corr = (corr_polynomial - ephem['TGD'] + corr_relativistic)
-
-    #Convert values to equivalent meters from seconds
-    clk_corr = np.array(consts.C*clk_corr, ndmin=1)
-    corr_polynomial = np.array(consts.C*corr_polynomial, ndmin=1)
-    corr_relativistic = np.array(consts.C*corr_relativistic, ndmin=1)
-
-    return clk_corr, corr_polynomial, corr_relativistic
 
 
 def _filter_ephemeris_measurements(measurements, constellations,
@@ -740,63 +684,6 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
     return del_pos, true_range
 
 
-def _compute_eccentric_anomaly(gps_week, gps_tow, ephem, tol=1e-5, max_iter=10):
-    """Compute the eccentric anomaly from ephemeris parameters.
-
-    This function extracts relevant parameters from the broadcast navigation
-    ephemerides and then solves the equation `f(E) = M - E + e * sin(E) = 0`
-    using the Newton-Raphson method.
-
-    In the above equation `M` is the corrected mean anomaly, `e` is the
-    orbit eccentricity and `E` is the eccentric anomaly, which is unknown.
-
-    Parameters
-    ----------
-    gps_week : int
-        Week of GPS calendar corresponding to time of clock.
-    gps_tow : np.ndarray
-        GPS time of the week at which positions are required [s].
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing ephemeris parameters of satellites
-        for which states are required.
-    tol : float
-        Tolerance for convergence of the Newton-Raphson.
-    max_iter : int
-        Maximum number of iterations for Newton-Raphson.
-
-    Returns
-    -------
-    ecc_anom : np.ndarray
-        Eccentric Anomaly of GNSS satellite orbits.
-
-    """
-    #Extract required parameters from ephemeris and GPS constants
-    delta_n   = ephem['deltaN']
-    mean_anom_0  = ephem['M_0']
-    sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
-    sqrt_mu_a = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
-    ecc        = ephem['e']     # eccentricity
-    #Times for computing positions
-    gpsweek_diff = (np.mod(gps_week,1024) - np.mod(ephem['gps_week'],1024))*604800.
-    delta_t = gps_tow - ephem['t_oe'] + gpsweek_diff
-
-    # Calculate the mean anomaly with corrections
-    mean_anom_corr = delta_n * delta_t
-    mean_anom = mean_anom_0 + (sqrt_mu_a * delta_t) + mean_anom_corr
-
-    # Compute Eccentric Anomaly
-    ecc_anom = mean_anom
-    for _ in np.arange(0, max_iter):
-        fun = mean_anom - ecc_anom + ecc * np.sin(ecc_anom)
-        df_decc_anom = ecc*np.cos(ecc_anom) - 1.
-        delta_ecc_anom   = -fun / df_decc_anom
-        ecc_anom    = ecc_anom + delta_ecc_anom
-
-    if np.any(delta_ecc_anom > tol): #pragma: no cover
-        raise RuntimeWarning("Eccentric Anomaly may not have converged" \
-                            + f"after {max_iter} steps. : dE = {delta_ecc_anom}")
-
-    return ecc_anom
 
 
 def single_gnss_from_precise_eph(navdata, sp3_parsed_file,

@@ -18,9 +18,10 @@ from gnss_lib_py.utils.coordinates import ecef_to_geodetic, ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr, \
-                        find_sv_location, find_sv_states, _compute_eccentric_anomaly, \
+                        find_sv_location, find_sv_states, \
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
+from gnss_lib_py.parsers.rinex_nav import _compute_eccentric_anomaly
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 
