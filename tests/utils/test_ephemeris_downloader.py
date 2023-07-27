@@ -7,12 +7,14 @@ __date__ = "30 Aug 2022"
 
 import os
 import ftplib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta, time
 
 import pytest
 import requests
+import numpy as np
 
-from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader
+import gnss_lib_py.utils.ephemeris_downloader as ed
+# pylint: disable=protected-access
 
 @pytest.fixture(name="ephem_path", scope='session')
 def fixture_ephem_path():
@@ -259,15 +261,57 @@ def test_get_constellation(ephem_path):
 def test_extract_ephemeris_dates():
     """Test extracting the correct days from timestamps.
 
+    Datetime format is: (Year, Month, Day, Hr, Min, Sec, Microsecond)
+
     """
 
-    # noon single day test
-    # noon two day test
-    # 2am test / 1am test / midnight test
-    # 10pm / 11pm / midnight test
-    # 10pm + 1am test
-    # 10pm + noon test
-    # noon + 1am test
-    # noon + 10pm test
+    # check basic case
+    noon_utc = datetime(2023, 7, 27, 12, 0, 0, 0, tzinfo=timezone.utc)
+    dates = ed._extract_ephemeris_dates("rinex", np.array([noon_utc]))
+    assert dates == {datetime(2023, 7, 27).date()}
 
-    pass
+    # check that timezone conversion is happening
+    eleven_pt = datetime(2023, 7, 26, 23, 0, 0, 0,
+                    tzinfo=timezone(-timedelta(hours=8)))
+    dates = ed._extract_ephemeris_dates("rinex", np.array([eleven_pt]))
+    assert dates == {datetime(2023, 7, 27).date()}
+
+    # check add prev day if after before 2am
+    for hour in [0,1,2]:
+        two_am_utc = datetime(2023, 7, 27, hour, 0, 0, 0, tzinfo=timezone.utc)
+        dates = ed._extract_ephemeris_dates("rinex", np.array([two_am_utc]))
+        assert dates == {datetime(2023, 7, 26).date(),
+                         datetime(2023, 7, 27).date()}
+
+    # check add next day if after 10pm
+    for hour in [22,23]:
+        ten_pm_utc = datetime(2023, 7, 26, hour, 0, 0, 0, tzinfo=timezone.utc)
+        dates = ed._extract_ephemeris_dates("rinex", np.array([ten_pm_utc]))
+        assert dates == {datetime(2023, 7, 26).date(),
+                         datetime(2023, 7, 27).date()}
+
+    # check don't add next day if after 10pm on current day
+    ten_pm_utc_today = datetime.combine(datetime.utcnow().date(),
+                                        time(22,tzinfo=timezone.utc))
+    dates = ed._extract_ephemeris_dates("rinex", np.array([ten_pm_utc_today]))
+    assert dates == {datetime.utcnow().date()}
+
+    # check that across multiple days there aren't duplicates
+    dates = ed._extract_ephemeris_dates("rinex", np.array([noon_utc,
+                                                          eleven_pt,
+                                                          two_am_utc,
+                                                          ten_pm_utc]))
+    assert dates == {datetime(2023, 7, 26).date(),
+                     datetime(2023, 7, 27).date()}
+
+    # check for two separate days
+    noon_utc_01 = datetime(2023, 7, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+    dates = ed._extract_ephemeris_dates("rinex", np.array([noon_utc,
+                                                           noon_utc_01]))
+    assert dates == {datetime(2023, 7, 27).date(),
+                     datetime(2023, 7, 1).date()}
+
+def test_verify_ephemeris():
+    """Test verifying ephemeris.
+
+    """

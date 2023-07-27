@@ -10,7 +10,7 @@ import shutil
 import gzip
 import ftplib
 from ftplib import FTP_TLS, FTP
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta, time
 
 import unlzw3
 
@@ -93,11 +93,8 @@ def verify_ephemeris(file_type, gps_millis, constellations, paths,
 
     dates_needed = _extract_ephemeris_dates(file_type, dt_timestamps)
 
-    # in broadcast first timestep may be 02:00am so pull earlier day if
-    # before that.
-
-    # In broadcast if before 2:00am also pull previous day and if after
-    # 10pm also pull next day (but only if not current day)
+    if list(constellations) == ['gps']:
+        print("gps")
 
     # broadcast name reference
     # https://igs.org/mgex/data-products/#bce
@@ -132,8 +129,6 @@ def verify_ephemeris(file_type, gps_millis, constellations, paths,
 
     # Galileo
     # USN switches from USN8 to USN7
-
-
 
     existing_paths = paths - []
     needed_files = []
@@ -176,25 +171,36 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
 
     Returns
     -------
-    needed_dates : list
-        Days in UTC that ephemeris needs to be retrieved for.
+    needed_dates : set
+        Set of datetime.date objects of the days in UTC for which
+        ephemeris needs to be retrieved.
 
     """
 
-    needed_dates = []
+    # convert all timezones to UTC
+    dt_timestamps = [tc.tzinfo_to_utc(t) for t in dt_timestamps]
+
+    needed_dates = set()
 
     if file_type == "rinex":
-        pass
-        # add every day if timestamp falls between 2am-10pm
+        # add every day for each timestamp
+        needed_dates.update({dt.date() for dt in dt_timestamps})
+
         # add every day before if timestamp falls between 0am-2am
+        needed_dates.update({dt.date() - timedelta(days=1) for dt in dt_timestamps
+                        if (dt <= datetime.combine(dt.date(),
+                                        time(2,tzinfo=timezone.utc)))
+                        })
         # add every day after if timestamp falls between 10pm and midnight
-        #   but only if not the current day
-        # check for uniqueness
+        #   but only if the datetime is not the current day
+        needed_dates.update({dt.date() + timedelta(days=1) for dt in dt_timestamps
+                        if ((dt >= datetime.combine(dt.date(),
+                                        time(22,tzinfo=timezone.utc))) &
+                             (dt.date() != datetime.utcnow().date()))
+                        })
 
     elif file_type in ("sp3","clk"):
         pass
-
-    # don't ask for a day in the future...
 
     return needed_dates
 
