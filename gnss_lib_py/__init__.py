@@ -12,6 +12,7 @@ from gnss_lib_py.parsers.clk import *
 from gnss_lib_py.parsers.navdata import *
 from gnss_lib_py.parsers.nmea import *
 from gnss_lib_py.parsers.rinex_nav import *
+from gnss_lib_py.parsers.rinex_obs import *
 from gnss_lib_py.parsers.smartloc import *
 from gnss_lib_py.parsers.sp3 import *
 

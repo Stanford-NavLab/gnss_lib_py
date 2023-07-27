@@ -12,7 +12,7 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex_nav import Rinex, get_time_cropped_rinex
+from gnss_lib_py.parsers.rinex_nav import RinexNav, get_time_cropped_rinex
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 
 
@@ -175,13 +175,13 @@ def test_load_leapseconds(ephem_path):
 
     rinex_path = os.path.join(ephem_path,"rinex",
                                    "brdc1370.20n")
-    rinex_data = Rinex(rinex_path)
+    rinex_data = RinexNav(rinex_path)
     assert rinex_data['leap_seconds'] == 18
 
     # check what happens when a file with an incomplete header is passed
     incomplete_path = os.path.join(ephem_path,"rinex",
                                    "brdc1370_no_leapseconds.20n")
-    rinex_data = Rinex(incomplete_path)
+    rinex_data = RinexNav(incomplete_path)
     assert len(rinex_data.where('leap_seconds',np.nan)) == 1
 
     # check what happens when a file with an incomplete header is passed
