@@ -255,3 +255,19 @@ def test_get_constellation(ephem_path):
     ephem_man = EphemerisDownloader(ephem_path, verbose=True)
 
     assert ephem_man.get_constellations(set('R')) is None
+
+def test_extract_ephemeris_dates():
+    """Test extracting the correct days from timestamps.
+
+    """
+
+    # noon single day test
+    # noon two day test
+    # 2am test / 1am test / midnight test
+    # 10pm / 11pm / midnight test
+    # 10pm + 1am test
+    # 10pm + noon test
+    # noon + 1am test
+    # noon + 10pm test
+
+    pass

@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 import unlzw3
 
-from gnss_lib_py.utils.time_conversions import tzinfo_to_utc
+import gnss_lib_py.utils.time_conversions as tc
 
 DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
 
@@ -49,6 +49,7 @@ def load_ephemeris(file_type, gps_millis,
     existing_paths, needed_files = verify_ephemeris(file_type,
                                                     gps_millis,
                                                     paths,
+                                                    constellations,
                                                     verbose)
 
     downloaded_paths = download_ephemeris(needed_files)
@@ -57,14 +58,15 @@ def load_ephemeris(file_type, gps_millis,
 
     return paths
 
-def verify_ephemeris(file_type, gps_millis, paths, verbose):
+def verify_ephemeris(file_type, gps_millis, constellations, paths,
+                     verbose):
     """Check what ephemeris files to download and if they already exist.
 
     Parameters
     ----------
     file_type : string
         File type to download either "rinex", "sp3", or "clk".
-    gps_millis : float
+    gps_millis : float or array-like of floats
         GPS milliseconds for which downloaded ephemeris should be
         obtained.
     constellations : list, set, or array-like
@@ -86,6 +88,10 @@ def verify_ephemeris(file_type, gps_millis, paths, verbose):
     [1] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 
     """
+
+    dt_timestamps = tc.gps_millis_to_datetime(gps_millis)
+
+    dates_needed = _extract_ephemeris_dates(file_type, dt_timestamps)
 
     # in broadcast first timestep may be 02:00am so pull earlier day if
     # before that.
@@ -152,6 +158,45 @@ def download_ephemeris(url):
     paths = []
 
     return paths
+
+def _extract_ephemeris_dates(file_type, dt_timestamps):
+    """Figure out which dates ephemeris is needed for from datetimes.
+
+    Rinex files are only guaranteed to have data for between 02:00 and
+    22:00. If the timestamp is bewteen 00:00 and 02:00, the previous day
+    will also be included. If after 22:00, the next day will also be
+    included.
+
+    Parameters
+    ----------
+    file_type : string
+        File type to download either "rinex", "sp3", or "clk".
+    dt_timestamps : np.ndarray
+        Datetime timestamps.
+
+    Returns
+    -------
+    needed_dates : list
+        Days in UTC that ephemeris needs to be retrieved for.
+
+    """
+
+    needed_dates = []
+
+    if file_type == "rinex":
+        pass
+        # add every day if timestamp falls between 2am-10pm
+        # add every day before if timestamp falls between 0am-2am
+        # add every day after if timestamp falls between 10pm and midnight
+        #   but only if not the current day
+        # check for uniqueness
+
+    elif file_type in ("sp3","clk"):
+        pass
+
+    # don't ask for a day in the future...
+
+    return needed_dates
 
 class EphemerisDownloader():
     """Download, store and process ephemeris files
@@ -246,7 +291,7 @@ class EphemerisDownloader():
         """
         systems = EphemerisDownloader.get_constellations(satellites)
         # add UTC timezone if datatime os offset-naive
-        timestamp = tzinfo_to_utc(timestamp)
+        timestamp = tc.tzinfo_to_utc(timestamp)
         same_day = (datetime.now(timezone.utc) - timestamp).days <= 0
         rinex_paths = self.load_data(timestamp, systems, same_day)
 
