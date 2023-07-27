@@ -83,6 +83,7 @@ In the directory organization above:
       * [Precise Ephemeris Data](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html)
       * [TU Chemnitz smartLoc Dataset](https://www.tu-chemnitz.de/projekt/smartLoc/gnss_dataset.html.en#Datasets)
       * [NMEA](https://www.sparkfun.com/datasheets/GPS/NMEA%20Reference%20Manual-Rev2.1-Dec07.pdf)
+      * [RINEX .o and .n] (https://files.igs.org/pub/data/format/rinex305.pdf)
 
   * The `utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite

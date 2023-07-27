@@ -378,10 +378,12 @@ class NavData():
                                + "for string condition checks")
             # Extract columns where condition holds true and return new NavData
             if condition == "eq":
-                new_cols = np.argwhere(np.isin(self[row, :],str_check))
+                new_cols = np.argwhere(np.atleast_1d(np.isin(self[row, :],
+                                                             str_check)))
             else:
                 # condition == "neq"
-                new_cols = np.argwhere(~np.isin(self[row, :],str_check))
+                new_cols = np.argwhere(np.atleast_1d(~np.isin(self[row, :],
+                                                              str_check)))
 
         else:
             # Values in row are numerical
@@ -389,8 +391,8 @@ class NavData():
             if condition=="eq":
                 if isinstance(value,(np.ndarray,list,tuple,set)):
                     # use numpy's isin() condition if list of values
-                    new_cols = np.argwhere(np.isin(self.array[row, :],
-                                           value))
+                    new_cols = np.argwhere(np.atleast_1d(np.isin(self.array[row, :],
+                                           value)))
                 elif not isinstance(value,str) and np.isnan(value):
                     # check isinstance b/c np.isnan can't handle strings
                     new_cols = np.argwhere(np.isnan(self.array[row, :]))
@@ -399,11 +401,11 @@ class NavData():
             elif condition=="neq":
                 if isinstance(value,(np.ndarray,list,tuple,set)):
                     # use numpy's isin() condition if list of values
-                    new_cols = np.argwhere(~np.isin(self.array[row, :],
-                                           value))
+                    new_cols = np.argwhere(np.atleast_1d(~np.isin(self.array[row, :],
+                                           value)))
                 elif not isinstance(value,str) and np.isnan(value):
                     # check isinstance b/c np.isnan can't handle strings
-                    new_cols = np.argwhere(~np.isnan(self.array[row, :]))
+                    new_cols = np.argwhere(np.atleast_1d(~np.isnan(self.array[row, :])))
                 else:
                     new_cols = np.argwhere(self.array[row, :]!=value)
             elif condition == "leq":

@@ -14,7 +14,7 @@ import numpy as np
 from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import AndroidDerived2022, AndroidGroundTruth2022
-from gnss_lib_py.parsers.rinex import get_time_cropped_rinex
+from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
 
 def pytest_collection_modifyitems(items):
     """Run download tests last!
