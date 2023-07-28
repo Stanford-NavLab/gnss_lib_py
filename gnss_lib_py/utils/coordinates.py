@@ -567,3 +567,39 @@ def wrap_0_to_2pi(angles):
     angles = np.mod(angles, 2*np.pi)
 
     return angles
+
+
+def pz90_to_inertial(pos_pz90, vel_pz90, acc_pz90, theta_Ge):
+
+    # Define inertial variables
+    pos_inertial = np.empty_like(pos_pz90)
+    vel_inertial = np.empty_like(vel_pz90)
+    jacobian_inertial = np.empty_like(acc_pz90)
+    pos_inertial[0, :] = pos_pz90[0,:]*np.cos(theta_Ge) - pos_pz90[1, :]*np.sin(theta_Ge)
+    pos_inertial[1, :] = pos_pz90[0,:]*np.sin(theta_Ge) + pos_pz90[1, :]*np.cos(theta_Ge)
+    pos_inertial[2, :] = pos_pz90[2,:]
+
+    vel_inertial[0, :] = vel_pz90[0, :]*np.cos(theta_Ge) \
+                        - vel_pz90[1, :]*np.sin(theta_Ge) \
+                        - consts.OMEGA_E_DOT*pos_inertial[1, :]
+    vel_inertial[1, :] = vel_pz90[0, :]*np.sin(theta_Ge) \
+                        + vel_pz90[1, :]*np.cos(theta_Ge) \
+                        + consts.OMEGA_E_DOT*pos_inertial[0, :]
+    vel_inertial[2, :] = vel_pz90[2, :]
+
+    jacobian_inertial = acc_pz90[0, :]*np.cos(theta_Ge) \
+                        - acc_pz90[1, :]*np.sin(theta_Ge)
+    jacobian_inertial = acc_pz90[0, :]*np.sin(theta_Ge) \
+                        + acc_pz90[1, :]*np.cos(theta_Ge)
+    jacobian_inertial = acc_pz90[2, :]
+
+    return pos_inertial, vel_inertial, jacobian_inertial
+
+
+def inertial_to_pz90(pos_inertial, theta_G):
+    pos_pz90 = np.empty_like(pos_inertial)
+    pos_pz90[0, :] = pos_inertial[0, :]*np.cos(theta_G) + pos_inertial[1, :]*np.sin(theta_G)
+    pos_pz90[1, :] = -pos_inertial[0, :]*np.sin(theta_G) + pos_inertial[1, :]*np.cos(theta_G)
+    pos_pz90[2, :] = pos_inertial[2, :]
+
+    return pos_pz90
