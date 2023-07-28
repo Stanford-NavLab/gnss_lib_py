@@ -43,7 +43,7 @@ from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, \
                                                 gps_millis_to_tow, \
                                                 gps_millis_to_datetime, \
                                                 tzinfo_to_utc
-from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader, DEFAULT_EPHEM_PATH
+from gnss_lib_py.utils.ephemeris_downloader import load_ephemeris, DEFAULT_EPHEM_PATH
 
 
 def get_time_cropped_rinex(timestamp, satellites=None,
@@ -221,7 +221,10 @@ class RinexNav(NavData):
 
         """
 
-        constellations = EphemerisDownloader.get_constellations(satellites)
+        constellations = set()
+        if satellites is not None and len(satellites) != 0:
+            for sat in satellites:
+                constellations.add(sat[0])
 
         if isinstance(rinex_paths, (str, os.PathLike)):
             rinex_paths = [rinex_paths]
@@ -959,7 +962,6 @@ def _GMST_at_midnight(timestamp):
     #Revision history: Justine Haupt, v1.0 (11/23/17)
     #calculate the Greenwhich mean sidereal time:
     #split TD into individual variables for month, day, etc. and convert to floats:
-
     month = timestamp.astype('datetime64[M]').item().month
     day = timestamp.astype('datetime64[D]').item().day
     year = timestamp.astype('datetime64[Y]').item().year
@@ -1005,5 +1007,54 @@ def _glonass_sv_dynamics(t, s, Jx_iner, Jy_iner, Jz_iner):
     return np.array([xa_dot, ya_dot, za_dot, vxa_dot, vya_dot, vza_dot])
 
 
+def get_time_cropped_rinex(gps_millis, satellites=None,
+                           ephemeris_directory=DEFAULT_EPHEM_PATH):
+    """Add SV states using Rinex file.
+    
+    Parameters
+    ----------
+    gps_millis : float
+        Ephemeris data is returned for the timestamp day and
+        includes all broadcast ephemeris whose broadcast timestamps
+        happen before the given timestamp variable. Timezone should
+        be added manually and is interpreted as UTC if not added.
+    satellites : List
+        List of satellite IDs as a string, for example ['G01','E11',
+        'R06']. Defaults to None which returns get_ephemeris for
+        all satellites.
 
+    Returns
+    -------
+    data : gnss_lib_py.parsers.navdata.NavData
+        ephemeris entries corresponding to timestamp
 
+    Notes
+    -----
+    The Galileo week ``GALWeek`` is identical to the GPS Week
+    ``GPSWeek``. See http://acc.igs.org/misc/rinex304.pdf page A26
+
+    """
+
+    constellations = set()
+    for sat in satellites:
+        constellations.add(consts.CONSTELLATION_CHARS[sat[0]])
+    constellations = list(constellations)
+
+    rinex_paths = load_ephemeris("rinex_nav",gps_millis,constellations,
+                                 download_directory=ephemeris_directory,
+                                 )
+    rinex_data = RinexNav(rinex_paths, satellites=satellites)
+
+    time_cropped_data = rinex_data.where('gps_millis', gps_millis, "lesser")
+
+    time_cropped_data = time_cropped_data.pandas_df().sort_values(
+        'gps_millis').groupby('gnss_sv_id').last()
+
+    rinex_data_df = time_cropped_data
+    rinex_iono_params = rinex_data.iono_params
+
+    rinex_data_df = rinex_data_df.reset_index()
+    rinex_data = NavData(pandas_df=rinex_data_df)
+    rinex_data.iono_params = rinex_iono_params
+
+    return rinex_data

@@ -14,6 +14,7 @@ import numpy as np
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.rinex_nav import RinexNav, get_time_cropped_rinex
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
+from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 
 
 @pytest.fixture(name="ephem_path", scope='session')
@@ -63,11 +64,9 @@ def test_get_time_cropped_rinex(ephem_path, ephem_time, satellites):
 
     """
 
-    if ephem_time.tzinfo is None:
-        with pytest.warns(RuntimeWarning):
-            ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path)
-    else:
-        ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path)
+    ephem_time = datetime_to_gps_millis(ephem_time)
+
+    ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path)
 
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
@@ -114,6 +113,7 @@ def test_prev_ephem(ephem_path, ephem_time, satellites):
 
     """
 
+    ephem_time = datetime_to_gps_millis(ephem_time)
     ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path)
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
@@ -158,6 +158,8 @@ def test_get_ephem_fails(ephem_path, ephem_time, satellites):
 
     """
 
+    ephem_time = datetime_to_gps_millis(ephem_time)
+
     with pytest.raises(RuntimeError) as excinfo:
         get_time_cropped_rinex(ephem_time, satellites, ephem_path)
     assert "ephemeris data" in str(excinfo.value)
@@ -173,7 +175,7 @@ def test_load_leapseconds(ephem_path):
 
     """
 
-    rinex_path = os.path.join(ephem_path,"rinex",
+    rinex_path = os.path.join(ephem_path,"rinex","nav",
                                    "brdc1370.20n")
     rinex_data = RinexNav(rinex_path)
     assert rinex_data['leap_seconds'] == 18

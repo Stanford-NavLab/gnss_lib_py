@@ -168,23 +168,9 @@ def add_visible_svs_for_trajectory(rx_states,
 
     # Find starting time to download broadcast ephemeris file
     start_millis = gps_millis[0]
-    start_time = gps_millis_to_datetime(start_millis)
-    # Initialize all satellites
-    inv_const_chars = {value : key for key, value in consts.CONSTELLATION_CHARS.items()}
-    all_sats = []
-    if constellations is None:
-        constellations = list(consts.CONSTELLATION_CHARS.values())
-    for const in constellations:
-        if const != 'gps':
-            warnings.warn(const + " not available in received constellations", RuntimeWarning)
-            continue
-        gnss_char = inv_const_chars[const]
-        num_sats = consts.NUMSATS[const]
-        all_sats_const = [f"{gnss_char}{sv:02}" for sv in range(1, num_sats)]
-        all_sats.extend(all_sats_const)
 
     # Initialize file with broadcast ephemeris parameters
-    ephem_all_sats = get_time_cropped_rinex(start_time, all_sats,
+    ephem_all_sats = get_time_cropped_rinex(start_millis, constellations,
                                             ephemeris_path)
 
     # Find rows that correspond to receiver positions
@@ -564,9 +550,8 @@ def _filter_ephemeris_measurements(measurements, constellations,
     eph_sv = _combine_gnss_sv_ids(measurements)
     lookup_sats = list(np.unique(eph_sv))
     start_gps_millis = np.min(measurements['gps_millis'])
-    start_time = gps_millis_to_datetime(start_gps_millis)
     # Download the ephemeris file for all the satellites in the measurement files
-    ephem = get_time_cropped_rinex(start_time, lookup_sats,
+    ephem = get_time_cropped_rinex(start_gps_millis, lookup_sats,
                                    ephemeris_path)
     if get_iono:
         iono_params = ephem.iono_params[0]
@@ -891,9 +876,7 @@ def sv_gps_from_brdcst_eph_duplicate(navdata,
         # compute ephem information using desired_sats, rxdatetime
         desired_sats = [unique_gnss_id_str + str(int(i)).zfill(2) \
                                            for i in navdata["sv_id", sorted_idxs]]
-        rxdatetime = datetime(1980, 1, 6, 0, 0, 0, tzinfo=timezone.utc) + \
-                     timedelta( seconds = (timestep) * 1e-3 )
-        ephem = get_time_cropped_rinex(rxdatetime, satellites = desired_sats,
+        ephem = get_time_cropped_rinex(timestep, satellites = desired_sats,
                                         ephemeris_directory=ephemeris_path)
 
         # compute satellite position and velocity based on ephem and gps_time
