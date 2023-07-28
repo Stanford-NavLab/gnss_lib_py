@@ -89,30 +89,19 @@ def test_datetime_to_tow():
     """
 
     input_time = datetime(2022, 7, 28, 12, 0, 0, tzinfo=timezone.utc)
-    output_wk, output_tow = tc.datetime_to_tow(input_time,
-                                               add_leap_secs = True)
+    output_wk, output_tow = tc.datetime_to_tow(input_time)
     assert output_wk == 2220
     assert output_tow == 388818.0
 
     # Test equivalent conversion from TOW to datetime
-    rev_time = tc.tow_to_datetime(output_wk, output_tow, rem_leap_secs=True)
+    rev_time = tc.tow_to_datetime(output_wk, output_tow)
     assert input_time == rev_time
-
-
-    output_wk2, output_tow2 = tc.datetime_to_tow(input_time,
-                                                 add_leap_secs = False)
-    assert output_wk2 == 2220
-    assert (output_tow - output_tow2) == 18.0
-
-    # Test equivalent conversion from TOW to datetime
-    rev_time_2 = tc.tow_to_datetime(output_wk2, output_tow2, rem_leap_secs=False)
-    assert input_time == rev_time_2
 
     # Testing that datetime_to_tow raises error for time before start of
     # GPS epoch
     with pytest.raises(RuntimeError):
         input_time = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        _ = tc.datetime_to_tow(input_time, add_leap_secs=True)
+        _ = tc.datetime_to_tow(input_time)
 
 def test_millis_since_gps_epoch_to_tow():
     """Test milliseconds since gps epoch to time of week.
@@ -134,7 +123,7 @@ def test_millis_since_gps_epoch_to_tow():
    """
     # These two are for 30th june 2016 (1151280017) and leap seconds: 17
     input_millis = 1151280017.0*1000.0
-    output_wk, output_tow = tc.gps_millis_to_tow(input_millis, add_leap_secs = False)
+    output_wk, output_tow = tc.gps_millis_to_tow(input_millis)
     assert output_wk == 1903.0
     assert output_tow == 345617.0
 
@@ -142,12 +131,8 @@ def test_millis_since_gps_epoch_to_tow():
     gps_millis = tc.tow_to_gps_millis(output_wk, output_tow)
     assert gps_millis == input_millis
 
-    output_wk2, output_tow2 = tc.gps_millis_to_tow(input_millis, add_leap_secs = True)
-    assert output_wk2 == 1903.0
-    assert output_tow2 - output_tow == 17.0
-
     input_millis3 = 1303041618.0*1000.0
-    output_wk3, output_tow3 = tc.gps_millis_to_tow(input_millis3, add_leap_secs = False)
+    output_wk3, output_tow3 = tc.gps_millis_to_tow(input_millis3)
     assert output_wk3 == 2154.0
     assert output_tow3 == 302418.0
 

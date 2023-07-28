@@ -1,7 +1,7 @@
-"""Timing conversions between reference frames.
+"""Timing conversions between reference frames for times.
 
 Frame options are described in detail at on the documentation website:
-https://gnss-lib-py.readthedocs.io/en/latest/reference/reference.html#standard-naming-conventions
+https://gnss-lib-py.readthedocs.io/en/latest/reference/reference.html#timing-conventions
 
 Frame options include:
     - gps_millis : GPS milliseconds
@@ -78,24 +78,19 @@ def get_leap_seconds(gps_time):
     return out_leapsecs
 
 
-def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
+def gps_millis_to_tow(millis):
     """Convert milliseconds since GPS epoch to GPS week number and time.
 
     The initial GPS epoch is defined by the variable GPS_EPOCH_0 at
     which the week number is assumed to be 0.
 
+    Both of these times are in the GPS time frame of reference and as a
+    result, leap seconds do not need to be accounted for here.
+
     Parameters
     ----------
     millis : float or array-like of floats
         Float object for Time of Clock [ms].
-    add_leap_secs : bool
-        Flag for whether input is in UTC seconds or GPS seconds.
-        If True, we assume that input millis do not contain leap seconds
-        and add them to the output time.
-        If False, we assume that input millis contain leap seconds and
-        do not add them.
-    verbose : bool
-        Flag for whether to print that leapseconds were added.
 
     Returns
     -------
@@ -120,11 +115,6 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
     for milli in millis:
         gps_week, tow = divmod(milli, 7*86400*1000)
         tow = tow / 1000.0
-        if add_leap_secs:
-            out_leapsecs = get_leap_seconds(milli)
-            if verbose: #pragma: no cover
-                print('Leap seconds added')
-            tow = tow + out_leapsecs
 
         gps_weeks.append(np.int64(gps_week))
         tows.append(tow)
@@ -134,19 +124,17 @@ def gps_millis_to_tow(millis, add_leap_secs=False, verbose=False):
     return gps_weeks, tows
 
 
-def datetime_to_tow(t_datetimes, add_leap_secs=True, verbose=False):
+def datetime_to_tow(t_datetimes):
     """Convert Python datetime object to GPS Week and time of week.
+
+    For the `gnss_lib_py` convention, except for specific applications,
+    we assume that the time recorded by the `datetime.datetime` object
+    is UTC time. As a result, on converting to TOW, we add leap seconds.
 
     Parameters
     ----------
     t_datetimes : datetime.datetime or array-like of datetime.datetime
-        Datetime object for Time of Clock.
-    add_leap_secs : bool
-        Flag for whether output is in UTC seconds or GPS seconds.
-        If True, the output is in the GPS timing frame of reference and
-        leap seconds are added.
-        If False, the output is in the UTC timing frame of reference and
-        leap seconds are not added.
+        Datetime object for Time of Clock, assumed to be in UTC time frame.
     verbose : bool
         Flag for whether to print that leapseconds were added.
 
@@ -173,11 +161,8 @@ def datetime_to_tow(t_datetimes, add_leap_secs=True, verbose=False):
         if t_datetime < GPS_EPOCH_0:
             raise RuntimeError("Input time must be after GPS epoch " \
                              + str(GPS_EPOCH_0))
-        if add_leap_secs:
-            out_leapsecs = get_leap_seconds(t_datetime)
-            t_datetime = t_datetime + timedelta(seconds=out_leapsecs)
-            if verbose: # pragma: no cover
-                print("Leap seconds added")
+        out_leapsecs = get_leap_seconds(t_datetime)
+        t_datetime = t_datetime + timedelta(seconds=out_leapsecs)
         gps_week = (t_datetime - GPS_EPOCH_0).days // 7
 
         tow = ((t_datetime - GPS_EPOCH_0) - timedelta(gps_week* 7.0)).total_seconds()
@@ -190,8 +175,11 @@ def datetime_to_tow(t_datetimes, add_leap_secs=True, verbose=False):
     return gps_weeks, tows
 
 
-def tow_to_datetime(gps_weeks, tows, rem_leap_secs=True):
+def tow_to_datetime(gps_weeks, tows):
     """Convert GPS week and time of week (seconds) to datetime.
+
+    Because we assume that `datetime.datetime` objects are in UTC time,
+    leap seconds are removed from the given TOW.
 
     Parameters
     ----------
@@ -199,8 +187,6 @@ def tow_to_datetime(gps_weeks, tows, rem_leap_secs=True):
         GPS week.
     tows : float or array-like of floats
         GPS time of week [s].
-    rem_leap_secs : bool
-        Flag on whether to remove leap seconds from given tow.
 
     Returns
     -------
@@ -231,9 +217,8 @@ def tow_to_datetime(gps_weeks, tows, rem_leap_secs=True):
 
         seconds_since_epoch = WEEKSEC * gps_week + tow
         t_datetime = GPS_EPOCH_0 + timedelta(seconds=seconds_since_epoch)
-        if rem_leap_secs:
-            leap_secs = get_leap_seconds(t_datetime)
-            t_datetime = t_datetime - timedelta(seconds=leap_secs)
+        leap_secs = get_leap_seconds(t_datetime)
+        t_datetime = t_datetime - timedelta(seconds=leap_secs)
 
         t_datetimes.append(t_datetime)
 
@@ -249,8 +234,8 @@ def tow_to_unix_millis(gps_weeks, tows):
 
     Convert GPS week and time of week (seconds) to milliseconds since
     UNIX epoch.
-    Leap seconds will always be removed from tow because of offset between
-    UTC and GPS clocks.
+    Leap seconds will always be removed from tow because GPS millis is a
+    continuous time reference while unix millis adjust for leap seconds.
 
     Parameters
     ----------
@@ -287,7 +272,7 @@ def tow_to_unix_millis(gps_weeks, tows):
     for t_idx, gps_week in enumerate(gps_weeks):
         tow = tows[t_idx]
 
-        t_utc = tow_to_datetime(gps_week, tow, rem_leap_secs=True)
+        t_utc = tow_to_datetime(gps_week, tow)
         t_utc = t_utc.replace(tzinfo=timezone.utc)
         unix_milli = datetime_to_unix_millis(t_utc)
         unix_millis.append(unix_milli)
@@ -329,7 +314,8 @@ def tow_to_gps_millis(gps_week, tow):
 def datetime_to_unix_millis(t_datetimes):
     """Convert datetime to milliseconds since UNIX Epoch (1/1/1970 UTC).
 
-    If no timezone is specified, assumes UTC as timezone.
+    If no timezone is specified, assumes UTC as timezone. This function
+    does not add leapseconds to the datetime to get unix millis.
 
     Parameters
     ----------
@@ -363,20 +349,19 @@ def datetime_to_unix_millis(t_datetimes):
     return unix_millis_list
 
 
-def datetime_to_gps_millis(t_datetimes, add_leap_secs=True):
+def datetime_to_gps_millis(t_datetimes):
     """Convert datetime to milliseconds since GPS Epoch.
 
     GPS Epoch starts at the 6th January 1980.
     If no timezone is specified, assumes UTC as timezone and returns
     milliseconds in GPS time frame of reference by adding leap seconds.
-    Milliseconds are not added when the flag add_leap_secs is False.
+    Leap seconds are always added because UTC time is adjusted for leap
+    seconds while GPS milliseconds are not.
 
     Parameters
     ----------
     t_datetime : datetime.datetime or array-like of datetime.datetime
         UTC time as a datetime object.
-    add_leap_secs : bool
-        Flag for whether output is in UTC seconds or GPS seconds.
 
     Returns
     -------
@@ -386,7 +371,7 @@ def datetime_to_gps_millis(t_datetimes, add_leap_secs=True):
 
 
     """
-    gps_weeks, tows = datetime_to_tow(t_datetimes, add_leap_secs=add_leap_secs)
+    gps_weeks, tows = datetime_to_tow(t_datetimes)
     gps_millis = tow_to_gps_millis(gps_weeks, tows)
     return gps_millis
 
@@ -448,11 +433,11 @@ def unix_millis_to_tow(unix_millis):
     """
 
     t_utc = unix_millis_to_datetime(unix_millis)
-    gps_week, tow = datetime_to_tow(t_utc, add_leap_secs=True)
+    gps_week, tow = datetime_to_tow(t_utc)
     return np.int64(gps_week), tow
 
 
-def unix_to_gps_millis(unix_millis, add_leap_secs=True):
+def unix_to_gps_millis(unix_millis):
     """Convert milliseconds since UNIX epoch (1/1/1970) to GPS millis.
 
     Adds leap seconds by default but time can be kept in UTC frame by
@@ -477,20 +462,23 @@ def unix_to_gps_millis(unix_millis, add_leap_secs=True):
         gps_millis = np.zeros_like(unix_millis)
         for t_idx, unix in enumerate(unix_millis):
             t_utc = unix_millis_to_datetime(unix)
-            gps_millis[t_idx] = datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs)
+            gps_millis[t_idx] = datetime_to_gps_millis(t_utc)
         gps_millis = gps_millis.astype(np.float64)
     else:
         t_utc = unix_millis_to_datetime(unix_millis)
-        gps_millis = np.float64(datetime_to_gps_millis(t_utc, add_leap_secs=add_leap_secs))
+        gps_millis = np.float64(datetime_to_gps_millis(t_utc))
     return gps_millis
 
 
-def gps_millis_to_datetime(gps_millis, rem_leap_secs=True):
+def gps_millis_to_datetime(gps_millis):
     """Convert milliseconds since GPS epoch to datetime.
 
     GPS millis is from the start of the GPS in GPS reference.
     The initial GPS epoch is defined by the variable GPS_EPOCH_0 at
     which the week number is assumed to be 0.
+
+    The :code:`datetime` instances are assumed to be in UTC time and leap
+    seconds are removed from the gps_millis as a result.
 
     Parameters
     ----------
@@ -505,17 +493,20 @@ def gps_millis_to_datetime(gps_millis, rem_leap_secs=True):
         UTC time as a datetime object. Either `datetime.datetime` or
         `np.ndarray` with `dtype = datetime.datetime`.
     """
-    gps_week, tow = gps_millis_to_tow(gps_millis, add_leap_secs=False)
-    t_utc = tow_to_datetime(gps_week, tow, rem_leap_secs=rem_leap_secs)
+    gps_week, tow = gps_millis_to_tow(gps_millis)
+    t_utc = tow_to_datetime(gps_week, tow)
     return t_utc
 
 
-def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
+def gps_to_unix_millis(gps_millis):
     """Convert milliseconds since GPS epoch to UNIX millis.
 
     GPS millis is from the start of the GPS in GPS reference.
     The initial GPS epoch is defined by the variable GPS_EPOCH_0 at
     which the week number is assumed to be 0.
+
+    Leap seconds are removed from gps_millis because of the difference
+    between how GPS and Unix time handle milliseconds.
 
     Parameters
     ----------
@@ -537,11 +528,11 @@ def gps_to_unix_millis(gps_millis, rem_leap_secs=True):
         and len(np.atleast_1d(gps_millis)) > 1:
         unix_millis = np.zeros_like(gps_millis)
         for t_idx, gps in enumerate(gps_millis):
-            t_utc = gps_millis_to_datetime(gps, rem_leap_secs=rem_leap_secs)
+            t_utc = gps_millis_to_datetime(gps)
             unix_millis[t_idx] = datetime_to_unix_millis(t_utc)
         gps_millis = gps_millis.astype(np.float64)
     else:
-        t_utc = gps_millis_to_datetime(gps_millis, rem_leap_secs=rem_leap_secs)
+        t_utc = gps_millis_to_datetime(gps_millis)
         unix_millis = np.float64(datetime_to_unix_millis(t_utc))
     return unix_millis
 
