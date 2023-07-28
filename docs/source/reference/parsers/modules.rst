@@ -8,6 +8,7 @@ parsers
    clk
    navdata
    nmea
-   rinex
+   rinex_nav
+   rinex_obs
    smartloc
    sp3
