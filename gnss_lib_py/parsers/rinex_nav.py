@@ -38,7 +38,8 @@ import georinex as gr
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, gps_millis_to_tow
-from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader, DEFAULT_EPHEM_PATH
+from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
+from gnss_lib_py.utils.ephemeris_downloader import load_ephemeris, DEFAULT_EPHEM_PATH
 
 
 class RinexNav(NavData):
@@ -123,7 +124,10 @@ class RinexNav(NavData):
 
         """
 
-        constellations = EphemerisDownloader.get_constellations(satellites)
+        constellations = set()
+        if satellites is not None and len(satellites) != 0:
+            for sat in satellites:
+                constellations.add(sat[0])
 
         if isinstance(rinex_paths, (str, os.PathLike)):
             rinex_paths = [rinex_paths]
@@ -681,7 +685,7 @@ def numerical_integration_for_sv_states(self, gps_millis):
     pass
 
 
-def get_time_cropped_rinex(timestamp, satellites=None,
+def get_time_cropped_rinex(gps_millis, satellites=None,
                            ephemeris_directory=DEFAULT_EPHEM_PATH):
     """Add SV states using Rinex file.
 
@@ -706,7 +710,7 @@ def get_time_cropped_rinex(timestamp, satellites=None,
 
     Parameters
     ----------
-    timestamp : datetime.datetime
+    gps_millis : float
         Ephemeris data is returned for the timestamp day and
         includes all broadcast ephemeris whose broadcast timestamps
         happen before the given timestamp variable. Timezone should
@@ -728,47 +732,26 @@ def get_time_cropped_rinex(timestamp, satellites=None,
 
     """
 
-    ephemeris_downloader = EphemerisDownloader(ephemeris_directory)
-    rinex_paths = ephemeris_downloader.get_ephemeris(timestamp,satellites)
+    constellations = set()
+    for sat in satellites:
+        constellations.add(consts.CONSTELLATION_CHARS[sat[0]])
+    constellations = list(constellations)
+
+    rinex_paths = load_ephemeris("rinex_nav",gps_millis,constellations,
+                                 download_directory=ephemeris_directory,
+                                 )
     rinex_data = RinexNav(rinex_paths, satellites=satellites)
 
-    timestamp_millis = datetime_to_gps_millis(timestamp)
-    time_cropped_data = rinex_data.where('gps_millis', timestamp_millis, "lesser")
+    time_cropped_data = rinex_data.where('gps_millis', gps_millis, "lesser")
 
     time_cropped_data = time_cropped_data.pandas_df().sort_values(
         'gps_millis').groupby('gnss_sv_id').last()
-    if satellites is not None and len(time_cropped_data) < len(satellites):
-        # if no data available for the given day, try looking at the
-        # previous day, may occur when a time near to midnight
-        # is provided. For example, 12:01am
-        if len(time_cropped_data) != 0:
-            satellites = list(set(satellites) - set(time_cropped_data.index))
-        prev_day_timestamp = datetime(year=timestamp.year,
-                                      month=timestamp.month,
-                                      day=timestamp.day - 1,
-                                      hour=23,
-                                      minute=59,
-                                      second=59,
-                                      microsecond=999999,
-                                      tzinfo=timezone.utc,
-                                      )
-        prev_rinex_paths = ephemeris_downloader.get_ephemeris(prev_day_timestamp,
-                                                              satellites)
-        # TODO: verify that the above statement doesn't need "False for timestamp"
-        prev_rinex_data = RinexNav(prev_rinex_paths, satellites=satellites)
 
-        prev_data = prev_rinex_data.pandas_df().sort_values('gps_millis').groupby(
-            'gnss_sv_id').last()
-        rinex_data_df = pd.concat((time_cropped_data,prev_data))
-        rinex_iono_params = prev_rinex_data.iono_params + rinex_data.iono_params
-    else:
-        rinex_data_df = time_cropped_data
-        rinex_iono_params = rinex_data.iono_params
+    rinex_data_df = time_cropped_data
+    rinex_iono_params = rinex_data.iono_params
 
     rinex_data_df = rinex_data_df.reset_index()
     rinex_data = NavData(pandas_df=rinex_data_df)
     rinex_data.iono_params = rinex_iono_params
 
     return rinex_data
-
-

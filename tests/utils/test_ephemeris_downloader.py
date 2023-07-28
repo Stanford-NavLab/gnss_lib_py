@@ -151,6 +151,28 @@ def test_extract_ephemeris_dates():
     assert dates == {datetime(2023, 7, 27).date(),
                      datetime(2023, 7, 1).date()}
 
+def test_ftp_errors(ephem_download_path):
+    """Test FTP download errors.
+
+    Parameters
+    ----------
+    ephem_download_path : string
+        Location where ephemeris files are stored/to be downloaded.
+
+    """
+    remove_download_eph(ephem_download_path)
+    os.makedirs(ephem_download_path)
+
+    url = 'gdc.cddis.eosdis.nasa.gov'
+    ftp_path = 'gnss/data/daily/2020/notafolder/notAfile.20n.Z'
+    dest_filepath = os.path.join(ephem_download_path,'rinex',
+                                 'nav',os.path.split(ftp_path)[1])
+    # download the ephemeris file
+    with pytest.raises(ftplib.error_perm) as excinfo:
+        ed._ftp_download(url, ftp_path, dest_filepath)
+    assert ftp_path in str(excinfo.value)
+
+    remove_download_eph(ephem_download_path)
 
 # @pytest.mark.parametrize('constellations',
 #                          [
@@ -291,51 +313,3 @@ def test_extract_ephemeris_dates():
 #
 #     remove_download_eph(ephem_download_path)
 #
-# def test_ftp_errors(ephem_download_path):
-#     """Test FTP download errors.
-#
-#     Parameters
-#     ----------
-#     ephem_download_path : string
-#         Location where ephemeris files are stored/to be downloaded.
-#
-#     """
-#     remove_download_eph(ephem_download_path)
-#     os.makedirs(ephem_download_path)
-#
-#     fileinfo = {'filepath': 'gnss/data/daily/2020/brdc/notAfile.20n.Z',
-#                 'url': 'gdc.cddis.eosdis.nasa.gov'}
-#
-#     ephem_man = EphemerisDownloader(ephem_download_path, verbose=True)
-#
-#     filepath = fileinfo['filepath']
-#     url = fileinfo['url']
-#     directory = os.path.split(filepath)[0]
-#     filename = os.path.split(filepath)[1]
-#     dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'rinex',
-#                                  filename)
-#
-#     # download the ephemeris file
-#     with pytest.raises(ftplib.error_perm) as excinfo:
-#         ephem_man.retrieve_file(url, directory, filename,
-#                                 dest_filepath)
-#     assert directory in str(excinfo.value)
-#     assert filename in str(excinfo.value)
-#
-#     remove_download_eph(ephem_download_path)
-
-# def test_get_constellation(ephem_path):
-#     """Test get constellation.
-#
-#     Check type and rows.
-#
-#     Parameters
-#     ----------
-#     ephem_path : string
-#         Location where ephemeris files are stored/to be downloaded to.
-#
-#     """
-#
-#     ephem_man = EphemerisDownloader(ephem_path, verbose=True)
-#
-#     assert ephem_man.get_constellations(set('R')) is None
