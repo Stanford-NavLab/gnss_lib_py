@@ -14,7 +14,8 @@ from datetime import datetime, timezone, timedelta
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
+from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex, \
+_find_delxyz_range
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
 from gnss_lib_py.parsers.sp3 import Sp3
@@ -656,34 +657,6 @@ def _extract_pos_vel_arr(sv_posvel):
     sv_pos = sv_posvel[['x_sv_m', 'y_sv_m', 'z_sv_m']]
     sv_vel   = sv_posvel[['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']]
     return sv_pos, sv_vel
-
-
-def _find_delxyz_range(sv_posvel, rx_ecef):
-    """Return difference of satellite and rx_pos positions and distance between them.
-
-    Parameters
-    ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        Satellite position and velocities.
-    rx_ecef : np.ndarray
-        3x1 Receiver 3D ECEF position [m].
-
-    Returns
-    -------
-    del_pos : np.ndarray
-        Difference between satellite positions and receiver position.
-    true_range : np.ndarray
-        Distance between satellite and receiver positions.
-    """
-    rx_ecef = np.reshape(rx_ecef, [3, 1])
-    satellites = len(sv_posvel)
-    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
-    sv_pos = sv_pos.reshape(rx_ecef.shape[0], satellites)
-    del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
-    true_range = np.linalg.norm(del_pos, axis=0)
-    return del_pos, true_range
-
-
 
 
 def single_gnss_from_precise_eph(navdata, sp3_parsed_file,

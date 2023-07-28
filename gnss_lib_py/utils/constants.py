@@ -44,6 +44,11 @@ motion about the Earth [m^3/s^2]."""
 OMEGA_E_DOT = 7.2921151467e-5
 """float : The sidereal rotation rate of the Earth (WGS-84) [rad/s]."""
 
+
+C20 = -1082.63e-6
+"""float : The second zonal coefficient of spherical harmonic expression,
+used for GLONASS SV dynamics. """
+
 C = 299792458.
 """float : Speed of light [m/s]."""
 

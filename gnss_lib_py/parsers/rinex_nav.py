@@ -24,7 +24,7 @@ observations.
 """
 
 
-__authors__ = "Ashwin Kanhere, Shubh Gupta"
+__authors__ = "Ashwin Kanhere, Shubh Gupta, Dalton Vega"
 __date__ = "13 July 2021"
 
 import os
@@ -34,11 +34,109 @@ import warnings
 import numpy as np
 import pandas as pd
 import georinex as gr
+from scipy.integrate import solve_ivp
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, gps_millis_to_tow
+from gnss_lib_py.utils.coordinates import pz90_to_inertial, inertial_to_pz90
+from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, \
+                                                gps_millis_to_tow, \
+                                                gps_millis_to_datetime, \
+                                                tzinfo_to_utc
 from gnss_lib_py.utils.ephemeris_downloader import EphemerisDownloader, DEFAULT_EPHEM_PATH
+
+
+def get_time_cropped_rinex(timestamp, satellites=None,
+                           ephemeris_directory=DEFAULT_EPHEM_PATH):
+    """Add SV states using Rinex file.
+
+    Provides broadcast ephemeris for specific
+    satellites at a specific timestep
+    ``add_sv_states_rinex`` returns the most recent broadcast ephemeris
+    for the provided list of satellites that was broadcast BEFORE
+    the provided timestamp. For example GPS daily ephemeris files
+    contain data at a two hour frequency, so if the timestamp
+    provided is 5am, then ``add_sv_states_rinex`` will return the 4am data
+    but not 6am. If provided a timestamp between midnight and 2am
+    then the ephemeris from around midnight (might be the day
+    before) will be provided. If no list of satellites is provided,
+    then ``add_sv_states_rinex`` will return data for all satellites.
+
+    When multiple observations are provided for the same satellite
+    and same timestep,  will only return the
+    first instance. This is applicable when requesting ephemeris for
+    multi-GNSS for the current day. Same-day multi GNSS data is
+    pulled from  same day. For same-day multi-GNSS from
+    https://igs.org/data/ which often has multiple observations.
+
+    Parameters
+    ----------
+    timestamp : datetime.datetime
+        Ephemeris data is returned for the timestamp day and
+        includes all broadcast ephemeris whose broadcast timestamps
+        happen before the given timestamp variable. Timezone should
+        be added manually and is interpreted as UTC if not added.
+    satellites : List
+        List of satellite IDs as a string, for example ['G01','E11',
+        'R06']. Defaults to None which returns get_ephemeris for
+        all satellites.
+
+    Returns
+    -------
+    data : gnss_lib_py.parsers.navdata.NavData
+        ephemeris entries corresponding to timestamp
+
+    Notes
+    -----
+    The Galileo week ``GALWeek`` is identical to the GPS Week
+    ``GPSWeek``. See http://acc.igs.org/misc/rinex304.pdf page A26
+
+    """
+
+    ephemeris_downloader = EphemerisDownloader(ephemeris_directory)
+    rinex_paths = ephemeris_downloader.get_ephemeris(timestamp,satellites)
+    rinex_data = RinexNav(rinex_paths, satellites=satellites)
+
+    timestamp_millis = datetime_to_gps_millis(timestamp)
+    time_cropped_data = rinex_data.where('gps_millis', timestamp_millis, "lesser")
+
+    time_cropped_data = time_cropped_data.pandas_df().sort_values(
+        'gps_millis').groupby('gnss_sv_id').last()
+    if satellites is not None and len(time_cropped_data) < len(satellites):
+        # if no data available for the given day, try looking at the
+        # previous day, may occur when a time near to midnight
+        # is provided. For example, 12:01am
+        if len(time_cropped_data) != 0:
+            satellites = list(set(satellites) - set(time_cropped_data.index))
+        prev_day_timestamp = datetime(year=timestamp.year,
+                                      month=timestamp.month,
+                                      day=timestamp.day - 1,
+                                      hour=23,
+                                      minute=59,
+                                      second=59,
+                                      microsecond=999999,
+                                      tzinfo=timezone.utc,
+                                      )
+        prev_rinex_paths = ephemeris_downloader.get_ephemeris(prev_day_timestamp,
+                                                              satellites)
+        # TODO: verify that the above statement doesn't need "False for timestamp"
+        prev_rinex_data = RinexNav(prev_rinex_paths, satellites=satellites)
+
+        prev_data = prev_rinex_data.pandas_df().sort_values('gps_millis').groupby(
+            'gnss_sv_id').last()
+        rinex_data_df = pd.concat((time_cropped_data,prev_data))
+        rinex_iono_params = prev_rinex_data.iono_params + rinex_data.iono_params
+    else:
+        rinex_data_df = time_cropped_data
+        rinex_iono_params = rinex_data.iono_params
+
+    rinex_data_df = rinex_data_df.reset_index()
+    rinex_data = NavData(pandas_df=rinex_data_df)
+    rinex_data.iono_params = rinex_iono_params
+    raise RuntimeError("Ashwin: You haven't fixed this function yet")
+
+    return rinex_data
+
 
 
 class RinexNav(NavData):
@@ -251,8 +349,10 @@ class RinexNav(NavData):
         ionosphere delay.
 
         There are different possible ways of the header containing
-        parameters for ionosphere delay parameters. This function tries
-        different keys to extract the pertinent parameters.
+        parameters for ionosphere delay parameters depending on whether
+        the file version is v2 or v3. This function uses different keys
+        for different Rinex versions and constellations and extracts the
+        pertinent parameters into a common format.
 
         Parameters
         ----------
@@ -272,6 +372,7 @@ class RinexNav(NavData):
         """
         iono_params = {}
         # If path ends in .n, then the file contains only GPS satellites
+        # and is a Rinex v2 file
         if rinex_header['filetype']=='N' and rinex_header['systems']=='G':
             try:
                 ion_alpha_str = rinex_header['ION ALPHA'].replace('D', 'E')
@@ -283,12 +384,13 @@ class RinexNav(NavData):
                 ion_beta = np.array([[np.nan]])
             gps_iono_params = np.vstack((ion_alpha, ion_beta))
             iono_params['gps'] = gps_iono_params
-        # If the path ends in .g, then the file constains GLONASS and no
-        # ionospheric parameters
+        # If the path ends in .g, then the file contains GLONASS and no
+        # ionospheric parameters. It is also a Rinex v2 file
         if rinex_header['filetype']=='G':
             iono_params = None
         # If the path ends in .rnx, then the file contains multiple
-        # constellations, each with their own ionospheric parameters
+        # constellations, each with their own ionospheric parameters.
+        # This type of file is a Rinex v3 file.
         if rinex_header['filetype']=='N' and rinex_header['systems']=='M':
             try:
                 iono_corrs = rinex_header['IONOSPHERIC CORR']
@@ -321,6 +423,61 @@ class RinexNav(NavData):
                               RuntimeWarning)
         return iono_params
 
+    def get_clock_corr_params(self, rinex_header, constellations=None):
+        """
+        #TODO: Refer to the Rinex v2 file format to show where the
+        indices of the string have been taken from
+        Add a line saying that these corrections are ignored because of
+        how small they are (in the order of nanoseconds) and we are not
+        pursuing accuracies of that order.
+        """
+        pass
+        # clock_corr_params = {}
+        # if rinex_header['filetype'] == 'N' and rinex_header['systems'] == 'G':
+        #     clock_corr_params['gps'] = 0
+        # if rinex_header['filetype'] == 'G':
+        #     try:
+        #         clock_params = rinex_header['CORR TO SYSTEM TIME']
+        #         utc_corr = clock_params[21:40]
+        #         clock_corr = -float(utc_corr.split()[-1].replace('D', 'E'))
+        #         clock_corr_params['glonass'] = clock_corr
+        #     except KeyError:
+        #         warnings.warn("No clock corrections found in file", RuntimeWarning)
+        #         clock_corr_params['glonass'] = np.nan
+        # if rinex_header['filetype']=='N' and rinex_header['systems']=='M':
+        #     try:
+        #         clock_corrs = rinex_header['TIME SYSTEM CORR']
+        #         clock_corr_keys = self._clock_corr_key()
+        #         # If no constellations have been specified, then use all
+        #         # possible constellations.
+        #         if constellations is None:
+        #             constellations = list(clock_corr_keys.keys())
+        #         # Loop through each constellation and load the parameters
+        #         for constellation in constellations:
+        #             try:
+        #                 # Load the relevant keys for the corrections
+        #                 const_keys = clock_corr_keys[constellation]
+        #                 if len(const_keys) == 2:
+        #                     temp_iono_params = np.empty([len(const_keys), 4])
+        #                     # Loop through the two constellation specific
+        #                     #keys to load the parameters
+        #                     for idx, const_key in enumerate(const_keys):
+        #                         temp_iono_params[idx, :] = clock_corrs[const_key]
+        #                 else:
+        #                     temp_iono_params = np.asarray(clock_corrs[const_keys[0]])
+        #                 clock_corr_params[constellation] = temp_iono_params
+        #             except KeyError:
+        #                 # if no iono parameters are found for a particular
+        #                 # constellation, skip that constellation
+        #                 continue
+        #     except KeyError:
+        #         iono_params = None
+        #         warnings.warn("No ionospheric parameters found in RINEX file",
+        #                       RuntimeWarning)
+
+
+
+
     @staticmethod
     def _iono_corr_key():
         iono_corr_key = {}
@@ -330,6 +487,18 @@ class RinexNav(NavData):
         iono_corr_key['qzss'] = ['QZSA', 'QZSB']
         iono_corr_key['irnss'] = ['IRNA', 'IRNB']
         return iono_corr_key
+
+    @staticmethod
+    def _clock_corr_key():
+        clock_corr_key = {}
+        clock_corr_key['gps'] = ['GPUT']
+        clock_corr_key['glonass'] = ['GLUT']
+        clock_corr_key['galileo'] = ['GAUT']
+        clock_corr_key['beidou'] = ['BDUT']
+        clock_corr_key['qzss'] = ['QZUT']
+        clock_corr_key['irnss'] = ['IRUT']
+        clock_corr_key['sbas'] = ['SBUT']
+        return clock_corr_key
 
     def load_leapseconds(self, rinex_header):
         """Read leapseconds from Rinex file
@@ -358,16 +527,35 @@ class RinexNav(NavData):
                 leap_seconds = np.nan
         return leap_seconds
 
-def rinex_to_sv_states(gps_millis, rinex_nav):
-    # keplerian_rinex =
-    # num_int_rinex =
-    # keplerian_sv_states =
-    # num_int_sv_states =
-    # sv_states = keplerian_sv_states.concat(num_int_sv_states)
-    # sv_states.sort('gps_millis', inplace=True)
-    # rotate the states
-    # return sv_states
-    pass
+def rinex_to_sv_states(gps_millis, rinex_nav, rx_pos=None):
+    #TODO: Add a small blurb about the time taken for the signal to travel
+    # and how we need to calculate the satellite positions at the transmission
+    # time
+    sv_states = estimate_joint_sv_states(gps_millis, rinex_nav)
+    sv_states.sort('gps_millis', inplace=True)
+    if rx_pos is not None:
+        # Correct for the time taken for the signal to travel to the
+        # receiver and estimate the satellite positions at the time of
+        # signal transmission
+        rx_ecef = np.reshape(rx_ecef, [3, 1])
+        _, true_range = _find_delxyz_range(sv_states, rx_ecef)
+        t_corr = true_range/consts.C
+        sv_states = estimate_joint_sv_states(gps_millis-1000.*t_corr, rinex_nav)
+
+    return sv_states
+
+def estimate_joint_sv_states(gps_millis, rinex_nav):
+    orbit_param_rinex = rinex_nav.where('gnss_id', ['glonass', 'sbas'], 'neq')
+    num_int_rinex = rinex_nav.where('gnss_id', ['glonass', 'sbas'], 'eq')
+    if len(orbit_param_rinex) != 0:
+        orbit_param_sv_states = orbit_params_to_sv_states(gps_millis, orbit_param_rinex)
+        sv_states = orbit_param_sv_states
+    if len(num_int_rinex) != 0:
+        num_int_sv_states = num_int_for_sv_states(gps_millis, num_int_rinex)
+        if len(orbit_param_rinex) != 0:
+            sv_states.concat(num_int_sv_states, inplace=True)
+    return sv_states
+
 
 def orbit_params_to_sv_states(gps_millis, ephem_orbit_params):
     """Compute position and velocities for all satellites in ephemeris file
@@ -560,6 +748,32 @@ def orbit_params_to_sv_states(gps_millis, ephem_orbit_params):
     return sv_posvel
 
 
+def _find_delxyz_range(sv_posvel, rx_ecef):
+    """Return difference of satellite and rx_pos positions and distance between them.
+
+    Parameters
+    ----------
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        Satellite position and velocities.
+    rx_ecef : np.ndarray
+        3x1 Receiver 3D ECEF position [m].
+
+    Returns
+    -------
+    del_pos : np.ndarray
+        Difference between satellite positions and receiver position.
+    true_range : np.ndarray
+        Distance between satellite and receiver positions.
+    """
+    rx_ecef = np.reshape(rx_ecef, [3, 1])
+    satellites = len(sv_posvel)
+    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
+    sv_pos = sv_pos.reshape(rx_ecef.shape[0], satellites)
+    del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
+    true_range = np.linalg.norm(del_pos, axis=0)
+    return del_pos, true_range
+
+
 def _compute_eccentric_anomaly(gps_week, gps_tow, ephem, tol=1e-5, max_iter=10):
     """Compute the eccentric anomaly from ephemeris parameters.
 
@@ -677,98 +891,119 @@ def _estimate_sv_clock_corr(gps_millis, ephem):
 
     return clk_corr, corr_polynomial, corr_relativistic
 
-def numerical_integration_for_sv_states(self, gps_millis):
-    pass
+def num_int_for_sv_states(self, gps_millis, num_int_rinex):
+    t_k = np.datetime64(tzinfo_to_utc(gps_millis_to_datetime(gps_millis)))
+    t_e_timestamp = np.datetime64(tzinfo_to_utc(gps_millis_to_datetime(num_int_rinex['gps_millis'])))
+    TauN = -num_int_rinex['SVclockBias']
+    x = num_int_rinex['X']
+    dx = num_int_rinex['dX']
+    dx2 = num_int_rinex['dX2']
+    y = num_int_rinex['Y']
+    dy = num_int_rinex['dY']
+    dy2 = num_int_rinex['dY2']
+    z = num_int_rinex['Z']
+    dz = num_int_rinex['dZ']
+    dz2 = num_int_rinex['dZ2']
+
+    delta = np.timedelta64(int((TauN + TauC)*1e9), 'ns') # Offset described in RINEX documentation
+    t_k_timestamp = t_k + delta
+
+    # algorithm from https://gssc.esa.int/navipedia/index.php/GLONASS_Satellite_Coordinates_Computation
+    theta_G0 = _GMST_at_midnight(t_e_timestamp)
+
+    start_of_day = np.datetime64(t_k_timestamp, 'D')
+    t_k = (t_k_timestamp - start_of_day) / np.timedelta64(1, 's')
+    t_e = (t_e_timestamp - start_of_day) / np.timedelta64(1, 's')
+
+    theta_Ge = theta_G0 + consts.OMEGA_E_DOT * t_e
+
+    #Verify that the PZ90 to inertial conversion is the inverse of the defined inverse
+    # xa, ya, za, vxa, vya, vza, Jxa, Jya, Jza = PZ90_to_inertial(x, y, z, dx, dy, dz, dx2, dy2, dz2, theta_Ge)
+    # x_test, y_test, z_test = inertial_to_PZ90(xa, ya, za, theta_Ge)
+    # print(f"Error in X coordinate: {np.min(np.abs(x_test -x))}")
+    # print(f"Error in Y coordinate: {np.min(np.abs(y_test -y))}")
+    # print(f"Error in Z coordinate: {np.min(np.abs(z_test -z))}")
+
+    xa, ya, za, vxa, vya, vza, Jxa, Jya, Jza = pz90_to_inertial(x, y, z, dx, dy, dz, dx2, dy2, dz2, theta_Ge)
+    # print('vxa', vxa)
+    # print('vya', vya)
+    # print('vza', vza)
+    s0 = np.array([xa, ya, za, vxa, vya, vza])
+
+    num_t = 5
+    # Evaluate forward and backward 15 minutes
+    # (what do you do in a live environment when you don't have access to the next ephemeris update?)
+    t_span_fwd = (t_e, t_k)
+    # print(f"t_e:{t_e/60}")
+    # print(f"t_k:{t_k/60}")
+    # assert np.abs(t_e-t_k)<15*60, f"The difference {np.abs(t_e-t_k)/60}between the time of ephemeris and given time must be less than 15 minutes"
+    t_eval = np.linspace(t_span_fwd[0], t_span_fwd[1], num_t)
+    # sol_fwd = solve_ivp(sv_dynamics, t_span_fwd, s0, method='RK45', t_eval=t_eval, args=(Jxa, Jya, Jza))
+    sol_fwd_rk45 = solve_ivp(_glonass_sv_dynamics, t_span_fwd, s0,
+                             method='RK45', t_eval=t_eval,
+                             args=(Jxa, Jya, Jza), atol=1e-12)
+    t_out = sol_fwd_rk45.t
+    y_out = sol_fwd_rk45.y
+    x_iner, y_iner, z_iner = y_out[0], y_out[1], y_out[2]
+    theta_G_arr = theta_G0 + consts.OMEGA_E_DOT * t_out
+    xf, yf, zf = inertial_to_pz90(x_iner, y_iner, z_iner, theta_G_arr)
+    return t_out, [xf, yf, zf]
 
 
-def get_time_cropped_rinex(timestamp, satellites=None,
-                           ephemeris_directory=DEFAULT_EPHEM_PATH):
-    """Add SV states using Rinex file.
+def _GMST_at_midnight(timestamp):
+    #TODO: Check that this is working correctly, the constant error might
+    # be a result of a constant (ish) offset in the GMST calculation
+    # Testing and compared against the midnight
+    #Code taken from:
+    #Sidereal Time and Julian Date Calculator
+    #Revision history: Justine Haupt, v1.0 (11/23/17)
+    #calculate the Greenwhich mean sidereal time:
+    #split TD into individual variables for month, day, etc. and convert to floats:
 
-    Provides broadcast ephemeris for specific
-    satellites at a specific timestep
-    ``add_sv_states_rinex`` returns the most recent broadcast ephemeris
-    for the provided list of satellites that was broadcast BEFORE
-    the provided timestamp. For example GPS daily ephemeris files
-    contain data at a two hour frequency, so if the timestamp
-    provided is 5am, then ``add_sv_states_rinex`` will return the 4am data
-    but not 6am. If provided a timestamp between midnight and 2am
-    then the ephemeris from around midnight (might be the day
-    before) will be provided. If no list of satellites is provided,
-    then ``add_sv_states_rinex`` will return data for all satellites.
+    month = timestamp.astype('datetime64[M]').item().month
+    day = timestamp.astype('datetime64[D]').item().day
+    year = timestamp.astype('datetime64[Y]').item().year
 
-    When multiple observations are provided for the same satellite
-    and same timestep,  will only return the
-    first instance. This is applicable when requesting ephemeris for
-    multi-GNSS for the current day. Same-day multi GNSS data is
-    pulled from  same day. For same-day multi-GNSS from
-    https://igs.org/data/ which often has multiple observations.
+    #calculate the Julian date:
+    JD = (367*year) - int((7*(year+int((month+9)/12)))/4) + int((275*month)/9) + day + 1721013.5
+    gmst = 18.697374558 + 24.06570982441908*(JD - 2451545)
+    gmst = gmst % 24    #use modulo operator to convert to 24 hours
+    gmst_min = (gmst - int(gmst))*60          #convert fraction hours to minutes
+    gmst_sec = (gmst_min - int(gmst_min))*60      #convert fractional minutes to seconds
+    gmst_hour = int(gmst)
+    gmst_min = int(gmst_min)
+    gmst_sec = gmst_sec
+    # print('Greenwhich Mean Sidereal Time:',(GMSThh, GMSTmm, GMSTss))
 
-    Parameters
-    ----------
-    timestamp : datetime.datetime
-        Ephemeris data is returned for the timestamp day and
-        includes all broadcast ephemeris whose broadcast timestamps
-        happen before the given timestamp variable. Timezone should
-        be added manually and is interpreted as UTC if not added.
-    satellites : List
-        List of satellite IDs as a string, for example ['G01','E11',
-        'R06']. Defaults to None which returns get_ephemeris for
-        all satellites.
+    gmst_rad = gmst / 24 * 2*np.pi # theta_G0
+    return gmst_rad
 
-    Returns
-    -------
-    data : gnss_lib_py.parsers.navdata.NavData
-        ephemeris entries corresponding to timestamp
 
-    Notes
-    -----
-    The Galileo week ``GALWeek`` is identical to the GPS Week
-    ``GPSWeek``. See http://acc.igs.org/misc/rinex304.pdf page A26
+def _glonass_sv_dynamics(t, s, Jx_iner, Jy_iner, Jz_iner):
+    x_iner, y_iner, z_iner, vx_iner, vy_iner, vz_iner = s
 
-    """
+    rad = np.sqrt(x_iner**2 + y_iner**2 + z_iner**2)
+    mu_bar = consts.MU_EARTH / (rad*rad)
+    xa_bar = x_iner/rad
+    ya_bar = y_iner/rad
+    za_bar = z_iner/rad
+    rho_bar = consts.A/rad
 
-    ephemeris_downloader = EphemerisDownloader(ephemeris_directory)
-    rinex_paths = ephemeris_downloader.get_ephemeris(timestamp,satellites)
-    rinex_data = RinexNav(rinex_paths, satellites=satellites)
+    xa_dot = vx_iner
+    ya_dot = vy_iner
+    za_dot = vz_iner
+    vxa_dot = -mu_bar * xa_bar \
+            + 3/2*consts.C20*mu_bar*xa_bar*rho_bar**2 * (1 - 5*za_bar**2) \
+            + Jx_iner
+    vya_dot = -mu_bar * ya_bar \
+            + 3/2*consts.C20*mu_bar*ya_bar*rho_bar**2 * (1 - 5*za_bar**2) \
+            + Jy_iner
+    vza_dot = -mu_bar * za_bar \
+            + 3/2*consts.C20*mu_bar*za_bar*rho_bar**2 * (3 - 5*za_bar**2) \
+            + Jz_iner
 
-    timestamp_millis = datetime_to_gps_millis(timestamp)
-    time_cropped_data = rinex_data.where('gps_millis', timestamp_millis, "lesser")
+    return np.array([xa_dot, ya_dot, za_dot, vxa_dot, vya_dot, vza_dot])
 
-    time_cropped_data = time_cropped_data.pandas_df().sort_values(
-        'gps_millis').groupby('gnss_sv_id').last()
-    if satellites is not None and len(time_cropped_data) < len(satellites):
-        # if no data available for the given day, try looking at the
-        # previous day, may occur when a time near to midnight
-        # is provided. For example, 12:01am
-        if len(time_cropped_data) != 0:
-            satellites = list(set(satellites) - set(time_cropped_data.index))
-        prev_day_timestamp = datetime(year=timestamp.year,
-                                      month=timestamp.month,
-                                      day=timestamp.day - 1,
-                                      hour=23,
-                                      minute=59,
-                                      second=59,
-                                      microsecond=999999,
-                                      tzinfo=timezone.utc,
-                                      )
-        prev_rinex_paths = ephemeris_downloader.get_ephemeris(prev_day_timestamp,
-                                                              satellites)
-        # TODO: verify that the above statement doesn't need "False for timestamp"
-        prev_rinex_data = RinexNav(prev_rinex_paths, satellites=satellites)
 
-        prev_data = prev_rinex_data.pandas_df().sort_values('gps_millis').groupby(
-            'gnss_sv_id').last()
-        rinex_data_df = pd.concat((time_cropped_data,prev_data))
-        rinex_iono_params = prev_rinex_data.iono_params + rinex_data.iono_params
-    else:
-        rinex_data_df = time_cropped_data
-        rinex_iono_params = rinex_data.iono_params
-
-    rinex_data_df = rinex_data_df.reset_index()
-    rinex_data = NavData(pandas_df=rinex_data_df)
-    rinex_data.iono_params = rinex_iono_params
-
-    return rinex_data
 
 

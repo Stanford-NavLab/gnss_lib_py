@@ -451,9 +451,23 @@ def test_gps_datetime_to_gps_millis():
     utc_time = datetime(2022, 8, 10, 19, 51, 9, tzinfo=timezone.utc)
     gps_time = datetime(2022, 8, 10, 19, 51, 27, tzinfo=timezone.utc)
     gps_millis_for_gps_time = tc.gps_datetime_to_gps_millis(gps_time)
-    print(f'gps_millis_for_gps_time: {gps_millis_for_gps_time}')
     gps_millis_for_utc_time = tc.datetime_to_gps_millis(utc_time)
-    print(f'gps_millis_for_utc_time: {gps_millis_for_utc_time}')
     np.testing.assert_equal(gps_millis_for_gps_time, gps_millis_for_utc_time)
     #^ The same time stamp in GPS time corresponds to 18 seconds
     # earlier in UTC time.
+
+
+def test_datetime_to_beidou_millis_since_gps_0():
+    """Test conversion of datetime to Beidou millis since GPS 0.
+
+    The Beidou constellation came online after GPS and differs from UTC
+    by 14 fewer leap seconds than GPS. This test checks that that
+    difference is accounted for in the code.
+    """
+    utc_time = datetime(2022, 8, 10, 19, 51, 9, tzinfo=timezone.utc)
+    # Add 18 leap seconds to get to GPS time
+    gps_millis = tc.datetime_to_gps_millis(utc_time)
+    # Add 4 leap seconds to get to Beidou time
+    beidou_millis = tc.datetime_to_beidou_millis_since_gps_0(utc_time)
+    # Both milliseconds should differ by 14 seconds with GPS ahead
+    np.testing.assert_almost_equal(gps_millis - beidou_millis, 14 * 1000)
