@@ -443,3 +443,17 @@ def test_zero_arrays():
     unix_millis_back = tc.tow_to_unix_millis(np.array(gps_week),
                                             np.array(tow))
     np.testing.assert_array_equal(unix_millis_back, unix_millis)
+
+
+def test_gps_datetime_to_gps_millis():
+    """Test conversion of GPS datetime to GPS millis.
+    """
+    utc_time = datetime(2022, 8, 10, 19, 51, 9, tzinfo=timezone.utc)
+    gps_time = datetime(2022, 8, 10, 19, 51, 27, tzinfo=timezone.utc)
+    gps_millis_for_gps_time = tc.gps_datetime_to_gps_millis(gps_time)
+    print(f'gps_millis_for_gps_time: {gps_millis_for_gps_time}')
+    gps_millis_for_utc_time = tc.datetime_to_gps_millis(utc_time)
+    print(f'gps_millis_for_utc_time: {gps_millis_for_utc_time}')
+    np.testing.assert_equal(gps_millis_for_gps_time, gps_millis_for_utc_time)
+    #^ The same time stamp in GPS time corresponds to 18 seconds
+    # earlier in UTC time.

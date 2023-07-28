@@ -537,6 +537,40 @@ def gps_to_unix_millis(gps_millis):
     return unix_millis
 
 
+def gps_datetime_to_gps_millis(t_gps):
+    """Convert datetime in GPS time of reference to milliseconds since GPS Epoch.
+
+    GPS Epoch starts at the 6th January 1980.
+    This function assumes that the input datetime is in the GPS time
+    frame of reference and converts that to GPS milliseconds.
+
+    Parameters
+    ----------
+    t_datetime : datetime.datetime or array-like of datetime.datetime
+        GPS time as a datetime object.
+
+    Returns
+    -------
+    gps_millis : float or np.ndarray
+        Milliseconds since GPS Epoch (6th January 1980 GPS). Either
+        `float` or `np.ndarray` with `dtype = float`.
+
+
+    """
+    if isinstance(t_gps,datetime):
+        t_gps = [t_gps]
+    if isinstance(t_gps,np.ndarray) \
+        and len(np.atleast_1d(t_gps)) == 1:
+        t_gps = [t_gps.item()]
+    gps_millis = []
+    for t_datetime in t_gps:
+        gps_milli = (t_datetime - GPS_EPOCH_0).total_seconds()*1000
+        gps_millis.append(gps_milli)
+    gps_millis = np.squeeze(np.asarray(gps_millis))
+    return gps_millis
+
+
+
 def tzinfo_to_utc(t_datetime):
     """Raises warning if time doesn't have timezone and converts to UTC.
 
