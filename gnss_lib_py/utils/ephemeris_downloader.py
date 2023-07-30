@@ -1,5 +1,33 @@
 """Functions to download Rinex, SP3, and CLK ephemeris files.
 
+Rinex navigation files are pulled from one of five sources. More about
+rinex files can be found in the CDDIS documentation [1]_.
+
+If rinex for the current day is requested or if rinex for the
+previous is requested and it is too early in the UTC day for
+yesterday's combined rinex file to be uploaded, then the
+BRDC00WRD_S rinex 3 file is downloaded from IGS and includes:
+GPS+GLO+GAL+BDS+QZSS+SBAS.
+
+If only GPS is requested, then the brdc<dddd>.<yy>n rinex 2 file is
+downloaded from CDDIS and includes: GPS.
+
+If only Glonass is requested, then the brdc<dddd>.<yy>g rinex 2 file
+is downloaded from CDDIS and includes: GLO.
+
+If the request is for multi-gnss and for a date before Nov. 25, 2019,
+but after Jan 1, 2013 (the start of multi-gnss) then the BRDM00DLR_R
+rinex 3 file is downloaded from CDDIS. If multi-gnss is requested
+for Nov. 25, 2019 or later, then the BRDM00DLR_S rinex 3 file is
+downloaded from CDDIS. These multi-gnss files include:
+GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS. For more information on multi-gnss
+combined rinex navigation files, see MGEX documentation [2]_.
+
+References
+----------
+.. [1] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
+.. [2] https://igs.org/mgex/data-products/#bce
+
 """
 
 __authors__ = "Shubh Gupta, Ashwin Kanhere, Derek Knowles"
@@ -74,8 +102,8 @@ def load_ephemeris(file_type, gps_millis,
 
     return paths
 
-def _verify_ephemeris(file_type, gps_millis, constellations, paths,
-                      verbose):
+def _verify_ephemeris(file_type, gps_millis, constellations=None,
+                      paths=[], verbose=False):
     """Check what ephemeris files to download and if they already exist.
 
     Parameters
@@ -237,18 +265,8 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
 def _valid_ephemeris_in_paths(date, possible_types, paths=None):
     """Check whether a valid ephemeris already exists in paths.
 
-    Rinex files are pulled from one of five sources.
-    If the current day is requested or too early in the UTC day for
-    yesterday's combined file to be uploaded,
-    GPS+GLO+GAL+BDS+QZSS+SBAS
-
-    If only GPS is requested,
-
-    If only Glonass is requested,
-
-    If multi-gnss (includes )
-
-    Multi-GNSS combined rinex navigation files are documented at [2]_.
+    See file header for detailed documentation on the methodology on
+    the sources used to downloaded files.
 
     Parameters
     ----------
@@ -260,25 +278,15 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
     paths : string or path-like
         Paths to existing ephemeris files if they exist.
 
-    References
-    ----------
-    [1] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
-    [2] https://igs.org/mgex/data-products/#bce
-
     """
 
     timetuple = date.timetuple()
-
     recommended_files = []
 
     for possible_type in possible_types:
 
         # Rinex for the current day
         if possible_type == "rinex_nav_today":
-            # rinex3 ?
-            # GPS+GLO+GAL+BDS+QZSS+SBAS
-            # BRDC00WRD_S_
-            # IGS/BRDC/2023/099/BRDC00WRD_S_20230990000_01D_MN.rnx.gz
             recommended_file = ("igs-ftp.bkg.bund.de",
                                 "/IGS/BRDC/" + str(timetuple.tm_year) \
                               + "/" + str(timetuple.tm_yday).zfill(3) \
@@ -296,11 +304,6 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
 
         # rinex for multi-gnss if before Nov 25, 2019
         elif possible_type == "rinex_nav_multi_r":
-            # broadcast ephemeris 2013 - 001 to 2019 - 328 and before uses "R"
-            # rinex3 ?
-            # GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS
-            # https://cddis.nasa.gov/archive/gnss/data/daily/2019/328/19p/
-            # BRDM00DLR_R_20193280000_01D_MN.rnx.gz
             recommended_file = ("gdc.cddis.eosdis.nasa.gov",
                                 "/gnss/data/daily/" \
                               + str(timetuple.tm_year) + "/" \
@@ -319,12 +322,6 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
 
         # rinex for multi-gnss on or after Nov 25, 2019
         elif possible_type == "rinex_nav_multi_s":
-            # broadcast epehemeris 2019 - 329 and after uses "S":
-            # 2019 - 329 == 2019, 11, 25
-            # rinex3 ?
-            # GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS
-            # https://cddis.nasa.gov/archive/gnss/data/daily/2019/329/19p/
-            # BRDM00DLR_S_20193290000_01D_MN.rnx.gz
             recommended_file = ("gdc.cddis.eosdis.nasa.gov",
                                 "/gnss/data/daily/" \
                               + str(timetuple.tm_year) + "/" \
@@ -343,11 +340,6 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
 
         # rinex that only contains GPS
         elif possible_type == "rinex_nav_gps":
-
-            # GPS - only
-            # rinex2
-            # https://cddis.nasa.gov/archive/gnss/data/daily/2023/054/23n/
-            # brdc0540.23n.gz
             recommended_file = ("gdc.cddis.eosdis.nasa.gov",
                                 "/gnss/data/daily/" \
                               + str(timetuple.tm_year) + "/" \
@@ -363,13 +355,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             for path in paths:
                 if os.path.split(path)[1] + _get_rinex_extension(date) == os.path.split(recommended_file[1])[1]:
                     return True, path
+                if os.path.split(path)[1][4:] == str(timetuple.tm_yday).zfill(3)\
+                                               + "0." + str(timetuple.tm_year)[-2:]\
+                                               +'n':
+                    return True, path
 
         # rinex that only contains GLONASS
         elif possible_type == "rinex_nav_glonass":
-            # GLONASS
-            # rinex2
-            # https://cddis.nasa.gov/archive/gnss/data/daily/2023/054/23g/
-            # brdc0540.23g.gz
             recommended_file = ("gdc.cddis.eosdis.nasa.gov",
                                 "/gnss/data/daily/" \
                               + str(timetuple.tm_year) + "/" \
@@ -385,17 +377,22 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             for path in paths:
                 if os.path.split(path)[1] == os.path.split(recommended_file[1])[1]:
                     return True, path
+                if os.path.split(path)[1][4:] == str(timetuple.tm_yday).zfill(3)\
+                                               + "0." + str(timetuple.tm_year)[-2:]\
+                                               +'n':
+                    return True, path
+
         else:
-            print(possible_type)
-            raise RuntimeWarning("invalid possible type")
+            raise RuntimeError(possible_type,"invalid possible_type "\
+                                +"for valid ephemeris")
 
     return False, recommended_files[0]
 
-
-
-# TODO: check this is building in docs correctly
 FTP_DOWNLOAD_SOURCECODE = "FTP_DOWNLOAD_SOURCECODE"
-""" Code below this point was modified from the following class code:
+"""Private FTP functions were pulled from class code.
+
+The functions ``_ftp_download``, ``_ftp_login``, ``_decompress_file``,
+and ``_get_rinex_extension`` were modified from code at:
 https://github.com/johnsonmitchelld/gnss-analysis/blob/main/gnssutils/ephemeris_manager.py
 
 The associated license is copied below:
@@ -470,7 +467,6 @@ def _ftp_download(url, ftp_path, dest_filepath, verbose=False):
         ftp.close()
     _decompress_file(dest_filepath)
 
-
 def _ftp_login(url, secure=False):
     """Connect to given FTP server
 
@@ -535,7 +531,7 @@ def _get_rinex_extension(timestamp):
 
     References
     ----------
-    [3] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
+    .. [3] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 
     """
     # switched from .Z to .gz compression format on December 1st, 2020
