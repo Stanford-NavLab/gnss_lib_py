@@ -23,10 +23,13 @@ downloaded from CDDIS. These multi-gnss files include:
 GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS. For more information on multi-gnss
 combined rinex navigation files, see MGEX documentation [2]_.
 
+IGS network station information can be found at [3]_.
+
 References
 ----------
 .. [1] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 .. [2] https://igs.org/mgex/data-products/#bce
+.. [3] https://network.igs.org/
 
 """
 
@@ -317,6 +320,9 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             for path in paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
+            for path in paths:
+                if os.path.split(path)[1][-22:] == recommended_file[1][-25:-3]:
+                    return True, path
 
         # rinex for multi-gnss on or after Nov 25, 2019
         elif possible_type == "rinex_nav_multi_s":
@@ -335,6 +341,10 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             for path in paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
+            for path in paths:
+                if os.path.split(path)[1][-22:] == recommended_file[1][-25:-3]:
+                    return True, path
+
 
         # rinex that only contains GPS
         elif possible_type == "rinex_nav_gps":
@@ -353,9 +363,16 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             for path in paths:
                 if os.path.split(path)[1] + _get_rinex_extension(date) == os.path.split(recommended_file[1])[1]:
                     return True, path
+            for path in paths:
                 if os.path.split(path)[1][4:] == str(timetuple.tm_yday).zfill(3)\
                                                + "0." + str(timetuple.tm_year)[-2:]\
                                                +'n':
+                    return True, path
+            long_name = str(timetuple.tm_year)\
+                      + str(timetuple.tm_yday).zfill(3) \
+                      + "0000_01D_GN.rnx"
+            for path in paths:
+                if os.path.split(path)[1][-22:] == long_name:
                     return True, path
 
         # rinex that only contains GLONASS
@@ -375,11 +392,17 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             for path in paths:
                 if os.path.split(path)[1] + _get_rinex_extension(date) == os.path.split(recommended_file[1])[1]:
                     return True, path
+            for path in paths:
                 if os.path.split(path)[1][4:] == str(timetuple.tm_yday).zfill(3)\
                                                + "0." + str(timetuple.tm_year)[-2:]\
                                                +'g':
                     return True, path
-
+            long_name = str(timetuple.tm_year)\
+                      + str(timetuple.tm_yday).zfill(3) \
+                      + "0000_01D_RN.rnx"
+            for path in paths:
+                if os.path.split(path)[1][-22:] == long_name:
+                    return True, path
         else:
             raise RuntimeError(possible_type,"invalid possible_type "\
                                 +"for valid ephemeris")
@@ -518,7 +541,7 @@ def _get_rinex_extension(timestamp):
     """Get file extension of rinex file based on timestamp.
 
     GPS and Glonass Rinex files switched from .Z to .gz on
-    December 1, 2020 [3]_.
+    December 1, 2020 [4]_.
 
     Parameters
     ----------
@@ -532,7 +555,7 @@ def _get_rinex_extension(timestamp):
 
     References
     ----------
-    .. [3] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
+    .. [4] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 
     """
     # switched from .Z to .gz compression format on December 1st, 2020

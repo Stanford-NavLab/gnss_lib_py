@@ -106,9 +106,9 @@ def remove_download_eph(ephem_download_path):
                           (datetime(2020, 5, 16, 4, 17, 1, tzinfo=timezone.utc),
                            ["glonass"]),
                           (datetime(2013, 1, 1, 15, 31, 59, tzinfo=timezone.utc),
-                           ["beidou"]),
+                           ["qzss"]),
                           (datetime(2023, 3, 14, 8, 12, 34, tzinfo=timezone.utc),
-                           ["galileo","sbas","irnss","qzss"]),
+                           ["galileo","sbas","irnss","beidou"]),
                          ])
 @pytest.mark.parametrize('paths',
                          [
@@ -146,6 +146,14 @@ def test_load_ephemeris_rinex_nav(ephem_params, ephem_path, paths):
                            ["gps"]),
                           (datetime(2020, 5, 17, 19, 17, 1, tzinfo=timezone.utc),
                            ["glonass"]),
+                          (datetime(2020, 5, 18, 11, 17, 1, tzinfo=timezone.utc),
+                           ["gps"]),
+                          (datetime(2020, 5, 18, 19, 17, 1, tzinfo=timezone.utc),
+                           ["glonass"]),
+                          (datetime(2014, 1, 1, 15, 31, 59, tzinfo=timezone.utc),
+                           ["qzss"]),
+                          (datetime(2023, 3, 15, 8, 12, 34, tzinfo=timezone.utc),
+                           ["galileo","sbas","irnss","beidou"]),
                          ])
 @pytest.mark.parametrize('paths',
                          [
