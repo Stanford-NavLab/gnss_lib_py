@@ -203,7 +203,8 @@ def test_extract_xyz(set_xyz):
     test_posvel = pd.DataFrame(
         data = comb_array,
         index = sv_names,
-        columns = ['times', 'x', 'y', 'z', 'vx', 'vy', 'vz']
+        columns = ['times', 'x_sv_m', 'y_sv_m', 'z_sv_m',
+                   'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']
     )
     prns, test_pos, test_vel = sim_gnss._extract_pos_vel_arr(test_posvel)
 
@@ -247,13 +248,13 @@ def test_measures_value_range(get_meas):
     assert np.all(np.abs(measurements['doppler'].values) < 5000), \
         "Magnitude of doppler values is greater than 5 KHz"
 
-    assert np.all(np.abs(sv_posvel['x']).values < consts.A + 2e7), \
+    assert np.all(np.abs(sv_posvel['x_sv_m']).values < consts.A + 2e7), \
     ("Invalid range of ECEF x for satellite position")
 
-    assert np.all(np.abs(sv_posvel['y']).values < consts.A + 2e7), \
+    assert np.all(np.abs(sv_posvel['y_sv_m']).values < consts.A + 2e7), \
     ("Invalid range of ECEF y for satellite position")
 
-    assert np.all(np.abs(sv_posvel['z']).values < consts.A + 2e7), \
+    assert np.all(np.abs(sv_posvel['z_sv_m']).values < consts.A + 2e7), \
     ("Invalid range of ECEF z for satellite position")
 
 def test_sv_velocity(get_meas, get_meas_dt):
@@ -272,16 +273,16 @@ def test_sv_velocity(get_meas, get_meas_dt):
     _, sv_posvel_new  = get_meas_dt
 
     np.testing.assert_array_almost_equal(
-        (sv_posvel_new['x'] - sv_posvel_prev['x']) / T,
-        sv_posvel_prev['vx'], decimal=1)
+        (sv_posvel_new['x_sv_m'] - sv_posvel_prev['x_sv_m']) / T,
+        sv_posvel_prev['vx_sv_mps'], decimal=1)
 
     np.testing.assert_array_almost_equal(
-        (sv_posvel_new['y'] - sv_posvel_prev['y']) / T,
-        sv_posvel_prev['vy'], decimal=1)
+        (sv_posvel_new['y_sv_m'] - sv_posvel_prev['y_sv_m']) / T,
+        sv_posvel_prev['vy_sv_mps'], decimal=1)
 
     np.testing.assert_array_almost_equal(
-        (sv_posvel_new['z'] - sv_posvel_prev['z']) / T,
-        sv_posvel_prev['vz'], decimal=1)
+        (sv_posvel_new['z_sv_m'] - sv_posvel_prev['z_sv_m']) / T,
+        sv_posvel_prev['vz_sv_mps'], decimal=1)
 
 def test_measure_sizes(get_meas):
     """Test that the size of the simulated measurements is equal to the size
@@ -322,10 +323,10 @@ def test_pseudorange_corrections(get_meas, get_meas_dt):
     sv_names = (meas_prev.index).tolist()
 
     meas_prev_corr = sim_gnss.correct_pseudorange(
-        gpstime, gpsweek, ephem.loc[sv_names,:], meas_prev['prange'], rx_ecef)
+        gpstime, gpsweek, ephem.where("sv_id",sv_names), meas_prev['prange'], rx_ecef)
 
     meas_new_corr  = sim_gnss.correct_pseudorange(
-        gpstime+T, gpsweek, ephem.loc[sv_names,:], meas_new['prange'], rx_ecef)
+        gpstime+T, gpsweek, ephem.where("sv_id",sv_names), meas_new['prange'], rx_ecef)
 
     diff_prev = meas_prev_corr - meas_prev['prange']
     diff_new  = meas_new_corr  - meas_new['prange']

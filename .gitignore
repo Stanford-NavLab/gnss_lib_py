@@ -1,4 +1,6 @@
-# Project specific
+########################################
+####### Project specific folders #######
+########################################
 data/*
 # Including small datasets used for unit testing NavData objects
 !data/unit_test/
@@ -6,14 +8,48 @@ data/*
 # development folder
 dev/*
 !dev/.gitkeep
+gnss_lib_py_dev/
 
-# development folder
+# results folder
 results/*
 !results/.gitkeep
 
+########################################
+##### Project specific file types ######
+########################################
+
 # ignore downloaded csv files in notebook tutorials
-notebooks/tutorials/Pixel4XL_derived.csv
-docs/source/tutorials/*.csv
+*.csv
+!data/unit_test/*/*.csv
+!notebooks/tutorials/myreceiver.csv
+
+# Ignore downloaded precise ephimerides files by default
+*.sp3
+*.clk
+
+# Include unit test files for precise ephimerides
+!data/unit_test/*/*.sp3
+!data/unit_test/*/*.clk
+
+# Ignore NMEA files by default
+*.nmea
+# Include unit test NMEA files
+!data/unit_test/*/*.nmea
+
+# Ignore downloaded broadcast ephimerides files by default
+*.*n
+*.*o
+*.*g
+*.rnx
+# Include unit test files for broadcast ephemerides
+!data/unit_test/*/*/*.*n
+!data/unit_test/*/*/*.*o
+!data/unit_test/*/*/*.*g
+!data/unit_test/*/*/*.rnx
+
+########################################
+##### Common Python and IDE files ######
+########################################
 
 #Excluding VS Code files
 .vscode/*

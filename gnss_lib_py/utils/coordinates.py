@@ -27,12 +27,13 @@ SOFTWARE.
 
 """
 
-__authors__ = "Shubh Gupta, Ashwin Kanhere"
+__authors__ = "Shubh Gupta, Ashwin Kanhere, Derek Knowles"
 __date__ = "20 July 2021"
 
 import numpy as np
 
 import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.parsers.navdata import NavData
 
 EPSILON = 1e-7
 
@@ -88,14 +89,19 @@ def ecef_to_geodetic(ecef, radians=False):
     Parameters
     ----------
     ecef : np.ndarray
-        Float with ECEF coordinates
+        array where ECEF x, ECEF y, and ECEF z are either independent
+        rows or independent columns, values should be floats
     radians : bool
-        Flag of whether output should be in radians
+        If False (default), output of lat/lon is returned in degrees.
+        If True, output of lat/lon is returned in radians.
 
     Returns
     -------
     geodetic : np.ndarray
-        Float with WGS-84 LLA coordinates corresponding to input ECEF
+        Float with WGS-84 LLA coordinates corresponding to input ECEF.
+        Order is returned as (lat, lon, h) and is returned in the same
+        shape as the input. Height is in meters above the the WGS-84
+        ellipsoid.
 
     Notes
     -----
@@ -382,3 +388,182 @@ class LocalCoord(object):
         ecef = self.ned_to_ecef(ned)
         geodetic = ecef_to_geodetic(ecef)
         return geodetic
+
+def ecef_to_el_az(rx_pos, sv_pos):
+    """Calculate the elevation and azimuth from receiver to satellites.
+
+    Vectorized to be able to be able to output the elevation and azimuth
+    for multiple satellites at the same time.
+
+    Parameters
+    ----------
+    rx_pos : np.ndarray
+        1x3 vector containing ECEF [X, Y, Z] coordinate of receiver
+    sv_pos : np.ndarray
+        3xN array  containing ECEF [X, Y, Z] coordinates of satellites
+
+    Returns
+    -------
+    el_az : np.ndarray
+        2XN array containing the elevation and azimuth from the
+        receiver to the requested satellites. Elevation and azimuth are
+        given in decimal degrees.
+
+    Notes
+    -----
+    Code based on method by J. Makela.
+    AE 456, Global Navigation Sat Systems, University of Illinois
+    Urbana-Champaign. Fall 2017
+
+    """
+
+    # conform receiver position to correct shape
+    rx_pos = np.atleast_2d(rx_pos)
+    if rx_pos.shape == (1,3):
+        rx_pos = rx_pos.T
+    if rx_pos.shape != (3, 1):
+        raise RuntimeError("Receiver ECEF position must be a " \
+                          + "np.ndarray of shape 3x1.")
+
+    # conform satellite position to correct shape
+    sv_pos = np.atleast_2d(sv_pos)
+    if sv_pos.shape[0] != 3:
+        raise RuntimeError("Satellite ECEF position(s) must be a " \
+                          + "np.ndarray of shape 3xN.")
+
+    # Convert the receiver location to WGS84
+    rx_lla = ecef_to_geodetic(rx_pos)
+
+    # Create variables with the latitude and longitude in radians
+    rx_lat, rx_lon = np.deg2rad(rx_lla[:2,0])
+
+    # Create the 3 x 3 transform matrix from ECEF to VEN
+    ecef_to_ven = np.array([[ np.cos(rx_lat)*np.cos(rx_lon),
+                              np.cos(rx_lat)*np.sin(rx_lon),
+                              np.sin(rx_lat)],
+                            [-np.sin(rx_lon),
+                              np.cos(rx_lon),
+                              0.     ],
+                            [-np.sin(rx_lat)*np.cos(rx_lon),
+                             -np.sin(rx_lat)*np.sin(rx_lon),
+                              np.cos(rx_lat)]])
+
+    # Replicate the rx_pos array to be the same size as the satellite array
+    rx_array = np.tile(rx_pos,(1, sv_pos.shape[1]))
+
+    # Calculate the normalized pseudorange for each satellite
+    pseudorange = (sv_pos - rx_array) / np.linalg.norm(sv_pos - rx_array,
+                                             axis=0, keepdims=True)
+
+    # Perform the transform of the normalized pseudorange from ECEF to VEN
+    p_ven = np.dot(ecef_to_ven, pseudorange)
+    # Calculate elevation and azimuth in degrees
+    el_az = np.zeros([2, sv_pos.shape[1]])
+    el_az[0,:] = np.rad2deg((np.pi/2. - np.arccos(p_ven[0,:])))
+    el_az[1,:] = np.rad2deg(np.arctan2(p_ven[1,:],p_ven[2,:]))
+
+    # wrap from 0 to 360
+    while np.any(el_az[1, :] < 0):
+        el_az[1, :][el_az[1, :] < 0] += 360
+
+    return el_az
+
+def add_el_az(navdata, receiver_state, inplace=False):
+    """Adds elevation and azimuth to NavData object.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class. Must include ``gps_millis`` as
+        well as satellite ECEF positions as ``x_sv_m``, ``y_sv_m``,
+        ``z_sv_m``, ``gnss_id`` and ``sv_id``.
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Either estimated or ground truth receiver position in ECEF frame
+        in meters as an instance of the NavData class with the
+        following rows: ``x_rx*_m``, ``y_rx*_m``, ``z_rx*_m``,
+        ``gps_millis``.
+    inplace : bool
+        If false (default) will add elevation and azimuth to a new
+        NavData instance. If true, will add elevation and azimuth to the
+        existing NavData instance.
+
+    Returns
+    -------
+    data_el_az : gnss_lib_py.parsers.navdata.NavData
+        If inplace is True, adds ``el_sv_deg`` and ``az_sv_deg`` to
+        the input navdata and returns the same object.
+        If inplace is False, returns ``el_sv_deg`` and ``az_sv_deg``
+        in a new NavData instance along with ``gps_millis`` and the
+        corresponding satellite and receiver rows.
+
+    """
+
+    # check for missing rows
+    navdata.in_rows(["gps_millis","x_sv_m","y_sv_m","z_sv_m",
+                     "gnss_id","sv_id"])
+    receiver_state.in_rows(["gps_millis"])
+
+    # check for receiver_state indexes
+    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx*_m",
+                                                    "y_rx*_m",
+                                                    "z_rx*_m"],max_allow=1)
+
+    sv_el_az = None
+    for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
+
+        pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+
+        # find time index for receiver_state NavData instance
+        rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
+
+        pos_rx_m = receiver_state[[rx_idxs["x_rx*_m"][0],
+                                   rx_idxs["y_rx*_m"][0],
+                                   rx_idxs["z_rx*_m"][0]],
+                                   rx_t_idx].reshape(-1,1)
+
+        timestep_el_az = ecef_to_el_az(pos_rx_m, pos_sv_m)
+
+        if sv_el_az is None:
+            sv_el_az = timestep_el_az
+        else:
+            sv_el_az = np.hstack((sv_el_az,timestep_el_az))
+
+    if inplace:
+        navdata["el_sv_deg"] = sv_el_az[0,:]
+        navdata["az_sv_deg"] = sv_el_az[1,:]
+        return navdata
+
+    data_el_az = NavData()
+    data_el_az["gps_millis"] = navdata["gps_millis"]
+    data_el_az["gnss_id"] = navdata["gnss_id"]
+    data_el_az["sv_id"] = navdata["sv_id"]
+    data_el_az["x_sv_m"] = navdata["x_sv_m"]
+    data_el_az["y_sv_m"] = navdata["y_sv_m"]
+    data_el_az["z_sv_m"] = navdata["z_sv_m"]
+    data_el_az[rx_idxs["x_rx*_m"][0]] = receiver_state[rx_idxs["x_rx*_m"][0]]
+    data_el_az[rx_idxs["y_rx*_m"][0]] = receiver_state[rx_idxs["y_rx*_m"][0]]
+    data_el_az[rx_idxs["z_rx*_m"][0]] = receiver_state[rx_idxs["z_rx*_m"][0]]
+    data_el_az["el_sv_deg"] = sv_el_az[0,:]
+    data_el_az["az_sv_deg"] = sv_el_az[1,:]
+
+    return data_el_az
+
+def wrap_0_to_2pi(angles):
+    """Wraps an arbitrary radian between [0, 2pi).
+
+    Angles must be in radians.
+
+    Parameters
+    ----------
+    angles : np.ndarray
+        Array of angles in radians to wrap between 0 and 2pi.
+
+    Returns
+    -------
+    angles : np.ndarray
+        Angles wrapped between 0 and 2pi in radians.
+
+    """
+    angles = np.mod(angles, 2*np.pi)
+
+    return angles

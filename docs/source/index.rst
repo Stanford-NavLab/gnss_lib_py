@@ -9,7 +9,8 @@ gnss_lib_py
 .. _mainpage:
 
 :code:`gnss_lib_py` is a modular Python tool for parsing, analyzing, and
-visualizing Global Navigation Satellite Systems (GNSS) data.
+visualizing Global Navigation Satellite Systems (GNSS) data and state
+estimates.
 It also provides an intuitive and modular framework allowing users to
 quickly prototype, implement, and visualize GNSS algorithms.
 :code:`gnss_lib_py` is modular in the sense that multiple types of
@@ -31,6 +32,12 @@ We provide standard row names for :code:`NavData` elements on the
 :ref:`reference page<reference>`.
 These names ensure cross compatability between different datasets and
 algorithms.
+
+Source Code
+-----------
+All source code is available on GitHub at
+`github.com/stanford-navlab/gnss_lib_py <https://github.com/stanford-navlab/gnss_lib_py>`__.
+
 
 .. _organization:
 
@@ -63,8 +70,7 @@ Code Organization
    ├── build_docs.sh                  # Bash script to build docs
    ├── poetry.lock                    # Poetry specific Lock file
    ├── pyproject.toml                 # List of package dependencies
-   ├── requirements.txt               # List of packages for pip install
-   └── setup.py                       # Setup file
+   └── requirements.txt               # List of packages for pip install
 
 In the directory organization above:
 
@@ -73,32 +79,35 @@ In the directory organization above:
     algorithms are implemented in the :code:`algorithms`:
 
       * Weighted Least Squares
+      * Extended Kalman Filter
       * Calculating pseudorange residuals
+      * Calculating multi-GNSS satellite PVT information
   * The data parsers in the :code:`parsers` directory allow for loading
-    GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class.
+    GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class
+    or parsing precise ephemerides data.
     Currently, the following datasets and types are supported:
 
       * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
+      * `2022 Google Android Derived Dataset <https://www.kaggle.com/competitions/smartphone-decimeter-2022>`__
+      * `Precise Ephemeris Data <https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html>`__
+      * `TU Chemnitz smartLoc Dataset <https://www.tu-chemnitz.de/projekt/smartLoc/gnss_dataset.html.en#Datasets>`__
+      * `NMEA <https://www.sparkfun.com/datasheets/GPS/NMEA%20Reference%20Manual-Rev2.1-Dec07.pdf>`__
 
   * The :code:`utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite
     simulation, file operations, etc.
-  * Currently, the following data visualization tools are available in the
-    :code:`utils` directory:
-
-        * Skyplot: showing the movement of GNSS satellites during the
-          elapsed time of the provided :code:`NavData` class.
-        * Metric plotting: allows you to plot a specific array of data
-          from the :code:`NavData` class
-        * Metric plotting by constellation: allows you to plot a specific
-          array of data but broken up by individual constellations and
-          signal types.
-        * Residual plotting: specifically optimized for plotting residuals.
-
 
 Installation
 ------------
-For directions on how to install the :code:`gnss_lib_py` project, please
+
+``gnss_lib_py`` is available through ``pip`` installation with:
+
+.. code-block:: bash
+
+   pip install gnss-lib-py
+
+For directions on how to install an editable or developer installation
+of ``gnss_lib_py`` on Linux, MacOS, and Windows, please
 see the :ref:`install instructions<install>`.
 
 Tutorials

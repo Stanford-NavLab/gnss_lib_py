@@ -7,17 +7,17 @@ __date__ = "22 October 2021"
 
 import os
 import warnings
-import pytest
 
+import pytest
 import numpy as np
 
-from gnss_lib_py.parsers.android import AndroidDerived
+from gnss_lib_py.parsers.android import AndroidDerived2021, AndroidDerived2022
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 
 
 # Defining test fixtures
-TEST_REPEAT_COUNT = 20
+TEST_REPEAT_COUNT = 10
 
 @pytest.fixture(name="tolerance")
 def fixture_tolerance():
@@ -77,6 +77,7 @@ def fixture_set_sv_states():
 
     return pos_sv_m
 
+
 # Defining tests
 def test_wls(set_user_states, set_sv_states, tolerance):
     """Test snapshot positioning against truth user states.
@@ -100,7 +101,7 @@ def test_wls(set_user_states, set_sv_states, tolerance):
                              keepdims = True) + rx_truth_m[3,0]
 
     rx_est_m = np.zeros((4,1))
-    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m)
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, sv_rx_time=True)
     truth_fix = rx_truth_m
 
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
@@ -228,7 +229,7 @@ def test_wls_only_bias(set_user_states, set_sv_states, tolerance):
 
     # check that position doesn't change but clock bias does change
     rx_est_m = np.zeros((4,1))
-    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True)
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True, sv_rx_time=True)
     np.testing.assert_array_almost_equal(user_fix[:3], np.zeros((3,1)),
                                          decimal=tolerance)
     assert abs(user_fix[3]) >= 1E5
@@ -236,7 +237,7 @@ def test_wls_only_bias(set_user_states, set_sv_states, tolerance):
     # check that correct clock bias is calculated
     rx_est_m = np.zeros((4,1))
     rx_est_m[:3] = rx_truth_m[:3]
-    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True)
+    user_fix = wls(rx_est_m, pos_sv_m, gt_pr_m, None, True, sv_rx_time=True)
     truth_fix = rx_truth_m
 
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
@@ -256,7 +257,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
+    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
     return root_path
 
 
@@ -290,7 +291,7 @@ def fixture_derived_path(root_path):
 
 @pytest.fixture(name="derived")
 def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived
+    """Load instance of AndroidDerived2021
 
     Parameters
     ----------
@@ -299,76 +300,115 @@ def fixture_load_derived(derived_path):
 
     Returns
     -------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
     """
-    derived = AndroidDerived(derived_path)
+    derived = AndroidDerived2021(derived_path)
     return derived
+
+
+@pytest.fixture(name="derived_2022_path")
+def fixture_derived_2022_path(root_path):
+    """Filepath of Android Derived 2022 measurements
+
+    Returns
+    -------
+    derived_2022_path : string
+        Location for the unit_test Android 2022 derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [3]_,
+    from the 2022 Decimeter Challenge. Particularly, the
+    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+
+    References
+    ----------
+    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_2022_path = os.path.join(root_path, '../android_2022/device_gnss.csv')
+    return derived_2022_path
+
+
+@pytest.fixture(name="derived_2022")
+def fixture_load_derived_2022(derived_2022_path):
+    """Load instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    derived_2022_path : pytest.fixture
+        String with location of Android derived 2022 measurement file
+
+    Returns
+    -------
+    derived_2022 : AndroidDerived2021
+        Instance of AndroidDerived2022 for testing
+    """
+    derived_2022 = AndroidDerived2022(derived_2022_path)
+    return derived_2022
 
 def test_solve_wls(derived):
     """Test that solving for wls doesn't fail
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing.
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
 
     """
-    state_estimate = solve_wls(derived)
+    state_estimate = solve_wls(derived, sv_rx_time=False)
 
     # result should be a NavData Class instance
     assert isinstance(state_estimate,type(NavData()))
 
     # should have four rows
-    assert len(state_estimate.rows) == 4
+    assert len(state_estimate.rows) == 8
 
     # should have the following contents
-    assert "x_rx_m" in state_estimate.rows
-    assert "y_rx_m" in state_estimate.rows
-    assert "z_rx_m" in state_estimate.rows
-    assert "b_rx_m" in state_estimate.rows
+    assert "gps_millis" in state_estimate.rows
+    assert "x_rx_wls_m" in state_estimate.rows
+    assert "y_rx_wls_m" in state_estimate.rows
+    assert "z_rx_wls_m" in state_estimate.rows
+    assert "b_rx_wls_m" in state_estimate.rows
+    assert "lat_rx_wls_deg" in state_estimate.rows
+    assert "lon_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_deg" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
-    assert len(state_estimate) == len(np.unique(derived["millisSinceGpsEpoch",:]))
+    assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
+
+    # len(np.unique(derived["gps_millis",:]))
 
     # test what happens when rows down't exist
-    derived_no_x_sv_m = derived.remove(rows="x_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_x_sv_m)
-    assert "x_sv_m" in str(excinfo.value)
-
-    derived_no_y_sv_m = derived.remove(rows="y_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_y_sv_m)
-    assert "y_sv_m" in str(excinfo.value)
-
-    derived_no_z_sv_m = derived.remove(rows="z_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_z_sv_m)
-    assert "z_sv_m" in str(excinfo.value)
-
-    derived_no_b_sv_m = derived.remove(rows="b_sv_m")
-    with pytest.raises(KeyError) as excinfo:
-        solve_wls(derived_no_b_sv_m)
-    assert "b_sv_m" in str(excinfo.value)
+    for row_index in ["gps_millis","x_sv_m","y_sv_m","z_sv_m"]:
+        derived_no_row = derived.remove(rows=row_index)
+        with pytest.raises(KeyError) as excinfo:
+            solve_wls(derived_no_row)
+        assert row_index in str(excinfo.value)
 
 def test_solve_wls_weights(derived, tolerance):
     """Tests that weights are working for weighted least squares.
 
     Parameters
     ----------
-    derived : AndroidDerived
-        Instance of AndroidDerived for testing
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
     tolerance : fixture
         Error threshold for test pass/fail
     """
 
-    state_estimate_1 = solve_wls(derived)
-    state_estimate_2 = solve_wls(derived, None)
+    state_estimate_1 = solve_wls(derived, sv_rx_time=False)
+    state_estimate_2 = solve_wls(derived, None, sv_rx_time=False)
 
     # create new column of unity weights
     derived["unity_weights"] = 1
-    state_estimate_3 = solve_wls(derived, "unity_weights")
+    state_estimate_3 = solve_wls(derived, "unity_weights",  sv_rx_time=False)
 
     # all of the above should be the same
     np.testing.assert_array_almost_equal(state_estimate_1.array,
@@ -378,7 +418,7 @@ def test_solve_wls_weights(derived, tolerance):
                                          state_estimate_3.array,
                                          decimal=tolerance)
 
-    state_estimate_4 = solve_wls(derived, "raw_pr_sigma_m")
+    state_estimate_4 = solve_wls(derived, "raw_pr_sigma_m",  sv_rx_time=False)
     with np.testing.assert_raises(AssertionError):
         np.testing.assert_array_almost_equal(state_estimate_1.array,
                                              state_estimate_4.array,
@@ -423,9 +463,11 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
     rx_est_m = np.zeros((4,1))
 
     # should work if None is passed
-    user_fix_1 = wls(rx_est_m, pos_sv_m, noisy_pr_m, weights=None)
+    user_fix_1 = wls(rx_est_m, pos_sv_m, noisy_pr_m, weights=None,
+                     sv_rx_time=True)
     user_fix_2 = wls(rx_est_m, pos_sv_m, noisy_pr_m,
-                     weights=np.ones((pos_sv_m.shape[0],1)))
+                     weights=np.ones((pos_sv_m.shape[0],1)),
+                     sv_rx_time=True)
     # both should be unity weights and return the same result
     np.testing.assert_array_almost_equal(user_fix_1,
                                          user_fix_2,
@@ -433,7 +475,8 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
 
     # result should be different if different weights are used
     user_fix_3 = wls(rx_est_m, pos_sv_m, noisy_pr_m,
-                     weights=np.arange(pos_sv_m.shape[0]).reshape(-1,1))
+                     weights=np.arange(pos_sv_m.shape[0]).reshape(-1,1),
+                     sv_rx_time=True)
     with np.testing.assert_raises(AssertionError):
         np.testing.assert_array_almost_equal(user_fix_1,
                                              user_fix_3,
@@ -464,3 +507,146 @@ def test_wls_weights(set_user_states, set_sv_states, tolerance,
     with pytest.raises(TypeError):
         wls(rx_est_m, pos_sv_m, noisy_pr_m,
             weights=np.ones(pos_sv_m.shape[0]+1,1))
+
+
+def test_solve_wls_bias_only(derived_2022):
+    """Tests that bias only WLS estimation works as expected.
+
+    Parameters
+    ----------
+    derived_2022 : AndroidDerived2022
+        Instance of AndroidDerived2022 for testing
+    """
+
+    # Solve with receiver positions given
+    ecef_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
+    wls_rows = ['x_rx_wls_m','y_rx_wls_m','z_rx_wls_m']
+    time_length = sum(1 for _ in derived_2022.loop_time("gps_millis"))
+    input_position = NavData()
+    for row in ecef_rows:
+        input_position[row] = np.zeros(time_length)
+    col = 0
+    for _, _, measure_frame in derived_2022.loop_time('gps_millis'):
+        for row in ecef_rows:
+            input_position[row, col] = measure_frame[row, 0]
+        col += 1
+    state_estimate = solve_wls(derived_2022, only_bias=True,
+                               receiver_state=derived_2022, sv_rx_time=False)
+    # Verify that both structures have the same length
+    assert len(input_position) == len(state_estimate)
+    # Verify that solved positions are the same as input positions
+    for rr,row in enumerate(ecef_rows):
+        np.testing.assert_almost_equal(input_position[row], state_estimate[wls_rows[rr]])
+
+    assert isinstance(state_estimate,type(NavData()))
+
+    # should have four rows
+    assert len(state_estimate.rows) == 8
+
+    # should have the following contents
+    assert "gps_millis" in state_estimate.rows
+    assert "x_rx_wls_m" in state_estimate.rows
+    assert "y_rx_wls_m" in state_estimate.rows
+    assert "z_rx_wls_m" in state_estimate.rows
+    assert "b_rx_wls_m" in state_estimate.rows
+    assert "lat_rx_wls_deg" in state_estimate.rows
+    assert "lon_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_deg" in state_estimate.rows
+
+    # should have the same length as the number of unique timesteps
+    assert len(state_estimate) == time_length
+
+    # Solve without receiver positions given. This should cause a warning
+    derived_2022.remove(ecef_rows, inplace=True)
+    with pytest.raises(KeyError):
+        solve_wls(derived_2022, only_bias=True,
+                receiver_state=derived_2022, sv_rx_time=False)
+
+    # check error raised when receiver_state is not present in only_bias
+    with pytest.raises(RuntimeError):
+        solve_wls(derived_2022, only_bias=True, sv_rx_time=False)
+
+
+def test_wls_fails(capsys):
+    """Test expected fails
+
+    Parameters
+    ----------
+    capsys : error
+        The capsys fixture allows access to stdout/stderr output created
+        during test execution.
+
+    """
+
+    pos_sv_m = 5.*np.ones((5,3))
+    pos_sv_m[0,0] = np.nan
+
+    wls(np.ones((4,1)),pos_sv_m,np.ones((5,1)))
+    captured = capsys.readouterr()
+    assert captured.out == "SVD did not converge\n"
+
+def test_solve_wls_fails(derived):
+    """Test expected fails
+
+    Parameters
+    ----------
+    derived : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+
+    """
+
+    navdata = derived.remove(cols=list(range(3,50)) \
+                                + list(range(53,len(derived))))
+
+    with pytest.warns(RuntimeWarning) as warns:
+        solve_wls(navdata)
+
+    # verify RuntimeWarning
+    assert len(warns) == 2
+
+    caught_four_sats = False
+    caught_empty_state = False
+    for warn in warns:
+        assert issubclass(warn.category, RuntimeWarning)
+        assert "WLS" in str(warn.message)
+        if "four satellites" in str(warn.message):
+            caught_four_sats = True
+        elif "No valid state" in str(warn.message):
+            caught_empty_state = True
+
+    assert caught_four_sats
+    assert caught_empty_state
+
+
+def test_rotation_of_earth_fix(derived_2022):
+    """Tests that accounting for Earth's rotation reduces WLS errors.
+
+    Parameters
+    ----------
+    derived_2022 : AndroidDerived2022
+        Instance of AndroidDerived2022 for testing
+    """
+    google_wls = derived_2022[['x_rx_m', 'y_rx_m', 'z_rx_m']]
+    google_wls = np.empty([3, len(np.unique(np.round(derived_2022['gps_millis'], decimals=-2)))])
+    for idx, (_, _, frame) in enumerate(derived_2022.loop_time('gps_millis')):
+        google_wls[:, idx] = frame[['x_rx_m', 'y_rx_m', 'z_rx_m'], 0]
+    derived_2022['wls_weights'] = 1/derived_2022['raw_pr_sigma_m']
+    state_with_rotn = solve_wls(derived_2022, weight_type='wls_weights',
+                               sv_rx_time=False)
+    glp_wls = state_with_rotn[['x_rx_wls_m', 'y_rx_wls_m', 'z_rx_wls_m']]
+    # Verify that the mean error between both estimates is less than 10m
+    for idx in range(3):
+        assert np.mean(np.abs(google_wls[idx, :] - glp_wls[idx, :])) < 30
+    state_without_rotn = solve_wls(derived_2022, weight_type='wls_weights',
+                                   sv_rx_time=True)
+    glp_wls_no_rotn = state_without_rotn[['x_rx_wls_m',
+                                          'y_rx_wls_m',
+                                          'z_rx_wls_m']]
+    for idx in range(3):
+        error_rotn = np.mean(np.abs(google_wls[idx, :] - glp_wls[idx, :]))
+        error_no_rotn = np.mean(np.abs(google_wls[idx, :] - glp_wls_no_rotn[idx, :]))
+        assert error_rotn < error_no_rotn
+
+
+
+
