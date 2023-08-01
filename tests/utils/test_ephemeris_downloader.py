@@ -278,81 +278,77 @@ def test_ftp_download(ephem_download_path):
     assert not valid
     needed_files = [igs_file, gps_file]
 
-    paths = ed._download_ephemeris("rinex_nav",needed_files,
-                                   ephem_download_path,
-                                   verbose=True)
+    try:
+        paths = ed._download_ephemeris("rinex_nav",needed_files,
+                                       ephem_download_path,
+                                       verbose=True)
 
-    # assert files in paths are not empty
-    for path in paths:
-        assert os.path.getsize(path) > 1E5
-
-    # # download the ephemeris file
-    # try:
-    #     ephem_man.retrieve_file(url, directory, filename,
-    #                        dest_filepath)
-    # except ftplib.error_perm as ftplib_exception:
-    #     print(ftplib_exception)
+        # assert files in paths are not empty
+        for path in paths:
+            assert os.path.getsize(path) > 1E5
+    except ftplib.error_perm as ftplib_exception:
+        print(ftplib_exception)
 
     remove_download_eph(ephem_download_path)
 
-# def download_igs(requests_url):
-#     """Helper function to capture ConnectionError.
-#
-#     """
-#     response = None
-#     try:
-#         response = requests.get(requests_url, timeout=5)
-#     except requests.exceptions.ConnectionError:
-#         print("ConnectionError.")
-#
-#     return response
-#
-# def test_request_igs(capsys, ephem_download_path):
-#     """Test requests download for igs files.
-#
-#     The reason for this test is that Github workflow actions seem to
-#     block international IPs and so won't properly bind to the igs IP.
-#
-#     Parameters
-#     ----------
-#     ephem_download_path : string
-#         Location where ephemeris files are stored/downloaded.
-#
-#     """
-#
-#     remove_download_eph(ephem_download_path)
-#     os.makedirs(ephem_download_path, exist_ok=True)
-#
-#     past_dt = datetime.combine(datetime.now().date() - timedelta(days=2),
-#                                time(12,tzinfo=timezone.utc))
-#     gps_millis_past = tc.datetime_to_gps_millis(past_dt)
-#
-#     _, needed_files = ed._verify_ephemeris("rinex_nav",
-#                                                      gps_millis_past)
-#
-#     url = "http://igs.bkg.bund.de/root_ftp/"
-#     _, ftp_path = needed_files[0]
-#     requests_url = url + ftp_path
-#
-#     filename = os.path.split(ftp_path)[1]
-#     dest_filepath = os.path.join(ephem_download_path,filename)
-#
-#     fail_count = 0
-#     while fail_count < 3:# download the ephemeris file
-#         response = download_igs(requests_url)
-#         captured = capsys.readouterr()
-#         if "ConnectionError." in captured.out:
-#             fail_count += 1
-#         else:
-#             break
-#
-#     if response is None:
-#         raise requests.exceptions.ConnectionError("IGS ConnectionError.")
-#
-#     with open(dest_filepath,'wb') as file:
-#         file.write(response.content)
-#
-#     remove_download_eph(ephem_download_path)
+def download_igs(requests_url):
+    """Helper function to capture ConnectionError.
+
+    """
+    response = None
+    try:
+        response = requests.get(requests_url, timeout=5)
+    except requests.exceptions.ConnectionError:
+        print("ConnectionError.")
+
+    return response
+
+def test_request_igs(capsys, ephem_download_path):
+    """Test requests download for igs files.
+
+    The reason for this test is that Github workflow actions seem to
+    block international IPs and so won't properly bind to the igs IP.
+
+    Parameters
+    ----------
+    ephem_download_path : string
+        Location where ephemeris files are stored/downloaded.
+
+    """
+
+    remove_download_eph(ephem_download_path)
+    os.makedirs(ephem_download_path, exist_ok=True)
+
+    past_dt = datetime.combine(datetime.now().date() - timedelta(days=2),
+                               time(12,tzinfo=timezone.utc))
+    gps_millis_past = tc.datetime_to_gps_millis(past_dt)
+
+    _, needed_files = ed._verify_ephemeris("rinex_nav",
+                                            gps_millis_past)
+
+    url = "http://igs.bkg.bund.de/root_ftp/"
+    _, ftp_path = needed_files[0]
+    requests_url = url + ftp_path
+
+    filename = os.path.split(ftp_path)[1]
+    dest_filepath = os.path.join(ephem_download_path,filename)
+
+    fail_count = 0
+    while fail_count < 3:# download the ephemeris file
+        response = download_igs(requests_url)
+        captured = capsys.readouterr()
+        if "ConnectionError." in captured.out:
+            fail_count += 1
+        else:
+            break
+
+    if response is None:
+        raise requests.exceptions.ConnectionError("IGS ConnectionError.")
+
+    with open(dest_filepath,'wb') as file:
+        file.write(response.content)
+
+    remove_download_eph(ephem_download_path)
 
 def test_ephemeris_fails():
     """Test ways the ephemeris downloader should fail.
