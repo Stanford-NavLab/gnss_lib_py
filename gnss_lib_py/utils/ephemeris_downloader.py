@@ -25,11 +25,27 @@ combined rinex navigation files, see MGEX documentation [2]_.
 
 IGS network station information can be found at [3]_.
 
+SP3 and CLK files are obtained from CDDIS.
+Products are available from CODE and GFZ through the MGEX data [4]_
+
+https://cddis.nasa.gov/archive/gnss/products/WWWW/
+Takes two weeks to get final product
+COD0MGXFIN_20230360000_01D_05M_ORB.SP3.gz
+COD0MGXFIN_20230360000_01D_30S_CLK.CLK.gz
+
+Before that try:
+GFZ0MGXRAP_20232100000_01D_05M_ORB.SP3.gz
+GFZ0MGXRAP_20232100000_01D_30S_CLK.CLK.gz
+
+Takes day to get super rapid
+COD0OPSRAP_20232110000_01D_05M_ORB.SP3.gz
+
 References
 ----------
 .. [1] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 .. [2] https://igs.org/mgex/data-products/#bce
 .. [3] https://network.igs.org/
+.. [4] https://igs.org/mgex/data-products/#orbit_clock
 
 """
 
