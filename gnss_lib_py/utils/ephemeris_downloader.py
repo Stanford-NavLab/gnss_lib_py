@@ -48,7 +48,7 @@ import gnss_lib_py.utils.time_conversions as tc
 DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
 
 def load_ephemeris(file_type, gps_millis,
-                   constellations=None, paths=[],
+                   constellations=None, paths=None,
                    download_directory=DEFAULT_EPHEM_PATH,
                    verbose=False):
     """
@@ -93,17 +93,13 @@ def load_ephemeris(file_type, gps_millis,
             print("Using the following existing files:")
             for file in existing_paths:
                 print(file)
-        if len(downloaded_paths) > 0:
-            print("Downloaded the following files:")
-            for file in downloaded_paths:
-                print(file)
 
     paths = existing_paths + downloaded_paths
 
     return paths
 
 def _verify_ephemeris(file_type, gps_millis, constellations=None,
-                      paths=[], verbose=False):
+                      paths=None, verbose=False):
     """Check what ephemeris files to download and if they already exist.
 
     Parameters
@@ -152,7 +148,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
                 # download from day's stream if too early in the day
                 # that combined file is not yet uploaded to CDDIS.
                 if datetime.utcnow() < datetime.combine(date+timedelta(days=1),
-                                                        time(12)):
+                                                        time(12)): # pragma: no cover
                     possible_types += ["rinex_nav_today"]
                 else:
                     if date < datetime(2019, 11, 25).date():
@@ -170,7 +166,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
     return existing_paths, needed_files
 
 def _download_ephemeris(file_type, needed_files, download_directory,
-                       verbose):
+                       verbose=False):
     """Download ephemeris files.
 
     Parameters
@@ -204,7 +200,9 @@ def _download_ephemeris(file_type, needed_files, download_directory,
             if verbose:
                 print("using previously downloaded file:\n",dest_filepath)
             continue
-        _ftp_download(url, ftp_path, dest_filepath, verbose)
+        dest_path_with_extension = os.path.join(directory,os.path.split(ftp_path)[1])
+        _ftp_download(url, ftp_path, dest_path_with_extension,
+                      verbose)
         downloaded_paths.append(dest_filepath)
 
     return downloaded_paths
@@ -375,11 +373,11 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                 return False, recommended_file
             # check compatible file types
             for path in paths:
-                if os.path.split(path)[1] == os.path.split(recommended_file[1])[1]:
+                if os.path.split(path)[1] + _get_rinex_extension(date) == os.path.split(recommended_file[1])[1]:
                     return True, path
                 if os.path.split(path)[1][4:] == str(timetuple.tm_yday).zfill(3)\
                                                + "0." + str(timetuple.tm_year)[-2:]\
-                                               +'n':
+                                               +'g':
                     return True, path
 
         else:
@@ -491,7 +489,7 @@ def _ftp_login(url, secure=False):
         ftp.login()
     return ftp
 
-def _decompress_file(filepath):
+def _decompress_file(filepath, remove_compressed=True):
     """Decompress ephemeris file in same destination.
 
     Parameters
@@ -499,6 +497,8 @@ def _decompress_file(filepath):
     filepath : string
         Local filepath where the compressed ephemeris file is stored
         and subsequently decompressed.
+    remove_compressed : bool
+        If true, will delete the compressed file.
 
     """
     extension = os.path.splitext(filepath)[1]
@@ -511,7 +511,8 @@ def _decompress_file(filepath):
         with open(filepath, 'rb') as f_in:
             with open(decompressed_path, 'wb') as f_out:
                 f_out.write(unlzw3.unlzw(f_in.read()))
-    os.remove(filepath)
+    if remove_compressed:
+        os.remove(filepath)
 
 def _get_rinex_extension(timestamp):
     """Get file extension of rinex file based on timestamp.

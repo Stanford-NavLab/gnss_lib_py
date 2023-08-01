@@ -283,11 +283,11 @@ def fixture_start_time(android_gt):
 
     Returns
     -------
-    start_time : datetime.datetime
+    start_time : float
         Time at which measurements were first received in this trace, as
         a datetime.datetime object
     """
-    start_time = gps_millis_to_datetime(android_gt['gps_millis', 0])
+    start_time = android_gt['gps_millis', 0]
     return start_time
 
 
@@ -300,7 +300,7 @@ def fixture_all_gps_ephem(ephemeris_path, start_time, all_gps_sats):
     ----------
     ephemeris_path : string
         Path where ephemeris files are to be stored.
-    start_time : datetime.datetime
+    start_time : float
         Time at which measurements were first received in this trace, as
         a datetime.datetime object
     all_gps_sats : list

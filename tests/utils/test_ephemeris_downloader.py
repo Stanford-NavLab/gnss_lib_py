@@ -12,6 +12,7 @@ from datetime import datetime, timezone, timedelta, time
 import pytest
 import requests
 import numpy as np
+from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.time_conversions as tc
 import gnss_lib_py.utils.ephemeris_downloader as ed
@@ -33,6 +34,35 @@ def fixture_ephem_path():
     ephem_path = os.path.join(root_path, 'data/unit_test')
     return ephem_path
 
+@pytest.fixture(name="all_ephem_paths", scope='session')
+def fixture_all_ephem_paths(ephem_path):
+    """Location of ephemeris files for unit test
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded.
+
+    Returns
+    -------
+    all_ephem_paths : string
+        Location of all unit test ephemeris files.
+
+    """
+
+    all_ephem_paths = []
+
+    ephem_dirs = [
+                       os.path.join(ephem_path,"rinex","nav"),
+                       os.path.join(ephem_path,"sp3"),
+                       os.path.join(ephem_path,"clk"),
+                      ]
+    for ephem_dir in ephem_dirs:
+        all_ephem_paths += [os.path.join(ephem_dir,file) \
+                            for file in os.listdir(ephem_dir)]
+
+    return all_ephem_paths
+
 @pytest.fixture(name="ephem_download_path", scope='session')
 def fixture_ephem_download_path():
     """Location of ephemeris files for unit test
@@ -46,7 +76,7 @@ def fixture_ephem_download_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    ephem_path = os.path.join(root_path, 'data/unit_test/download_tests')
+    ephem_path = os.path.join(root_path, 'data/unit_test/ephemeris_downloader_tests')
     return ephem_path
 
 def remove_download_eph(ephem_download_path):
@@ -61,51 +91,90 @@ def remove_download_eph(ephem_download_path):
     # Remove old files in the ephemeris directory, this tests the
     # download component of EphemerisDownloader()
     if os.path.isdir(ephem_download_path):
-        for dir_name in os.listdir(ephem_download_path):
-            dir_loc = os.path.join(ephem_download_path, dir_name)
-            if os.path.isdir(dir_loc):
-                for file_name in os.listdir(dir_loc):
-                    file_loc = os.path.join(dir_loc, file_name)
-                    if os.path.isfile(file_loc):
-                        os.remove(file_loc)
-                os.rmdir(dir_loc)
-        for file_name in os.listdir(ephem_download_path):
-            file_loc = os.path.join(ephem_download_path, file_name)
-            if os.path.isfile(file_loc):
-                os.remove(file_loc)
+        for file_dir_name in os.listdir(ephem_download_path):
+            file_dir_loc = os.path.join(ephem_download_path, file_dir_name)
+            if os.path.isdir(file_dir_loc):
+                remove_download_eph(file_dir_loc)
+            elif os.path.isfile(file_dir_loc):
+                os.remove(file_dir_loc)
         os.rmdir(ephem_download_path)
 
-@pytest.mark.parametrize('ephem_datetime',
+@pytest.mark.parametrize('ephem_params',
                          [
-                          datetime(2023, 3, 14, 12, tzinfo=timezone.utc),
-                          # datetime.now().astimezone(timezone.utc),
-                          [datetime(2018, 1, 14, 13, tzinfo=timezone.utc),
-                           datetime(2021, 12, 20, 10, tzinfo=timezone.utc)],
+                          (datetime(2020, 5, 16, 0, 17, 1, tzinfo=timezone.utc),
+                           ["gps"]),
+                          (datetime(2020, 5, 16, 4, 17, 1, tzinfo=timezone.utc),
+                           ["glonass"]),
+                          (datetime(2013, 1, 1, 15, 31, 59, tzinfo=timezone.utc),
+                           ["beidou"]),
+                          (datetime(2023, 3, 14, 8, 12, 34, tzinfo=timezone.utc),
+                           ["galileo","sbas","irnss","qzss"]),
                          ])
-@pytest.mark.parametrize('constellations',
+@pytest.mark.parametrize('paths',
                          [
-                          ["gps"],
-                          {"glonass"},
-                          np.array(["glonass","gps"]),
+                          None,
+                          lazy_fixture("all_ephem_paths"),
                          ])
-def test_load_ephemeris_rinex_nav(ephem_datetime,constellations,
-                                  ephem_path):
+def test_load_ephemeris_rinex_nav(ephem_params, ephem_path, paths):
     """Test verifying ephemeris.
 
     Parameters
     ----------
-    ephem_datetime : datetime.datetime
-        Time for ephemeris check
-    constellations : list, set, or array-like
-        Constellations for which to download ephemeris.
+    ephem_params : tuple
+        Tuple of datetime.datetime for ephemeris clock time and
+        constellation list for which to download ephemeris.
     ephem_path : string or path-like
         Directory where ephemeris files are downloaded if necessary.
+    paths : string or path-like
+        Paths to existing ephemeris files if they exist.
 
     """
+    ephem_datetime,constellations = ephem_params
     gps_millis = tc.datetime_to_gps_millis(ephem_datetime)
-    files = ed.load_ephemeris("rinex_nav",gps_millis,constellations,
+    paths = ed.load_ephemeris("rinex_nav",gps_millis,constellations,
+                              paths=paths,
                               download_directory=ephem_path,
                               verbose=True)
+
+    # assert files in paths are not empty
+    for path in paths:
+        assert os.path.getsize(path) > 0.
+
+@pytest.mark.parametrize('ephem_params',
+                         [
+                          (datetime(2020, 5, 17, 11, 17, 1, tzinfo=timezone.utc),
+                           ["gps"]),
+                          (datetime(2020, 5, 17, 19, 17, 1, tzinfo=timezone.utc),
+                           ["glonass"]),
+                         ])
+@pytest.mark.parametrize('paths',
+                         [
+                          lazy_fixture("all_ephem_paths"),
+                         ])
+def test_different_monument(ephem_params, ephem_path, paths):
+    """Test using a different monument.
+
+    Parameters
+    ----------
+    ephem_params : tuple
+        Tuple of datetime.datetime for ephemeris clock time and
+        constellation list for which to download ephemeris.
+    ephem_path : string or path-like
+        Directory where ephemeris files are downloaded if necessary.
+    paths : string or path-like
+        Paths to existing ephemeris files if they exist.
+
+    """
+    ephem_datetime,constellations = ephem_params
+    gps_millis = tc.datetime_to_gps_millis(ephem_datetime)
+    paths = ed.load_ephemeris("rinex_nav",gps_millis,constellations,
+                              paths=paths,
+                              download_directory=ephem_path,
+                              verbose=True)
+
+    # assert files in paths are not empty
+    for path in paths:
+        assert os.path.getsize(path) > 0.
 
 
 def test_extract_ephemeris_dates():
@@ -171,7 +240,7 @@ def test_ftp_errors(ephem_download_path):
 
     """
     remove_download_eph(ephem_download_path)
-    os.makedirs(ephem_download_path)
+    os.makedirs(ephem_download_path, exist_ok=True)
 
     url = 'gdc.cddis.eosdis.nasa.gov'
     ftp_path = 'gnss/data/daily/2020/notafolder/notAfile.20n.Z'
@@ -184,62 +253,106 @@ def test_ftp_errors(ephem_download_path):
 
     remove_download_eph(ephem_download_path)
 
-def download_igs(requests_url):
-    """Helper function to capture ConnectionError.
-
-    """
-    response = None
-    try:
-        response = requests.get(requests_url, timeout=5)
-    except requests.exceptions.ConnectionError:
-        print("ConnectionError.")
-
-    return response
-
-def test_request_igs(capsys, ephem_download_path):
-    """Test requests download for igs files.
-
-    The reason for this test is that Github workflow actions seem to
-    block international IPs and so won't properly bind to the igs IP.
+def test_ftp_download(ephem_download_path):
+    """Test FTP download for ephemeris files.
 
     Parameters
     ----------
     ephem_download_path : string
-        Location where ephemeris files are stored/downloaded.
+        Location where ephemeris files are stored/to be downloaded to.
 
     """
 
     remove_download_eph(ephem_download_path)
-    os.makedirs(ephem_download_path)
+    os.makedirs(ephem_download_path, exist_ok=True)
 
-    gps_millis_now = tc.datetime_to_gps_millis(datetime.now().astimezone(timezone.utc))
+    past_dt = datetime.now().date() - timedelta(days=2)
 
-    existing_paths, needed_files = ed._verify_ephemeris("rinex_nav",
-                                                     gps_millis_now)
+    valid, igs_file = ed._valid_ephemeris_in_paths(past_dt,
+                                               ["rinex_nav_today"],
+                                               paths=[])
+    assert not valid
+    valid, gps_file = ed._valid_ephemeris_in_paths(datetime(2017,3,14).date(),
+                                               ["rinex_nav_gps"],
+                                               paths=[])
+    assert not valid
+    needed_files = [igs_file, gps_file]
 
-    url = "http://igs.bkg.bund.de/root_ftp/"
-    _, ftp_path = needed_files[0]
-    requests_url = url + ftp_path
+    paths = ed._download_ephemeris("rinex_nav",needed_files,
+                                   ephem_download_path,
+                                   verbose=True)
 
-    filename = os.path.split(ftp_path)[1]
-    dest_filepath = os.path.join(ephem_download_path,filename)
+    # assert files in paths are not empty
+    for path in paths:
+        assert os.path.getsize(path) > 1E5
 
-    fail_count = 0
-    while fail_count < 3:# download the ephemeris file
-        response = download_igs(requests_url)
-        captured = capsys.readouterr()
-        if "ConnectionError." in captured.out:
-            fail_count += 1
-        else:
-            break
-
-    if response is None:
-        raise requests.exceptions.ConnectionError("IGS ConnectionError.")
-
-    with open(dest_filepath,'wb') as file:
-        file.write(response.content)
+    # # download the ephemeris file
+    # try:
+    #     ephem_man.retrieve_file(url, directory, filename,
+    #                        dest_filepath)
+    # except ftplib.error_perm as ftplib_exception:
+    #     print(ftplib_exception)
 
     remove_download_eph(ephem_download_path)
+
+# def download_igs(requests_url):
+#     """Helper function to capture ConnectionError.
+#
+#     """
+#     response = None
+#     try:
+#         response = requests.get(requests_url, timeout=5)
+#     except requests.exceptions.ConnectionError:
+#         print("ConnectionError.")
+#
+#     return response
+#
+# def test_request_igs(capsys, ephem_download_path):
+#     """Test requests download for igs files.
+#
+#     The reason for this test is that Github workflow actions seem to
+#     block international IPs and so won't properly bind to the igs IP.
+#
+#     Parameters
+#     ----------
+#     ephem_download_path : string
+#         Location where ephemeris files are stored/downloaded.
+#
+#     """
+#
+#     remove_download_eph(ephem_download_path)
+#     os.makedirs(ephem_download_path, exist_ok=True)
+#
+#     past_dt = datetime.combine(datetime.now().date() - timedelta(days=2),
+#                                time(12,tzinfo=timezone.utc))
+#     gps_millis_past = tc.datetime_to_gps_millis(past_dt)
+#
+#     _, needed_files = ed._verify_ephemeris("rinex_nav",
+#                                                      gps_millis_past)
+#
+#     url = "http://igs.bkg.bund.de/root_ftp/"
+#     _, ftp_path = needed_files[0]
+#     requests_url = url + ftp_path
+#
+#     filename = os.path.split(ftp_path)[1]
+#     dest_filepath = os.path.join(ephem_download_path,filename)
+#
+#     fail_count = 0
+#     while fail_count < 3:# download the ephemeris file
+#         response = download_igs(requests_url)
+#         captured = capsys.readouterr()
+#         if "ConnectionError." in captured.out:
+#             fail_count += 1
+#         else:
+#             break
+#
+#     if response is None:
+#         raise requests.exceptions.ConnectionError("IGS ConnectionError.")
+#
+#     with open(dest_filepath,'wb') as file:
+#         file.write(response.content)
+#
+#     remove_download_eph(ephem_download_path)
 
 def test_ephemeris_fails():
     """Test ways the ephemeris downloader should fail.
@@ -255,83 +368,32 @@ def test_ephemeris_fails():
         ed._valid_ephemeris_in_paths(datetime.now().date(),"rinex_nav")
     assert "possible_type" in str(excinfo.value)
 
+def test_verify_ephemeris():
+    """Test verify ephemeris for today's.
 
+    """
 
-# @pytest.mark.parametrize('constellations',
-#                          [
-#                           set(['G']),
-#                           set(['G','R','E']),
-#                           None,
-#                          ])
-# @pytest.mark.parametrize('ephem_time',
-#                          [
-#                           datetime(2023, 3, 14, 23, 17, 13, tzinfo=timezone.utc),
-#                          ])
-# def test_load_ephem(ephem_path, ephem_time, constellations):
-#     """Create instance of Ephemeris manager and fetch ephemeris file.
-#
-#     Check type and rows.
-#
-#     Parameters
-#     ----------
-#     ephem_path : string
-#         Location where ephemeris files are stored/to be downloaded to.
-#     ephem_time : datetime.datetime
-#         Time at which state estimation is starting, the most recent ephemeris
-#         file before the start time will be fetched.
-#     constellations : List
-#         List of constellation types
-#
-#     """
-#
-#     ephem_man = EphemerisDownloader(ephem_path, verbose=True)
-#     rinex_paths = ephem_man.load_data(ephem_time, constellations, same_day=True)
-#
-#     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
-#     assert isinstance(rinex_paths, list)
-#
-#     for rinex_path in rinex_paths:
-#         assert isinstance(rinex_path, (str, os.PathLike))
-#
-# @pytest.mark.parametrize('fileinfo',
-#     [
-#      {'filepath': '/IGS/BRDC/2023/099/BRDC00WRD_S_20230990000_01D_MN.rnx.gz', 'url': 'igs-ftp.bkg.bund.de'},
-#      {'filepath': 'gnss/data/daily/2020/brdc/brdc1360.20n.Z', 'url': 'gdc.cddis.eosdis.nasa.gov'},
-#      {'filepath': 'gnss/data/daily/2020/brdc/brdc1360.20g.Z', 'url': 'gdc.cddis.eosdis.nasa.gov'},
-#      {'filepath': 'gnss/data/daily/2020/brdc/BRDC00IGS_R_20201360000_01D_MN.rnx.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
-#      {'filepath': 'gnss/data/daily/2023/brdc/brdc0730.23n.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
-#      {'filepath': 'gnss/data/daily/2023/brdc/brdc0730.23g.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
-#      {'filepath': 'gnss/data/daily/2023/brdc/BRDC00IGS_R_20230730000_01D_MN.rnx.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
-#      {'filepath': 'gnss/data/daily/2023/brdc/brdc0990.23n.gz', 'url': 'gdc.cddis.eosdis.nasa.gov'},
-#      ])
-# def test_download_ephem(ephem_download_path, fileinfo):
-#     """Test FTP download for ephemeris files.
-#
-#     Parameters
-#     ----------
-#     ephem_download_path : string
-#         Location where ephemeris files are stored/to be downloaded to.
-#     fileinfo : dict
-#         Filenames for ephemeris with ftp server and constellation details
-#
-#     """
-#
-#     remove_download_eph(ephem_download_path)
-#     os.makedirs(ephem_download_path)
-#
-#     ephem_man = EphemerisDownloader(ephem_download_path, verbose=True)
-#
-#     filepath = fileinfo['filepath']
-#     url = fileinfo['url']
-#     directory = os.path.split(filepath)[0]
-#     filename = os.path.split(filepath)[1]
-#     dest_filepath = os.path.join(ephem_man.ephemeris_directory, 'rinex', filename)
-#
-#     # download the ephemeris file
-#     try:
-#         ephem_man.retrieve_file(url, directory, filename,
-#                            dest_filepath)
-#     except ftplib.error_perm as ftplib_exception:
-#         print(ftplib_exception)
-#
-#     remove_download_eph(ephem_download_path)
+    gps_millis = tc.datetime_to_gps_millis(datetime.utcnow().astimezone(timezone.utc))
+
+    existing_paths, needed_files = ed._verify_ephemeris("rinex_nav",
+                                                        gps_millis,
+                                                        verbose=True)
+    assert len(existing_paths) == 0
+    assert needed_files[0][0] == 'igs-ftp.bkg.bund.de'
+
+def test_valid_ephemeris(all_ephem_paths):
+    """Extra tests for full valid coverage.
+
+    Parameters
+    ----------
+    all_ephem_paths : string
+        Location of all unit test ephemeris files.
+
+    """
+
+    date = datetime(2023,3,14).astimezone(timezone.utc).date()
+    valid, path = ed._valid_ephemeris_in_paths(date,
+                                               ["rinex_nav_today"],
+                                               paths=all_ephem_paths)
+    assert valid
+    assert os.path.split(path)[-1] == "BRDC00WRD_S_20230730000_01D_MN.rnx"
