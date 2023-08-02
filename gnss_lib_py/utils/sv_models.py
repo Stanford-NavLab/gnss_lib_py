@@ -9,14 +9,15 @@ __date__ = "17 Jan, 2023"
 import warnings
 
 import numpy as np
-from datetime import datetime, timezone, timedelta
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
-from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
-from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
+from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex, RinexNav
+from gnss_lib_py.parsers.rinex_nav import _compute_eccentric_anomaly
+from gnss_lib_py.parsers.rinex_nav import _estimate_sv_clock_corr
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH, load_ephemeris
+from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.clk import Clk
 
@@ -169,8 +170,10 @@ def add_visible_svs_for_trajectory(rx_states,
     start_millis = gps_millis[0]
 
     # Initialize file with broadcast ephemeris parameters
-    ephem_all_sats = get_time_cropped_rinex(start_millis, constellations,
-                                            ephemeris_path)
+    rinex_paths = load_ephemeris("rinex_nav",start_millis,constellations,
+                                 download_directory=ephemeris_path,
+                                 )
+    ephem_all_sats = RinexNav(rinex_paths)
 
     # Find rows that correspond to receiver positions
     rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']

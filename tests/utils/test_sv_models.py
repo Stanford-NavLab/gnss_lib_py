@@ -324,13 +324,15 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
     # Create list of times and states from android_gps_l1 into an estimate
     state_estimate = NavData()
     unique_svs = np.unique(android_gps_l1['sv_id'])
+    unique_gnss_id = list(np.unique(android_gps_l1['gnss_id']))
     android_sv = android_gps_l1.where("sv_id", unique_svs[0])
     state_estimate['gps_millis'] = android_sv['gps_millis']
     state_estimate['x_rx_m'] = android_sv['x_rx_m']
     state_estimate['y_rx_m'] = android_sv['y_rx_m']
     state_estimate['z_rx_m'] = android_sv['z_rx_m']
     sv_posvel_traj = sv_models.add_visible_svs_for_trajectory(state_estimate,
-                                                             ephemeris_path)
+                                                             ephemeris_path,
+                                                             constellations=unique_gnss_id)
     # assert that actually received SVs in the given times are a
     # subset of those considered visible
     true_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps',
@@ -354,13 +356,6 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
                     np.testing.assert_almost_equal(se_frame_sv[row],
                                                 measure_frame_sv[row],
                                                 decimal=error_tol_dec['brd_eph'])
-
-    # Test same function with None for satellites. No support for non-GPS
-    # constellations currently and should raise an error
-    with pytest.warns(RuntimeWarning):
-        _ = sv_models.add_visible_svs_for_trajectory(state_estimate,
-                                                    ephemeris_path,
-                                                    constellations=None)
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -581,7 +576,7 @@ def fixture_load_navdata_glonassg1(navdata):
 
     return navdata_glonassg1
 
-def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata):
+def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata,root_path):
     """Tests that sv_models.single_gnss_from_precise_eph does not fail for GPS
 
     Notes
@@ -603,6 +598,8 @@ def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata):
                                                         sp3data,
                                                         clkdata,
                                                         verbose=True)
+
+    np.testing.assert_array_equal(navdata_gps["sv_id"],navdata_prcs_gps["sv_id"])
 
 
     # Check if the resulting derived is NavData class
