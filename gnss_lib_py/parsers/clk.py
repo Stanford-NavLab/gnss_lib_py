@@ -13,8 +13,8 @@ from scipy import interpolate
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS, C
-from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
-from gnss_lib_py.utils.time_conversions import datetime_to_unix_millis
+from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
+from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 
 class Clk(NavData):
     """Clk specific loading and preprocessing for any GNSS constellation
@@ -81,8 +81,8 @@ class Clk(NavData):
                                  minute = int(timelist_val[6]), \
                                  second = int(float(timelist_val[7])), \
                                  tzinfo=timezone.utc)
-            gps_millis_timestep = datetime_to_gps_millis(curr_time)
-            unix_millis_timestep = datetime_to_unix_millis(curr_time)
+            gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
+            unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
             gnss_sv_ids.append(gnss_sv_id)
             gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
             sv_id.append(int(gnss_sv_id[1:]))

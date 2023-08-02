@@ -13,8 +13,9 @@ from scipy import interpolate
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS
-from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
-from gnss_lib_py.utils.time_conversions import datetime_to_unix_millis
+from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
+from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
+
 
 class Sp3(NavData):
     """sp3 specific loading and preprocessing for any GNSS constellation
@@ -74,8 +75,8 @@ class Sp3(NavData):
                                       int(temp[3]), int(temp[4]), \
                                       int(temp[5]),int(float(temp[6])),\
                                       tzinfo=timezone.utc )
-                gps_millis_timestep = datetime_to_gps_millis(curr_time)
-                unix_millis_timestep = datetime_to_unix_millis(curr_time)
+                gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
+                unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
 
             if 'P' in dval[0]:
                 # A satellite record.  Get the satellite number, and coordinate (X,Y,Z) info
