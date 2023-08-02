@@ -1,0 +1,210 @@
+     3.05           NAVIGATION DATA     MIXED               RINEX VERSION / TYPE
+ssrcrin-13.7.0x     BKG Frankfurt       20230322 002349 UTC PGM / RUN BY / DATE 
+gfzrnx-2.0.4        FILE MERGE          20230322 002350 UTC COMMENT             
+B_TOP                                                       COMMENT             
+B_TOP   ----------------------------------------------      COMMENT             
+B_TOP    # of NAV. EPOCHS based on # of FILE CONTRIB.       COMMENT             
+B_TOP   ----------------------------------------------      COMMENT             
+B_TOP                                                       COMMENT             
+B_BEG C                                                     COMMENT             
+B_HD  BTP C   MTP    =1   <5  <10  <15  <25  <50 >=50  #EPO COMMENT             
+B_LN  --- C ----------------------------------------------- COMMENT             
+B_STK EPH C02 D1     20    .    .    .    .    .    .    20 COMMENT             
+B_STK EPH C05 D1     24    .    .    .    .    .    .    24 COMMENT             
+B_STK EPH C06 D1      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C07 D1      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C08 D1      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C09 D1     12    .    .    .    .    .    .    12 COMMENT             
+B_STK EPH C10 D1     11    .    .    .    .    .    .    11 COMMENT             
+B_STK EPH C11 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C12 D2     10    .    .    .    .    .    .    10 COMMENT             
+B_STK EPH C13 D1     11    .    .    .    .    .    .    11 COMMENT             
+B_STK EPH C14 D2      7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH C16 D1      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C19 D2     13    .    .    .    .    .    .    13 COMMENT             
+B_STK EPH C20 D2     13    .    .    .    .    .    .    13 COMMENT             
+B_STK EPH C21 D2      8    .    .    .    .    .    .     8 COMMENT             
+B_STK EPH C22 D2     13    .    .    .    .    .    .    13 COMMENT             
+B_STK EPH C23 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C24 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C25 D2     10    .    .    .    .    .    .    10 COMMENT             
+B_STK EPH C26 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C27 D2     11    .    .    .    .    .    .    11 COMMENT             
+B_STK EPH C28 D2     11    .    .    .    .    .    .    11 COMMENT             
+B_STK EPH C29 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C30 D2     12    .    .    .    .    .    .    12 COMMENT             
+B_STK EPH C32 D2     11    .    .    .    .    .    .    11 COMMENT             
+B_STK EPH C33 D2      8    .    .    .    .    .    .     8 COMMENT             
+B_STK EPH C34 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C35 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_STK EPH C36 D2     10    .    .    .    .    .    .    10 COMMENT             
+B_STK EPH C37 D2      9    .    .    .    .    .    .     9 COMMENT             
+B_LN  --- C ----------------------------------------------- COMMENT             
+B_SUM EPH C   D1                                        114 COMMENT             
+B_SUM EPH C   D2                                        209 COMMENT             
+B_LN  --- C ----------------------------------------------- COMMENT             
+B_SUM EPH C                                             323 COMMENT             
+B_LN  --- C ----------------------------------------------- COMMENT             
+B_BEG E                                                     COMMENT             
+B_HD  BTP E   MTP    =1   <5  <10  <15  <25  <50 >=50  #EPO COMMENT             
+B_LN  --- E ----------------------------------------------- COMMENT             
+B_STK EPH E01 FNAV   50    .    .    .    .    .    .    50 COMMENT             
+B_STK EPH E01 INAV   50    .    .    .    .    .    .    50 COMMENT             
+B_STK EPH E02 FNAV   40    .    .    .    .    .    .    40 COMMENT             
+B_STK EPH E02 INAV   41    .    .    .    .    .    .    41 COMMENT             
+B_STK EPH E03 FNAV   19    .    .    .    .    .    .    19 COMMENT             
+B_STK EPH E03 INAV   19    .    .    .    .    .    .    19 COMMENT             
+B_STK EPH E04 FNAV   42    .    .    .    .    .    .    42 COMMENT             
+B_STK EPH E04 INAV   42    .    .    .    .    .    .    42 COMMENT             
+B_STK EPH E05 FNAV   17    .    .    .    .    .    .    17 COMMENT             
+B_STK EPH E05 INAV   17    .    .    .    .    .    .    17 COMMENT             
+B_STK EPH E07 FNAV   62    .    .    .    .    .    .    62 COMMENT             
+B_STK EPH E07 INAV   62    .    .    .    .    .    .    62 COMMENT             
+B_STK EPH E08 FNAV   39    .    .    .    .    .    .    39 COMMENT             
+B_STK EPH E08 INAV   39    .    .    .    .    .    .    39 COMMENT             
+B_STK EPH E09 FNAV   38    .    .    .    .    .    .    38 COMMENT             
+B_STK EPH E09 INAV   38    .    .    .    .    .    .    38 COMMENT             
+B_STK EPH E10 FNAV   36    .    .    .    .    .    .    36 COMMENT             
+B_STK EPH E10 INAV   34    .    .    .    .    .    .    34 COMMENT             
+B_STK EPH E11 FNAV   31    .    .    .    .    .    .    31 COMMENT             
+B_STK EPH E11 INAV   30    .    .    .    .    .    .    30 COMMENT             
+B_STK EPH E12 FNAV   44    .    .    .    .    .    .    44 COMMENT             
+B_STK EPH E12 INAV   43    .    .    .    .    .    .    43 COMMENT             
+B_STK EPH E13 FNAV   52    .    .    .    .    .    .    52 COMMENT             
+B_STK EPH E13 INAV   53    .    .    .    .    .    .    53 COMMENT             
+B_STK EPH E14 FNAV   27    .    .    .    .    .    .    27 COMMENT             
+B_STK EPH E14 INAV   27    .    .    .    .    .    .    27 COMMENT             
+B_STK EPH E15 FNAV   33    .    .    .    .    .    .    33 COMMENT             
+B_STK EPH E15 INAV   34    .    .    .    .    .    .    34 COMMENT             
+B_STK EPH E18 FNAV   32    .    .    .    .    .    .    32 COMMENT             
+B_STK EPH E18 INAV   32    .    .    .    .    .    .    32 COMMENT             
+B_STK EPH E19 FNAV   67    .    .    .    .    .    .    67 COMMENT             
+B_STK EPH E19 INAV   66    .    .    .    .    .    .    66 COMMENT             
+B_STK EPH E21 FNAV   52    .    .    .    .    .    .    52 COMMENT             
+B_STK EPH E21 INAV   52    .    .    .    .    .    .    52 COMMENT             
+B_STK EPH E24 FNAV   34    .    .    .    .    .    .    34 COMMENT             
+B_STK EPH E24 INAV   34    .    .    .    .    .    .    34 COMMENT             
+B_STK EPH E25 FNAV   29    .    .    .    .    .    .    29 COMMENT             
+B_STK EPH E25 INAV   29    .    .    .    .    .    .    29 COMMENT             
+B_STK EPH E26 FNAV   65    .    .    .    .    .    .    65 COMMENT             
+B_STK EPH E26 INAV   65    .    .    .    .    .    .    65 COMMENT             
+B_STK EPH E27 FNAV   10    .    .    .    .    .    .    10 COMMENT             
+B_STK EPH E27 INAV   10    .    .    .    .    .    .    10 COMMENT             
+B_STK EPH E30 FNAV   43    .    .    .    .    .    .    43 COMMENT             
+B_STK EPH E30 INAV   43    .    .    .    .    .    .    43 COMMENT             
+B_STK EPH E31 FNAV   32    .    .    .    .    .    .    32 COMMENT             
+B_STK EPH E31 INAV   32    .    .    .    .    .    .    32 COMMENT             
+B_LN  --- E ----------------------------------------------- COMMENT             
+B_SUM EPH E   FNAV                                      894 COMMENT             
+B_SUM EPH E   INAV                                      892 COMMENT             
+B_LN  --- E ----------------------------------------------- COMMENT             
+B_SUM EPH E                                            1786 COMMENT             
+B_LN  --- E ----------------------------------------------- COMMENT             
+B_BEG G                                                     COMMENT             
+B_HD  BTP G   MTP    =1   <5  <10  <15  <25  <50 >=50  #EPO COMMENT             
+B_LN  --- G ----------------------------------------------- COMMENT             
+B_STK EPH G01 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G02 LNAV    8    .    .    .    .    .    .     8 COMMENT             
+B_STK EPH G03 LNAV    5    .    .    .    .    .    .     5 COMMENT             
+B_STK EPH G04 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G05 LNAV    8    .    .    .    .    .    .     8 COMMENT             
+B_STK EPH G06 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G07 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G08 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G09 LNAV    5    .    .    .    .    .    .     5 COMMENT             
+B_STK EPH G10 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G11 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G12 LNAV    5    .    .    .    .    .    .     5 COMMENT             
+B_STK EPH G13 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G14 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G15 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G16 LNAV    8    .    .    .    .    .    .     8 COMMENT             
+B_STK EPH G17 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G18 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G19 LNAV    8    .    .    .    .    .    .     8 COMMENT             
+B_STK EPH G20 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G21 LNAV    4    .    .    .    .    .    .     4 COMMENT             
+B_STK EPH G22 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G23 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G24 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G25 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G26 LNAV    6    .    .    .    .    .    .     6 COMMENT             
+B_STK EPH G27 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G28 LNAV    8    .    .    .    .    .    .     8 COMMENT             
+B_STK EPH G29 LNAV    5    .    .    .    .    .    .     5 COMMENT             
+B_STK EPH G30 LNAV    5    .    .    .    .    .    .     5 COMMENT             
+B_STK EPH G31 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_STK EPH G32 LNAV    7    .    .    .    .    .    .     7 COMMENT             
+B_LN  --- G ----------------------------------------------- COMMENT             
+B_SUM EPH G   LNAV                                      207 COMMENT             
+B_LN  --- G ----------------------------------------------- COMMENT             
+B_SUM EPH G                                             207 COMMENT             
+B_LN  --- G ----------------------------------------------- COMMENT             
+B_BEG R                                                     COMMENT             
+B_HD  BTP R   MTP    =1   <5  <10  <15  <25  <50 >=50  #EPO COMMENT             
+B_LN  --- R ----------------------------------------------- COMMENT             
+B_STK EPH R01 FDMA   21    .    .    .    .    .    .    21 COMMENT             
+B_STK EPH R02 FDMA   23    .    .    .    .    .    .    23 COMMENT             
+B_STK EPH R03 FDMA   20    .    .    .    .    .    .    20 COMMENT             
+B_STK EPH R04 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R05 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R06 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R07 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R08 FDMA   22    .    .    .    .    .    .    22 COMMENT             
+B_STK EPH R09 FDMA   20    .    .    .    .    .    .    20 COMMENT             
+B_STK EPH R10 FDMA   21    .    .    .    .    .    .    21 COMMENT             
+B_STK EPH R11 FDMA   21    .    .    .    .    .    .    21 COMMENT             
+B_STK EPH R12 FDMA   21    .    .    .    .    .    .    21 COMMENT             
+B_STK EPH R13 FDMA   20    .    .    .    .    .    .    20 COMMENT             
+B_STK EPH R14 FDMA   19    .    .    .    .    .    .    19 COMMENT             
+B_STK EPH R15 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R16 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R17 FDMA   22    .    .    .    .    .    .    22 COMMENT             
+B_STK EPH R18 FDMA   22    .    .    .    .    .    .    22 COMMENT             
+B_STK EPH R19 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R20 FDMA   17    .    .    .    .    .    .    17 COMMENT             
+B_STK EPH R21 FDMA   18    .    .    .    .    .    .    18 COMMENT             
+B_STK EPH R22 FDMA   19    .    .    .    .    .    .    19 COMMENT             
+B_STK EPH R23 FDMA   22    .    .    .    .    .    .    22 COMMENT             
+B_STK EPH R24 FDMA   22    .    .    .    .    .    .    22 COMMENT             
+B_STK EPH R25 FDMA   19    .    .    .    .    .    .    19 COMMENT             
+B_LN  --- R ----------------------------------------------- COMMENT             
+B_SUM EPH R   FDMA                                      495 COMMENT             
+B_LN  --- R ----------------------------------------------- COMMENT             
+B_SUM EPH R                                             495 COMMENT             
+B_LN  --- R ----------------------------------------------- COMMENT             
+B_BEG S                                                     COMMENT             
+B_HD  BTP S   MTP    =1   <5  <10  <15  <25  <50 >=50  #EPO COMMENT             
+B_LN  --- S ----------------------------------------------- COMMENT             
+B_STK EPH S23 SBAS  529   14    .    .    .    .    .   543 COMMENT             
+B_STK EPH S26 SBAS  441   10    .    .    .    .    .   451 COMMENT             
+B_STK EPH S27 SBAS  316   16    .    .    .    .    .   332 COMMENT             
+B_STK EPH S28 SBAS  298   14    .    .    .    .    .   312 COMMENT             
+B_STK EPH S36 SBAS  533   11    .    .    .    .    .   544 COMMENT             
+B_STK EPH S44 SBAS  715    .    .    .    .    .    .   715 COMMENT             
+B_STK EPH S47 SBAS    .    .    .    2    .    .    .     2 COMMENT             
+B_STK EPH S48 SBAS  758    .    .    .    .    .    .   758 COMMENT             
+B_LN  --- S ----------------------------------------------- COMMENT             
+B_SUM EPH S   SBAS                                     3657 COMMENT             
+B_LN  --- S ----------------------------------------------- COMMENT             
+B_SUM EPH S                                            3657 COMMENT             
+B_LN  --- S ----------------------------------------------- COMMENT             
+B_ALL EPH -   -                                        6468 COMMENT             
+                                                            COMMENT             
+                                                            END OF HEADER
+C02 2023 03 21 00 00 00-8.518558461219e-04 1.268407601174e-11 0.000000000000e+00
+     1.000000000000e+00 6.550625000000e+02 1.311126042234e-09-2.151929068895e+00
+     2.153357490897e-05 1.127801602706e-03 3.027403727174e-05 6.493442193985e+03
+     1.728000000000e+05 7.357448339462e-08-2.804025604407e+00 3.678724169731e-08
+     9.389664790371e-02-9.317812500000e+02 1.758188651386e-01-4.800199947595e-10
+    -7.607459738377e-11 0.000000000000e+00 8.980000000000e+02 0.000000000000e+00
+     2.000000000000e+00 0.000000000000e+00 1.200000000000e-09-1.390000000000e-08
+     1.728276000000e+05 0.000000000000e+00                                      
+C02 2023 03 21 01 00 00-8.518098620698e-04 1.272493221904e-11 0.000000000000e+00
+     1.000000000000e+00 1.037078125000e+03 9.643258823294e-10-1.882632399539e+00
+     3.387127071619e-05 1.126291695982e-03 2.012634649873e-05 6.493460981369e+03
+     1.764000000000e+05 8.009374141693e-08-2.577838561963e+00 3.399327397346e-08
+     1.003519026653e-01-6.256562500000e+02-5.721880908450e-02-2.567964108870e-10
+    -6.928860043404e-11 0.000000000000e+00 8.980000000000e+02 0.000000000000e+00
+     2.000000000000e+00 0.000000000000e+00 1.200000000000e-09-1.390000000000e-08
+     1.764276000000e+05 0.000000000000e+00                                      

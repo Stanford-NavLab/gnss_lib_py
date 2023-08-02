@@ -65,28 +65,12 @@ class Clk(NavData):
         with open(input_path, 'r', encoding="utf-8") as infile:
             clk = infile.readlines()
 
-        line = 0
-        while True:
-            if 'OF SOLN SATS' not in clk[line]:
-                del clk[line]
-            else:
-                line +=1
-                break
-
-        line = 0
-        while True:
-            if 'END OF HEADER' not in clk[line]:
-                line +=1
-            else:
-                del clk[0:line+1]
-                break
-
         for  clk_val in clk:
 
-            if len(clk_val) == 0 or clk_val[0:2]!='AS':
-                continue
-
             timelist_val = clk_val.split()
+
+            if len(timelist_val) == 0 or timelist_val[0] != 'AS':
+                continue
 
             gnss_sv_id = timelist_val[1]
 
