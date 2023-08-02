@@ -81,8 +81,7 @@ class Clk(NavData):
                                  minute = int(timelist_val[6]), \
                                  second = int(float(timelist_val[7])), \
                                  tzinfo=timezone.utc)
-            gps_millis_timestep = datetime_to_gps_millis(curr_time,
-                                                add_leap_secs = False)
+            gps_millis_timestep = datetime_to_gps_millis(curr_time)
             unix_millis_timestep = datetime_to_unix_millis(curr_time)
             gnss_sv_ids.append(gnss_sv_id)
             gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])

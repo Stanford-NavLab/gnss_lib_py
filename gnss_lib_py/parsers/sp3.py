@@ -74,8 +74,7 @@ class Sp3(NavData):
                                       int(temp[3]), int(temp[4]), \
                                       int(temp[5]),int(float(temp[6])),\
                                       tzinfo=timezone.utc )
-                gps_millis_timestep = datetime_to_gps_millis(curr_time,
-                                                add_leap_secs = False)
+                gps_millis_timestep = datetime_to_gps_millis(curr_time)
                 unix_millis_timestep = datetime_to_unix_millis(curr_time)
 
             if 'P' in dval[0]:

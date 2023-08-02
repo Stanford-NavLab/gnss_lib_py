@@ -137,9 +137,9 @@ def test_load_clkdata_nodata(clk_path_nodata):
 
 @pytest.mark.parametrize('row_name, prn, index, exp_value',
                         [('b_sv_m', 'G15', 0, -0.00015303409205*consts.C),
-                         ('gps_millis', 'G05', 5, 1303668150000.0),
+                         ('gps_millis', 'G05', 5, 1303668168000.0),
                          ('b_sv_m', 'R08', 16, -5.87550990462e-05*consts.C),
-                         ('gps_millis', 'R14', 10, 1303668300000.0),
+                         ('gps_millis', 'R14', 10, 1303668318000.0),
                         ]
                         )
 def test_clkgps_value_check(clkdata, prn, row_name, index, exp_value):
