@@ -152,14 +152,14 @@ def test_load_ephemeris_rinex_nav(ephem_params, ephem_path, paths):
                            ["glonass"]),
                           (datetime(2014, 1, 1, 15, 31, 59, tzinfo=timezone.utc),
                            ["qzss"]),
-                          (datetime(2023, 3, 15, 8, 12, 34, tzinfo=timezone.utc),
+                          (datetime(2023, 3, 21, 8, 12, 34, tzinfo=timezone.utc),
                            ["galileo","sbas","irnss","beidou"]),
                          ])
 @pytest.mark.parametrize('paths',
                          [
                           lazy_fixture("all_ephem_paths"),
                          ])
-def test_different_monument(ephem_params, ephem_path, paths):
+def test_rinex_different_monument(ephem_params, ephem_path, paths):
     """Test using a different monument.
 
     Parameters
@@ -184,6 +184,84 @@ def test_different_monument(ephem_params, ephem_path, paths):
     for path in paths:
         assert os.path.getsize(path) > 0.
 
+@pytest.mark.parametrize('ephem_datetime',
+                         [
+                          datetime(2021, 4, 28, 12, tzinfo=timezone.utc),
+                         ])
+@pytest.mark.parametrize('file_type',
+                         [
+                          "sp3",
+                          "clk",
+                         ])
+@pytest.mark.parametrize('paths',
+                         [
+                          None,
+                          lazy_fixture("all_ephem_paths"),
+                         ])
+def test_load_sp3_clk(ephem_datetime, file_type, ephem_path, paths):
+    """Test verifying ephemeris.
+
+    Parameters
+    ----------
+    ephem_datetime : datetime.datetime
+        Days in UTC for which ephemeris needs to be retrieved.
+    file_type : string
+        File type to download either "rinex_nav", "sp3", or "clk".
+    ephem_path : string or path-like
+        Directory where ephemeris files are downloaded if necessary.
+    paths : string or path-like
+        Paths to existing ephemeris files if they exist.
+
+    """
+    gps_millis = tc.datetime_to_gps_millis(ephem_datetime)
+    paths = ed.load_ephemeris(file_type,gps_millis,None,
+                              paths=paths,
+                              download_directory=ephem_path,
+                              verbose=True)
+
+    # assert files in paths are not empty
+    for path in paths:
+        assert os.path.getsize(path) > 0.
+
+@pytest.mark.parametrize('ephem_datetime',
+                         [
+                          datetime(2021, 4, 28, 12, tzinfo=timezone.utc),
+                          datetime(2020, 5, 17, 11, 17, 1, tzinfo=timezone.utc),
+                          datetime(2023, 3, 14, 11, 17, 1, tzinfo=timezone.utc),
+                         ])
+@pytest.mark.parametrize('possible_types',
+                         [
+                          ["sp3_rapid_CODE"],
+                          ["sp3_rapid_GFZ"],
+                          ["sp3_final_CODE"],
+                          ["clk_rapid_CODE"],
+                          ["clk_rapid_GFZ"],
+                          ["clk_final_CODE"],
+                         ])
+@pytest.mark.parametrize('paths',
+                         [
+                          lazy_fixture("all_ephem_paths"),
+                         ])
+def test_sp3_clk_different_source(ephem_datetime, possible_types, paths):
+    """Test using a different source for sp3 and clk.
+
+    Parameters
+    ----------
+    ephem_datetime : datetime.datetime
+        Ephemeris clock time
+    possible_types : list
+        What file types would fulfill the requirement in preference
+        order.
+    paths : string or path-like
+        Paths to existing ephemeris files if they exist.
+
+    """
+
+    valid, file = ed._valid_ephemeris_in_paths(ephem_datetime.date(),
+                                               possible_types,
+                                               paths)
+    assert valid
+    assert os.path.getsize(file) > 0.
 
 def test_extract_ephemeris_dates():
     """Test extracting the correct days from timestamps.
@@ -274,9 +352,9 @@ def test_ftp_download(ephem_download_path):
     remove_download_eph(ephem_download_path)
     os.makedirs(ephem_download_path, exist_ok=True)
 
-    past_dt = datetime.now().date() - timedelta(days=2)
+    past_dt = (datetime.now() - timedelta(days=2)).astimezone(timezone.utc)
 
-    valid, igs_file = ed._valid_ephemeris_in_paths(past_dt,
+    valid, igs_file = ed._valid_ephemeris_in_paths(past_dt.date(),
                                                ["rinex_nav_today"],
                                                paths=[])
     assert not valid
@@ -297,10 +375,47 @@ def test_ftp_download(ephem_download_path):
     except ftplib.error_perm as ftplib_exception:
         print(ftplib_exception)
 
+    # CODE rapid
+    past_dt = (datetime.now() - timedelta(days=1,hours=12)).astimezone(timezone.utc)
+    for file_type in ["sp3","clk"]:
+        paths = ed.load_ephemeris(file_type,
+                                  tc.datetime_to_gps_millis(past_dt),
+                                  download_directory=ephem_download_path,
+                                  verbose=True)
+        assert os.path.getsize(paths[0]) > 1E5
+        # add coverage of paths for the recent files
+        ed.load_ephemeris(file_type,
+                          tc.datetime_to_gps_millis(past_dt),
+                          download_directory=ephem_download_path,
+                          paths=paths,
+                          verbose=True)
+
+    # GFZ rapid
+    past_dt = (datetime.now() - timedelta(days=5)).astimezone(timezone.utc)
+    for file_type in ["sp3","clk"]:
+        paths = ed.load_ephemeris(file_type,
+                                  tc.datetime_to_gps_millis(past_dt),
+                                  download_directory=ephem_download_path,
+                                  verbose=True)
+        assert os.path.getsize(paths[0]) > 1E5
+        # add coverage of paths for the recent files
+        ed.load_ephemeris(file_type,
+                          tc.datetime_to_gps_millis(past_dt),
+                          download_directory=ephem_download_path,
+                          paths=paths,
+                          verbose=True)
+
+
+
     remove_download_eph(ephem_download_path)
 
 def download_igs(requests_url):
     """Helper function to capture ConnectionError.
+
+    Parameters
+    ----------
+    requests_url : string
+        URL for requests input.
 
     """
     response = None
