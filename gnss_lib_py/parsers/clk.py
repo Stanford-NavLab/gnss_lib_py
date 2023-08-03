@@ -1,4 +1,4 @@
-"""Functions to process precise ephemerides .sp3 and .clk files.
+"""Functions to process .clk and .CLK precise clock product files.
 
 """
 
@@ -32,7 +32,7 @@ class Clk(NavData):
 
     Notes
     -----
-    The format for .clk files can be viewed in [2]_.
+    The format for .clk files can be viewed in [1]_.
 
     Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois
@@ -40,12 +40,19 @@ class Clk(NavData):
 
     References
     -----
-    .. [2]  https://files.igs.org/pub/data/format/rinex_clock300.txt
+    .. [1]  https://files.igs.org/pub/data/format/rinex_clock300.txt
             Accessed as of August 24, 2022
 
     """
     def __init__(self, input_path):
+        """Clk loading and preprocessing.
 
+        Parameters
+        ----------
+        input_path : string or path-like
+            Path to clk file
+
+        """
         super().__init__()
 
         gps_millis = []
@@ -115,6 +122,8 @@ class Clk(NavData):
         method : string
             Type of interpolation method used for clk data (the default is
             CubicSpline, which depicts third-order polynomial)
+        verbose : bool
+            If true, prints extra debugging statements.
 
         Returns
         -------
@@ -139,7 +148,8 @@ class Clk(NavData):
         return func_satbias
 
 
-    def clk_snapshot(self, func_satbias, cxtime, hstep = 5e-1, method='CubicSpline'):
+    def clk_snapshot(self, func_satbias, cxtime, hstep = 5e-1,
+                     method='CubicSpline'):
         """Compute satellite clock bias and drift from clk interpolated function
 
         Parameters

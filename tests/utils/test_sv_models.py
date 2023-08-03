@@ -472,6 +472,11 @@ def fixture_root_path():
 def fixture_sp3_path(root_path):
     """Filepath of valid .sp3 measurements
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
     sp3_path : string
@@ -513,6 +518,11 @@ def fixture_load_sp3data(sp3_path):
 def fixture_clk_path(root_path):
     """Filepath of valid .clk measurements
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
     clk_path : string
@@ -545,7 +555,7 @@ def fixture_load_clkdata(clk_path):
     Returns
     -------
     clkdata : list
-        Instances of Clk class for each satellite
+        Instances of Clk class
     """
     clkdata = Clk(clk_path)
 
@@ -554,6 +564,11 @@ def fixture_load_clkdata(clk_path):
 @pytest.fixture(name="navdata_path")
 def fixture_navdata_path(root_path):
     """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
 
     Returns
     -------
@@ -671,7 +686,7 @@ def fixture_load_navdata_glonassg1(navdata):
 
     return navdata_glonassg1
 
-def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata,root_path):
+def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata):
     """Tests that sv_models.single_gnss_from_precise_eph does not fail for GPS
 
     Notes

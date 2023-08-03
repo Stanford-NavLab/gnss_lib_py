@@ -1,4 +1,4 @@
-"""Functions to process precise ephemerides .sp3 and .clk files.
+"""Functions to process .sp3 or .SP3 precise orbit files.
 
 """
 
@@ -119,6 +119,8 @@ class Sp3(NavData):
         method : string
             Type of interpolation method used for sp3 data (the default is
             CubicSpline, which depicts third-order polynomial)
+        verbose : bool
+            If true, prints extra debugging statements.
 
         Returns
         -------
@@ -152,8 +154,11 @@ class Sp3(NavData):
         return func_satpos
 
 
-    def sp3_snapshot(self, func_satpos, cxtime, hstep = 5e-1, method='CubicSpline'):
-        """Compute satellite 3-D position and velocity from sp3 interpolated function
+    def sp3_snapshot(self, func_satpos, cxtime, hstep = 5e-1,
+                     method='CubicSpline'):
+        """Compute satellite 3D position and velocity.
+
+        Computes from the sp3 interpolated function.
 
         Parameters
         ----------

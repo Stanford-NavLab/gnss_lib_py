@@ -93,14 +93,10 @@ def test_rinex_nav_init_multi(ephem_path):
                          [
                           ['G02'],
                           ['R01'],
-                          # ['E02'],
-                          # ['G01','R01'],
-                          # ['G01','R01','E02'],
                          ])
 @pytest.mark.parametrize('ephem_time',
                          [
                           datetime(2020, 5, 16, 11, 47, 48, tzinfo=timezone.utc),
-                          # datetime(2023, 3, 14, 23, 17, 13, tzinfo=timezone.utc),
                          ])
 def test_get_time_cropped_rinex(ephem_path, ephem_time, satellites):
     """Create instance of Ephemeris manager and fetch ephemeris file.

@@ -126,14 +126,12 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
         file.
     single_exp_values : list
         List of lists containing time instance, gnss_sv_id, and expected
-        value for different
-        Rinex use cases.
+        value for different Rinex use cases.
+    
     """
     count = 0
     for _, _, rinex_frame in rinex_single_values.loop_time('gps_millis'):
-        print(f'count {count}')
-        print('rinex_frame')
-        print(rinex_frame)
+
         #For each time case, check that the expected values are correct
         for case in single_exp_values:
             if case[0] == count:

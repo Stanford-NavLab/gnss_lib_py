@@ -1,4 +1,4 @@
-"""Tests for precise ephemerides data loaders.
+"""Tests for SP3 data loader.
 """
 
 __authors__ = "Sriramya Bhamidipati"
@@ -6,7 +6,6 @@ __date__ = "25 August 2022"
 
 import os
 import random
-from datetime import timezone
 
 import pytest
 import numpy as np
@@ -42,6 +41,11 @@ def fixture_root_path():
 def fixture_sp3_path(root_path):
     """Filepath of valid .sp3 measurements
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
     sp3_path : string
@@ -72,7 +76,7 @@ def fixture_load_sp3data(sp3_path):
 
     Returns
     -------
-    sp3data : list
+    sp3data : gnss_lib_py.parsers.sp3.Sp3
         Instance of GPS-only Sp3 class list with len = NUMSATS-GPS
     """
     sp3data = Sp3(sp3_path)
@@ -83,11 +87,17 @@ def fixture_load_sp3data(sp3_path):
 def fixture_sp3_path_missing(root_path):
     """Invalid filepath for .sp3 measurements
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
-    sp3_path : string
+    sp3_path_missing : string
         String with location for the unit_test sp3 measurements
     """
+
     sp3_path_missing = os.path.join(root_path, 'sp3/grg21553_missing.sp3')
     return sp3_path_missing
 
@@ -112,9 +122,14 @@ def test_load_sp3data_missing(sp3_path_missing):
 def fixture_sp3_path_nodata(root_path):
     """Filepath for .sp3 measurements with no data
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
-    sp3_path : string
+    sp3_path_nodata : string
         String with location for the unit_test sp3 measurements
     """
     sp3_path_nodata = os.path.join(root_path, 'sp3/grg21553_nodata.sp3')
@@ -151,7 +166,7 @@ def test_sp3gps_value_check(sp3data, prn, row_name, index, exp_value):
     Parameters
     ----------
     sp3data : pytest.fixture
-        Instance of Sp3 class dictionary
+        Instance of Sp3 class
     prn : int
         Satellite PRN for test example
     row_name : string
@@ -179,7 +194,7 @@ def test_gps_sp3_funcs(sp3data):
     Parameters
     ----------
     sp3data : pytest.fixture
-        Instance of Sp3 class dictionary
+        Instance of Sp3 class
     """
 
     gnss_sv_ids = np.unique(sp3data["gnss_sv_id"])

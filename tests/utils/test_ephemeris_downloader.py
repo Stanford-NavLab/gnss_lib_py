@@ -76,8 +76,8 @@ def fixture_ephem_download_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    ephem_path = os.path.join(root_path, 'data/unit_test/ephemeris_downloader_tests')
-    return ephem_path
+    ephem_download_path = os.path.join(root_path, 'data/unit_test/ephemeris_downloader_tests')
+    return ephem_download_path
 
 def remove_download_eph(ephem_download_path):
     """Remove previous directory
@@ -132,7 +132,7 @@ def test_load_ephemeris_rinex_nav(ephem_params, ephem_path, paths):
     ephem_datetime,constellations = ephem_params
     gps_millis = tc.datetime_to_gps_millis(ephem_datetime)
     paths = ed.load_ephemeris("rinex_nav",gps_millis,constellations,
-                              paths=paths,
+                              file_paths=paths,
                               download_directory=ephem_path,
                               verbose=True)
 
@@ -178,7 +178,7 @@ def test_rinex_different_monument(ephem_params, ephem_path, paths):
     ephem_datetime,constellations = ephem_params
     gps_millis = tc.datetime_to_gps_millis(ephem_datetime)
     paths = ed.load_ephemeris("rinex_nav",gps_millis,constellations,
-                              paths=paths,
+                              file_paths=paths,
                               download_directory=ephem_path,
                               verbose=True)
 
@@ -217,7 +217,7 @@ def test_load_sp3_clk(ephem_datetime, file_type, ephem_path, paths):
     """
     gps_millis = tc.datetime_to_gps_millis(ephem_datetime)
     paths = ed.load_ephemeris(file_type,gps_millis,None,
-                              paths=paths,
+                              file_paths=paths,
                               download_directory=ephem_path,
                               verbose=True)
 
@@ -358,11 +358,11 @@ def test_ftp_download(ephem_download_path):
 
     valid, igs_file = ed._valid_ephemeris_in_paths(past_dt.date(),
                                                ["rinex_nav_today"],
-                                               paths=[])
+                                               file_paths=[])
     assert not valid
     valid, gps_file = ed._valid_ephemeris_in_paths(datetime(2017,3,14).date(),
                                                ["rinex_nav_gps"],
-                                               paths=[])
+                                               file_paths=[])
     assert not valid
     needed_files = [igs_file, gps_file]
 
@@ -389,7 +389,7 @@ def test_ftp_download(ephem_download_path):
         ed.load_ephemeris(file_type,
                           tc.datetime_to_gps_millis(past_dt),
                           download_directory=ephem_download_path,
-                          paths=paths,
+                          file_paths=paths,
                           verbose=True)
 
     # GFZ rapid
@@ -404,7 +404,7 @@ def test_ftp_download(ephem_download_path):
         ed.load_ephemeris(file_type,
                           tc.datetime_to_gps_millis(past_dt),
                           download_directory=ephem_download_path,
-                          paths=paths,
+                          file_paths=paths,
                           verbose=True)
 
 
@@ -515,6 +515,6 @@ def test_valid_ephemeris(all_ephem_paths):
     date = datetime(2023,3,14).astimezone(timezone.utc).date()
     valid, path = ed._valid_ephemeris_in_paths(date,
                                                ["rinex_nav_today"],
-                                               paths=all_ephem_paths)
+                                               file_paths=all_ephem_paths)
     assert valid
     assert os.path.split(path)[-1] == "BRDC00WRD_S_20230730000_01D_MN.rnx"

@@ -73,11 +73,11 @@ import gnss_lib_py.utils.time_conversions as tc
 DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
 
 def load_ephemeris(file_type, gps_millis,
-                   constellations=None, paths=None,
+                   constellations=None, file_paths=None,
                    download_directory=DEFAULT_EPHEM_PATH,
                    verbose=False):
     """
-    Verify which ephemeris to download and download if not in paths.
+    Verify which ephemeris to download if not in file_paths.
 
     Parameters
     ----------
@@ -88,7 +88,7 @@ def load_ephemeris(file_type, gps_millis,
         obtained.
     constellations : list, set, or array-like
         Constellations for which to download ephemeris.
-    paths : list, string or path-like
+    file_paths : list, string or path-like
         Paths to existing ephemeris files if they exist.
     download_directory : string or path-like
         Directory where ephemeris files are downloaded if necessary.
@@ -97,7 +97,7 @@ def load_ephemeris(file_type, gps_millis,
 
     Returns
     -------
-    paths : list
+    file_paths : list
         Paths to downloaded and/or existing ephemeris files. Only files
         that need to be used are returned. Superfluous path inputs that
         are not needed are not returned
@@ -107,7 +107,7 @@ def load_ephemeris(file_type, gps_millis,
     existing_paths, needed_files = _verify_ephemeris(file_type,
                                                      gps_millis,
                                                      constellations,
-                                                     paths,
+                                                     file_paths,
                                                      verbose)
 
     downloaded_paths = _download_ephemeris(file_type, needed_files,
@@ -119,12 +119,12 @@ def load_ephemeris(file_type, gps_millis,
             for file in existing_paths:
                 print(file)
 
-    paths = existing_paths + downloaded_paths
+    file_paths = existing_paths + downloaded_paths
 
-    return paths
+    return file_paths
 
 def _verify_ephemeris(file_type, gps_millis, constellations=None,
-                      paths=None, verbose=False):
+                      file_paths=None, verbose=False):
     """Check what ephemeris files to download and if they already exist.
 
     Parameters
@@ -136,7 +136,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
         obtained.
     constellations : list, set, or array-like
         Constellations for which to download ephemeris.
-    paths : string or path-like
+    file_paths : string or path-like
         Paths to existing ephemeris files if they exist.
     verbose : bool
         Prints extra debugging statements if true.
@@ -198,7 +198,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
                 possible_types += ["clk_final_CODE"]
 
         already_exists, filepath = _valid_ephemeris_in_paths(date,
-                                                possible_types, paths)
+                                                possible_types, file_paths)
         if already_exists:
             existing_paths.append(filepath)
         else:
@@ -302,8 +302,8 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
 
     return needed_dates
 
-def _valid_ephemeris_in_paths(date, possible_types, paths=None):
-    """Check whether a valid ephemeris already exists in paths.
+def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
+    """Check whether a valid ephemeris already exists in file_paths.
 
     See file header for detailed documentation on the methodology on
     the sources used to downloaded files.
@@ -315,8 +315,20 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
     possible_types : list
         What file types would fulfill the requirement in preference
         order.
-    paths : string or path-like
+    file_paths : string or path-like
         Paths to existing ephemeris files if they exist.
+
+    Returns
+    -------
+    valid : bool
+        Whether or not a valid ephemeris already exists. If true, then
+        the correct ephemeris file already exists in file_paths.
+        If false, a new file will be downloaded unless file already
+        exists in the download directory.
+    recommended_file : string
+        Path to existing file if valid is True, otherwise a tuple
+        containing the url and filepath to the file that should be
+        downloaded.
 
     """
 
@@ -335,10 +347,10 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_MN.rnx.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
 
@@ -353,13 +365,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_MN.rnx.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][-22:] == recommended_file[1][-25:-3]:
                     return True, path
 
@@ -374,13 +386,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_MN.rnx.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][-22:] == recommended_file[1][-25:-3]:
                     return True, path
 
@@ -396,13 +408,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + "0." + str(timetuple.tm_year)[-2:] +'n'\
                               + _get_rinex_extension(date))
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + _get_rinex_extension(date) == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][4:] == str(timetuple.tm_yday).zfill(3)\
                                                + "0." + str(timetuple.tm_year)[-2:]\
                                                +'n':
@@ -410,7 +422,7 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             long_name = str(timetuple.tm_year)\
                       + str(timetuple.tm_yday).zfill(3) \
                       + "0000_01D_GN.rnx"
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][-22:] == long_name:
                     return True, path
 
@@ -425,13 +437,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + "0." + str(timetuple.tm_year)[-2:] +'g'\
                               + _get_rinex_extension(date))
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + _get_rinex_extension(date) == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][4:] == str(timetuple.tm_yday).zfill(3)\
                                                + "0." + str(timetuple.tm_year)[-2:]\
                                                +'g':
@@ -439,7 +451,7 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
             long_name = str(timetuple.tm_year)\
                       + str(timetuple.tm_yday).zfill(3) \
                       + "0000_01D_RN.rnx"
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][-22:] == long_name:
                     return True, path
 
@@ -454,13 +466,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_05M_ORB.SP3.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
 
@@ -475,13 +487,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_05M_ORB.SP3.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
 
@@ -496,13 +508,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_05M_ORB.SP3.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
 
@@ -517,13 +529,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_30S_CLK.CLK.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
 
@@ -538,13 +550,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_30S_CLK.CLK.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
 
@@ -559,13 +571,13 @@ def _valid_ephemeris_in_paths(date, possible_types, paths=None):
                               + str(timetuple.tm_yday).zfill(3) \
                               + "0000_01D_30S_CLK.CLK.gz")
             recommended_files.append(recommended_file)
-            if paths is None:
+            if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in paths:
+            for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
 

@@ -21,7 +21,7 @@ class Nmea(NavData):
     """Class used to parse through NMEA files
 
     """
-    def __init__(self, filename, msg_types=None,
+    def __init__(self, input_path, msg_types=None,
                  check=False, keep_raw=False, include_ecef=False):
         """Read instance of NMEA file following NMEA 0183 standard.
 
@@ -32,7 +32,7 @@ class Nmea(NavData):
 
         Parameters
         ----------
-        filename : str or path-like
+        input_path : str or path-like
             filepath to NMEA file to read.
         msg_types : list
             List of strings describing messages that can be parsed.
@@ -65,12 +65,12 @@ class Nmea(NavData):
         field_dict = {}
         prev_timestamp = None
 
-        if not isinstance(filename, (str, os.PathLike)):
-            raise TypeError("filename must be string or path-like")
-        if not os.path.exists(filename):
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
             raise FileNotFoundError("file not found")
 
-        with open(filename, "r", encoding='UTF-8') as open_file:
+        with open(input_path, "r", encoding='UTF-8') as open_file:
             for line in open_file:
                 check_ind = line.find('*')
                 if not check and '*' in line:

@@ -1,4 +1,4 @@
-"""Tests for precise ephemerides data loaders.
+"""Tests for Clk data loader.
 """
 
 __authors__ = "Sriramya Bhamidipati"
@@ -42,6 +42,11 @@ def fixture_root_path():
 def fixture_clk_path(root_path):
     """Filepath of valid .clk measurements
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
     clk_path : string
@@ -82,12 +87,18 @@ def fixture_load_clkdata(clk_path):
 
 @pytest.fixture(name="clk_path_missing")
 def fixture_clk_path_missing(root_path):
-    """Invalid filepath of .clk measurements
+    """Filepath of invalid/missing .clk measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
 
     Returns
     -------
-    clk_path : string
+    clk_path_missing : string
         String with location for the unit_test clk measurements
+
     """
     clk_path_missing = os.path.join(root_path, 'clk/grg21553_missing.clk')
     return clk_path_missing
@@ -100,6 +111,7 @@ def test_load_clkdata_missing(clk_path_missing):
     clk_path_missing : pytest.fixture
         String with invalid location for unit_test clk
         measurements
+
     """
     # Create a sp3 class for each expected satellite
     with pytest.raises(FileNotFoundError):
@@ -113,10 +125,16 @@ def test_load_clkdata_missing(clk_path_missing):
 def fixture_clk_path_nodata(root_path):
     """Filepath for .clk measurements with no data
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
-    clk_path : string
-        String with location for the unit_test clk measurements
+    clk_path_nodata : string
+        String with location for the empty clk measurements
+
     """
     clk_path_nodata = os.path.join(root_path, 'clk/grg21553_nodata.clk')
     return clk_path_nodata
@@ -169,18 +187,17 @@ def test_clkgps_value_check(clkdata, prn, row_name, index, exp_value):
 def test_gps_clk_funcs(clkdata):
     """Tests extract_clk, clk_snapshot for Clk
 
-    Notes
-    ----------
-    Last index interpolation does not work well, so eliminating this index
-    while extracting random samples from gps_millis in Clk
-
     Parameters
     ----------
     clkdata : gnss_lib_py.parsers.clk.Clk
         CLK data.
 
-    """
+    Notes
+    ----------
+    Last index interpolation does not work well, so eliminating this index
+    while extracting random samples from gps_millis in Clk
 
+    """
 
     gnss_sv_ids = np.unique(clkdata["gnss_sv_id"])
 

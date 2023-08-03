@@ -538,7 +538,7 @@ def gps_datetime_to_gps_millis(t_gps):
 
     Parameters
     ----------
-    t_datetime : datetime.datetime or array-like of datetime.datetime
+    t_gps : datetime.datetime or array-like of datetime.datetime
         GPS time as a datetime object.
 
     Returns

@@ -17,7 +17,10 @@ from gnss_lib_py.parsers.android import AndroidDerived2022, AndroidGroundTruth20
 from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
 
 def pytest_collection_modifyitems(items):
-    """Run download tests last!
+    """Run ephemeris download tests after all other tests.
+
+    The download tests take the longest to run, so save them for the
+    end of the testing regime.
 
     Parameters
     ----------
@@ -62,6 +65,11 @@ def fixture_root_path():
 @pytest.fixture(name="android_root_path")
 def fixture_android_root_path(root_path):
     """Location of Android Derived 2022 measurements for unit test
+
+    Parameters
+    -------
+    root_path : string
+        Folder location of unit test measurements
 
     Returns
     -------
@@ -110,8 +118,8 @@ def fixture_gt_path(android_root_path):
 
     Parameters
     ----------
-    root_path : string
-        Path of testing dataset root path
+    android_root_path : string
+        Folder location containing Android Derived 2022 measurements
 
     Returns
     -------

@@ -396,6 +396,10 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
+    state : gnss_lib_py.parsers.navdata.NavData
+        NavData containing state values i.e. 3D position, 3D velocity,
+        receiver clock bias and receiver clock drift rate at which
+        measurements will be simulated.
     ephem : gnss_lib_py.parsers.navdata.NavData
         Satellite ephemeris parameters for measurement SVs, use None if
         using satellite positions instead.
@@ -405,18 +409,14 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
     iono_params : np.ndarray
         Ionospheric atmospheric delay parameters for Klobuchar model,
         passed in 2x4 array, use None if not available.
-    rx_ecef : np.ndarray
-        3x1 receiver position in ECEF frame of reference [m], use None
-        if not available.
 
     Returns
     -------
-    clock_corr : np.ndarray
-        Satellite clock corrections [m].
-    iono_delay : np.ndarray
-        Estimated delay caused by the ionosphere [m].
     tropo_delay : np.ndarray
         Estimated delay caused by the troposhere [m].
+    iono_delay : np.ndarray
+        Estimated delay caused by the ionosphere [m].
+
 
     Notes
     -----
@@ -467,10 +467,10 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        Satellite ephemeris parameters for measurement SVs.
     rx_ecef : np.ndarray
         3x1 array of ECEF rx_pos position [m].
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        Satellite ephemeris parameters for measurement SVs.
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites, set to None if not available.
 
