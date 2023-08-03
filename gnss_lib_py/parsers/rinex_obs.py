@@ -20,6 +20,9 @@ class RinexObs(NavData):
     measurements from different bands are treated as separate measurement
     instances. Inherits from NavData().
 
+    This class has primarily been built with Rinex v3.05 in mind but it
+    should also work for prior Rinex versions.
+
 
     References
     ----------
