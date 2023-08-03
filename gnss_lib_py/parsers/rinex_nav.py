@@ -28,7 +28,7 @@ __authors__ = "Ashwin Kanhere, Shubh Gupta"
 __date__ = "13 July 2021"
 
 import os
-from datetime import datetime, timezone
+from datetime import timezone
 import warnings
 
 import numpy as np
@@ -38,7 +38,6 @@ import georinex as gr
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, gps_millis_to_tow
-from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
 from gnss_lib_py.utils.ephemeris_downloader import load_ephemeris, DEFAULT_EPHEM_PATH
 
 
@@ -70,7 +69,7 @@ class RinexNav(NavData):
 
     Attributes
     ----------
-    iono_params : np.ndarray
+    iono_params : dict
         Dictionary of the ionosphere correction terms of the form
         ``{gps_millis_at_day_start : {gnss_id : iono_array}}`` where
         ``gps_millis_at_day_start`` is the time (in gps_millis) for the
@@ -124,10 +123,12 @@ class RinexNav(NavData):
 
         """
 
-        constellations = set()
         if satellites is not None and len(satellites) != 0:
+            constellations = set()
             for sat in satellites:
                 constellations.add(sat[0])
+        else:
+            constellations = None
 
         if isinstance(rinex_paths, (str, os.PathLike)):
             rinex_paths = [rinex_paths]
@@ -150,7 +151,9 @@ class RinexNav(NavData):
             start_gps_millis = float(datetime_to_gps_millis(day_start_time))
             iono_params = self.get_iono_params(rinex_header,
                                                constellations)
-            if start_gps_millis not in self.iono_params:
+
+            if start_gps_millis not in self.iono_params \
+                or self.iono_params[start_gps_millis] is None:
                 self.iono_params[start_gps_millis] = iono_params
             else:
                 for constellation, value in self.iono_params.items():
@@ -231,10 +234,7 @@ class RinexNav(NavData):
                                  verbose=self.verbose).to_dataframe()
         data_header = gr.rinexheader(rinex_path)
         leap_seconds = self.load_leapseconds(data_header)
-        if leap_seconds is None:
-            data['leap_seconds'] = np.nan
-        else:
-            data['leap_seconds'] = leap_seconds
+        data['leap_seconds'] = leap_seconds
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = rinex_path
@@ -357,211 +357,215 @@ class RinexNav(NavData):
                 leap_seconds = np.nan
         else:
             try:
-                leap_seconds = int(rinex_header['LEAP SECONDS'])
+                leap_seconds = int(rinex_header['LEAP SECONDS'].split()[0])
             except KeyError:
                 leap_seconds = np.nan
         return leap_seconds
 
-def rinex_to_sv_states(gps_millis, rinex_nav):
-    # keplerian_rinex =
-    # num_int_rinex =
-    # keplerian_sv_states =
-    # num_int_sv_states =
-    # sv_states = keplerian_sv_states.concat(num_int_sv_states)
-    # sv_states.sort('gps_millis', inplace=True)
-    # rotate the states
-    # return sv_states
-    pass
-
-def orbit_params_to_sv_states(gps_millis, ephem_orbit_params):
-    """Compute position and velocities for all satellites in ephemeris file
-    given time of clock.
-
-    `ephem` contains broadcast ephemeris parameters (similar in form to GPS
-    broadcast parameters).
-
-    Must contain the following rows (description in [1]_):
-    * :code:`gnss_id`
-    * :code:`sv_id`
-    * :code:`gps_week`
-    * :code:`t_oe`
-    * :code:`e`
-    * :code:`omega`
-    * :code:`Omega_0`
-    * :code:`OmegaDot`
-    * :code:`sqrtA`
-    * :code:`deltaN`
-    * :code:`IDOT`
-    * :code:`i_0`
-    * :code:`C_is`
-    * :code:`C_ic`
-    * :code:`C_rs`
-    * :code:`C_rc`
-    * :code:`C_uc`
-    * :code:`C_us`
-
-    Parameters
-    ----------
-    gps_millis : int
-        Time at which measurements are needed, measured in milliseconds
-        since start of GPS epoch [ms].
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing ephemeris parameters of satellites
-        for which states are required.
-
-    Returns
-    -------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        NavData containing satellite positions, velocities, corresponding
-        time with GNSS ID and SV number.
-
-    Notes
-    -----
-    Based on code written by J. Makela.
-    AE 456, Global Navigation Sat Systems, University of Illinois
-    Urbana-Champaign. Fall 2017
-
-    More details on the algorithm used to compute satellite positions
-    from broadcast navigation message can be found in [1]_.
-
-    Satellite velocity calculations based on algorithms introduced in [2]_.
-
-    References
-    ----------
-    ..  [1] Misra, P. and Enge, P,
-        "Global Positioning System: Signals, Measurements, and Performance."
-        2nd Edition, Ganga-Jamuna Press, 2006.
-    ..  [2] B. F. Thompson, S. W. Lewis, S. A. Brown, and T. M. Scott,
-        “Computing GPS satellite velocity and acceleration from the broadcast
-        navigation message,” NAVIGATION, vol. 66, no. 4, pp. 769–779, Dec. 2019,
-        doi: 10.1002/navi.342.
-
-    """
-
-    # Convert time from GPS millis to TOW
-    gps_week, gps_tow = gps_millis_to_tow(gps_millis)
-    # Extract parameters
-
-    c_is = ephem_orbit_params['C_is']
-    c_ic = ephem_orbit_params['C_ic']
-    c_rs = ephem_orbit_params['C_rs']
-    c_rc = ephem_orbit_params['C_rc']
-    c_uc = ephem_orbit_params['C_uc']
-    c_us = ephem_orbit_params['C_us']
-    delta_n   = ephem_orbit_params['deltaN']
-
-    ecc        = ephem_orbit_params['e']     # eccentricity
-    omega    = ephem_orbit_params['omega'] # argument of perigee
-    omega_0  = ephem_orbit_params['Omega_0']
-    sqrt_sma = ephem_orbit_params['sqrtA'] # sqrt of semi-major axis
-    sma      = sqrt_sma**2      # semi-major axis
-
-    sqrt_mu_a = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
-    gpsweek_diff = (np.mod(gps_week,1024) - np.mod(ephem_orbit_params['gps_week'],1024))*604800.
-    sv_posvel = NavData()
-    sv_posvel['gnss_id'] = ephem_orbit_params['gnss_id']
-    sv_posvel['sv_id'] = ephem_orbit_params['sv_id']
-    sv_posvel['gps_millis'] = gps_millis
-
-    delta_t = gps_tow - ephem_orbit_params['t_oe'] + gpsweek_diff
-
-    # Calculate the mean anomaly with corrections
-    ecc_anom = _compute_eccentric_anomaly(gps_week, gps_tow,
-                                            ephem_orbit_params)
-
-    cos_e   = np.cos(ecc_anom)
-    sin_e   = np.sin(ecc_anom)
-    e_cos_e = (1 - ecc*cos_e)
-
-    # Calculate the true anomaly from the eccentric anomaly
-    sin_nu = np.sqrt(1 - ecc**2) * (sin_e/e_cos_e)
-    cos_nu = (cos_e-ecc) / e_cos_e
-    nu_rad     = np.arctan2(sin_nu, cos_nu)
-
-    # Calcualte the argument of latitude iteratively
-    phi_0 = nu_rad + omega
-    phi   = phi_0
-    for incl in range(5):
-        cos_to_phi = np.cos(2.*phi)
-        sin_to_phi = np.sin(2.*phi)
-        phi_corr = c_uc * cos_to_phi + c_us * sin_to_phi
-        phi = phi_0 + phi_corr
-
-    # Calculate the longitude of ascending node with correction
-    omega_corr = ephem_orbit_params['OmegaDot'] * delta_t
-
-    # Also correct for the rotation since the beginning of the GPS week for which the Omega0 is
-    # defined.  Correct for GPS week rollovers.
-
-    # Also correct for the rotation since the beginning of the GPS week for
-    # which the Omega0 is defined.  Correct for GPS week rollovers.
-    omega = omega_0 - (consts.OMEGA_E_DOT*(gps_tow + gpsweek_diff)) + omega_corr
-
-    # Calculate orbital radius with correction
-    r_corr = c_rc * cos_to_phi + c_rs * sin_to_phi
-    orb_radius      = sma*e_cos_e + r_corr
-
-    ############################################
-    ######  Lines added for velocity (1)  ######
-    ############################################
-    delta_e   = (sqrt_mu_a + delta_n) / e_cos_e
-    dphi = np.sqrt(1 - ecc**2)*delta_e / e_cos_e
-    # Changed from the paper
-    delta_r   = (sma * ecc * delta_e * sin_e) + 2*(c_rs*cos_to_phi - c_rc*sin_to_phi)*dphi
-
-    # Calculate the inclination with correction
-    i_corr = c_ic*cos_to_phi + c_is*sin_to_phi + ephem_orbit_params['IDOT']*delta_t
-    incl = ephem_orbit_params['i_0'] + i_corr
-
-    ############################################
-    ######  Lines added for velocity (2)  ######
-    ############################################
-    delta_i = 2*(c_is*cos_to_phi - c_ic*sin_to_phi)*dphi + ephem_orbit_params['IDOT']
-
-    # Find the position in the orbital plane
-    x_plane = orb_radius*np.cos(phi)
-    y_plane = orb_radius*np.sin(phi)
-
-    ############################################
-    ######  Lines added for velocity (3)  ######
-    ############################################
-    delta_u = (1 + 2*(c_us * cos_to_phi - c_uc*sin_to_phi))*dphi
-    dxp = delta_r*np.cos(phi) - orb_radius*np.sin(phi)*delta_u
-    dyp = delta_r*np.sin(phi) + orb_radius*np.cos(phi)*delta_u
-    # Find satellite position in ECEF coordinates
-    cos_omega = np.cos(omega)
-    sin_omega = np.sin(omega)
-    cos_i = np.cos(incl)
-    sin_i = np.sin(incl)
-
-    sv_posvel['x_sv_m'] = x_plane*cos_omega - y_plane*cos_i*sin_omega
-    sv_posvel['y_sv_m'] = x_plane*sin_omega + y_plane*cos_i*cos_omega
-    sv_posvel['z_sv_m'] = y_plane*sin_i
-
-    ############################################
-    ######  Lines added for velocity (4)  ######
-    ############################################
-    omega_dot = ephem_orbit_params['OmegaDot'] - consts.OMEGA_E_DOT
-    sv_posvel['vx_sv_mps'] = (dxp * cos_omega
-                        - dyp * cos_i*sin_omega
-                        + y_plane  * sin_omega*sin_i*delta_i
-                        - (x_plane * sin_omega + y_plane*cos_i*cos_omega)*omega_dot)
-
-    sv_posvel['vy_sv_mps'] = (dxp * sin_omega
-                        + dyp * cos_i * cos_omega
-                        - y_plane  * sin_i * cos_omega * delta_i
-                        + (x_plane * cos_omega - (y_plane*cos_i*sin_omega)) * omega_dot)
-
-    sv_posvel['vz_sv_mps'] = dyp*sin_i + y_plane*cos_i*delta_i
-
-    # Estimate SV clock corrections, including polynomial and relativistic
-    # clock corrections
-    clock_corr, _, _ = _estimate_sv_clock_corr(gps_millis,
-                                                ephem_orbit_params)
-
-    sv_posvel['b_sv_m'] = clock_corr
-
-    return sv_posvel
+# def rinex_to_sv_states(gps_millis, rinex_nav):
+#     # keplerian_rinex =
+#     # num_int_rinex =
+#     # keplerian_sv_states =
+#     # num_int_sv_states =
+#     # sv_states = keplerian_sv_states.concat(num_int_sv_states)
+#     # sv_states.sort('gps_millis', inplace=True)
+#     # rotate the states
+#     # return sv_states
+#     pass
+#
+# def orbit_params_to_sv_states(gps_millis, ephem_orbit_params):
+#     """Compute position and velocities for all satellites in ephemeris file
+#     given time of clock.
+#
+#     `ephem` contains broadcast ephemeris parameters (similar in form to GPS
+#     broadcast parameters).
+#
+#     Must contain the following rows (description in [1]_):
+#     * :code:`gnss_id`
+#     * :code:`sv_id`
+#     * :code:`gps_week`
+#     * :code:`t_oe`
+#     * :code:`e`
+#     * :code:`omega`
+#     * :code:`Omega_0`
+#     * :code:`OmegaDot`
+#     * :code:`sqrtA`
+#     * :code:`deltaN`
+#     * :code:`IDOT`
+#     * :code:`i_0`
+#     * :code:`C_is`
+#     * :code:`C_ic`
+#     * :code:`C_rs`
+#     * :code:`C_rc`
+#     * :code:`C_uc`
+#     * :code:`C_us`
+#
+#     Parameters
+#     ----------
+#     gps_millis : int
+#         Time at which measurements are needed, measured in milliseconds
+#         since start of GPS epoch [ms].
+#     ephem : gnss_lib_py.parsers.navdata.NavData
+#         NavData instance containing ephemeris parameters of satellites
+#         for which states are required.
+#
+#     Returns
+#     -------
+#     sv_posvel : gnss_lib_py.parsers.navdata.NavData
+#         NavData containing satellite positions, velocities, corresponding
+#         time with GNSS ID and SV number.
+#
+#     Notes
+#     -----
+#     Based on code written by J. Makela.
+#     AE 456, Global Navigation Sat Systems, University of Illinois
+#     Urbana-Champaign. Fall 2017
+#
+#     More details on the algorithm used to compute satellite positions
+#     from broadcast navigation message can be found in [1]_.
+#
+#     Satellite velocity calculations based on algorithms introduced in [2]_.
+#
+#     References
+#     ----------
+#     ..  [1] Misra, P. and Enge, P,
+#         "Global Positioning System: Signals, Measurements, and Performance."
+#         2nd Edition, Ganga-Jamuna Press, 2006.
+#     ..  [2] B. F. Thompson, S. W. Lewis, S. A. Brown, and T. M. Scott,
+#         “Computing GPS satellite velocity and acceleration from the broadcast
+#         navigation message,” NAVIGATION, vol. 66, no. 4, pp. 769–779, Dec. 2019,
+#         doi: 10.1002/navi.342.
+#
+#     """
+#
+#     # Convert time from GPS millis to TOW
+#     gps_week, gps_tow = gps_millis_to_tow(gps_millis)
+#     # Extract parameters
+#
+#     c_is = ephem_orbit_params['C_is']
+#     c_ic = ephem_orbit_params['C_ic']
+#     c_rs = ephem_orbit_params['C_rs']
+#     c_rc = ephem_orbit_params['C_rc']
+#     c_uc = ephem_orbit_params['C_uc']
+#     c_us = ephem_orbit_params['C_us']
+#     delta_n   = ephem_orbit_params['deltaN']
+#
+#     ecc        = ephem_orbit_params['e']     # eccentricity
+#     omega    = ephem_orbit_params['omega'] # argument of perigee
+#     omega_0  = ephem_orbit_params['Omega_0']
+#     sqrt_sma = ephem_orbit_params['sqrtA'] # sqrt of semi-major axis
+#     sma      = sqrt_sma**2      # semi-major axis
+#
+#     sqrt_mu_a = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
+#     gpsweek_diff = (np.mod(gps_week,1024) - np.mod(ephem_orbit_params['gps_week'],1024))*604800.
+#     sv_posvel = NavData()
+#     sv_posvel['gnss_id'] = ephem_orbit_params['gnss_id']
+#     sv_posvel['sv_id'] = ephem_orbit_params['sv_id']
+#     sv_posvel['gps_millis'] = gps_millis
+#
+#     delta_t = gps_tow - ephem_orbit_params['t_oe'] + gpsweek_diff
+#
+#     # Calculate the mean anomaly with corrections
+#     ecc_anom = _compute_eccentric_anomaly(gps_week, gps_tow,
+#                                             ephem_orbit_params)
+#
+#     cos_e   = np.cos(ecc_anom)
+#     sin_e   = np.sin(ecc_anom)
+#     e_cos_e = (1 - ecc*cos_e)
+#
+#     # Calculate the true anomaly from the eccentric anomaly
+#     sin_nu = np.sqrt(1 - ecc**2) * (sin_e/e_cos_e)
+#     cos_nu = (cos_e-ecc) / e_cos_e
+#     nu_rad     = np.arctan2(sin_nu, cos_nu)
+#
+#     # Calcualte the argument of latitude iteratively
+#     phi_0 = nu_rad + omega
+#     phi   = phi_0
+#     for incl in range(5):
+#         cos_to_phi = np.cos(2.*phi)
+#         sin_to_phi = np.sin(2.*phi)
+#         phi_corr = c_uc * cos_to_phi + c_us * sin_to_phi
+#         phi = phi_0 + phi_corr
+#
+#     # Calculate the longitude of ascending node with correction
+#     omega_corr = ephem_orbit_params['OmegaDot'] * delta_t
+#
+#     # Also correct for the rotation since the beginning of the GPS week for which the Omega0 is
+#     # defined.  Correct for GPS week rollovers.
+#
+#     # Also correct for the rotation since the beginning of the GPS week for
+#     # which the Omega0 is defined.  Correct for GPS week rollovers.
+#     omega = omega_0 - (consts.OMEGA_E_DOT*(gps_tow + gpsweek_diff)) + omega_corr
+#
+#     # Calculate orbital radius with correction
+#     r_corr = c_rc * cos_to_phi + c_rs * sin_to_phi
+#     orb_radius      = sma*e_cos_e + r_corr
+#
+#     ############################################
+#     ######  Lines added for velocity (1)  ######
+#     ############################################
+#     delta_e   = (sqrt_mu_a + delta_n) / e_cos_e
+#     dphi = np.sqrt(1 - ecc**2)*delta_e / e_cos_e
+#     # Changed from the paper
+#     delta_r   = (sma * ecc * delta_e * sin_e) + 2*(c_rs*cos_to_phi - c_rc*sin_to_phi)*dphi
+#
+#     # Calculate the inclination with correction
+#     i_corr = c_ic*cos_to_phi + c_is*sin_to_phi + ephem_orbit_params['IDOT']*delta_t
+#     incl = ephem_orbit_params['i_0'] + i_corr
+#
+#     ############################################
+#     ######  Lines added for velocity (2)  ######
+#     ############################################
+#     delta_i = 2*(c_is*cos_to_phi - c_ic*sin_to_phi)*dphi + ephem_orbit_params['IDOT']
+#
+#     # Find the position in the orbital plane
+#     x_plane = orb_radius*np.cos(phi)
+#     y_plane = orb_radius*np.sin(phi)
+#
+#     ############################################
+#     ######  Lines added for velocity (3)  ######
+#     ############################################
+#     delta_u = (1 + 2*(c_us * cos_to_phi - c_uc*sin_to_phi))*dphi
+#     dxp = delta_r*np.cos(phi) - orb_radius*np.sin(phi)*delta_u
+#     dyp = delta_r*np.sin(phi) + orb_radius*np.cos(phi)*delta_u
+#     # Find satellite position in ECEF coordinates
+#     cos_omega = np.cos(omega)
+#     sin_omega = np.sin(omega)
+#     cos_i = np.cos(incl)
+#     sin_i = np.sin(incl)
+#
+#     sv_posvel['x_sv_m'] = x_plane*cos_omega - y_plane*cos_i*sin_omega
+#     sv_posvel['y_sv_m'] = x_plane*sin_omega + y_plane*cos_i*cos_omega
+#     sv_posvel['z_sv_m'] = y_plane*sin_i
+#
+#     ############################################
+#     ######  Lines added for velocity (4)  ######
+#     ############################################
+#     omega_dot = ephem_orbit_params['OmegaDot'] - consts.OMEGA_E_DOT
+#     sv_posvel['vx_sv_mps'] = (dxp * cos_omega
+#                         - dyp * cos_i*sin_omega
+#                         + y_plane  * sin_omega*sin_i*delta_i
+#                         - (x_plane * sin_omega + y_plane*cos_i*cos_omega)*omega_dot)
+#
+#     sv_posvel['vy_sv_mps'] = (dxp * sin_omega
+#                         + dyp * cos_i * cos_omega
+#                         - y_plane  * sin_i * cos_omega * delta_i
+#                         + (x_plane * cos_omega - (y_plane*cos_i*sin_omega)) * omega_dot)
+#
+#     sv_posvel['vz_sv_mps'] = dyp*sin_i + y_plane*cos_i*delta_i
+#
+#     # Estimate SV clock corrections, including polynomial and relativistic
+#     # clock corrections
+#     clock_corr, _, _ = _estimate_sv_clock_corr(gps_millis,
+#                                                 ephem_orbit_params)
+#
+#     sv_posvel['b_sv_m'] = clock_corr
+#
+#     return sv_posvel
+#
+#
+# def numerical_integration_for_sv_states(self, gps_millis):
+#     pass
 
 
 def _compute_eccentric_anomaly(gps_week, gps_tow, ephem, tol=1e-5, max_iter=10):
@@ -681,12 +685,9 @@ def _estimate_sv_clock_corr(gps_millis, ephem):
 
     return clk_corr, corr_polynomial, corr_relativistic
 
-def numerical_integration_for_sv_states(self, gps_millis):
-    pass
-
-
 def get_time_cropped_rinex(gps_millis, satellites=None,
-                           ephemeris_directory=DEFAULT_EPHEM_PATH):
+                           ephemeris_directory=DEFAULT_EPHEM_PATH,
+                           verbose=False):
     """Add SV states using Rinex file.
 
     Provides broadcast ephemeris for specific
@@ -719,6 +720,8 @@ def get_time_cropped_rinex(gps_millis, satellites=None,
         List of satellite IDs as a string, for example ['G01','E11',
         'R06']. Defaults to None which returns get_ephemeris for
         all satellites.
+    verbose : bool
+        Prints extra debugging statements.
 
     Returns
     -------
@@ -739,7 +742,7 @@ def get_time_cropped_rinex(gps_millis, satellites=None,
 
     rinex_paths = load_ephemeris("rinex_nav",gps_millis,constellations,
                                  download_directory=ephemeris_directory,
-                                 )
+                                 verbose=verbose)
     rinex_data = RinexNav(rinex_paths, satellites=satellites)
 
     time_cropped_data = rinex_data.where('gps_millis', gps_millis, "lesser")

@@ -154,6 +154,8 @@ def test_load_ephemeris_rinex_nav(ephem_params, ephem_path, paths):
                            ["qzss"]),
                           (datetime(2023, 3, 21, 8, 12, 34, tzinfo=timezone.utc),
                            ["galileo","sbas","irnss","beidou"]),
+                          (datetime(2023, 3, 21, 8, 12, 34, tzinfo=timezone.utc),
+                           ["gps"]),
                          ])
 @pytest.mark.parametrize('paths',
                          [
@@ -492,7 +494,7 @@ def test_verify_ephemeris():
 
     """
 
-    gps_millis = tc.datetime_to_gps_millis(datetime.utcnow().astimezone(timezone.utc))
+    gps_millis = tc.datetime_to_gps_millis(datetime.now().astimezone(timezone.utc))
 
     existing_paths, needed_files = ed._verify_ephemeris("rinex_nav",
                                                         gps_millis,

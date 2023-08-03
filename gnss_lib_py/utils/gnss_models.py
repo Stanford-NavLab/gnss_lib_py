@@ -598,7 +598,8 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
     return tropo_delay
 
 
-def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posvel=None):
+def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None,
+                          sv_posvel=None, constellation="gps"):
     """Calculate the ionospheric delay in pseudorange using the Klobuchar
     model Section 5.3.2 [1]_.
 
@@ -619,6 +620,8 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites corresponding to the input
         `gps_millis`, set to None if not available.
+    constellation : string
+        Constellation used for the ionospheric parameters addition.
 
     Returns
     -------
@@ -660,8 +663,8 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     lon_r = np.deg2rad(wgs_llh[1, :])
 
     # Parse the ionospheric parameters
-    alpha = iono_params[0,:]
-    beta = iono_params[1,:]
+    alpha = iono_params[constellation][0,:]
+    beta = iono_params[constellation][1,:]
 
     # Calculate the psi angle
     psi = 0.1356/(el_r+0.346) - 0.0691

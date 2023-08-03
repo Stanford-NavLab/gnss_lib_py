@@ -556,7 +556,10 @@ def _filter_ephemeris_measurements(measurements, constellations,
     ephem = get_time_cropped_rinex(start_gps_millis, lookup_sats,
                                    ephemeris_path)
     if get_iono:
-        iono_params = ephem.iono_params[0]
+        keys = list(ephem.iono_params.keys())
+        key = keys[np.argmin([(start_gps_millis - key) for key in keys \
+                            if (start_gps_millis - key) >= 0])]
+        iono_params = ephem.iono_params[key]
     else:
         iono_params = None
     return measurements_subset, ephem, iono_params

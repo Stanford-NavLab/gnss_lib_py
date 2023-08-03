@@ -646,7 +646,3 @@ def test_rotation_of_earth_fix(derived_2022):
         error_rotn = np.mean(np.abs(google_wls[idx, :] - glp_wls[idx, :]))
         error_no_rotn = np.mean(np.abs(google_wls[idx, :] - glp_wls_no_rotn[idx, :]))
         assert error_rotn < error_no_rotn
-
-
-
-

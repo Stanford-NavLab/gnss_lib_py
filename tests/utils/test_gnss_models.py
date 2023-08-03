@@ -38,8 +38,8 @@ def fixture_iono_params():
         2x4 (first row, alpha and second row, beta) of ionospheric delay
         parameters.
     """
-    iono_params = np.array([[0.9313E-08,  0.1490E-07, -0.5960E-07, -0.1192E-06],
-                        [0.8806E+05,  0.4915E+05, -0.1311E+06, -0.3277E+06]])
+    iono_params = {"gps":np.array([[0.9313E-08,  0.1490E-07, -0.5960E-07, -0.1192E-06],
+                                   [0.8806E+05,  0.4915E+05, -0.1311E+06, -0.3277E+06]])}
     return iono_params
 
 
