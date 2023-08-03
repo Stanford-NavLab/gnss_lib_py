@@ -21,36 +21,46 @@ from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.clk import Clk
 
-def svs_from_el_az(elaz_deg):
-    """Generate NED satellite positions for given elevation and azimuth.
 
-    Given elevation and azimuth angles, with respect to the receiver,
-    generate satellites in the NED frame of reference with the receiver
-    position as the origin. Satellites are assumed to have a nominal
-    distance of 20,200 km from the receiver (height of GNSS satellite orbit)
+def add_sv_states(measurements, source = 'precise', file_paths = None,
+                  download_directory = DEFAULT_EPHEM_PATH,
+                  constellations = None, delta_t_dec = -2,
+                  verbose = True):
+    """Add SV states to measurements using SP3 and CLK or Rinex files.
+    """
+    if source == 'precise':
+        measurements_w_sv_states = add_sv_states_precise(measurements,
+                                                         sp3_clk_paths = file_paths,
+                                                         download_directory = download_directory,
+                                                         constellations = constellations,
+                                                         delta_t_dec = delta_t_dec,
+                                                         verbose = verbose)
+    else:
+        raise RuntimeError('Only Precise SV state estimation supported')
+    return measurements_w_sv_states
+
+
+
+def add_sv_states_precise(measurements, sp3_clk_paths = None,
+                          download_directory = DEFAULT_EPHEM_PATH,
+                          constellations=None, delta_t_dec=-2,
+                          verbose=True):
+    """Add SV states to measurements using SP3 and CLK files.
+
+    Given received measurements, add SV states for measurements corresponding
+    to received time and SV ID using SP3 and CLK files. If receiver
+    position is given, that position is used to calculate the difference
+    between signal transmission and reception to find the SV states
+    corresponding to the time at which the signal was transmitted.
 
     Parameters
     ----------
-    elaz_deg : np.ndarray
-        Nx2 array of elevation and azimuth angles [degrees]
-
-    Returns
-    -------
-    svs_ned : np.ndarray
-        Nx3 satellite NED positions, simulated at a distance of 20,200 km
     """
-    assert np.shape(elaz_deg)[0] == 2, "elaz_deg should be a 2xN array"
-    el_deg = np.deg2rad(elaz_deg[0, :])
-    az_deg = np.deg2rad(elaz_deg[1, :])
-    unit_vect = np.zeros([3, np.shape(elaz_deg)[1]])
-    unit_vect[0, :] = np.sin(az_deg)*np.cos(el_deg)
-    unit_vect[1, :] = np.cos(az_deg)*np.cos(el_deg)
-    unit_vect[2, :] = np.sin(el_deg)
-    svs_ned = 20200000*unit_vect
-    return svs_ned
+    return measurements
 
 
-def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
+
+def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
                   constellations=['gps'], delta_t_dec = -2):
     """
     Add SV states (ECEF position and velocities) to measurements.
@@ -120,6 +130,7 @@ def add_sv_states(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         else:
             sv_states_all_time.concat(measure_frame, inplace=True)
     return sv_states_all_time
+
 
 def add_visible_svs_for_trajectory(rx_states,
                                    ephemeris_path=DEFAULT_EPHEM_PATH,
@@ -197,6 +208,34 @@ def add_visible_svs_for_trajectory(rx_states,
             sv_posvel_trajectory.concat(sv_posvel, inplace=True)
 
     return sv_posvel_trajectory
+
+def svs_from_el_az(elaz_deg):
+    """Generate NED satellite positions for given elevation and azimuth.
+
+    Given elevation and azimuth angles, with respect to the receiver,
+    generate satellites in the NED frame of reference with the receiver
+    position as the origin. Satellites are assumed to have a nominal
+    distance of 20,200 km from the receiver (height of GNSS satellite orbit)
+
+    Parameters
+    ----------
+    elaz_deg : np.ndarray
+        Nx2 array of elevation and azimuth angles [degrees]
+
+    Returns
+    -------
+    svs_ned : np.ndarray
+        Nx3 satellite NED positions, simulated at a distance of 20,200 km
+    """
+    assert np.shape(elaz_deg)[0] == 2, "elaz_deg should be a 2xN array"
+    el_deg = np.deg2rad(elaz_deg[0, :])
+    az_deg = np.deg2rad(elaz_deg[1, :])
+    unit_vect = np.zeros([3, np.shape(elaz_deg)[1]])
+    unit_vect[0, :] = np.sin(az_deg)*np.cos(el_deg)
+    unit_vect[1, :] = np.cos(az_deg)*np.cos(el_deg)
+    unit_vect[2, :] = np.sin(el_deg)
+    svs_ned = 20200000*unit_vect
+    return svs_ned
 
 
 def find_sv_states(gps_millis, ephem):

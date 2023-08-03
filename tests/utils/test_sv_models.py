@@ -350,7 +350,7 @@ def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_de
     for row in true_rows:
         comparison_states[row] = android_measurements[row]
     android_measurements.remove(true_rows, inplace=True)
-    android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path)
+    android_gps_states = sv_models.add_sv_states_rinex(android_measurements, ephemeris_path)
     for row in true_rows:
         if 'mps' in row:
             np.testing.assert_almost_equal(android_gps_states[row],
@@ -363,11 +363,11 @@ def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_de
     # Test position estimation when desired constellations are not in
     # received measurements
     with pytest.warns(RuntimeWarning):
-        android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path,
+        android_gps_states = sv_models.add_sv_states_rinex(android_measurements, ephemeris_path,
                                 constellations=['gps', 'glonass'])
     # Testing position estimation without receiver position
     android_measurements.remove(rows=['x_rx_m', 'y_rx_m', 'z_rx_m'], inplace=True)
-    android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path)
+    android_gps_states = sv_models.add_sv_states_rinex(android_measurements, ephemeris_path)
     for row in true_rows:
         if 'mps' in row:
             np.testing.assert_almost_equal(android_gps_states[row],
