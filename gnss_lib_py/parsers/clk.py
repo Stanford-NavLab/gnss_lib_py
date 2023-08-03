@@ -21,8 +21,8 @@ class Clk(NavData):
 
     Parameters
     ----------
-    input_path : string or path-like
-        Path to clk file
+    input_paths : string or path-like or list of paths
+        Path to measurement clk file(s).
 
     Returns
     -------

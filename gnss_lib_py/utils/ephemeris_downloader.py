@@ -88,7 +88,7 @@ def load_ephemeris(file_type, gps_millis,
         obtained.
     constellations : list, set, or array-like
         Constellations for which to download ephemeris.
-    paths : string or path-like
+    paths : list, string or path-like
         Paths to existing ephemeris files if they exist.
     download_directory : string or path-like
         Directory where ephemeris files are downloaded if necessary.
