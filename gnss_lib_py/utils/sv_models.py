@@ -287,12 +287,8 @@ def find_sv_states(gps_millis, ephem):
     sv_posvel = NavData()
     sv_posvel['gnss_id'] = ephem['gnss_id']
     sv_posvel['sv_id'] = ephem['sv_id']
-    # sv_posvel.set_index('sv', inplace=True)
-    # print(times)
-    #TODO: How do you deal with multiple times here?
     # Deal with times being a single value or a vector with the same
     # length as the ephemeris
-    # print(times.shape)
     sv_posvel['gps_millis'] = gps_millis
 
     delta_t = gps_tow - ephem['t_oe'] + gpsweek_diff
@@ -863,91 +859,3 @@ def add_sv_states_sp3_and_clk(navdata, sp3_path, clk_path,
                                                    verbose = verbose)
 
     return precise_navdata
-
-def sv_gps_from_brdcst_eph_duplicate(navdata,
-                                     ephemeris_path=DEFAULT_EPHEM_PATH,
-                                     verbose = False):
-    """Compute satellite information using .n for any GNSS constellation
-
-    Parameters
-    ----------                                   ephemeris_path=DEFAULT_EPHEM_PATH,
-
-    navdata : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class that depicts android derived dataset
-    ephemeris_path : string
-        Path at which ephemeris files are to be stored. Uses directory
-        default if not given.
-    verbose : bool
-        Flag (True/False) for whether to print intermediate steps useful
-        for debugging/reviewing (the default is False)
-
-    Returns
-    -------
-    navdata : gnss_lib_py.parsers.navdata.NavData
-        Updated NavData class with satellite information computed using
-        broadcast ephemerides from .n files
-    """
-    unique_gnss_id = np.unique(navdata['gnss_id'])
-    if len(unique_gnss_id)==1:
-        if unique_gnss_id == 'gps':
-            # Need this string to create sv_id strings for ephemeris manager
-            unique_gnss_id_str = 'G'
-        else:
-            raise RuntimeError("No non-GPS capability yet")
-    else:
-        raise RuntimeError("Multi-GNSS constellations cannot be updated simultaneously")
-
-    unique_timesteps = np.unique(navdata["gps_millis"])
-
-    for _, timestep in enumerate(unique_timesteps):
-        # Compute indices where gps_millis match, sort them
-        # sorting is done for consistency across all satellite pos. estimation
-        # algorithms as ephemerismanager inherently sorts based on prns
-        idxs = np.where(navdata["gps_millis"] == timestep)[0]
-        sorted_idxs = idxs[np.argsort(navdata["sv_id", idxs], axis = 0)]
-
-        # compute ephem information using desired_sats, rxdatetime
-        desired_sats = [unique_gnss_id_str + str(int(i)).zfill(2) \
-                                           for i in navdata["sv_id", sorted_idxs]]
-        ephem = get_time_cropped_rinex(timestep, satellites = desired_sats,
-                                        ephemeris_directory=ephemeris_path)
-
-        # compute satellite position and velocity based on ephem and gps_time
-        # Transform satellite position to account for earth's rotation
-        get_sat_from_ephem = find_sv_states(timestep, ephem)
-        satpos_ephemeris = np.transpose([get_sat_from_ephem["x_sv_m"], \
-                                         get_sat_from_ephem["y_sv_m"], \
-                                         get_sat_from_ephem["z_sv_m"]])
-        satvel_ephemeris = np.transpose([get_sat_from_ephem["vx_sv_mps"], \
-                                         get_sat_from_ephem["vy_sv_mps"], \
-                                         get_sat_from_ephem["vz_sv_mps"]])
-        trans_time = navdata["raw_pr_m", sorted_idxs] / consts.C
-        del_x = (consts.OMEGA_E_DOT * satpos_ephemeris[:,1] * trans_time)
-        del_y = (-consts.OMEGA_E_DOT * satpos_ephemeris[:,0] * trans_time)
-        satpos_ephemeris[:,0] = satpos_ephemeris[:,0] + del_x
-        satpos_ephemeris[:,1] = satpos_ephemeris[:,1] + del_y
-
-        if verbose:
-            print('after ephemeris:', satpos_ephemeris, satvel_ephemeris)
-            satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
-                                            navdata["y_sv_m", sorted_idxs], \
-                                            navdata["z_sv_m", sorted_idxs] ])
-            satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
-                                               navdata["vy_sv_mps", sorted_idxs], \
-                                               navdata["vz_sv_mps", sorted_idxs] ])
-            print('nav-android Pos Error: ', \
-                      np.linalg.norm(satpos_ephemeris - satpos_android, axis=1) )
-            print('nav-android Vel Error: ', \
-                      np.linalg.norm(satvel_ephemeris - satvel_android, axis=1) )
-
-        # update *_sv_m of navdata with the estimated values from .n files
-        navdata["x_sv_m", sorted_idxs] = satpos_ephemeris[:,0]
-        navdata["y_sv_m", sorted_idxs] = satpos_ephemeris[:,1]
-        navdata["z_sv_m", sorted_idxs] = satpos_ephemeris[:,2]
-
-        # update v*_sv_mps of navdata with the estimated values from .n files
-        navdata["vx_sv_mps", sorted_idxs] = satvel_ephemeris[:,0]
-        navdata["vy_sv_mps", sorted_idxs] = satvel_ephemeris[:,1]
-        navdata["vz_sv_mps", sorted_idxs] = satvel_ephemeris[:,2]
-
-    return navdata

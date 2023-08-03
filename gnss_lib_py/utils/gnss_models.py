@@ -21,7 +21,6 @@ from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr
                         find_sv_location, find_sv_states, \
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
-from gnss_lib_py.parsers.rinex_nav import _compute_eccentric_anomaly
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 
@@ -339,16 +338,6 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     return measurements, sv_posvel
 
 
-# def _matching_state_for_measure(measurements, state_estimate,
-#                                 delta_t_decimals=2):
-#     measurement_times = np.sort(np.unique(np.around(times,
-#                                          decimals=delta_t_decimals)))
-#     for
-
-
-#     return measure_time_state_row
-
-
 def _extract_state_variables(state):
     """Extract position, velocity and clock bias terms from state.
 
@@ -450,14 +439,6 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
                 "SV states must be given when ephemeris isn't"
         satellites = len(sv_posvel)
 
-    # # calculate clock pseudorange correction
-    # if ephem is not None:
-    #     clock_corr, _, _ = _calculate_clock_delay(gps_millis, ephem)
-    # else:
-    #     warnings.warn("Broadcast ephemeris not given, returning 0 "\
-    #                 + "clock corrections", RuntimeWarning)
-    #     clock_corr = np.zeros(satellites)
-
     if rx_ecef is not None:
         # Calculate the tropospheric delays
         tropo_delay = _calculate_tropo_delay(gps_millis, rx_ecef, ephem, sv_posvel)
@@ -475,67 +456,7 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
                         RuntimeWarning)
         iono_delay = np.zeros(satellites)
 
-    # return clock_corr, tropo_delay, iono_delay
     return tropo_delay, iono_delay
-
-
-# def _calculate_clock_delay(gps_millis, ephem):
-#     """Calculate the modelled satellite clock delay
-
-#     Parameters
-#     ---------
-#     gps_millis : int
-#         Time at which measurements are needed, measured in milliseconds
-#         since start of GPS epoch [ms].
-#     ephem : gnss_lib_py.parsers.navdata.NavData
-#         Satellite ephemeris parameters for measurement SVs.
-
-#     Returns
-#     -------
-#     clock_corr : np.ndarray
-#         Satellite clock corrections containing all terms [m].
-#     corr_polynomial : np.ndarray
-#         Polynomial clock perturbation terms [m].
-#     clock_relativistic : np.ndarray
-#         Relativistic clock correction terms [m].
-
-#     """
-#     # Extract required GPS constants
-#     ecc        = ephem['e']     # eccentricity
-#     sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
-
-#     # if np.abs(delta_t).any() > 302400:
-#     #     delta_t = delta_t - np.sign(delta_t)*604800
-
-#     gps_week, gps_tow = gps_millis_to_tow(gps_millis)
-
-#     # Compute Eccentric Anomaly
-#     ecc_anom = _compute_eccentric_anomaly(gps_week, gps_tow, ephem)
-
-#     # Determine pseudorange corrections due to satellite clock corrections.
-#     # Calculate time offset from satellite reference time
-#     t_offset = gps_tow - ephem['t_oc']
-#     if np.abs(t_offset).any() > 302400:  # pragma: no cover
-#         t_offset = t_offset-np.sign(t_offset)*604800
-
-#     # Calculate clock corrections from the polynomial corrections in
-#     # broadcast message
-#     corr_polynomial = (ephem['SVclockBias']
-#                      + ephem['SVclockDrift']*t_offset
-#                      + ephem['SVclockDriftRate']*t_offset**2)
-
-#     # Calcualte the relativistic clock correction
-#     corr_relativistic = consts.F * ecc * sqrt_sma * np.sin(ecc_anom)
-
-#     # Calculate the total clock correction including the Tgd term
-#     clk_corr = (corr_polynomial - ephem['TGD'] + corr_relativistic)
-
-#     #Convert values to equivalent meters from seconds
-#     clk_corr = np.array(consts.C*clk_corr, ndmin=1)
-#     corr_polynomial = np.array(consts.C*corr_polynomial, ndmin=1)
-#     corr_relativistic = np.array(consts.C*corr_relativistic, ndmin=1)
-
-#     return clk_corr, corr_polynomial, corr_relativistic
 
 
 def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
