@@ -70,7 +70,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
         the NavData class with shape (4 x # unique timesteps) and
         the following rows: gps_millis, x_rx_wls_m, y_rx_wls_m,
         z_rx_wls_m, b_rx_wls_m, lat_rx_wls_deg, lon_rx_wls_deg,
-        alt_rx_wls_deg.
+        alt_rx_wls_m.
 
     """
 
@@ -154,7 +154,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
                                    "z_rx_wls_m"]].reshape(3,-1))
     state_estimate["lat_rx_wls_deg"] = lat
     state_estimate["lon_rx_wls_deg"] = lon
-    state_estimate["alt_rx_wls_deg"] = alt
+    state_estimate["alt_rx_wls_m"] = alt
 
     return state_estimate
 

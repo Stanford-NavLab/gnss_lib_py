@@ -378,7 +378,7 @@ def test_solve_wls(derived):
     assert "b_rx_wls_m" in state_estimate.rows
     assert "lat_rx_wls_deg" in state_estimate.rows
     assert "lon_rx_wls_deg" in state_estimate.rows
-    assert "alt_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_m" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
     assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
@@ -551,7 +551,7 @@ def test_solve_wls_bias_only(derived_2022):
     assert "b_rx_wls_m" in state_estimate.rows
     assert "lat_rx_wls_deg" in state_estimate.rows
     assert "lon_rx_wls_deg" in state_estimate.rows
-    assert "alt_rx_wls_deg" in state_estimate.rows
+    assert "alt_rx_wls_m" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
     assert len(state_estimate) == time_length

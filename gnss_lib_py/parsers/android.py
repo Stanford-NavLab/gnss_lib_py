@@ -597,7 +597,7 @@ def solve_kaggle_baseline(navdata):
                                      data_df["unix_millis"].to_numpy())
     state_estimate["lat_rx_deg"] = lat
     state_estimate["lon_rx_deg"] = lon
-    state_estimate["alt_rx_deg"] = alt
+    state_estimate["alt_rx_m"] = alt
 
     return state_estimate
 
