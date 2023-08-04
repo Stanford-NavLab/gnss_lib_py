@@ -22,43 +22,100 @@ from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH, load_ephemeris
 
 
-def add_sv_states(measurements, source = 'precise', file_paths = None,
+def add_sv_states(navdata, source = 'precise', file_paths = None,
                   download_directory = DEFAULT_EPHEM_PATH,
-                  constellations = None, delta_t_dec = -2,
                   verbose = True):
     """Add SV states to measurements using SP3 and CLK or Rinex files.
-    """
-    if source == 'precise':
-        measurements_w_sv_states = add_sv_states_precise(measurements,
-                                                         sp3_clk_paths = file_paths,
-                                                         download_directory = download_directory,
-                                                         constellations = constellations,
-                                                         delta_t_dec = delta_t_dec,
-                                                         verbose = verbose)
-    else:
-        raise RuntimeError('Only Precise SV state estimation supported')
-    return measurements_w_sv_states
 
-
-
-def add_sv_states_precise(measurements, sp3_clk_paths = None,
-                          download_directory = DEFAULT_EPHEM_PATH,
-                          constellations=None, delta_t_dec=-2,
-                          verbose=True):
-    """Add SV states to measurements using SP3 and CLK files.
-
-    Given received measurements, add SV states for measurements corresponding
-    to received time and SV ID using SP3 and CLK files. If receiver
-    position is given, that position is used to calculate the difference
-    between signal transmission and reception to find the SV states
-    corresponding to the time at which the signal was transmitted.
+    If source is 'precise' then will use SP3 and CLK files.
 
     Parameters
     ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class that must include rows for
+        ``gps_millis``, ``gnss_id``, ``sv_id``, and ``raw_pr_m``.
+    source : string
+        The method used to compute SV states. If 'precise', then will
+        use SP3 and CLK precise files.
+    file_paths : list, string or path-like
+        Paths to existing ephemeris files if they exist.
+    download_directory : string or path-like
+        Directory where ephemeris files are downloaded if necessary.
+    verbose : bool
+        Prints extra debugging statements if true.
+
+    Returns
+    -------
+    navdata_w_sv_states : gnss_lib_py.parsers.navdata.NavData
+        Updated NavData class with satellite information computed.
+
     """
-    return measurements
+    if source == 'precise':
+        navdata_w_sv_states = add_sv_states_precise(navdata,
+                                file_paths = file_paths,
+                                download_directory = download_directory,
+                                verbose = verbose)
+    else:
+        raise RuntimeError('Only Precise SV state estimation supported')
+    return navdata_w_sv_states
 
 
+def add_sv_states_precise(navdata, file_paths = None,
+                          download_directory = DEFAULT_EPHEM_PATH,
+                          verbose=True):
+    """Add SV states to measurements using SP3 and CLK files.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class that must include rows for
+        ``gps_millis``, ``gnss_id``, ``sv_id``, and ``raw_pr_m``.
+    source : string
+        The method used to compute SV states. If 'precise', then will
+        use SP3 and CLK precise files.
+    file_paths : list, string or path-like
+        Paths to existing SP3 or CLK files if they exist.
+    download_directory : string or path-like
+        Directory where ephemeris files are downloaded if necessary.
+    verbose : bool
+        Prints extra debugging statements if true.
+
+    Returns
+    -------
+    navdata_w_sv_states : gnss_lib_py.parsers.navdata.NavData
+        Updated NavData class with satellite information computed.
+
+    """
+
+    # get unique gps_millis and constellations for ephemeris loader
+    unique_gps_millis = np.unique(navdata["gps_millis"])
+    constellations = np.unique(navdata["gnss_id"])
+
+    # load sp3 files
+    sp3_paths = load_ephemeris("sp3", gps_millis = unique_gps_millis,
+                               constellations=constellations,
+                               file_paths = file_paths,
+                               download_directory=download_directory,
+                               verbose=verbose
+                              )
+    sp3 = Sp3(sp3_paths)
+
+    # load clk files
+    clk_paths = load_ephemeris("clk", gps_millis = unique_gps_millis,
+                               constellations=constellations,
+                               file_paths = file_paths,
+                               download_directory=download_directory,
+                               verbose=verbose
+                              )
+    clk = Clk(clk_paths)
+
+    # add SV states using sp3 and clk
+    navdata_w_sv_states = single_gnss_from_precise_eph(navdata,
+                                                       sp3,
+                                                       clk,
+                                                       verbose=verbose)
+
+    return navdata_w_sv_states
 
 def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
                   constellations=['gps'], delta_t_dec = -2):
@@ -709,9 +766,6 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
     true_range = np.linalg.norm(del_pos, axis=0)
     return del_pos, true_range
 
-
-
-
 def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
                                  clk_parsed_file, inplace=False,
                                  verbose = False):
@@ -862,39 +916,3 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
     if inplace:
         return None
     return new_navdata
-
-def add_sv_states_sp3_and_clk(navdata, sp3_path, clk_path,
-                                inplace=False, verbose = False):
-    """Compute satellite information using .sp3 and .clk for multiple GNSS
-
-    Parameters
-    ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class that depicts android derived dataset
-    sp3_path : path
-        File path for .sp3 file to extract precise ephemerides
-    clk_path : path
-        File path for .clk file to extract precise ephemerides
-    inplace : bool
-        If true, adds satellite positions and clock bias to the input
-        navdata object, otherwise returns a new NavData object with the
-        satellite rows added.
-    verbose : bool
-        Flag for whether to print intermediate steps useful
-        for debugging/reviewing (the default is False)
-
-    Returns
-    -------
-    navdata : gnss_lib_py.parsers.navdata.NavData
-        Updated NavData class with satellite information computed using
-        precise ephemerides from .sp3 and .clk files
-    """
-    sp3_parsed_gnss = Sp3(sp3_path)
-    clk_parsed_gnss = Clk(clk_path)
-    precise_navdata = single_gnss_from_precise_eph(navdata,
-                                                   sp3_parsed_gnss,
-                                                   clk_parsed_gnss,
-                                                   inplace = inplace,
-                                                   verbose = verbose)
-
-    return precise_navdata

@@ -6,6 +6,7 @@ __authors__ = "Ashwin Kanhere"
 __date__ = "21 Mar 2023"
 
 import os
+from datetime import datetime, timezone
 
 import pytest
 import numpy as np
@@ -16,6 +17,7 @@ from gnss_lib_py.parsers.clk import Clk
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
+import gnss_lib_py.utils.time_conversions as tc
 from gnss_lib_py.parsers.android import AndroidDerived2021
 # pylint: disable=protected-access
 
@@ -452,22 +454,6 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
                                                 measure_frame_sv[row],
                                                 decimal=error_tol_dec['brd_eph'])
 
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
-    return root_path
-
 @pytest.fixture(name="sp3_path")
 def fixture_sp3_path(root_path):
     """Filepath of valid .sp3 measurements
@@ -873,7 +859,7 @@ def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data, clkdata, ephemeris_path):
 
 
 def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
-    """Tests that add_sv_states_sp3_and_clk does not fail for multi-GNSS
+    """Tests that single_gnss_from_precise_eph does not fail for multi-GNSS
 
     Notes
     -----
@@ -895,8 +881,11 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
     navdata_merged = NavData()
     navdata_merged = navdata.where('gnss_id',gnss_consts)
 
-    navdata_prcs_merged = sv_models.add_sv_states_sp3_and_clk(navdata, sp3_path,
-                                            clk_path,  verbose = True)
+    sp3 = Sp3(sp3_path)
+    clk = Clk(clk_path)
+
+    navdata_prcs_merged = sv_models.single_gnss_from_precise_eph(navdata,
+                                            sp3, clk, verbose=True)
 
     navdata_prcs_merged = navdata_prcs_merged.where("gnss_id",gnss_consts)
 
@@ -993,3 +982,78 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1,
     pd.testing.assert_frame_equal(navdata_gpsl1_df.sort_index(axis=1),
                                   navdata_gpsl1_eph_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
+
+@pytest.fixture(name="all_ephem_paths")
+def fixture_all_ephem_paths(root_path):
+    """Location of ephemeris files for unit test
+
+    Parameters
+    ----------
+    root_path : string
+        Location where ephemeris files are stored/to be downloaded.
+
+    Returns
+    -------
+    all_ephem_paths : string
+        Location of all unit test ephemeris files.
+
+    """
+
+    all_ephem_paths = []
+
+    ephem_dirs = [
+                       os.path.join(root_path,"rinex","nav"),
+                       os.path.join(root_path,"sp3"),
+                       os.path.join(root_path,"clk"),
+                      ]
+    for ephem_dir in ephem_dirs:
+        all_ephem_paths += [os.path.join(ephem_dir,file) \
+                            for file in os.listdir(ephem_dir)]
+
+    return all_ephem_paths
+
+def test_add_sv_states_precise(all_ephem_paths):
+    """Test adding SV states
+
+    Parameters
+    ----------
+    all_ephem_paths : string
+        Location of all unit test ephemeris files.
+
+    """
+
+    # create minimal test inputs
+    navdata = NavData()
+
+    datetimes = np.array([
+                          datetime(2020, 5, 17, 11, tzinfo=timezone.utc),
+                          datetime(2021, 4, 28, 12, tzinfo=timezone.utc),
+                          datetime(2023, 3, 14, 11, tzinfo=timezone.utc),
+                         ])
+    gps_millis = tc.datetime_to_gps_millis(datetimes)
+
+    navdata["gps_millis"] = gps_millis
+    navdata["gnss_id"] = np.array(["gps","glonass","qzss"])
+    navdata["sv_id"] = np.array([2,1,1])
+    navdata["raw_pr_m"] = np.array([26E3]*3)
+
+    sv_states = sv_models.add_sv_states(navdata,"precise",
+                                        file_paths=all_ephem_paths,
+                                        verbose=True)
+
+    assert not np.isnan(sv_states[["x_sv_m","y_sv_m","z_sv_m"]]).any()
+
+    # test minimal inputs
+
+def test_add_sv_states_fails():
+    """Test options which should fail.
+
+    """
+
+    navdata = NavData()
+
+    with pytest.raises(RuntimeError) as excinfo:
+        sv_models.add_sv_states(navdata, source="broadcast")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        sv_models.add_sv_states(navdata, source="rinex")
