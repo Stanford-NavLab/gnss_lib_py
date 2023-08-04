@@ -119,7 +119,7 @@ def test_load_clkdata_missing(clk_path_missing):
 
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
-        Clk([])
+        Clk([1])
 
 @pytest.fixture(name="clk_path_nodata")
 def fixture_clk_path_nodata(root_path):

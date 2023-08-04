@@ -17,18 +17,7 @@ from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
 from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 
 class Clk(NavData):
-    """Clk specific loading and preprocessing for any GNSS constellation
-
-    Parameters
-    ----------
-    input_paths : string or path-like or list of paths
-        Path to measurement clk file(s).
-
-    Returns
-    -------
-    clkdata : dict
-        Populated gnss_lib_py.parsers.clk.Clk objects
-        with key of `gnss_sv_id` for each satellite.
+    """Clk specific loading and preprocessing for any GNSS constellation.
 
     Notes
     -----
@@ -44,16 +33,19 @@ class Clk(NavData):
             Accessed as of August 24, 2022
 
     """
-    def __init__(self, input_path):
+    def __init__(self, input_paths):
         """Clk loading and preprocessing.
 
         Parameters
         ----------
-        input_path : string or path-like
-            Path to clk file
+        input_paths : string or path-like or list of paths
+            Path to measurement clk file(s).
 
         """
         super().__init__()
+
+        if isinstance(input_paths, (str, os.PathLike)):
+            input_paths = [input_paths]
 
         gps_millis = []
         unix_millis = []
@@ -62,41 +54,42 @@ class Clk(NavData):
         sv_id = []
         b_sv_m = []
 
-        # Initial checks for loading sp3_path
-        if not isinstance(input_path, (str, os.PathLike)):
-            raise TypeError("input_path must be string or path-like")
-        if not os.path.exists(input_path):
-            raise FileNotFoundError("file not found")
+        for input_path in input_paths:
+            # Initial checks for loading sp3_path
+            if not isinstance(input_path, (str, os.PathLike)):
+                raise TypeError("input_path must be string or path-like")
+            if not os.path.exists(input_path):
+                raise FileNotFoundError("file not found")
 
-        # Read Clock file
-        with open(input_path, 'r', encoding="utf-8") as infile:
-            clk = infile.readlines()
+            # Read Clock file
+            with open(input_path, 'r', encoding="utf-8") as infile:
+                clk = infile.readlines()
 
-        for  clk_val in clk:
+            for  clk_val in clk:
 
-            timelist_val = clk_val.split()
+                timelist_val = clk_val.split()
 
-            if len(timelist_val) == 0 or timelist_val[0] != 'AS':
-                continue
+                if len(timelist_val) == 0 or timelist_val[0] != 'AS':
+                    continue
 
-            gnss_sv_id = timelist_val[1]
+                gnss_sv_id = timelist_val[1]
 
-            curr_time = datetime(year = int(timelist_val[2]), \
-                                 month = int(timelist_val[3]), \
-                                 day = int(timelist_val[4]), \
-                                 hour = int(timelist_val[5]), \
-                                 minute = int(timelist_val[6]), \
-                                 second = int(float(timelist_val[7])), \
-                                 tzinfo=timezone.utc)
-            gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
-            unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
-            gnss_sv_ids.append(gnss_sv_id)
-            gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
-            sv_id.append(int(gnss_sv_id[1:]))
-            gps_millis.append(gps_millis_timestep)
-            unix_millis.append(unix_millis_timestep)
-            # clock bias is given in seconds, convert to meters
-            b_sv_m.append(float(timelist_val[9]) * C)
+                curr_time = datetime(year = int(timelist_val[2]), \
+                                     month = int(timelist_val[3]), \
+                                     day = int(timelist_val[4]), \
+                                     hour = int(timelist_val[5]), \
+                                     minute = int(timelist_val[6]), \
+                                     second = int(float(timelist_val[7])), \
+                                     tzinfo=timezone.utc)
+                gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
+                unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
+                gnss_sv_ids.append(gnss_sv_id)
+                gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
+                sv_id.append(int(gnss_sv_id[1:]))
+                gps_millis.append(gps_millis_timestep)
+                unix_millis.append(unix_millis_timestep)
+                # clock bias is given in seconds, convert to meters
+                b_sv_m.append(float(timelist_val[9]) * C)
 
         self["gps_millis"] = gps_millis
         self["unix_millis"] = unix_millis

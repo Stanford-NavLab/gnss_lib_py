@@ -116,7 +116,7 @@ def test_load_sp3data_missing(sp3_path_missing):
 
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
-        Sp3([])
+        Sp3([1])
 
 @pytest.fixture(name="sp3_path_nodata")
 def fixture_sp3_path_nodata(root_path):

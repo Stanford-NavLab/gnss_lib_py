@@ -20,11 +20,6 @@ from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 class Sp3(NavData):
     """sp3 specific loading and preprocessing for any GNSS constellation.
 
-    Parameters
-    ----------
-    input_path : string or path-like
-        Path to sp3 file.
-
     Notes
     -----
     The format for .sp3 files can be viewed in [1]_.
@@ -38,9 +33,19 @@ class Sp3(NavData):
     .. [1]  https://files.igs.org/pub/data/format/sp3d.pdf
             Accessed as of August 20, 2022
     """
-    def __init__(self, input_path):
+    def __init__(self, input_paths):
+        """Sp3 loading and preprocessing.
 
+        Parameters
+        ----------
+        input_paths : string or path-like or list of paths
+            Path to measurement sp3 file(s).
+
+        """
         super().__init__()
+
+        if isinstance(input_paths, (str, os.PathLike)):
+            input_paths = [input_paths]
 
         gps_millis = []
         unix_millis = []
@@ -51,47 +56,48 @@ class Sp3(NavData):
         y_sv_m = []
         z_sv_m = []
 
-        # Initial checks for loading sp3_path
-        if not isinstance(input_path, (str, os.PathLike)):
-            raise TypeError("input_path must be string or path-like")
-        if not os.path.exists(input_path):
-            raise FileNotFoundError("file not found")
+        for input_path in input_paths:
+            # Initial checks for loading sp3_path
+            if not isinstance(input_path, (str, os.PathLike)):
+                raise TypeError("input_path must be string or path-like")
+            if not os.path.exists(input_path):
+                raise FileNotFoundError("file not found")
 
-        # Load in the file
-        with open(input_path, 'r', encoding="utf-8") as infile:
-            data = [line.strip() for line in infile]
+            # Load in the file
+            with open(input_path, 'r', encoding="utf-8") as infile:
+                data = [line.strip() for line in infile]
 
-        # Loop through each line
-        for dval in data:
-            if len(dval) == 0:
-                # No data
-                continue
+            # Loop through each line
+            for dval in data:
+                if len(dval) == 0:
+                    # No data
+                    continue
 
-            if dval[0] == '*':
-                # A new record
-                # Get the date
-                temp = dval.split()
-                curr_time = datetime( int(temp[1]), int(temp[2]), \
-                                      int(temp[3]), int(temp[4]), \
-                                      int(temp[5]),int(float(temp[6])),\
-                                      tzinfo=timezone.utc )
-                gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
-                unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
+                if dval[0] == '*':
+                    # A new record
+                    # Get the date
+                    temp = dval.split()
+                    curr_time = datetime( int(temp[1]), int(temp[2]), \
+                                          int(temp[3]), int(temp[4]), \
+                                          int(temp[5]),int(float(temp[6])),\
+                                          tzinfo=timezone.utc )
+                    gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
+                    unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
 
-            if 'P' in dval[0]:
-                # A satellite record.  Get the satellite number, and coordinate (X,Y,Z) info
-                temp = dval.split()
+                if 'P' in dval[0]:
+                    # A satellite record.  Get the satellite number, and coordinate (X,Y,Z) info
+                    temp = dval.split()
 
-                gnss_sv_id = temp[0][1:]
+                    gnss_sv_id = temp[0][1:]
 
-                gps_millis.append(gps_millis_timestep)
-                unix_millis.append(unix_millis_timestep)
-                gnss_sv_ids.append(gnss_sv_id)
-                gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
-                sv_id.append(int(gnss_sv_id[1:]))
-                x_sv_m.append(float(temp[1])*1e3)
-                y_sv_m.append(float(temp[2])*1e3)
-                z_sv_m.append(float(temp[3])*1e3)
+                    gps_millis.append(gps_millis_timestep)
+                    unix_millis.append(unix_millis_timestep)
+                    gnss_sv_ids.append(gnss_sv_id)
+                    gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
+                    sv_id.append(int(gnss_sv_id[1:]))
+                    x_sv_m.append(float(temp[1])*1e3)
+                    y_sv_m.append(float(temp[2])*1e3)
+                    z_sv_m.append(float(temp[3])*1e3)
 
         self["gps_millis"] = gps_millis
         self["unix_millis"] = unix_millis
