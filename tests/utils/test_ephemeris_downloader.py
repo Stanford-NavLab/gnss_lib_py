@@ -275,48 +275,55 @@ def test_extract_ephemeris_dates():
     # check basic case
     noon_utc = datetime(2023, 7, 27, 12, 0, 0, 0, tzinfo=timezone.utc)
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([noon_utc]))
-    assert dates == {datetime(2023, 7, 27).date()}
+    assert dates == [datetime(2023, 7, 27).date()]
 
     # check that timezone conversion is happening
     eleven_pt = datetime(2023, 7, 26, 23, 0, 0, 0,
                     tzinfo=timezone(-timedelta(hours=8)))
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([eleven_pt]))
-    assert dates == {datetime(2023, 7, 27).date()}
+    assert dates == [datetime(2023, 7, 27).date()]
 
     # check add prev day if after before 2am
     for hour in [0,1,2]:
         two_am_utc = datetime(2023, 7, 27, hour, 0, 0, 0, tzinfo=timezone.utc)
         dates = ed._extract_ephemeris_dates("rinex_nav", np.array([two_am_utc]))
-        assert dates == {datetime(2023, 7, 26).date(),
-                         datetime(2023, 7, 27).date()}
+        assert dates == [datetime(2023, 7, 26).date(),
+                         datetime(2023, 7, 27).date()]
 
     # check add next day if after 10pm
     for hour in [22,23]:
         ten_pm_utc = datetime(2023, 7, 26, hour, 0, 0, 0, tzinfo=timezone.utc)
         dates = ed._extract_ephemeris_dates("rinex_nav", np.array([ten_pm_utc]))
-        assert dates == {datetime(2023, 7, 26).date(),
-                         datetime(2023, 7, 27).date()}
+        assert dates == [datetime(2023, 7, 26).date(),
+                         datetime(2023, 7, 27).date()]
 
     # check don't add next day if after 10pm on current day
     ten_pm_utc_today = datetime.combine(datetime.utcnow().date(),
                                         time(22,tzinfo=timezone.utc))
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([ten_pm_utc_today]))
-    assert dates == {datetime.utcnow().date()}
+    assert dates == [datetime.utcnow().date()]
 
     # check that across multiple days there aren't duplicates
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([noon_utc,
                                                           eleven_pt,
                                                           two_am_utc,
                                                           ten_pm_utc]))
-    assert dates == {datetime(2023, 7, 26).date(),
-                     datetime(2023, 7, 27).date()}
+    assert dates == [datetime(2023, 7, 26).date(),
+                     datetime(2023, 7, 27).date()]
+
+    # test order is maintained in sorted order
+    dates = ed._extract_ephemeris_dates("rinex_nav", np.array([noon_utc + timedelta(days=1),
+                                                               noon_utc,
+                                                               ]))
+    assert dates == [datetime(2023, 7, 27).date(),
+                     datetime(2023, 7, 28).date()]
 
     # check for two separate days
     noon_utc_01 = datetime(2023, 7, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([noon_utc,
                                                            noon_utc_01]))
-    assert dates == {datetime(2023, 7, 27).date(),
-                     datetime(2023, 7, 1).date()}
+    assert dates == [datetime(2023, 7, 1).date(),
+                     datetime(2023, 7, 27).date()]
 
 def test_ftp_errors(ephem_download_path):
     """Test FTP download errors.

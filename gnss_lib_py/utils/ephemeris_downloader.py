@@ -256,6 +256,10 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
     will also be included. If after 22:00, the next day will also be
     included.
 
+    To appropriately compute fit satellite position and clock esimates,
+    sp3 and clk files are also pulled for the previous or next day if
+    the timestamps are close to the start or end of the day.
+
     Parameters
     ----------
     file_type : string
@@ -265,9 +269,9 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
 
     Returns
     -------
-    needed_dates : set
-        Set of datetime.date objects of the days in UTC for which
-        ephemeris needs to be retrieved.
+    needed_dates : List
+        List of datetime.date objects of the days in UTC for which
+        ephemeris needs to be retrieved in order sorted by date.
 
     """
 
@@ -276,7 +280,7 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
 
     needed_dates = set()
 
-    if file_type == "rinex_nav":
+    if file_type in ("rinex_nav","sp3","clk"):
         # add every day for each timestamp
         needed_dates.update({dt.date() for dt in dt_timestamps})
 
@@ -293,12 +297,10 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
                              (dt.date() != datetime.utcnow().date()))
                         })
 
-    elif file_type in ("sp3","clk"):
-        # add every day for each timestamp
-        needed_dates.update({dt.date() for dt in dt_timestamps})
-
     else:
         raise RuntimeError("invalid file_type variable option")
+
+    needed_dates = sorted(list(needed_dates))
 
     return needed_dates
 
