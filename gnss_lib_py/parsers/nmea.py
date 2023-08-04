@@ -42,14 +42,20 @@ class Nmea(NavData):
             `True` if the checksum at the end of the NMEA sentence should
             be ignored. `False` if the checksum should be checked and lines
             with incorrect checksums will be ignored.
-        raw_coord : bool
+        keep_raw : bool
             Flag for whether coordinates should be processed into commonly
-            used latitude and longitude formats. If 'True', returned
-            `NavData` has the same coordinates as the input NMEA file,
-            including the cardinal directions.
-            If `False`, the coordinates are processed into the decimal
-            format between -180&deg; and 180&deg; for longitude and between
-            -90&deg; and 90&deg; for latitude.
+            used latitude and longitude formats.
+            The default value is 'False', in which case the coordinates
+            are processed into the decimal format between -180&deg; and
+            180&deg; for longitude and between -90&deg; and 90&deg;
+            for latitude.
+            If 'True', returned `NavData` has the same coordinates as
+            the input NMEA file, including the cardinal directions.
+        include_ecef : bool
+            Flag for whether the returned `NavData` should include the
+            ECEF coordinates equivalent to the recorded LLH coordinates.
+            If 'True', the returned `NavData` instance has `x_rx_m`,
+            `y_rx_m` and `z_rx_m` rows.
 
         References
         ----------
