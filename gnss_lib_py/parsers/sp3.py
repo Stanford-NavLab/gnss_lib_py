@@ -1,4 +1,4 @@
-"""Functions to process .sp3 or .SP3 precise orbit files.
+"""Functions to process .sp3 precise orbit files.
 
 """
 
@@ -18,12 +18,12 @@ from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 
 
 class Sp3(NavData):
-    """sp3 specific loading and preprocessing for any GNSS constellation
+    """sp3 specific loading and preprocessing for any GNSS constellation.
 
     Parameters
     ----------
     input_path : string or path-like
-        Path to sp3 file
+        Path to sp3 file.
 
     Notes
     -----
@@ -112,13 +112,13 @@ class Sp3(NavData):
             PRN of satellite for which position should be determined.
         sidx : int
             Nearest index within sp3 time series around which interpolated
-            function needs to be centered
+            function needs to be centered.
         ipos : int
             No. of data points from sp3 data on either side of sidx
-            that will be used for computing interpolated function
+            that will be used for computing interpolated function.
         method : string
             Type of interpolation method used for sp3 data (the default is
-            CubicSpline, which depicts third-order polynomial)
+            CubicSpline, which depicts third-order polynomial).
         verbose : bool
             If true, prints extra debugging statements.
 
@@ -164,16 +164,16 @@ class Sp3(NavData):
         ----------
         func_satpos : np.ndarray
             Instance with 3-D array of scipy.interpolate.interpolate.interp1d
-            that is loaded with .sp3 data
+            that is loaded with .sp3 data.
         cxtime : float
             Time at which the satellite 3-D position and velocity needs to be
-            computed, given 3-D array of interpolated functions
+            computed, given 3-D array of interpolated functions.
         hstep : float
             Step size in milliseconds used to computing 3-D velocity of any
-            given satellite using central differencing the default is 5e-1)
+            given satellite using central differencing the default is 5e-1).
         method : string
             Type of interpolation method used for sp3 data (the default is
-            CubicSpline, which depicts third-order polynomial)
+            CubicSpline, which depicts third-order polynomial).
 
         Returns
         -------

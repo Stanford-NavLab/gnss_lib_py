@@ -1,4 +1,4 @@
-"""Functions to process .clk and .CLK precise clock product files.
+"""Functions to process .clk precise clock product files.
 
 """
 
@@ -112,16 +112,18 @@ class Clk(NavData):
         Parameters
         ----------
         gnss_sv_id : string
-            PRN of satellite for which position should be determined.
+            Constellations and SV id of satellite for which position is
+            to be determined.
+            See standard nomenclature reference for more details.
         sidx : int
             Nearest index within clk time series around which interpolated
-            function needs to be centered
+            function needs to be centered.
         ipos : int
             No. of data points from clk data on either side of sidx
-            that will be used for computing interpolated function
+            that will be used for computing interpolated function.
         method : string
             Type of interpolation method used for clk data (the default is
-            CubicSpline, which depicts third-order polynomial)
+            CubicSpline, which depicts third-order polynomial).
         verbose : bool
             If true, prints extra debugging statements.
 
