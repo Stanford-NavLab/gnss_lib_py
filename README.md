@@ -82,7 +82,7 @@ In the directory organization above:
       * [2022 Google Android Derived Dataset](https://www.kaggle.com/competitions/smartphone-decimeter-2022)
       * [TU Chemnitz smartLoc Dataset](https://www.tu-chemnitz.de/projekt/smartLoc/gnss_dataset.html.en#Datasets)
       * [NMEA](https://www.sparkfun.com/datasheets/GPS/NMEA%20Reference%20Manual-Rev2.1-Dec07.pdf)
-      * [RINEX .o and .n] (https://files.igs.org/pub/data/format/rinex305.pdf)
+      * [RINEX .o and .n](https://files.igs.org/pub/data/format/rinex305.pdf)
       * [SP3 precise orbits](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/orbit_products.html)
       * [CLK clock products](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/clock_products.html)
 
