@@ -13,7 +13,6 @@ from scipy import interpolate
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS
-from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
 from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 
 
@@ -82,7 +81,6 @@ class Sp3(NavData):
                                           int(temp[5]),int(float(temp[6])),\
                                           tzinfo=timezone.utc )
                     gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
-                    unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
 
                 if 'P' in dval[0]:
                     # A satellite record.  Get the satellite number, and coordinate (X,Y,Z) info
@@ -91,7 +89,6 @@ class Sp3(NavData):
                     gnss_sv_id = temp[0][1:]
 
                     gps_millis.append(gps_millis_timestep)
-                    unix_millis.append(unix_millis_timestep)
                     gnss_sv_ids.append(gnss_sv_id)
                     gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
                     sv_id.append(int(gnss_sv_id[1:]))
@@ -100,7 +97,6 @@ class Sp3(NavData):
                     z_sv_m.append(float(temp[3])*1e3)
 
         self["gps_millis"] = gps_millis
-        self["unix_millis"] = unix_millis
         self["gnss_sv_id"] = np.array(gnss_sv_ids,dtype=object)
         self["gnss_id"] = np.array(gnss_id, dtype=object)
         self["sv_id"] = sv_id

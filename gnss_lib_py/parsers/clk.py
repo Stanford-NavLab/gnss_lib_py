@@ -13,7 +13,6 @@ from scipy import interpolate
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS, C
-from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
 from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 
 class Clk(NavData):
@@ -48,7 +47,6 @@ class Clk(NavData):
             input_paths = [input_paths]
 
         gps_millis = []
-        unix_millis = []
         gnss_sv_ids = []
         gnss_id = []
         sv_id = []
@@ -82,17 +80,14 @@ class Clk(NavData):
                                      second = int(float(timelist_val[7])), \
                                      tzinfo=timezone.utc)
                 gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
-                unix_millis_timestep = gps_to_unix_millis(gps_millis_timestep)
                 gnss_sv_ids.append(gnss_sv_id)
                 gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
                 sv_id.append(int(gnss_sv_id[1:]))
                 gps_millis.append(gps_millis_timestep)
-                unix_millis.append(unix_millis_timestep)
                 # clock bias is given in seconds, convert to meters
                 b_sv_m.append(float(timelist_val[9]) * C)
 
         self["gps_millis"] = gps_millis
-        self["unix_millis"] = unix_millis
         self["gnss_sv_id"] = np.array(gnss_sv_ids,dtype=object)
         self["gnss_id"] = np.array(gnss_id, dtype=object)
         self["sv_id"] = sv_id
