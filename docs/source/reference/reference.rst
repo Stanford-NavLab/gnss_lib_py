@@ -113,6 +113,36 @@ own methods using a combination of numpy methods and :code:`NavData`
 methods.
 
 
+Timing Conventions
+------------------
+
+We use four different time formats in :code:`gnss_lib_py`:
+
+* :code:`gps_millis` : The number of milliseconds that have elapsed since
+  the start of the GPS epoch on January 6th, 1980. This time format is
+  continuous and is not adjusted with leap seconds. This time is stored
+  as a single number that is a :code:`double int` or :code:`float`,
+  depending on the context.
+* :code:`unix_millis` : The number of milliseconds that have elapsed since
+  the start of the Unix epoch on January 1st, 1970. This time format is
+  not continuous and is adjusted with leap seconds. This time is also
+  stored as a single number that is a :code:`double int` or :code:`float`.
+* :code:`utc_timestamp` : UTC time, which is stored as a timestamp using
+  the :code:`datetime` library. This time format is not continuous and is
+  adjusted with leap seconds.
+* :code:`gps_week` and :code:`gps_tow` : The GPS week since the start of
+  the GPS epoch on January 6th, 1980 and the time of that week in seconds.
+
+Of these four time formats, we use :code:`gps_millis` as the default
+time that measurements and state estimates correspond to. Conversions
+between all these time formats are provided in the
+:code:`utils/time_conversion.py` file.
+
+Between these four time formats, all major applications of GNSS-based
+state estimation should be covered and any of these time formats can be
+used interchangeably.
+
+
 Standard Naming Conventions
 ---------------------------
 

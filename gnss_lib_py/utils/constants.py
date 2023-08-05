@@ -69,6 +69,8 @@ WEEKSEC = 604800
 GPS_EPOCH_0 = datetime(1980, 1, 6, 0, 0, 0, 0, tzinfo=timezone.utc)
 """ datetime.datetime: Starting time for GPS epoch"""
 
+MILLIS_PER_DAY = 86400000
+
 TROPO_DELAY_C1 = 2.47
 """float : First coefficient of simplified tropospheric delay model developed in [1]_."""
 
@@ -87,3 +89,10 @@ CONSTELLATION_CHARS = {'G':'gps',
                        'I':'irnss',
                        }
 """dict : Satellite System identifier from Rinex specification p13 in [2]_."""
+
+NUMSATS = {'gps': (32),
+            'galileo': (36),
+            'beidou': (46),
+            'glonass': (24),
+            'qzss': (3)}
+"""dict : Number of satellites, for identifiers from Rinex specification p13 in [2]_."""

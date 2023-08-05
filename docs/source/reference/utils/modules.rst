@@ -6,8 +6,10 @@ utils
 
    constants
    coordinates
+   ephemeris_downloader
    file_operations
    filters
-   sim_gnss
+   gnss_models
+   sv_models
    time_conversions
    visualizations

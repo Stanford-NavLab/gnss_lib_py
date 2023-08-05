@@ -628,7 +628,7 @@ def fixture_gt_2022_path(root_path_2022):
     return gt_path
 
 @pytest.fixture(name="derived_2022")
-def test_derived_2022(derived_2022_path):
+def fixture_derived_2022(derived_2022_path):
     """Testing that Android Derived 2022 is created without errors.
 
     Parameters
@@ -645,6 +645,37 @@ def test_derived_2022(derived_2022_path):
     derived_2022 = android.AndroidDerived2022(derived_2022_path)
     assert isinstance(derived_2022, NavData)
     return derived_2022
+
+
+def test_derived_state_estimate_ext(derived_2022):
+    """Tests the state_estimate extracted as a separate NavData.
+
+    Parameters
+    ----------
+
+    derived_2022 : gnss_lib_py.parsers.android.AndroidDerived2022
+        Android Derived 2022 Navdata object for testing.
+    """
+    # Test state estimate extraction when velocity and bias terms are
+    # unavailable. In this case, an warnings are expected for the velocity
+    # and clock rows
+    with pytest.warns(RuntimeWarning):
+        state_estimate = derived_2022.get_state_estimate()
+    assert len(state_estimate)==6, "There should be only 6 unique times"
+    time_pos_rows = ['gps_millis', 'x_rx_m', 'y_rx_m', 'z_rx_m']
+    state_estimate.in_rows(time_pos_rows)
+
+    # Test extraction of state when velocity and clock rows are available
+    vel_clk_rows = ['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps', 'b_rx_m', 'b_dot_rx_mps']
+    for row in vel_clk_rows:
+        derived_2022[row] = 0
+    state_estimate_vel_clk = derived_2022.get_state_estimate()
+    state_estimate_vel_clk.in_rows(time_pos_rows+vel_clk_rows)
+
+    # Test that the first and last extracted values are correct
+    for row in time_pos_rows:
+        np.testing.assert_almost_equal(derived_2022[row, 0], state_estimate_vel_clk[row, 0])
+        np.testing.assert_almost_equal(derived_2022[row, -1], state_estimate_vel_clk[row, -1])
 
 
 def test_gt_2022(gt_2022_path):
@@ -708,7 +739,7 @@ def test_solve_kaggle_baseline(derived_2022):
     state_estimate = android.solve_kaggle_baseline(derived_2022)
 
     state_estimate.in_rows(["gps_millis","lat_rx_deg",
-                            "lon_rx_deg","alt_rx_deg"])
+                            "lon_rx_deg","alt_rx_m"])
 
     assert state_estimate.shape[1] == 6
 

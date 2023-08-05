@@ -21,7 +21,7 @@ class Nmea(NavData):
     """Class used to parse through NMEA files
 
     """
-    def __init__(self, filename, msg_types=None,
+    def __init__(self, input_path, msg_types=None,
                  check=False, keep_raw=False, include_ecef=False):
         """Read instance of NMEA file following NMEA 0183 standard.
 
@@ -32,7 +32,7 @@ class Nmea(NavData):
 
         Parameters
         ----------
-        filename : str or path-like
+        input_path : str or path-like
             filepath to NMEA file to read.
         msg_types : list
             List of strings describing messages that can be parsed.
@@ -42,14 +42,20 @@ class Nmea(NavData):
             `True` if the checksum at the end of the NMEA sentence should
             be ignored. `False` if the checksum should be checked and lines
             with incorrect checksums will be ignored.
-        raw_coord : bool
+        keep_raw : bool
             Flag for whether coordinates should be processed into commonly
-            used latitude and longitude formats. If 'True', returned
-            `NavData` has the same coordinates as the input NMEA file,
-            including the cardinal directions.
-            If `False`, the coordinates are processed into the decimal
-            format between -180&deg; and 180&deg; for longitude and between
-            -90&deg; and 90&deg; for latitude.
+            used latitude and longitude formats.
+            The default value is 'False', in which case the coordinates
+            are processed into the decimal format between -180&deg; and
+            180&deg; for longitude and between -90&deg; and 90&deg;
+            for latitude.
+            If 'True', returned `NavData` has the same coordinates as
+            the input NMEA file, including the cardinal directions.
+        include_ecef : bool
+            Flag for whether the returned `NavData` should include the
+            ECEF coordinates equivalent to the recorded LLH coordinates.
+            If 'True', the returned `NavData` instance has `x_rx_m`,
+            `y_rx_m` and `z_rx_m` rows.
 
         References
         ----------
@@ -65,12 +71,12 @@ class Nmea(NavData):
         field_dict = {}
         prev_timestamp = None
 
-        if not isinstance(filename, (str, os.PathLike)):
-            raise TypeError("filename must be string or path-like")
-        if not os.path.exists(filename):
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
             raise FileNotFoundError("file not found")
 
-        with open(filename, "r", encoding='UTF-8') as open_file:
+        with open(input_path, "r", encoding='UTF-8') as open_file:
             for line in open_file:
                 check_ind = line.find('*')
                 if not check and '*' in line:
