@@ -70,9 +70,6 @@ def add_sv_states_precise(navdata, file_paths = None,
     navdata : gnss_lib_py.parsers.navdata.NavData
         Instance of the NavData class that must include rows for
         ``gps_millis``, ``gnss_id``, ``sv_id``, and ``raw_pr_m``.
-    source : string
-        The method used to compute SV states. If 'precise', then will
-        use SP3 and CLK precise files.
     file_paths : list, string or path-like
         Paths to existing SP3 or CLK files if they exist.
     download_directory : string or path-like
@@ -590,10 +587,6 @@ def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None, get_iono=F
     t_corr = true_range/consts.C
 
     return sv_posvel, del_pos, true_range
-
-
-
-
 
 def _filter_ephemeris_measurements(measurements, constellations,
                                    ephemeris_path = DEFAULT_EPHEM_PATH, get_iono=False):
