@@ -117,6 +117,7 @@ Timing Conventions
 ------------------
 
 We use four different time formats in :code:`gnss_lib_py`:
+
 * :code:`gps_millis` : The number of milliseconds that have elapsed since
   the start of the GPS epoch on January 6th, 1980. This time format is
   continuous and is not adjusted with leap seconds. This time is stored
@@ -139,7 +140,7 @@ between all these time formats are provided in the
 
 Between these four time formats, all major applications of GNSS-based
 state estimation should be covered and any of these time formats can be
-used interchangably.
+used interchangeably.
 
 
 Standard Naming Conventions

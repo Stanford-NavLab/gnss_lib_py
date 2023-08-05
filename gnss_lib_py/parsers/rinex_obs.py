@@ -1,5 +1,8 @@
 """Parses Rinex .o files"""
 
+__authors__ = "Ashwin Kanhere"
+__date__ = "26 July 2023"
+
 import numpy as np
 import georinex as gr
 
@@ -7,8 +10,6 @@ from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 
-__authors__ = "Ashwin Kanhere"
-__date__ = "26 July 2023"
 
 class RinexObs(NavData):
     """Class handling Rinex observation files [1]_.
@@ -20,6 +21,9 @@ class RinexObs(NavData):
     measurements from different bands are treated as separate measurement
     instances. Inherits from NavData().
 
+    This class has primarily been built with Rinex v3.05 in mind but it
+    should also work for prior Rinex versions.
+
 
     References
     ----------
@@ -27,7 +31,7 @@ class RinexObs(NavData):
 
 
     """
-#TODO: Add support for selecting constellations and bands
+    #TODO: Add support for selecting constellations and bands
     def __init__(self, input_path):
         """Loading Rinex observation files into a NavData based class.
 

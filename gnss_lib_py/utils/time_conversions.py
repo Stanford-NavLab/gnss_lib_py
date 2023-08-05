@@ -136,8 +136,6 @@ def datetime_to_tow(t_datetimes):
     ----------
     t_datetimes : datetime.datetime or array-like of datetime.datetime
         Datetime object for Time of Clock, assumed to be in UTC time frame.
-    verbose : bool
-        Flag for whether to print that leapseconds were added.
 
     Returns
     -------
@@ -448,8 +446,6 @@ def unix_to_gps_millis(unix_millis):
     ----------
     unix_millis : float or array-like of float
         Milliseconds that have passed since UTC epoch.
-    add_leap_secs : bool
-        Flag for whether output is in UTC seconds or GPS seconds.
 
     Returns
     -------
@@ -485,8 +481,6 @@ def gps_millis_to_datetime(gps_millis):
     ----------
     gps_millis : float or array-like of float
         Float object for Time of Clock [ms].
-    rem_leap_secs : bool
-        Flag for whether output is in UTC seconds or GPS seconds.
 
     Returns
     -------
@@ -513,8 +507,6 @@ def gps_to_unix_millis(gps_millis):
     ----------
     gps_millis : float or array-like of float
         Float object for Time of Clock [ms].
-    rem_leap_secs : bool
-        Flag for whether output is in UTC seconds or GPS seconds.
 
     Returns
     -------
@@ -547,7 +539,7 @@ def gps_datetime_to_gps_millis(t_gps):
 
     Parameters
     ----------
-    t_datetime : datetime.datetime or array-like of datetime.datetime
+    t_gps : datetime.datetime or array-like of datetime.datetime
         GPS time as a datetime object.
 
     Returns

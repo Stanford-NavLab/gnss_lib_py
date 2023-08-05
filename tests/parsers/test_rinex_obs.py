@@ -9,8 +9,8 @@ import os
 
 import pytest
 import numpy as np
-
 from pytest_lazyfixture import lazy_fixture
+
 from gnss_lib_py.parsers.rinex_obs import RinexObs
 
 @pytest.fixture(name="root_path")
@@ -104,7 +104,7 @@ def fixture_single_compare():
 
     Returns
     -------
-    single_compare : list
+    single_exp_values : list
         List of time instance, row names, gnss_sv_id and expected values
         for single case.
     """
@@ -124,16 +124,14 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
     rinex_single_values : gnss_lib_py.parsers.rinex_obs.RinexObs
         Instance of RinexObs class with data loaded from appropriate
         file.
-    compare_values : list
+    single_exp_values : list
         List of lists containing time instance, gnss_sv_id, and expected
-        value for different
-        Rinex use cases.
+        value for different Rinex use cases.
+    
     """
     count = 0
     for _, _, rinex_frame in rinex_single_values.loop_time('gps_millis'):
-        print(f'count {count}')
-        print('rinex_frame')
-        print(rinex_frame)
+
         #For each time case, check that the expected values are correct
         for case in single_exp_values:
             if case[0] == count:
@@ -149,10 +147,10 @@ def test_rinex_obs_3_load_mixed(rinex_mixed_values, mixed_exp_values):
 
     Parameters
     ----------
-    rinex_navdata : gnss_lib_py.parsers.rinex_obs.RinexObs
+    rinex_mixed_values : gnss_lib_py.parsers.rinex_obs.RinexObs
         Instance of RinexObs class with data loaded from appropriate
         file.
-    compare_values : list
+    mixed_exp_values : list
         List of indices and values to compare against.
     """
     count = 0
@@ -175,7 +173,7 @@ def fixture_sats_per_time_single():
 
     Returns
     -------
-    sats_per_time : list
+    sats_per_time_single : list
         List of number of satellites that are present at each time step.
     """
     sats_per_time_single = [25, 24, 24]
@@ -188,7 +186,7 @@ def fixture_sats_per_time_mixed():
 
     Returns
     -------
-    sats_per_time : list
+    sats_per_time_mixed : list
         List of number of satellites that are present at each time step.
     """
     sats_per_time_mixed = [25, 25, 26, 26, 24]

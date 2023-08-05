@@ -24,10 +24,6 @@ from gnss_lib_py.utils.coordinates import LocalCoord
 # Number of time to run meausurement simulation code
 TEST_REPEAT_COUNT = 10
 
-#TODO: Where is this used?
-T = 0.1
-
-
 @pytest.fixture(name="iono_params")
 def fixture_iono_params():
     """Ionospheric delay parameters for the unit test Android measurements.
@@ -38,8 +34,8 @@ def fixture_iono_params():
         2x4 (first row, alpha and second row, beta) of ionospheric delay
         parameters.
     """
-    iono_params = np.array([[0.9313E-08,  0.1490E-07, -0.5960E-07, -0.1192E-06],
-                        [0.8806E+05,  0.4915E+05, -0.1311E+06, -0.3277E+06]])
+    iono_params = {"gps":np.array([[0.9313E-08,  0.1490E-07, -0.5960E-07, -0.1192E-06],
+                                   [0.8806E+05,  0.4915E+05, -0.1311E+06, -0.3277E+06]])}
     return iono_params
 
 
@@ -241,6 +237,9 @@ def test_add_measures_wrapper(android_measurements, android_state,
     android_measurements : gnss_lib_py.parsers.navdata.NavData
         NavData instance containing L1 measurements for received GPS
         measurements.
+    android_state : gnss_lib_py.parsers.navdata.NavData
+        Instance of `NavData` containing `gps_millis` and Rx position
+        estimates from Android Derived.
     ephemeris_path : string
         The location where ephemeris files are read from or downloaded to
         if they don't exist.

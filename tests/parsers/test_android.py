@@ -739,7 +739,7 @@ def test_solve_kaggle_baseline(derived_2022):
     state_estimate = android.solve_kaggle_baseline(derived_2022)
 
     state_estimate.in_rows(["gps_millis","lat_rx_deg",
-                            "lon_rx_deg","alt_rx_deg"])
+                            "lon_rx_deg","alt_rx_m"])
 
     assert state_estimate.shape[1] == 6
 

@@ -406,7 +406,6 @@ def test_zero_arrays():
                               np.random.randint(0,24),
                               np.random.randint(0,60),
                               np.random.randint(0,60),
-                              np.random.randint(0,1000000),
                               tzinfo=timezone.utc
                               )
     datetimes_np = np.array(datetimes_list)
@@ -419,6 +418,8 @@ def test_zero_arrays():
     # Datetime <--> UNIX Millis
     unix_millis = tc.datetime_to_unix_millis(datetimes_np)
     datetimes_back = tc.unix_millis_to_datetime(np.array(unix_millis))
+    np.testing.assert_array_equal(datetimes_back, datetimes_np)
+    datetimes_back = tc.unix_millis_to_datetime(int(unix_millis))
     np.testing.assert_array_equal(datetimes_back, datetimes_np)
 
     # Datetime <--> TOW

@@ -1,4 +1,4 @@
-"""Functions to process precise ephemerides .sp3 and .clk files.
+"""Functions to process .clk precise clock product files.
 
 """
 
@@ -13,26 +13,14 @@ from scipy import interpolate
 
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS, C
-from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
-from gnss_lib_py.utils.time_conversions import datetime_to_unix_millis
+from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 
 class Clk(NavData):
-    """Clk specific loading and preprocessing for any GNSS constellation
-
-    Parameters
-    ----------
-    input_path : string or path-like
-        Path to clk file
-
-    Returns
-    -------
-    clkdata : dict
-        Populated gnss_lib_py.parsers.clk.Clk objects
-        with key of `gnss_sv_id` for each satellite.
+    """Clk specific loading and preprocessing for any GNSS constellation.
 
     Notes
     -----
-    The format for .clk files can be viewed in [2]_.
+    The format for .clk files can be viewed in [1]_.
 
     Based on code written by J. Makela.
     AE 456, Global Navigation Sat Systems, University of Illinois
@@ -40,76 +28,66 @@ class Clk(NavData):
 
     References
     -----
-    .. [2]  https://files.igs.org/pub/data/format/rinex_clock300.txt
+    .. [1]  https://files.igs.org/pub/data/format/rinex_clock300.txt
             Accessed as of August 24, 2022
 
     """
-    def __init__(self, input_path):
+    def __init__(self, input_paths):
+        """Clk loading and preprocessing.
 
+        Parameters
+        ----------
+        input_paths : string or path-like or list of paths
+            Path to measurement clk file(s).
+
+        """
         super().__init__()
 
+        if isinstance(input_paths, (str, os.PathLike)):
+            input_paths = [input_paths]
+
         gps_millis = []
-        unix_millis = []
         gnss_sv_ids = []
         gnss_id = []
         sv_id = []
         b_sv_m = []
 
-        # Initial checks for loading sp3_path
-        if not isinstance(input_path, (str, os.PathLike)):
-            raise TypeError("input_path must be string or path-like")
-        if not os.path.exists(input_path):
-            raise FileNotFoundError("file not found")
+        for input_path in input_paths:
+            # Initial checks for loading sp3_path
+            if not isinstance(input_path, (str, os.PathLike)):
+                raise TypeError("input_path must be string or path-like")
+            if not os.path.exists(input_path):
+                raise FileNotFoundError("file not found")
 
-        # Read Clock file
-        with open(input_path, 'r', encoding="utf-8") as infile:
-            clk = infile.readlines()
+            # Read Clock file
+            with open(input_path, 'r', encoding="utf-8") as infile:
+                clk = infile.readlines()
 
-        line = 0
-        while True:
-            if 'OF SOLN SATS' not in clk[line]:
-                del clk[line]
-            else:
-                line +=1
-                break
+            for  clk_val in clk:
 
-        line = 0
-        while True:
-            if 'END OF HEADER' not in clk[line]:
-                line +=1
-            else:
-                del clk[0:line+1]
-                break
+                timelist_val = clk_val.split()
 
-        for  clk_val in clk:
+                if len(timelist_val) == 0 or timelist_val[0] != 'AS':
+                    continue
 
-            if len(clk_val) == 0 or clk_val[0:2]!='AS':
-                continue
+                gnss_sv_id = timelist_val[1]
 
-            timelist_val = clk_val.split()
-
-            gnss_sv_id = timelist_val[1]
-
-            curr_time = datetime(year = int(timelist_val[2]), \
-                                 month = int(timelist_val[3]), \
-                                 day = int(timelist_val[4]), \
-                                 hour = int(timelist_val[5]), \
-                                 minute = int(timelist_val[6]), \
-                                 second = int(float(timelist_val[7])), \
-                                 tzinfo=timezone.utc)
-            gps_millis_timestep = datetime_to_gps_millis(curr_time,
-                                                add_leap_secs = False)
-            unix_millis_timestep = datetime_to_unix_millis(curr_time)
-            gnss_sv_ids.append(gnss_sv_id)
-            gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
-            sv_id.append(int(gnss_sv_id[1:]))
-            gps_millis.append(gps_millis_timestep)
-            unix_millis.append(unix_millis_timestep)
-            # clock bias is given in seconds, convert to meters
-            b_sv_m.append(float(timelist_val[9]) * C)
+                curr_time = datetime(year = int(timelist_val[2]), \
+                                     month = int(timelist_val[3]), \
+                                     day = int(timelist_val[4]), \
+                                     hour = int(timelist_val[5]), \
+                                     minute = int(timelist_val[6]), \
+                                     second = int(float(timelist_val[7])), \
+                                     tzinfo=timezone.utc)
+                gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
+                gnss_sv_ids.append(gnss_sv_id)
+                gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
+                sv_id.append(int(gnss_sv_id[1:]))
+                gps_millis.append(gps_millis_timestep)
+                # clock bias is given in seconds, convert to meters
+                b_sv_m.append(float(timelist_val[9]) * C)
 
         self["gps_millis"] = gps_millis
-        self["unix_millis"] = unix_millis
         self["gnss_sv_id"] = np.array(gnss_sv_ids,dtype=object)
         self["gnss_id"] = np.array(gnss_id, dtype=object)
         self["sv_id"] = sv_id
@@ -122,16 +100,20 @@ class Clk(NavData):
         Parameters
         ----------
         gnss_sv_id : string
-            PRN of satellite for which position should be determined.
+            Constellations and SV id of satellite for which position is
+            to be determined.
+            See standard nomenclature reference for more details.
         sidx : int
             Nearest index within clk time series around which interpolated
-            function needs to be centered
+            function needs to be centered.
         ipos : int
             No. of data points from clk data on either side of sidx
-            that will be used for computing interpolated function
+            that will be used for computing interpolated function.
         method : string
             Type of interpolation method used for clk data (the default is
-            CubicSpline, which depicts third-order polynomial)
+            CubicSpline, which depicts third-order polynomial).
+        verbose : bool
+            If true, prints extra debugging statements.
 
         Returns
         -------
@@ -156,7 +138,8 @@ class Clk(NavData):
         return func_satbias
 
 
-    def clk_snapshot(self, func_satbias, cxtime, hstep = 5e-1, method='CubicSpline'):
+    def clk_snapshot(self, func_satbias, cxtime, hstep = 5e-1,
+                     method='CubicSpline'):
         """Compute satellite clock bias and drift from clk interpolated function
 
         Parameters

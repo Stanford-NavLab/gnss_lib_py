@@ -21,7 +21,6 @@ from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr
                         find_sv_location, find_sv_states, \
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
-from gnss_lib_py.parsers.rinex_nav import _compute_eccentric_anomaly
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 
@@ -339,16 +338,6 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     return measurements, sv_posvel
 
 
-# def _matching_state_for_measure(measurements, state_estimate,
-#                                 delta_t_decimals=2):
-#     measurement_times = np.sort(np.unique(np.around(times,
-#                                          decimals=delta_t_decimals)))
-#     for
-
-
-#     return measure_time_state_row
-
-
 def _extract_state_variables(state):
     """Extract position, velocity and clock bias terms from state.
 
@@ -407,6 +396,10 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
+    state : gnss_lib_py.parsers.navdata.NavData
+        NavData containing state values i.e. 3D position, 3D velocity,
+        receiver clock bias and receiver clock drift rate at which
+        measurements will be simulated.
     ephem : gnss_lib_py.parsers.navdata.NavData
         Satellite ephemeris parameters for measurement SVs, use None if
         using satellite positions instead.
@@ -416,18 +409,14 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
     iono_params : np.ndarray
         Ionospheric atmospheric delay parameters for Klobuchar model,
         passed in 2x4 array, use None if not available.
-    rx_ecef : np.ndarray
-        3x1 receiver position in ECEF frame of reference [m], use None
-        if not available.
 
     Returns
     -------
-    clock_corr : np.ndarray
-        Satellite clock corrections [m].
-    iono_delay : np.ndarray
-        Estimated delay caused by the ionosphere [m].
     tropo_delay : np.ndarray
         Estimated delay caused by the troposhere [m].
+    iono_delay : np.ndarray
+        Estimated delay caused by the ionosphere [m].
+
 
     Notes
     -----
@@ -450,14 +439,6 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
                 "SV states must be given when ephemeris isn't"
         satellites = len(sv_posvel)
 
-    # # calculate clock pseudorange correction
-    # if ephem is not None:
-    #     clock_corr, _, _ = _calculate_clock_delay(gps_millis, ephem)
-    # else:
-    #     warnings.warn("Broadcast ephemeris not given, returning 0 "\
-    #                 + "clock corrections", RuntimeWarning)
-    #     clock_corr = np.zeros(satellites)
-
     if rx_ecef is not None:
         # Calculate the tropospheric delays
         tropo_delay = _calculate_tropo_delay(gps_millis, rx_ecef, ephem, sv_posvel)
@@ -475,67 +456,7 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
                         RuntimeWarning)
         iono_delay = np.zeros(satellites)
 
-    # return clock_corr, tropo_delay, iono_delay
     return tropo_delay, iono_delay
-
-
-# def _calculate_clock_delay(gps_millis, ephem):
-#     """Calculate the modelled satellite clock delay
-
-#     Parameters
-#     ---------
-#     gps_millis : int
-#         Time at which measurements are needed, measured in milliseconds
-#         since start of GPS epoch [ms].
-#     ephem : gnss_lib_py.parsers.navdata.NavData
-#         Satellite ephemeris parameters for measurement SVs.
-
-#     Returns
-#     -------
-#     clock_corr : np.ndarray
-#         Satellite clock corrections containing all terms [m].
-#     corr_polynomial : np.ndarray
-#         Polynomial clock perturbation terms [m].
-#     clock_relativistic : np.ndarray
-#         Relativistic clock correction terms [m].
-
-#     """
-#     # Extract required GPS constants
-#     ecc        = ephem['e']     # eccentricity
-#     sqrt_sma = ephem['sqrtA'] # sqrt of semi-major axis
-
-#     # if np.abs(delta_t).any() > 302400:
-#     #     delta_t = delta_t - np.sign(delta_t)*604800
-
-#     gps_week, gps_tow = gps_millis_to_tow(gps_millis)
-
-#     # Compute Eccentric Anomaly
-#     ecc_anom = _compute_eccentric_anomaly(gps_week, gps_tow, ephem)
-
-#     # Determine pseudorange corrections due to satellite clock corrections.
-#     # Calculate time offset from satellite reference time
-#     t_offset = gps_tow - ephem['t_oc']
-#     if np.abs(t_offset).any() > 302400:  # pragma: no cover
-#         t_offset = t_offset-np.sign(t_offset)*604800
-
-#     # Calculate clock corrections from the polynomial corrections in
-#     # broadcast message
-#     corr_polynomial = (ephem['SVclockBias']
-#                      + ephem['SVclockDrift']*t_offset
-#                      + ephem['SVclockDriftRate']*t_offset**2)
-
-#     # Calcualte the relativistic clock correction
-#     corr_relativistic = consts.F * ecc * sqrt_sma * np.sin(ecc_anom)
-
-#     # Calculate the total clock correction including the Tgd term
-#     clk_corr = (corr_polynomial - ephem['TGD'] + corr_relativistic)
-
-#     #Convert values to equivalent meters from seconds
-#     clk_corr = np.array(consts.C*clk_corr, ndmin=1)
-#     corr_polynomial = np.array(consts.C*corr_polynomial, ndmin=1)
-#     corr_relativistic = np.array(consts.C*corr_relativistic, ndmin=1)
-
-#     return clk_corr, corr_polynomial, corr_relativistic
 
 
 def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
@@ -546,10 +467,10 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
-    ephem : gnss_lib_py.parsers.navdata.NavData
-        Satellite ephemeris parameters for measurement SVs.
     rx_ecef : np.ndarray
         3x1 array of ECEF rx_pos position [m].
+    ephem : gnss_lib_py.parsers.navdata.NavData
+        Satellite ephemeris parameters for measurement SVs.
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites, set to None if not available.
 
@@ -598,7 +519,8 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
     return tropo_delay
 
 
-def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posvel=None):
+def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None,
+                          sv_posvel=None, constellation="gps"):
     """Calculate the ionospheric delay in pseudorange using the Klobuchar
     model Section 5.3.2 [1]_.
 
@@ -619,6 +541,8 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     sv_posvel : gnss_lib_py.parsers.navdata.NavData
         Precomputed positions of satellites corresponding to the input
         `gps_millis`, set to None if not available.
+    constellation : string
+        Constellation used for the ionospheric parameters addition.
 
     Returns
     -------
@@ -660,8 +584,8 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None, sv_posve
     lon_r = np.deg2rad(wgs_llh[1, :])
 
     # Parse the ionospheric parameters
-    alpha = iono_params[0,:]
-    beta = iono_params[1,:]
+    alpha = iono_params[constellation][0,:]
+    beta = iono_params[constellation][1,:]
 
     # Calculate the psi angle
     psi = 0.1356/(el_r+0.346) - 0.0691

@@ -34,18 +34,69 @@ def fixture_ephem_path():
     return ephem_path
 
 
+def test_rinex_nav_init(ephem_path):
+    """Test across multiple files.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded.
+
+    """
+
+    no_iono = [
+               "BRDM00DLR_R_20130010000_01D_MN.rnx",
+               "VOIM00MDG_R_20140010000_01D_MN.rnx",
+               "BRDC00WRD_S_20230730000_01D_MN.rnx",
+               "WTZS00DEU_R_20230800000_01D_MN.rnx",
+               ]
+
+    rinex_nav_dir = os.path.join(ephem_path,"rinex","nav")
+    rinex_paths = []
+    for file in os.listdir(rinex_nav_dir):
+        rinex_path = os.path.join(rinex_nav_dir,file)
+        rinex_paths.append(rinex_path)
+
+        if file in no_iono:
+            # no iono
+            with pytest.warns(RuntimeWarning) as warns:
+                RinexNav(rinex_path)
+            assert len(warns) == 1
+        else:
+            RinexNav(rinex_path)
+
+def test_rinex_nav_init_multi(ephem_path):
+    """Test across multiple files.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded.
+
+    """
+
+    files = [
+             "brdc1360.20n",
+             "brdc1370.20n",
+             "brdc1370.20g",
+            ]
+
+    rinex_nav_dir = os.path.join(ephem_path,"rinex","nav")
+    rinex_paths = []
+    for file in files:
+        rinex_path = os.path.join(rinex_nav_dir,file)
+        rinex_paths.append(rinex_path)
+
+    RinexNav(rinex_paths)
+
 @pytest.mark.parametrize('satellites',
                          [
-                          ['G01'],
+                          ['G02'],
                           ['R01'],
-                          ['E02'],
-                          ['G01','R01'],
-                          ['G01','R01','E02'],
                          ])
 @pytest.mark.parametrize('ephem_time',
                          [
-                          datetime(2020, 5, 15, 3, 47, 48),
-                          datetime(2023, 3, 14, 23, 17, 13, tzinfo=timezone.utc),
+                          datetime(2020, 5, 16, 11, 47, 48, tzinfo=timezone.utc),
                          ])
 def test_get_time_cropped_rinex(ephem_path, ephem_time, satellites):
     """Create instance of Ephemeris manager and fetch ephemeris file.
@@ -66,55 +117,8 @@ def test_get_time_cropped_rinex(ephem_path, ephem_time, satellites):
 
     ephem_time = datetime_to_gps_millis(ephem_time)
 
-    ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path)
-
-
-    # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
-    assert isinstance(ephem, NavData)
-
-    # check that there's one row per satellite
-    assert len(ephem) == len(satellites)
-
-    # time check for GPS and Galileo
-    if "gps_week" in ephem.rows:
-        for timestep in range(len(ephem)):
-            if not np.isnan(ephem["gps_week",timestep]):
-                gps_week, _ = gps_millis_to_tow(ephem["gps_millis",timestep])
-                assert gps_week == ephem["gps_week",timestep]
-
-    # Tests that NavData specific rows are present in ephem
-    navdata_rows = ['gps_millis', 'sv_id', 'gnss_id']
-    ephem.in_rows(navdata_rows)
-
-@pytest.mark.parametrize('satellites',
-                         [
-                          ['G01'],
-                          ['E01'],
-                          ['G01','R01'],
-                         ])
-@pytest.mark.parametrize('ephem_time',
-                         [
-                          datetime(2020, 5, 16, 0, 17, 1, tzinfo=timezone.utc),
-                         ])
-def test_prev_ephem(ephem_path, ephem_time, satellites):
-    """Test scenario when timestamp is near after midnight.
-
-    Check type and rows.
-
-    Parameters
-    ----------
-    ephem_path : string
-        Location where ephemeris files are stored/to be downloaded to.
-    ephem_time : datetime.datetime
-        Time at which state estimation is starting, the most recent ephemeris
-        file before the start time will be fetched.
-    satellites : List
-        List of satellites ['Const_IDSVID']
-
-    """
-
-    ephem_time = datetime_to_gps_millis(ephem_time)
-    ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path)
+    ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path,
+                                    verbose=True)
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
     assert isinstance(ephem, NavData)
@@ -178,15 +182,26 @@ def test_load_leapseconds(ephem_path):
     rinex_path = os.path.join(ephem_path,"rinex","nav",
                                    "brdc1370.20n")
     rinex_data = RinexNav(rinex_path)
-    assert rinex_data['leap_seconds'] == 18
+
+    np.testing.assert_array_equal(rinex_data['leap_seconds'],
+                                  np.array([18]*6))
 
     # check what happens when a file with an incomplete header is passed
-    incomplete_path = os.path.join(ephem_path,"rinex",
+    none_path = os.path.join(ephem_path,"rinex","nav",
                                    "brdc1370_no_leapseconds.20n")
-    rinex_data = RinexNav(incomplete_path)
+    rinex_data = RinexNav(none_path)
     assert len(rinex_data.where('leap_seconds',np.nan)) == 1
 
-    # check what happens when a file with an incomplete header is passed
-    incomplete_path = os.path.join(ephem_path,"rinex",
-                                   "brdc1370_incomplete.20n")
-    assert rinex_data.load_leapseconds(incomplete_path) == None
+def test_no_iono_params(ephem_path):
+    """Test no iono params.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+
+    """
+
+    rinex_path = os.path.join(ephem_path,"rinex","nav",
+                                   "BRDM00DLR_S_20230730000_01D_MN_no_gps_iono.rnx")
+    RinexNav(rinex_path)

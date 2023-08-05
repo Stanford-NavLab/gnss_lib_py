@@ -187,7 +187,7 @@ def test_solve_gnss_ekf(derived):
     assert "b_rx_ekf_m" in state_estimate.rows
     assert "lat_rx_ekf_deg" in state_estimate.rows
     assert "lon_rx_ekf_deg" in state_estimate.rows
-    assert "alt_rx_ekf_deg" in state_estimate.rows
+    assert "alt_rx_ekf_m" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
     assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))

@@ -1,25 +1,11 @@
 """Parses Rinex .n files.
-#TODO: Remove this description and move to the tutorials and description
-#in the documentation
-The Ephemeris Manager provides broadcast ephemeris for specific
-satellites at a specific timestep. The EphemerisDownloader class should be
-initialized and then the ``get_ephemeris`` function can be used to
-retrieve ephemeris for specific satellites. ``get_ephemeris`` returns
-the most recent broadcast ephemeris for the provided list of satellites
-that was broadcast BEFORE the provided timestamp. For example GPS daily
-ephemeris files contain data at a two hour frequency, so if the
-timestamp provided is 5am, then ``get_ephemeris`` will return the 4am
-data but not 6am. If provided a timestamp between midnight and 2am then
-the ephemeris from around midnight (might be the day before) will be
-provided. If no list of satellites is provided, then ``get_ephemeris``
-will return data for all satellites.
 
-When multiple observations are provided for the same satellite and same
-timestep, the Ephemeris Manager will only return the first instance.
-This is applicable when requesting ephemeris for multi-GNSS for the
-current day. Same-day multi GNSS data is pulled from  same day. For
-same-day multi-GNSS from https://igs.org/data/ which often has multiple
-observations.
+Loads rinex navigation files into a NavData object. Loading time can be
+sped up significantly by passing in the "satellites" parameter which in
+turn gets passed into the georinex library used to parse the rinex file.
+
+Rinex files can be downloaded with the load_ephemeris function in the
+utils/ephemeris_downloader.py file.
 
 """
 
@@ -28,8 +14,8 @@ __authors__ = "Ashwin Kanhere, Shubh Gupta, Dalton Vega"
 __date__ = "13 July 2021"
 
 import os
-from datetime import datetime, timezone
 import warnings
+from datetime import timezone
 
 import numpy as np
 import pandas as pd
@@ -140,34 +126,19 @@ def get_time_cropped_rinex(timestamp, satellites=None,
 
 
 class RinexNav(NavData):
-    """Class to handle Rinex files containing SV parameters.
+    """Class to parse Rinex navigation files containing SV parameters.
 
-    The Ephemeris Manager provides broadcast ephemeris for specific
-    satellites at a specific timestep. The EphemerisDownloader class
-    should be initialized and then the ``get_ephemeris`` function
-    can be used to retrieve ephemeris for specific satellites.
-    ``get_ephemeris`` returns the most recent broadcast ephemeris
-    for the provided list of satellites that was broadcast BEFORE
-    the provided timestamp. For example GPS daily ephemeris files
-    contain data at a two hour frequency, so if the timestamp
-    provided is 5am, then ``get_ephemeris`` will return the 4am data
-    but not 6am. If provided a timestamp between midnight and 2am
-    then the ephemeris from around midnight (might be the day
-    before) will be provided. If no list of satellites is provided,
-    then ``get_ephemeris`` will return data for all satellites.
 
-    When multiple observations are provided for the same satellite
-    and same timestep, the Ephemeris Manager will only return the
-    first instance. This is applicable when requesting ephemeris for
-    multi-GNSS for the current day. Same-day multi GNSS data is
-    pulled from  same day. For same-day multi-GNSS from
-    https://igs.org/data/ which often has multiple observations.
+    Loads rinex navigation files into a NavData object. Loading time can
+    be sped up significantly by passing in the "satellites" parameter
+    which in turn gets passed into the georinex library used to parse
+    the rinex file.
 
     Inherits from NavData().
 
     Attributes
     ----------
-    iono_params : np.ndarray
+    iono_params : dict
         Dictionary of the ionosphere correction terms of the form
         ``{gps_millis_at_day_start : {gnss_id : iono_array}}`` where
         ``gps_millis_at_day_start`` is the time (in gps_millis) for the
@@ -221,17 +192,18 @@ class RinexNav(NavData):
 
         """
 
-        constellations = set()
         if satellites is not None and len(satellites) != 0:
+            constellations = set()
             for sat in satellites:
                 constellations.add(sat[0])
+        else:
+            constellations = None
 
         if isinstance(rinex_paths, (str, os.PathLike)):
             rinex_paths = [rinex_paths]
 
         data = pd.DataFrame()
         self.iono_params = {}
-        #TODO: Convert this to a dictionary
         for rinex_path in rinex_paths:
             new_data, rinex_header = self._get_ephemeris_dataframe(rinex_path,
                                                                    constellations)
@@ -247,7 +219,9 @@ class RinexNav(NavData):
             start_gps_millis = float(datetime_to_gps_millis(day_start_time))
             iono_params = self.get_iono_params(rinex_header,
                                                constellations)
-            if start_gps_millis not in self.iono_params:
+
+            if start_gps_millis not in self.iono_params \
+                or self.iono_params[start_gps_millis] is None:
                 self.iono_params[start_gps_millis] = iono_params
             else:
                 for constellation, value in self.iono_params.items():
@@ -309,14 +283,16 @@ class RinexNav(NavData):
         ----------
         rinex_path : string or path-like
             Filepath to rinex file
-
-        constellations : Set
+        constellations : set
             Set of satellites {"ConstIDSVID"}
 
         Returns
         -------
         data : pd.DataFrame
             Parsed ephemeris DataFrame
+        data_header : dict
+            Header information from Rinex file.
+
         """
 
         if constellations is not None:
@@ -328,10 +304,7 @@ class RinexNav(NavData):
                                  verbose=self.verbose).to_dataframe()
         data_header = gr.rinexheader(rinex_path)
         leap_seconds = self.load_leapseconds(data_header)
-        if leap_seconds is None:
-            data['leap_seconds'] = np.nan
-        else:
-            data['leap_seconds'] = leap_seconds
+        data['leap_seconds'] = leap_seconds
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data['source'] = rinex_path
@@ -339,7 +312,6 @@ class RinexNav(NavData):
         data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
         data['time'] = data['time'].dt.tz_localize('UTC')
         # Rename Keplerian orbital parameters to match a GLP standard
-        # TODO: Change these to a standard nomenclature
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
         data.rename(columns={'X': 'sv_x_m', 'dX': 'sv_dx_mps', 'dX2': 'sv_dx2_mps2',
@@ -359,7 +331,7 @@ class RinexNav(NavData):
 
         Parameters
         ----------
-        rinex_head : dict
+        rinex_header : dict
             Dictionary containing RINEX file header information
         constellations : list
             List of strings indicating which constellations ionosphere
@@ -483,6 +455,15 @@ class RinexNav(NavData):
 
     @staticmethod
     def _iono_corr_key():
+        """Correlations between satellite name and iono param name.
+
+        Returns
+        -------
+        iono_corr_key : list
+            String names for ionospheric correction parameters within
+            the rinex navigation file.
+
+        """
         iono_corr_key = {}
         iono_corr_key['gps'] = ['GPSA', 'GPSB']
         iono_corr_key['galileo'] = ['GAL']
@@ -509,7 +490,7 @@ class RinexNav(NavData):
         Parameters
         ----------
         rinex_header : dict
-            Header information from Rinex file
+            Header information from Rinex file.
 
         Returns
         -------
@@ -525,7 +506,7 @@ class RinexNav(NavData):
                 leap_seconds = np.nan
         else:
             try:
-                leap_seconds = int(rinex_header['LEAP SECONDS'])
+                leap_seconds = int(rinex_header['LEAP SECONDS'].split()[0])
             except KeyError:
                 leap_seconds = np.nan
         return leap_seconds
@@ -1008,9 +989,10 @@ def _glonass_sv_dynamics(t, s, Jx_iner, Jy_iner, Jz_iner):
 
 
 def get_time_cropped_rinex(gps_millis, satellites=None,
-                           ephemeris_directory=DEFAULT_EPHEM_PATH):
+                           ephemeris_directory=DEFAULT_EPHEM_PATH,
+                           verbose=False):
     """Add SV states using Rinex file.
-    
+
     Parameters
     ----------
     gps_millis : float
@@ -1022,10 +1004,14 @@ def get_time_cropped_rinex(gps_millis, satellites=None,
         List of satellite IDs as a string, for example ['G01','E11',
         'R06']. Defaults to None which returns get_ephemeris for
         all satellites.
+    ephemeris_directory : string or path-like
+        Directory where ephemeris files are downloaded if necessary.
+    verbose : bool
+        Prints extra debugging statements.
 
     Returns
     -------
-    data : gnss_lib_py.parsers.navdata.NavData
+    rinex_data : gnss_lib_py.parsers.navdata.NavData
         ephemeris entries corresponding to timestamp
 
     Notes
@@ -1042,7 +1028,7 @@ def get_time_cropped_rinex(gps_millis, satellites=None,
 
     rinex_paths = load_ephemeris("rinex_nav",gps_millis,constellations,
                                  download_directory=ephemeris_directory,
-                                 )
+                                 verbose=verbose)
     rinex_data = RinexNav(rinex_paths, satellites=satellites)
 
     time_cropped_data = rinex_data.where('gps_millis', gps_millis, "lesser")

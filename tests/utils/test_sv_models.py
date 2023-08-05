@@ -6,6 +6,7 @@ __authors__ = "Ashwin Kanhere"
 __date__ = "21 Mar 2023"
 
 import os
+from datetime import datetime, timezone
 
 import pytest
 import numpy as np
@@ -16,8 +17,15 @@ from gnss_lib_py.parsers.clk import Clk
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
+import gnss_lib_py.utils.time_conversions as tc
 from gnss_lib_py.parsers.android import AndroidDerived2021
 # pylint: disable=protected-access
+
+# Imports for sv_gps_from_brdcst_eph_duplicate
+from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
+from gnss_lib_py.utils.sv_models import find_sv_states
+import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 # Number of time to run meausurement simulation code
 TEST_REPEAT_COUNT = 10
@@ -26,6 +34,95 @@ TEST_REPEAT_COUNT = 10
 SV_KEYS = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
            'vx_sv_mps','vy_sv_mps','vz_sv_mps', \
            'b_sv_m', 'b_dot_sv_mps']
+
+
+def sv_gps_from_brdcst_eph_duplicate(navdata,
+                                     ephemeris_path=DEFAULT_EPHEM_PATH,
+                                     verbose = False):
+    """Compute satellite information using .n for any GNSS constellation
+
+    Parameters
+    ----------                                   ephemeris_path=DEFAULT_EPHEM_PATH,
+
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Instance of the NavData class that depicts android derived dataset
+    ephemeris_path : string
+        Path at which ephemeris files are to be stored. Uses directory
+        default if not given.
+    verbose : bool
+        Flag (True/False) for whether to print intermediate steps useful
+        for debugging/reviewing (the default is False)
+
+    Returns
+    -------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Updated NavData class with satellite information computed using
+        broadcast ephemerides from .n files
+    """
+    unique_gnss_id = np.unique(navdata['gnss_id'])
+    if len(unique_gnss_id)==1:
+        if unique_gnss_id == 'gps':
+            # Need this string to create sv_id strings for ephemeris manager
+            unique_gnss_id_str = 'G'
+        else:
+            raise RuntimeError("No non-GPS capability yet")
+    else:
+        raise RuntimeError("Multi-GNSS constellations cannot be updated simultaneously")
+
+    unique_timesteps = np.unique(navdata["gps_millis"])
+
+    for _, timestep in enumerate(unique_timesteps):
+        # Compute indices where gps_millis match, sort them
+        # sorting is done for consistency across all satellite pos. estimation
+        # algorithms as ephemerismanager inherently sorts based on prns
+        idxs = np.where(navdata["gps_millis"] == timestep)[0]
+        sorted_idxs = idxs[np.argsort(navdata["sv_id", idxs], axis = 0)]
+
+        # compute ephem information using desired_sats, rxdatetime
+        desired_sats = [unique_gnss_id_str + str(int(i)).zfill(2) \
+                                           for i in navdata["sv_id", sorted_idxs]]
+        ephem = get_time_cropped_rinex(timestep, satellites = desired_sats,
+                                        ephemeris_directory=ephemeris_path)
+
+        # compute satellite position and velocity based on ephem and gps_time
+        # Transform satellite position to account for earth's rotation
+        get_sat_from_ephem = find_sv_states(timestep, ephem)
+        satpos_ephemeris = np.transpose([get_sat_from_ephem["x_sv_m"], \
+                                         get_sat_from_ephem["y_sv_m"], \
+                                         get_sat_from_ephem["z_sv_m"]])
+        satvel_ephemeris = np.transpose([get_sat_from_ephem["vx_sv_mps"], \
+                                         get_sat_from_ephem["vy_sv_mps"], \
+                                         get_sat_from_ephem["vz_sv_mps"]])
+        trans_time = navdata["raw_pr_m", sorted_idxs] / consts.C
+        del_x = (consts.OMEGA_E_DOT * satpos_ephemeris[:,1] * trans_time)
+        del_y = (-consts.OMEGA_E_DOT * satpos_ephemeris[:,0] * trans_time)
+        satpos_ephemeris[:,0] = satpos_ephemeris[:,0] + del_x
+        satpos_ephemeris[:,1] = satpos_ephemeris[:,1] + del_y
+
+        if verbose:
+            print('after ephemeris:', satpos_ephemeris, satvel_ephemeris)
+            satpos_android = np.transpose([ navdata["x_sv_m", sorted_idxs], \
+                                            navdata["y_sv_m", sorted_idxs], \
+                                            navdata["z_sv_m", sorted_idxs] ])
+            satvel_android = np.transpose([ navdata["vx_sv_mps", sorted_idxs], \
+                                               navdata["vy_sv_mps", sorted_idxs], \
+                                               navdata["vz_sv_mps", sorted_idxs] ])
+            print('nav-android Pos Error: ', \
+                      np.linalg.norm(satpos_ephemeris - satpos_android, axis=1) )
+            print('nav-android Vel Error: ', \
+                      np.linalg.norm(satvel_ephemeris - satvel_android, axis=1) )
+
+        # update *_sv_m of navdata with the estimated values from .n files
+        navdata["x_sv_m", sorted_idxs] = satpos_ephemeris[:,0]
+        navdata["y_sv_m", sorted_idxs] = satpos_ephemeris[:,1]
+        navdata["z_sv_m", sorted_idxs] = satpos_ephemeris[:,2]
+
+        # update v*_sv_mps of navdata with the estimated values from .n files
+        navdata["vx_sv_mps", sorted_idxs] = satvel_ephemeris[:,0]
+        navdata["vy_sv_mps", sorted_idxs] = satvel_ephemeris[:,1]
+        navdata["vz_sv_mps", sorted_idxs] = satvel_ephemeris[:,2]
+
+    return navdata
 
 @pytest.fixture(name="scaling_value")
 def fixture_scaling_value():
@@ -255,7 +352,7 @@ def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_de
     for row in true_rows:
         comparison_states[row] = android_measurements[row]
     android_measurements.remove(true_rows, inplace=True)
-    android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path)
+    android_gps_states = sv_models.add_sv_states_rinex(android_measurements, ephemeris_path)
     for row in true_rows:
         if 'mps' in row:
             np.testing.assert_almost_equal(android_gps_states[row],
@@ -268,11 +365,11 @@ def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_de
     # Test position estimation when desired constellations are not in
     # received measurements
     with pytest.warns(RuntimeWarning):
-        android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path,
+        android_gps_states = sv_models.add_sv_states_rinex(android_measurements, ephemeris_path,
                                 constellations=['gps', 'glonass'])
     # Testing position estimation without receiver position
     android_measurements.remove(rows=['x_rx_m', 'y_rx_m', 'z_rx_m'], inplace=True)
-    android_gps_states = sv_models.add_sv_states(android_measurements, ephemeris_path)
+    android_gps_states = sv_models.add_sv_states_rinex(android_measurements, ephemeris_path)
     for row in true_rows:
         if 'mps' in row:
             np.testing.assert_almost_equal(android_gps_states[row],
@@ -324,13 +421,15 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
     # Create list of times and states from android_gps_l1 into an estimate
     state_estimate = NavData()
     unique_svs = np.unique(android_gps_l1['sv_id'])
+    unique_gnss_id = list(np.unique(android_gps_l1['gnss_id']))
     android_sv = android_gps_l1.where("sv_id", unique_svs[0])
     state_estimate['gps_millis'] = android_sv['gps_millis']
     state_estimate['x_rx_m'] = android_sv['x_rx_m']
     state_estimate['y_rx_m'] = android_sv['y_rx_m']
     state_estimate['z_rx_m'] = android_sv['z_rx_m']
     sv_posvel_traj = sv_models.add_visible_svs_for_trajectory(state_estimate,
-                                                             ephemeris_path)
+                                                             ephemeris_path,
+                                                             constellations=unique_gnss_id)
     # assert that actually received SVs in the given times are a
     # subset of those considered visible
     true_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps',
@@ -355,32 +454,14 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
                                                 measure_frame_sv[row],
                                                 decimal=error_tol_dec['brd_eph'])
 
-    # Test same function with None for satellites. No support for non-GPS
-    # constellations currently and should raise an error
-    with pytest.warns(RuntimeWarning):
-        _ = sv_models.add_visible_svs_for_trajectory(state_estimate,
-                                                    ephemeris_path,
-                                                    constellations=None)
-
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
-    return root_path
-
 @pytest.fixture(name="sp3_path")
 def fixture_sp3_path(root_path):
     """Filepath of valid .sp3 measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
 
     Returns
     -------
@@ -423,6 +504,11 @@ def fixture_load_sp3data(sp3_path):
 def fixture_clk_path(root_path):
     """Filepath of valid .clk measurements
 
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
     Returns
     -------
     clk_path : string
@@ -455,7 +541,7 @@ def fixture_load_clkdata(clk_path):
     Returns
     -------
     clkdata : list
-        Instances of Clk class for each satellite
+        Instances of Clk class
     """
     clkdata = Clk(clk_path)
 
@@ -464,6 +550,11 @@ def fixture_load_clkdata(clk_path):
 @pytest.fixture(name="navdata_path")
 def fixture_navdata_path(root_path):
     """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
 
     Returns
     -------
@@ -603,6 +694,8 @@ def test_compute_gps_precise_eph(navdata_gps, sp3data, clkdata):
                                                         sp3data,
                                                         clkdata,
                                                         verbose=True)
+
+    np.testing.assert_array_equal(navdata_gps["sv_id"],navdata_prcs_gps["sv_id"])
 
 
     # Check if the resulting derived is NavData class
@@ -751,7 +844,7 @@ def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data, clkdata, ephemeris_path):
     navdata_sp3_result = sv_models.single_gnss_from_precise_eph(navdata_sp3_result, \
                                                           sp3data, clkdata)
     navdata_eph_result = navdata_gpsl1.copy()
-    navdata_eph_result = sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph_result,
+    navdata_eph_result = sv_gps_from_brdcst_eph_duplicate(navdata_eph_result,
                                         ephemeris_path)
 
     for sval in SV_KEYS[0:6]:
@@ -766,7 +859,7 @@ def test_gpscheck_sp3_eph(navdata_gpsl1, sp3data, clkdata, ephemeris_path):
 
 
 def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
-    """Tests that add_sv_states_sp3_and_clk does not fail for multi-GNSS
+    """Tests that single_gnss_from_precise_eph does not fail for multi-GNSS
 
     Notes
     -----
@@ -788,8 +881,11 @@ def test_compute_concat_precise_eph(navdata, sp3_path, clk_path):
     navdata_merged = NavData()
     navdata_merged = navdata.where('gnss_id',gnss_consts)
 
-    navdata_prcs_merged = sv_models.add_sv_states_sp3_and_clk(navdata, sp3_path,
-                                            clk_path,  verbose = True)
+    sp3 = Sp3(sp3_path)
+    clk = Clk(clk_path)
+
+    navdata_prcs_merged = sv_models.single_gnss_from_precise_eph(navdata,
+                                            sp3, clk, verbose=True)
 
     navdata_prcs_merged = navdata_prcs_merged.where("gnss_id",gnss_consts)
 
@@ -845,19 +941,19 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1,
     # test what happens when extra (multi-GNSS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_eph = navdata.copy()
-        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_eph, ephemeris_path,
+        sv_gps_from_brdcst_eph_duplicate(navdata_eph, ephemeris_path,
                                                    verbose=True)
     assert "Multi-GNSS" in str(excinfo.value)
 
     # test what happens when invalid (non-GPS) rows down't exist
     with pytest.raises(RuntimeError) as excinfo:
         navdata_glonassg1_eph = navdata_glonassg1.copy()
-        sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_glonassg1_eph,
+        sv_gps_from_brdcst_eph_duplicate(navdata_glonassg1_eph,
                             ephemeris_path, verbose=True)
     assert "non-GPS" in str(excinfo.value)
 
     navdata_gpsl1_eph = navdata_gpsl1.copy()
-    navdata_gpsl1_eph = sv_models.sv_gps_from_brdcst_eph_duplicate(navdata_gpsl1_eph,
+    navdata_gpsl1_eph = sv_gps_from_brdcst_eph_duplicate(navdata_gpsl1_eph,
                                         ephemeris_path, verbose=True)
 
     # Check if the resulting derived is NavData class
@@ -886,3 +982,78 @@ def test_compute_gps_brdcst_eph(navdata_gpsl1, navdata, navdata_glonassg1,
     pd.testing.assert_frame_equal(navdata_gpsl1_df.sort_index(axis=1),
                                   navdata_gpsl1_eph_df.sort_index(axis=1),
                                   check_dtype=False, check_names=True)
+
+@pytest.fixture(name="all_ephem_paths")
+def fixture_all_ephem_paths(root_path):
+    """Location of ephemeris files for unit test
+
+    Parameters
+    ----------
+    root_path : string
+        Location where ephemeris files are stored/to be downloaded.
+
+    Returns
+    -------
+    all_ephem_paths : string
+        Location of all unit test ephemeris files.
+
+    """
+
+    all_ephem_paths = []
+
+    ephem_dirs = [
+                       os.path.join(root_path,"rinex","nav"),
+                       os.path.join(root_path,"sp3"),
+                       os.path.join(root_path,"clk"),
+                      ]
+    for ephem_dir in ephem_dirs:
+        all_ephem_paths += [os.path.join(ephem_dir,file) \
+                            for file in os.listdir(ephem_dir)]
+
+    return all_ephem_paths
+
+def test_add_sv_states_precise(all_ephem_paths):
+    """Test adding SV states
+
+    Parameters
+    ----------
+    all_ephem_paths : string
+        Location of all unit test ephemeris files.
+
+    """
+
+    # create minimal test inputs
+    navdata = NavData()
+
+    datetimes = np.array([
+                          datetime(2020, 5, 17, 11, tzinfo=timezone.utc),
+                          datetime(2021, 4, 28, 12, tzinfo=timezone.utc),
+                          datetime(2023, 3, 14, 11, tzinfo=timezone.utc),
+                         ])
+    gps_millis = tc.datetime_to_gps_millis(datetimes)
+
+    navdata["gps_millis"] = gps_millis
+    navdata["gnss_id"] = np.array(["gps","glonass","qzss"])
+    navdata["sv_id"] = np.array([2,1,1])
+    navdata["raw_pr_m"] = np.array([26E3]*3)
+
+    sv_states = sv_models.add_sv_states(navdata,"precise",
+                                        file_paths=all_ephem_paths,
+                                        verbose=True)
+
+    assert not np.isnan(sv_states[["x_sv_m","y_sv_m","z_sv_m"]]).any()
+
+    # test minimal inputs
+
+def test_add_sv_states_fails():
+    """Test options which should fail.
+
+    """
+
+    navdata = NavData()
+
+    with pytest.raises(RuntimeError) as excinfo:
+        sv_models.add_sv_states(navdata, source="broadcast")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        sv_models.add_sv_states(navdata, source="rinex")
