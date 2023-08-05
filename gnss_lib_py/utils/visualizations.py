@@ -285,6 +285,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
 
     navdata = navdata.copy()
     navdata["az_sv_rad"] = np.radians(navdata["az_sv_deg"])
+    navdata = navdata.where("el_sv_deg",0,"geq")
 
     for c_idx, constellation in enumerate(_sort_gnss_ids(np.unique(navdata["gnss_id"]))):
         const_subset = navdata.where("gnss_id",constellation)
