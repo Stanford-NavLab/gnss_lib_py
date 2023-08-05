@@ -5,9 +5,10 @@ parsers
    :maxdepth: 4
 
    android
-   ephemeris
+   clk
    navdata
    nmea
-   precise_ephemerides
-   rinex
+   rinex_nav
+   rinex_obs
    smartloc
+   sp3

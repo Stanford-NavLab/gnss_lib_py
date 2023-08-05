@@ -242,6 +242,7 @@ class NavData():
                         # add np.nan for missing values
                         new_row = np.empty((len(data),))
                         new_row.fill(np.nan)
+                    new_row = np.array(new_row, ndmin=1)
                     combined_row = np.concatenate((combined_row,
                                                    new_row))
                 new_navdata[row] = combined_row
@@ -449,6 +450,10 @@ class NavData():
             None.
 
         """
+        # check if there is only one column - no sorting needed
+        if self.shape[1] == 1:
+            return self
+
         if ind is None:
             assert order is not None, \
             "Provide 'order' arg as row on which NavData is sorted"

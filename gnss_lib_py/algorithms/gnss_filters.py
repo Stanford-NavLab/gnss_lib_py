@@ -134,7 +134,7 @@ def solve_gnss_ekf(measurements, init_dict = None,
                                                    "z_rx_ekf_m"]].reshape(3,-1))
     state_estimate["lat_rx_ekf_deg"] = lat
     state_estimate["lon_rx_ekf_deg"] = lon
-    state_estimate["alt_rx_ekf_deg"] = alt
+    state_estimate["alt_rx_ekf_m"] = alt
 
     return state_estimate
 
