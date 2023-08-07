@@ -1,6 +1,8 @@
 #!/bin/bash
 # export requirements.txt for buildings docs
 poetry export -f requirements.txt --output ./docs/source/requirements.txt --with dev --without-hashes
+# export requirements.txt for Conda environment setup
+poetry export -f requirements.txt --output ./requirements.txt --without-hashes
 cd docs
 
 echo "Rebuilding References"
@@ -26,6 +28,4 @@ poetry run make clean
 echo "Building docs in html"
 poetry run make html
 
-# export requirements.txt for Conda environment setup
 cd ..
-poetry export -f requirements.txt --output ./requirements.txt --without-hashes

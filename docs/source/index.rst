@@ -30,7 +30,7 @@ The modularity of :code:`gnss_lib_py` is made possibly by the unifying
 numeric and string data consistently.
 We provide standard row names for :code:`NavData` elements on the
 :ref:`reference page<reference>`.
-These names ensure cross compatability between different datasets and
+These names ensure cross compatibility between different datasets and
 algorithms.
 
 Source Code
@@ -89,9 +89,11 @@ In the directory organization above:
 
       * `2021 Google Android Derived Dataset <https://www.kaggle.com/c/google-smartphone-decimeter-challenge>`__
       * `2022 Google Android Derived Dataset <https://www.kaggle.com/competitions/smartphone-decimeter-2022>`__
-      * `Precise Ephemeris Data <https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html>`__
       * `TU Chemnitz smartLoc Dataset <https://www.tu-chemnitz.de/projekt/smartLoc/gnss_dataset.html.en#Datasets>`__
       * `NMEA <https://www.sparkfun.com/datasheets/GPS/NMEA%20Reference%20Manual-Rev2.1-Dec07.pdf>`__
+      * `RINEX .n and .o <https://files.igs.org/pub/data/format/rinex305.pdf>`__
+      * `SP3 precise orbits <https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/orbit_products.html>`__
+      * `CLK clock products <https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/clock_products.html>`__
 
   * The :code:`utils` directory contains utilities used to handle
     GNSS measurements, time conversions, visualizations, satellite
