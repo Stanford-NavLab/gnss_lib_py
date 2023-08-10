@@ -398,3 +398,60 @@ def fixture_error_tolerances():
     error_tol['clock'] = 1
     error_tol['brd_eph'] = -2.5
     return error_tol
+
+@pytest.fixture(name="sp3_path")
+def fixture_sp3_path(root_path):
+    """Filepath of valid .sp3 measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
+    Returns
+    -------
+    sp3_path : string
+        String with location for the unit_test sp3 measurements
+
+    Notes
+    -----
+    Downloaded the relevant .sp3 files from either CORS website [1]_ or
+    CDDIS website [2]_
+
+    References
+    ----------
+    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
+    """
+    sp3_path = os.path.join(root_path, 'sp3/grg21553.sp3')
+    return sp3_path
+
+@pytest.fixture(name="clk_path")
+def fixture_clk_path(root_path):
+    """Filepath of valid .clk measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
+    Returns
+    -------
+    clk_path : string
+        String with location for the unit_test clk measurements
+
+    Notes
+    -----
+    Downloaded the relevant .clk files from either CORS website [1]_ or
+    CDDIS website [2]_
+
+    References
+    ----------
+    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+            Accessed as of August 2, 2022
+
+    """
+    clk_path = os.path.join(root_path, 'clk/grg21553.clk')
+    return clk_path

@@ -104,94 +104,75 @@ class Sp3(NavData):
         self["y_sv_m"] = y_sv_m
         self["z_sv_m"] = z_sv_m
 
-    def extract_sp3(self, gnss_sv_id, sidx, ipos = 10, \
-                         method = 'CubicSpline', verbose = False):
-        """Computing interpolated function over sp3 data for any GNSS
+    def interpolate_sp3(self, navdata, window=6, verbose=False):
+        """Interpolate ECEF position data from sp3 file.
 
         Parameters
         ----------
-        gnss_sv_id : string
-            PRN of satellite for which position should be determined.
-        sidx : int
-            Nearest index within sp3 time series around which interpolated
-            function needs to be centered.
-        ipos : int
-            No. of data points from sp3 data on either side of sidx
-            that will be used for computing interpolated function.
-        method : string
-            Type of interpolation method used for sp3 data (the default is
-            CubicSpline, which depicts third-order polynomial).
+        navdata : gnss_lib_py.parsers.navdata.NavData
+            Instance of the NavData class that must include rows for
+            ``gps_millis`` and ``gnss_sv_id``.
+        window : int
+            Number of points to use in interpolation window.
         verbose : bool
-            If true, prints extra debugging statements.
+            Flag (True/False) for whether to print intermediate steps useful
+            for debugging/reviewing (the default is False)
 
-        Returns
-        -------
-        func_satpos : np.ndarray
-            Instance with 3-D array of scipy.interpolate.interpolate.interp1d
-            that is loaded with .sp3 data
         """
+        # add satellite indexes if not present already.
+        sv_idx_keys = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
+                       'vx_sv_mps','vy_sv_mps','vz_sv_mps']
 
-        sp3data = self.where("gnss_sv_id",gnss_sv_id)
+        for sv_idx_key in sv_idx_keys:
+            if sv_idx_key not in navdata.rows:
+                navdata[sv_idx_key] = np.nan
 
-        func_satpos = np.empty((3,), dtype=object)
-        func_satpos[:] = np.nan
+        available_svs_from_sp3 = np.unique(self["gnss_sv_id"])
 
-        if method=='CubicSpline':
-            low_i = (sidx - ipos) if (sidx - ipos) >= 0 else 0
-            high_i = (sidx + ipos) if (sidx + ipos) <= len(sp3data["gps_millis"]) else -1
+        for gnss_sv_id in np.unique(navdata["gnss_sv_id"]):
+            navdata_id = navdata.where("gnss_sv_id",gnss_sv_id)
+            navdata_id_gps_millis = np.atleast_1d(navdata_id["gps_millis"])
 
-            if verbose:
-                print('Nearest sp3: ', sidx, sp3data["gps_millis"][sidx], \
-                                       sp3data["x_sv_m"][sidx],
-                                       sp3data["y_sv_m"][sidx],
-                                       sp3data["z_sv_m"][sidx])
+            if gnss_sv_id in available_svs_from_sp3:
+                sp3_id = self.where("gnss_sv_id",gnss_sv_id)
+                x_data = sp3_id["gps_millis"]
+                y_data = sp3_id[["x_sv_m","y_sv_m","z_sv_m"]]
 
-            func_satpos[0] = interpolate.CubicSpline(sp3data["gps_millis"][low_i:high_i], \
-                                                     sp3data["x_sv_m"][low_i:high_i])
-            func_satpos[1] = interpolate.CubicSpline(sp3data["gps_millis"][low_i:high_i], \
-                                                     sp3data["y_sv_m"][low_i:high_i])
-            func_satpos[2] = interpolate.CubicSpline(sp3data["gps_millis"][low_i:high_i], \
-                                                     sp3data["z_sv_m"][low_i:high_i])
+                if np.min(navdata_id_gps_millis) < x_data[0] \
+                    or np.max(navdata_id_gps_millis) > x_data[-1]:
+                    raise RuntimeError("sp3 data does not include "\
+                                     + "appropriate times in measurement"\
+                                     + " file for SV ",gnss_sv_id)
 
-        return func_satpos
+                xyz_sv_m = np.zeros((6,len(navdata_id)))
 
+                # iterate through needed polynoials so don't repeat fit
+                insert_indexes = np.searchsorted(x_data,navdata_id_gps_millis)
+                for insert_index in np.unique(insert_indexes):
+                    max_index = min(len(sp3_id)-1,insert_index+int(window/2))
+                    min_index = max(0,insert_index-int(window/2))
+                    x_window = x_data[min_index:max_index]
+                    y_window = y_data[:,min_index:max_index]
 
-    def sp3_snapshot(self, func_satpos, cxtime, hstep = 5e-1,
-                     method='CubicSpline'):
-        """Compute satellite 3D position and velocity.
+                    insert_index_idxs = np.argwhere(insert_indexes==insert_index)
+                    x_interpret = navdata_id_gps_millis[insert_index_idxs]
 
-        Computes from the sp3 interpolated function.
+                    # iterate through x,y, and z
+                    for xyz_index in range(3):
+                        poly = np.polynomial.polynomial.Polynomial.fit(x_window, y_window[xyz_index,:], deg=3)
+                        xyz_sv = poly(x_interpret)
 
-        Parameters
-        ----------
-        func_satpos : np.ndarray
-            Instance with 3-D array of scipy.interpolate.interpolate.interp1d
-            that is loaded with .sp3 data.
-        cxtime : float
-            Time at which the satellite 3-D position and velocity needs to be
-            computed, given 3-D array of interpolated functions.
-        hstep : float
-            Step size in milliseconds used to computing 3-D velocity of any
-            given satellite using central differencing the default is 5e-1).
-        method : string
-            Type of interpolation method used for sp3 data (the default is
-            CubicSpline, which depicts third-order polynomial).
+                        polyder = poly.deriv()
+                        vxyz_sv = polyder(x_interpret)
 
-        Returns
-        -------
-        satpos_sp3 : 3-D array
-            Computed satellite position in ECEF frame (Earth's rotation not included)
-        satvel_sp3 : 3-D array
-            Computed satellite velocity in ECEF frame (Earth's rotation not included)
-        """
-        if method=='CubicSpline':
-            sat_x = func_satpos[0]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
-            sat_y = func_satpos[1]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
-            sat_z = func_satpos[2]([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+                        xyz_sv_m[xyz_index,insert_index_idxs] = xyz_sv
+                        # multiply by 1000 since currently meters/milliseconds
+                        xyz_sv_m[xyz_index+3,insert_index_idxs] = vxyz_sv*1000
 
-        satpos_sp3 = np.array([sat_x[1], sat_y[1], sat_z[1]])
-        satvel_sp3 = np.array([ (sat_x[2]-sat_x[0]) / hstep, \
-                                (sat_y[2]-sat_y[0]) / hstep, \
-                                (sat_z[2]-sat_z[0]) / hstep ])
-
-        return satpos_sp3, (satvel_sp3 * 1e3)
+                row_idx = navdata.argwhere("gnss_sv_id",gnss_sv_id)
+                navdata["x_sv_m",row_idx] = xyz_sv_m[0,:]
+                navdata["y_sv_m",row_idx] = xyz_sv_m[1,:]
+                navdata["z_sv_m",row_idx] = xyz_sv_m[2,:]
+                navdata["vx_sv_mps",row_idx] = xyz_sv_m[3,:]
+                navdata["vy_sv_mps",row_idx] = xyz_sv_m[4,:]
+                navdata["vz_sv_mps",row_idx] = xyz_sv_m[5,:]
