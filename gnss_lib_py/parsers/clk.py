@@ -118,6 +118,8 @@ class Clk(NavData):
         available_svs_from_clk = np.unique(self["gnss_sv_id"])
 
         for gnss_sv_id in np.unique(navdata["gnss_sv_id"]):
+            if verbose:
+                print("interpolating clk for ",gnss_sv_id)
             navdata_id = navdata.where("gnss_sv_id",gnss_sv_id)
             navdata_id_gps_millis = np.atleast_1d(navdata_id["gps_millis"])
 

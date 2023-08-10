@@ -130,6 +130,8 @@ class Sp3(NavData):
         available_svs_from_sp3 = np.unique(self["gnss_sv_id"])
 
         for gnss_sv_id in np.unique(navdata["gnss_sv_id"]):
+            if verbose:
+                print("interpolating sp3 for ",gnss_sv_id)
             navdata_id = navdata.where("gnss_sv_id",gnss_sv_id)
             navdata_id_gps_millis = np.atleast_1d(navdata_id["gps_millis"])
 
