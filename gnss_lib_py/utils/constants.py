@@ -9,6 +9,8 @@ References
 .. [2] International GNSS Service (IGS), RINEX Working Group and Radio
    Technical Commission for Maritime Servies Special Committee. RINEX
    Version 3.04. http://acc.igs.org/misc/rinex304.pdf
+.. [3] https://developer.android.com/reference/android/location/GnssStatus#constants_1
+.. [4] https://developer.android.com/reference/android/location/GnssMeasurement#getCodeType()
 
 """
 
@@ -90,9 +92,24 @@ CONSTELLATION_CHARS = {'G':'gps',
                        }
 """dict : Satellite System identifier from Rinex specification p13 in [2]_."""
 
-NUMSATS = {'gps': (32),
-            'galileo': (36),
-            'beidou': (46),
-            'glonass': (24),
-            'qzss': (3)}
-"""dict : Number of satellites, for identifiers from Rinex specification p13 in [2]_."""
+CONSTELLATION_ANDROID = {1 :'gps',
+                         3 :'glonass',
+                         2 :'sbas',
+                         5 :'beidou',
+                         6 :'galileo',
+                         4 :'qzss',
+                         7 :'irnss',
+                         0 : 'unknown',
+                         }
+"""dict : Satellite System identifier from GNSSStatus specification [3]_."""
+
+SIGNAL_ANDROID = {1 :'gps',
+                         3 :'glonass',
+                         2 :'sbas',
+                         5 :'beidou',
+                         6 :'galileo',
+                         4 :'qzss',
+                         7 :'irnss',
+                         0 : 'unknown',
+                         }
+"""dict : Satellite System identifier from GNSSStatus specification [4]_."""
