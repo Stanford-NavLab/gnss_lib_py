@@ -415,13 +415,13 @@ def fixture_sp3_path(root_path):
 
     Notes
     -----
-    Downloaded the relevant .sp3 files from either CORS website [1]_ or
-    CDDIS website [2]_
+    Downloaded the relevant .sp3 files from either CORS website [3]_ or
+    CDDIS website [4]_
 
     References
     ----------
-    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
-    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+    .. [3]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [4]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
             Accessed as of August 2, 2022
     """
     sp3_path = os.path.join(root_path, 'sp3/grg21553.sp3')
@@ -443,13 +443,13 @@ def fixture_clk_path(root_path):
 
     Notes
     -----
-    Downloaded the relevant .clk files from either CORS website [1]_ or
-    CDDIS website [2]_
+    Downloaded the relevant .clk files from either CORS website [5]_ or
+    CDDIS website [6]_
 
     References
     ----------
-    .. [1]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
-    .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
+    .. [5]  https://geodesy.noaa.gov/UFCORS/ Accessed as of August 2, 2022
+    .. [6]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
             Accessed as of August 2, 2022
 
     """
