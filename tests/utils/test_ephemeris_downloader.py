@@ -113,6 +113,7 @@ def remove_download_eph(ephem_download_path):
 @pytest.mark.parametrize('paths',
                          [
                           None,
+                          "",
                           lazy_fixture("all_ephem_paths"),
                          ])
 def test_load_ephemeris_rinex_nav(ephem_params, ephem_path, paths):
@@ -509,19 +510,49 @@ def test_verify_ephemeris():
     assert len(existing_paths) == 0
     assert needed_files[0][0] == 'igs-ftp.bkg.bund.de'
 
-def test_valid_ephemeris(all_ephem_paths):
+def test_valid_ephemeris(all_ephem_paths,sp3_path,clk_path):
     """Extra tests for full valid coverage.
 
     Parameters
     ----------
     all_ephem_paths : string
         Location of all unit test ephemeris files.
+    sp3_path : string
+        String with location for the unit_test sp3 measurements
+    clk_path : string
+        String with location for the unit_test clk measurements
 
     """
 
-    date = datetime(2023,3,14).astimezone(timezone.utc).date()
+    date = datetime(2023,3,14,2).date()
     valid, path = ed._valid_ephemeris_in_paths(date,
                                                ["rinex_nav_today"],
                                                file_paths=all_ephem_paths)
     assert valid
     assert os.path.split(path)[-1] == "BRDC00WRD_S_20230730000_01D_MN.rnx"
+
+    # check sp3 and clk short file names
+    date = datetime(2021,4,28)
+    valid, path = ed._valid_ephemeris_in_paths(date,
+                                               ["sp3_rapid_CODE"],
+                                               file_paths=[sp3_path,clk_path])
+    assert valid
+    assert os.path.split(path)[-1] == "grg21553.sp3"
+    date = datetime(2021,4,28)
+    valid, path = ed._valid_ephemeris_in_paths(date,
+                                               ["sp3_rapid_GFZ"],
+                                               file_paths=[sp3_path,clk_path])
+    assert valid
+    assert os.path.split(path)[-1] == "grg21553.sp3"
+    date = datetime(2021,4,28)
+    valid, path = ed._valid_ephemeris_in_paths(date,
+                                               ["clk_rapid_CODE"],
+                                               file_paths=[sp3_path,clk_path])
+    assert valid
+    assert os.path.split(path)[-1] == "grg21553.clk"
+    date = datetime(2021,4,28)
+    valid, path = ed._valid_ephemeris_in_paths(date,
+                                               ["clk_rapid_GFZ"],
+                                               file_paths=[sp3_path,clk_path])
+    assert valid
+    assert os.path.split(path)[-1] == "grg21553.clk"
