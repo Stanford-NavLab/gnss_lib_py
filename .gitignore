@@ -25,11 +25,15 @@ results/*
 
 # Ignore downloaded precise ephimerides files by default
 *.sp3
+*.SP3
 *.clk
+*.CLK
 
 # Include unit test files for precise ephimerides
 !data/unit_test/*/*.sp3
+!data/unit_test/*/*.SP3
 !data/unit_test/*/*.clk
+!data/unit_test/*/*.CLK
 
 # Ignore NMEA files by default
 *.nmea
@@ -42,10 +46,10 @@ results/*
 *.*g
 *.rnx
 # Include unit test files for broadcast ephemerides
-!data/unit_test/*/*.*n
-!data/unit_test/*/*.*o
-!data/unit_test/*/*.*g
-!data/unit_test/*/*.rnx
+!data/unit_test/*/*/*.*n
+!data/unit_test/*/*/*.*o
+!data/unit_test/*/*/*.*g
+!data/unit_test/*/*/*.rnx
 
 ########################################
 ##### Common Python and IDE files ######

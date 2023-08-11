@@ -285,6 +285,11 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
 
     navdata = navdata.copy()
     navdata["az_sv_rad"] = np.radians(navdata["az_sv_deg"])
+    # remove SVs below horizon
+    navdata = navdata.where("el_sv_deg",0,"geq")
+    # remove np.nan values caused by potentially faulty data
+    navdata = navdata.where("az_sv_rad",np.nan,"neq")
+    navdata = navdata.where("el_sv_deg",np.nan,"neq")
 
     for c_idx, constellation in enumerate(_sort_gnss_ids(np.unique(navdata["gnss_id"]))):
         const_subset = navdata.where("gnss_id",constellation)
@@ -296,11 +301,6 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         # iterate through each satellite
         for sv_name in np.unique(const_subset["sv_id"]):
             sv_subset = const_subset.where("sv_id",sv_name)
-            # remove np.nan values caused by potentially faulty data
-            sv_subset = sv_subset.where("az_sv_rad",np.nan,"neq")
-            sv_subset = sv_subset.where("el_sv_deg",np.nan,"neq")
-            if len(sv_subset) == 0:
-                continue
             # only plot ~ 50 points for each sat to decrease time
             # it takes to plot these line collections
             step = max(1,int(len(sv_subset)/50.))

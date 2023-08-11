@@ -97,6 +97,19 @@ def fixture_nmea_file_no_checksum(root_path):
 
 
 def compare_nmea_values(nmea_instance, row_name, exp_value, eq_decimal):
+    """Helper funtion for comparing NMEA objects.
+
+    nmea_instance : gnss_lib_py.parsers.nmea.Nmea
+        Nmea instance to check.
+    row_name : string
+        Row name to check against
+    exp_value : str, float, or int
+        Expected value of element.
+    eq_decimal : int
+        Decimal passed into assert_almost_equal after which isn't
+        checked for equivalency.
+
+    """
     if isinstance(exp_value, str):
         np.testing.assert_string_equal(str(nmea_instance[row_name, 0]), exp_value)
     else:
@@ -125,6 +138,18 @@ def test_nmea_loading(nmea_file, check, row_name, exp_value, eq_decimal):
     ----------
     nmea_file : string
         Location of the NMEA file to be loaded
+    check : bool
+        `True` if the checksum at the end of the NMEA sentence should
+        be ignored. `False` if the checksum should be checked and lines
+        with incorrect checksums will be ignored.
+    row_name : string
+        Row name to check against
+    exp_value : str, float, or int
+        Expected value of element.
+    eq_decimal : int
+        Decimal passed into assert_almost_equal after which isn't
+        checked for equivalency.
+    
     """
     # Testing base version of loading with all default parameters
     nmea_navdata = Nmea(nmea_file, check=check)

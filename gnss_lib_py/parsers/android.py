@@ -2,7 +2,7 @@
 
 """
 
-__authors__ = "Ashwin Kanhere, Shubh Gupta, Adam Dai"
+__authors__ = "Ashwin Kanhere, Derek Knowles, Shubh Gupta, Adam Dai"
 __date__ = "02 Nov 2021"
 
 
@@ -207,6 +207,43 @@ class AndroidDerived2022(NavData):
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
 
+    def get_state_estimate(self):
+        """Extract relevant rows in a separate NavData for state estimate.
+
+        Returns
+        -------
+        state_estimate : gnss_lib_py.parsers.navdata.NavData
+            Instance of `NavData` containing state estimate rows present
+            in the instance of `AndroidDerived2022`.
+        """
+
+        rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m',
+                        'vx_rx*_mps', 'vy_rx*_mps', 'vz_rx*_mps',
+                        'b_rx*_m', 'b_dot_rx*_mps']
+        rx_rows_in_measure = ['gps_millis']
+        for row_wildcard in rx_rows_to_find:
+            try:
+                row_map = self.find_wildcard_indexes(row_wildcard, max_allow=1)
+                row = row_map[row_wildcard][0]
+                rx_rows_in_measure.append(row)
+            except KeyError:
+                warnings.warn(f"Row wildcard: {row_wildcard} not found", RuntimeWarning)
+                continue
+
+        state_estimate = NavData()
+        for _, _, measure_frame in self.loop_time('gps_millis', delta_t_decimals=-2):
+            temp_est = NavData()
+            for row_wildcard in rx_rows_in_measure:
+                temp_est[row_wildcard] = measure_frame[row_wildcard, 0]
+            if len(state_estimate)==0:
+                state_estimate = temp_est
+            else:
+                state_estimate.concat(temp_est, inplace=True)
+        return state_estimate
+
+
+
+
     @staticmethod
     def _row_map():
         """Map of row names from loaded to gnss_lib_py standard
@@ -374,10 +411,9 @@ class AndroidRawImu(NavData):
 
         Returns
         -------
-        accel : pd.DataFrame
-            Dataframe that contains the accel measurements from the log.
-        gyro : pd.DataFrame
-            Dataframe that contains the gyro measurements from the log.
+        measurements : pd.DataFrame
+            Dataframe that contains the accel and gyro measurements from
+            the log.
 
         """
 
@@ -561,7 +597,7 @@ def solve_kaggle_baseline(navdata):
                                      data_df["unix_millis"].to_numpy())
     state_estimate["lat_rx_deg"] = lat
     state_estimate["lon_rx_deg"] = lon
-    state_estimate["alt_rx_deg"] = alt
+    state_estimate["alt_rx_m"] = alt
 
     return state_estimate
 
