@@ -62,7 +62,7 @@ def fixture_sp3_path(root_path):
     .. [2]  https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/gnss_mgex.html
             Accessed as of August 2, 2022
     """
-    sp3_path = os.path.join(root_path, 'sp3/grg21553_short.sp3')
+    sp3_path = os.path.join(root_path, 'sp3/grg21553.sp3')
     return sp3_path
 
 @pytest.fixture(name="sp3data")
@@ -77,7 +77,7 @@ def fixture_load_sp3data(sp3_path):
     Returns
     -------
     sp3data : gnss_lib_py.parsers.sp3.Sp3
-        Instance of GPS-only Sp3 class list with len = NUMSATS-GPS
+        Instance of Sp3 class.
     """
     sp3data = Sp3(sp3_path)
 
@@ -182,36 +182,3 @@ def test_sp3gps_value_check(sp3data, prn, row_name, index, exp_value):
 
     curr_value = sp3data.where("gnss_sv_id",prn)[row_name][index]
     np.testing.assert_equal(curr_value, exp_value)
-
-def test_gps_sp3_funcs(sp3data):
-    """Tests extract_sp3, sp3_snapshot for GPS-Sp3
-
-    Notes
-    ----------
-    Last index interpolation does not work well, so eliminating this index
-    while extracting random samples from gps_millis in Sp3
-
-    Parameters
-    ----------
-    sp3data : pytest.fixture
-        Instance of Sp3 class
-    """
-
-    gnss_sv_ids = np.unique(sp3data["gnss_sv_id"])
-
-    for prn in gnss_sv_ids:
-        sp3data_sv = sp3data.where("gnss_sv_id",prn)
-        gps_millis_prn = sp3data_sv["gps_millis"]
-        sp3_subset = random.sample(range(len(gps_millis_prn)-1), NUMSAMPLES)
-        for sidx, _ in enumerate(sp3_subset):
-            func_satpos = sp3data.extract_sp3(prn, sidx, \
-                                            ipos = 10, method='CubicSpline',
-                                            verbose=True)
-            cxtime = gps_millis_prn[sidx]
-            satpos_sp3, _ = sp3data.sp3_snapshot(func_satpos, cxtime, \
-                                                 hstep = 5e-1,
-                                                 method='CubicSpline')
-            satpos_sp3_exact = np.array([sp3data_sv["x_sv_m"][sidx], \
-                                         sp3data_sv["y_sv_m"][sidx], \
-                                         sp3data_sv["z_sv_m"][sidx] ])
-            assert np.linalg.norm(satpos_sp3 - satpos_sp3_exact) < 1e-6

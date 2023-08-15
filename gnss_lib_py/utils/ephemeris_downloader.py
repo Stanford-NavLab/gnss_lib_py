@@ -104,6 +104,9 @@ def load_ephemeris(file_type, gps_millis,
 
     """
 
+    if isinstance(file_paths, (str, os.PathLike)):
+        file_paths = [file_paths]
+
     existing_paths, needed_files = _verify_ephemeris(file_type,
                                                      gps_millis,
                                                      constellations,
@@ -477,6 +480,9 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
             for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".sp3":
+                    return True, path
 
         # sp3 from last two weeks
         elif possible_type == "sp3_rapid_GFZ":
@@ -497,6 +503,9 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                     return True, path
             for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".sp3":
                     return True, path
 
         # sp3 if longer than two weeks ago
@@ -519,6 +528,9 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
             for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".sp3":
+                    return True, path
 
         # clk from last three days
         elif possible_type == "clk_rapid_CODE":
@@ -539,6 +551,9 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                     return True, path
             for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
                     return True, path
 
         # clk from last two weeks
@@ -561,6 +576,9 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
             for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
                     return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
+                    return True, path
 
         # clk if longer than two weeks ago
         elif possible_type == "clk_final_CODE":
@@ -581,6 +599,9 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                     return True, path
             for path in file_paths:
                 if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
                     return True, path
 
         else:
