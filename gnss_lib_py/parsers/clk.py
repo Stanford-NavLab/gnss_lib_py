@@ -160,4 +160,4 @@ class Clk(NavData):
 
                 row_idx = navdata.argwhere("gnss_sv_id",gnss_sv_id)
                 navdata["b_sv_m",row_idx] = b_sv_m
-                navdata["b_dot  _sv_mps",row_idx] = b_dot_sv_mps
+                navdata["b_dot_sv_mps",row_idx] = b_dot_sv_mps
