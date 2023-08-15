@@ -24,7 +24,7 @@ from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH, load_ephe
 
 def add_sv_states(navdata, source = 'precise', file_paths = None,
                   download_directory = DEFAULT_EPHEM_PATH,
-                  verbose = True):
+                  verbose = False):
     """Add SV states to measurements using SP3 and CLK or Rinex files.
 
     If source is 'precise' then will use SP3 and CLK files.
@@ -762,15 +762,16 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
 def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
                                  clk_parsed_file, inplace=False,
                                  verbose = False):
-    """Compute satellite information using .sp3 and .clk for any GNSS constellation
+    """Compute satellite states using .sp3 and .clk
 
     Either adds or replaces satellite ECEF position data and clock bias
-    for any satellite that exists in the provided sp3 file
+    for any satellite that exists in the provided sp3 file and clk file.
 
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class that depicts android derived dataset
+        Instance of the NavData class that must include rows for
+        ``gps_millis`` and ``gnss_sv_id``.
     sp3_parsed_file : gnss_lib_py.parsers.sp3.Sp3
         SP3 data
     clk_parsed_file : gnss_lib_py.parsers.clk.Clk
@@ -790,121 +791,16 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
         precise ephemerides from .sp3 and .clk files
     """
 
-    # Initialize the sp3 and clk iref arrays
-    sp3_iref_old = {}
-    satfunc_xyz_old = {}
-    clk_iref_old = {}
-    satfunc_t_old = {}
-
-
     # combine gnss_id and sv_id into gnss_sv_ids
     if inplace:
         navdata["gnss_sv_id"] = _combine_gnss_sv_ids(navdata)
+        sp3_parsed_file.interpolate_sp3(navdata, verbose=verbose)
+        clk_parsed_file.interpolate_clk(navdata, verbose=verbose)
     else:
         new_navdata = navdata.copy()
         new_navdata["gnss_sv_id"] = _combine_gnss_sv_ids(new_navdata)
-
-    # add satellite indexes if not present already.
-    sv_idx_keys = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
-                'vx_sv_mps','vy_sv_mps','vz_sv_mps', \
-                'b_sv_m', 'b_dot_sv_mps']
-    for sv_idx_key in sv_idx_keys:
-        if sv_idx_key not in navdata.rows:
-            if inplace:
-                navdata[sv_idx_key] = np.nan
-            else:
-                new_navdata[sv_idx_key] = np.nan
-
-    if inplace:
-        iterate_navdata = navdata
-    else:
-        iterate_navdata = new_navdata
-
-    for row_idx, row in enumerate(iterate_navdata):
-        gnss_sv_id = str(row["gnss_sv_id"])
-        # continue if no sp3 or clk data availble
-        if gnss_sv_id not in sp3_parsed_file["gnss_sv_id"] \
-          or gnss_sv_id not in clk_parsed_file["gnss_sv_id"] \
-          or len(sp3_parsed_file.where("gnss_sv_id",gnss_sv_id)) == 0 \
-          or len(clk_parsed_file.where("gnss_sv_id",gnss_sv_id)) == 0: continue
-
-        timestep = row["gps_millis"]
-
-        # Perform nearest time step search to compute iref values for sp3 and clk
-        sp3_iref = np.argmin(abs(np.array(sp3_parsed_file.where("gnss_sv_id",
-                            gnss_sv_id)["gps_millis"]) - timestep ))
-        clk_iref = np.argmin(abs(np.array(clk_parsed_file.where("gnss_sv_id",
-                            gnss_sv_id)["gps_millis"]) - timestep ))
-
-        # Carry out .sp3 processing by first checking if
-        # previous interpolated function holds
-        if gnss_sv_id in sp3_iref_old and sp3_iref == sp3_iref_old[gnss_sv_id]:
-            func_satpos = satfunc_xyz_old[gnss_sv_id]
-        else:
-            # if does not hold, recompute the interpolation function based on current iref
-            if verbose:
-                print('SP3: Computing new interpolation for',gnss_sv_id)
-            func_satpos = sp3_parsed_file.extract_sp3(gnss_sv_id,
-                                                      sp3_iref)
-            # Update the relevant interp function and iref values
-            satfunc_xyz_old[gnss_sv_id] = func_satpos
-            sp3_iref_old[gnss_sv_id] = sp3_iref
-
-        # Compute satellite position and velocity using interpolated function
-        satpos_sp3, satvel_sp3 = sp3_parsed_file.sp3_snapshot(func_satpos, timestep)
-
-        # Adjust the satellite position based on Earth's rotation
-        trans_time = row["raw_pr_m"] / consts.C
-        del_x = consts.OMEGA_E_DOT * satpos_sp3[1] * trans_time
-        del_y = -consts.OMEGA_E_DOT * satpos_sp3[0] * trans_time
-        satpos_sp3[0] = satpos_sp3[0] + del_x
-        satpos_sp3[1] = satpos_sp3[1] + del_y
-
-        # Carry out .clk processing by first checking if previous interpolated
-        # function holds
-        if gnss_sv_id in clk_iref_old and clk_iref == clk_iref_old[gnss_sv_id]:
-            func_satbias = satfunc_t_old[gnss_sv_id]
-        else:
-            # if does not hold, recompute the interpolation function based on current iref
-            if verbose:
-                print('CLK: Computing new interpolation for',gnss_sv_id)
-            func_satbias = clk_parsed_file.extract_clk(gnss_sv_id,
-                                                       clk_iref)
-            # Update the relevant interp function and iref values
-            satfunc_t_old[gnss_sv_id] = func_satbias
-            clk_iref_old[gnss_sv_id] = clk_iref
-
-        # Compute satellite clock bias and drift using interpolated function
-        satbias_clk, satdrift_clk = clk_parsed_file.clk_snapshot(func_satbias, timestep)
-
-        if inplace:
-            # update *_sv_m of navdata with the estimated values from .sp3 files
-            navdata['x_sv_m', row_idx] = np.array([satpos_sp3[0]])
-            navdata['y_sv_m', row_idx] = np.array([satpos_sp3[1]])
-            navdata['z_sv_m', row_idx] = np.array([satpos_sp3[2]])
-
-            # update v*_sv_mps of navdata with the estimated values from .sp3 files
-            navdata["vx_sv_mps", row_idx] = np.array([satvel_sp3[0]])
-            navdata["vy_sv_mps", row_idx] = np.array([satvel_sp3[1]])
-            navdata["vz_sv_mps", row_idx] = np.array([satvel_sp3[2]])
-
-            # update clock data of navdata with the estimated values from .clk files
-            navdata["b_sv_m", row_idx] = np.array([satbias_clk])
-            navdata["b_dot_sv_mps", row_idx] = np.array([satdrift_clk])
-        else:
-            # update *_sv_m of navdata with the estimated values from .sp3 files
-            new_navdata['x_sv_m', row_idx] = np.array([satpos_sp3[0]])
-            new_navdata['y_sv_m', row_idx] = np.array([satpos_sp3[1]])
-            new_navdata['z_sv_m', row_idx] = np.array([satpos_sp3[2]])
-
-            # update v*_sv_mps of navdata with the estimated values from .sp3 files
-            new_navdata["vx_sv_mps", row_idx] = np.array([satvel_sp3[0]])
-            new_navdata["vy_sv_mps", row_idx] = np.array([satvel_sp3[1]])
-            new_navdata["vz_sv_mps", row_idx] = np.array([satvel_sp3[2]])
-
-            # update clock data of navdata with the estimated values from .clk files
-            new_navdata["b_sv_m", row_idx] = np.array([satbias_clk])
-            new_navdata["b_dot_sv_mps", row_idx] = np.array([satdrift_clk])
+        sp3_parsed_file.interpolate_sp3(new_navdata, verbose=verbose)
+        clk_parsed_file.interpolate_clk(new_navdata, verbose=verbose)
 
     if inplace:
         return None
