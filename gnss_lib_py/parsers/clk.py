@@ -130,7 +130,14 @@ class Clk(NavData):
 
                 if np.min(navdata_id_gps_millis) < x_data[0] \
                     or np.max(navdata_id_gps_millis) > x_data[-1]:
-                    raise RuntimeError("clk data does not include all "\
+                    print(gnss_sv_id)
+                    print("t:",navdata_id_gps_millis[0])
+                    print("t:",np.min(x_data))
+                    print("t:",np.max(x_data))
+                    # todo check E30 at 1362865253267
+                    # E30 is available earlier in the day but not later
+
+                    raise RuntimeWarning("clk data does not include all "\
                                      + "times in measurement file.")
 
                 b_sv_m = np.zeros(len(navdata_id))
