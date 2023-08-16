@@ -71,7 +71,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
 
     return navdata
 
-def fde_edm(navdata, max_faults=1, threshold=1.0, verbose=False):
+def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False):
     """Euclidean distance matrix-based fault detection and exclusion.
 
     See [1]_ for more detailed explanation of algorithm.
@@ -105,10 +105,15 @@ def fde_edm(navdata, max_faults=1, threshold=1.0, verbose=False):
     """
 
     fault_edm = []
-    dims = 3
 
     if threshold is None:
-        threshold = 100
+        threshold = 1E6
+
+    # number of check indexes
+    if max_faults is None:
+        nci_nominal = 10
+    else:
+        nci_nominal = max_faults + 2
 
     data = {}
     data_45means = []
@@ -121,31 +126,26 @@ def fde_edm(navdata, max_faults=1, threshold=1.0, verbose=False):
         corr_pr_m = navdata_subset["corr_pr_m"]
 
         # remove NaN indexes
-        nan_indexes = sorted(list(set(np.arange(nsl)[np.isnan(sv_m).any(axis=0)]).union( \
-                                  set(np.arange(nsl)[np.isnan(corr_pr_m)]).union( \
+        nan_idxs = sorted(list(set(np.arange(nsl)[np.isnan(sv_m).any(axis=0)]).union( \
+                               set(np.arange(nsl)[np.isnan(corr_pr_m)]).union( \
                                   ))))[::-1]
-        fault_indexes = []
+        fault_idxs = []
 
-        D = _edm_from_satellites_ranges(sv_m,corr_pr_m)
+        edm = _edm_from_satellites_ranges(sv_m,corr_pr_m)
 
-        while True:
+        detection_statistic = np.inf
 
-            # EDM FDE
-            n = D.shape[0]  # shape of EDM
+        while detection_statistic > threshold:
+
             # stop removing indexes either b/c you need at least four
             # satellites or if maximum number of faults has been reached
-            if n <= 5 or (max_faults != None and len(fault_indexes) >= max_faults):
+            if len(edm) - len(fault_idxs) <= 5 or (max_faults is not None and len(fault_idxs) >= max_faults):
                 break
 
-            # double center EDM to retrive the corresponding Gram matrix
-            J = np.eye(n) - (1./n)*np.ones((n,n))
-            G = -0.5*J.dot(D).dot(J)
-
             try:
-                # perform singular value decomposition
-                U, S, Vh = np.linalg.svd(G)
-                # S = np.log(S)
-                # S = (S-S[-1])/(S[0]-S[-1])
+                edm_detect = np.delete(np.delete(edm,fault_idxs,0),fault_idxs,1)
+                detection_statistic_detect, svd_u, svd_s, svd_v = _edm_detection_statistic(edm_detect)
+                detection_statistic = detection_statistic_detect[0]
             except Exception as exception:
                 if verbose:
                     print(exception)
@@ -153,25 +153,30 @@ def fde_edm(navdata, max_faults=1, threshold=1.0, verbose=False):
                 stop
                 break
 
-            detection_statistic = np.mean(S[3:5])
-            original_sings = S.copy()
-            print("before statistic:",[detection_statistic])
+            if detection_statistic < threshold:
+                if verbose:
+                    print("below threshold")
+                break
 
-            # number of check indexes
-            nci = 10
 
-            u3_suspects = list(np.argsort(np.abs(U[:,3]))[::-1][:nci])
-            u4_suspects = list(np.argsort(np.abs(U[:,4]))[::-1][:nci])
-            v3_suspects = list(np.argsort(np.abs(Vh[3,:]))[::-1][:nci])
-            v4_suspects = list(np.argsort(np.abs(Vh[4,:]))[::-1][:nci])
+            original_sings = svd_s.copy()
+            if verbose:
+                print("before statistic:",detection_statistic)
+
+            nci = min(nci_nominal,len(edm_detect))
+            u3_suspects = list(np.argsort(np.abs(svd_u[:,3]))[::-1][:nci])
+            u4_suspects = list(np.argsort(np.abs(svd_u[:,4]))[::-1][:nci])
+            v3_suspects = list(np.argsort(np.abs(svd_v[:,3]))[::-1][:nci])
+            v4_suspects = list(np.argsort(np.abs(svd_v[:,4]))[::-1][:nci])
             suspects = u3_suspects + u4_suspects \
                      + v3_suspects + v4_suspects
 
             counts = {i:suspects.count(i) for i in (set(suspects)-set([0]))}
-            print("counts:",counts)
+            if verbose:
+                print("counts:",counts)
+
             # suspects must be in all four singular vectors
             fault_suspects = [i for i,v in counts.items() if v == 4]
-
 
             # plt.figure()
             # plt.imshow(U)
@@ -181,193 +186,84 @@ def fde_edm(navdata, max_faults=1, threshold=1.0, verbose=False):
             # plt.imshow(Vh)
             # plt.colorbar()
 
-            print("U3 min",np.argmin(U[:,3]))
-            print("U4 min",np.argmin(U[:,4]))
-            print("U3 max",np.argmax(U[:,3]))
-            print("U4 max",np.argmax(U[:,4]))
-            print("V3 min",np.argmin(Vh[3,:]))
-            print("V4 min",np.argmin(Vh[4,:]))
-            print("V3 max",np.argmax(Vh[3,:]))
-            print("V4 max",np.argmax(Vh[4,:]))
+            if verbose:
+                print("U3 abs",u3_suspects)
+                print("U4 abs",u4_suspects)
+                print("V3 abs",v3_suspects)
+                print("V4 abs",v4_suspects)
 
-            print("U3 abs",u3_suspects)
-            print("U4 abs",u4_suspects)
-            print("V3 abs",v3_suspects)
-            print("V4 abs",v4_suspects)
             print("fault suspects:",fault_suspects)
+            stacked_edms = [np.delete(np.delete(edm,fault_idxs+[i],0),
+                                                fault_idxs+[i],1) \
+                                                for i in fault_suspects]
+            edms_exclude = np.stack(stacked_edms,axis=0)
+            detection_statistic_exclude, _, svd_s_exclude, _ = _edm_detection_statistic(edms_exclude)
 
-            def gram_removed(D,i):
 
-                D = np.delete(np.delete(D,i,0),i,1)
-                n = D.shape[0]
-                # double center EDM to retrive the corresponding Gram matrix
-                J = np.eye(n) - (1./n)*np.ones((n,n))
-                G = -0.5*J.dot(D).dot(J)
-                return G
+            # add also all fault suspects combined together
+            if len(fault_suspects) > 1 and (max_faults is None or len(fault_suspects)+len(fault_idxs) <= max_faults) \
+                and (len(edm) - len(fault_suspects) - len(fault_idxs)) >= 4:
+                edm_all_faults = np.delete(np.delete(edm,fault_idxs+fault_suspects,0),
+                                                         fault_idxs+fault_suspects,1)
+                detection_statistic_all, _, svd_s_all, _ = _edm_detection_statistic(edm_all_faults)
 
-            stacked_matrices = [gram_removed(D,i) for i in fault_suspects]
-            full = np.stack(stacked_matrices,axis=0)
-            print(full.shape)
-            U, S, Vh = np.linalg.svd(full,full_matrices=True)
-            print("shapes:")
-            print(U.shape)
-            # print(U[:,:,0])
-            print(S.shape)
-            # print(S[:,0])
-            print(Vh.shape)
-            new_detection_statistic = np.mean(S[:,3:5],axis=1)
-            print("after exclusion:",new_detection_statistic)
+                # add to combined arrays to make argmin easy
+                stacked_edms.append(edm_all_faults)
+                detection_statistic_exclude += detection_statistic_all
+                fault_suspects.append(fault_suspects.copy())
 
-            _, bonus_sings, _ = np.linalg.svd(gram_removed(D,fault_suspects))
+            # also add detection with none removed
+            detection_statistic_exclude += detection_statistic_detect
+            fault_suspects.append([])
 
             # hi
+            if verbose:
+                print("fault suspects:",fault_suspects)
+                print("statistic after exclusion:",detection_statistic_exclude)
 
-            plt.figure()
-            for s_index in range(len(S)):
-                plt.scatter(list(range(S.shape[1])),S[s_index,:],
-                            label=str(fault_suspects[s_index])+" removed")
-            plt.scatter(list(range(len(original_sings))),original_sings,label="original")
-            plt.scatter(list(range(len(bonus_sings))),bonus_sings,label="all")
-            plt.yscale("log")
-            plt.legend()
-            plt.show()
-
+                # plt.figure()
+                # plt.scatter(list(range(original_sings.shape[1])),original_sings[0],label="original")
+                # for s_index in range(len(svd_s_exclude)):
+                #     plt.scatter(list(range(svd_s_exclude.shape[1])),svd_s_exclude[s_index,:],
+                #                 label=str(fault_suspects[s_index])+" removed")
+                # plt.scatter(list(range(svd_s_all.shape[1])),svd_s_all[0],label="all removed")
+                # plt.yscale("log")
+                # plt.legend()
+                #
+                # plt.figure()
+                # plt.scatter(0,detection_statistic,label="original")
+                # for s_index in range(len(svd_s_exclude)):
+                #     plt.scatter(0,detection_statistic_exclude[s_index],
+                #                 label=str(fault_suspects[s_index])+" removed")
+                # plt.scatter(0,detection_statistic_all,label="all removed")
+                # plt.yscale("log")
+                # plt.legend()
 
             # plt.scatter(range(len(S)),S)
             # plt.yscale("log")
             # plt.show()
-            data_45means.append(np.mean(S[3:5]))
 
-            break
+            min_idx = np.argmin(detection_statistic_exclude)
+            if verbose:
+                print("min index:",min_idx)
+                print("best option:",fault_suspects[min_idx])
+
+            # if nothing was removed
+            if min_idx == len(fault_suspects) - 1:
+                break
+
+            fault_idxs += fault_suspects[min_idx]
+            detection_statistic = detection_statistic_exclude[min_idx]
+
+            # plt.show()
 
 
-        # while True:
-        #
-        #     if ri != None:
-        #         if verbose:
-        #             print("removing index: ",ri)
-        #
-        #         if isinstance(ri,np.int64):
-        #             # add removed index to index list passed back
-        #             tri.append(oi[ri]-1)
-        #             # keep track of original indexes (since deleting)
-        #             oi = np.delete(oi,ri)
-        #             ri = [ri]
-        #         else:
-        #             for ri_val in ri:
-        #                 oi = np.delete(oi,ri_val-1)
-        #
-        #         for ri_val in ri:
-        #
-        #             # remove index from EDM
-        #             D = np.delete(D,ri_val,axis=0)
-        #             D = np.delete(D,ri_val,axis=1)
-        #
-        #     # EDM FDE
-        #     n = D.shape[0]  # shape of EDM
-        #     # stop removing indexes either b/c you need at least four
-        #     # satellites or if maximum number of faults has been reached
-        #     if n <= 5 or (max_faults != None and len(tri) >= max_faults):
-        #         break
-        #
-        #     # double center EDM to retrive the corresponding Gram matrix
-        #     J = np.eye(n) - (1./n)*np.ones((n,n))
-        #     G = -0.5*J.dot(D).dot(J)
-        #
-        #     try:
-        #         # perform singular value decomposition
-        #         U, S, Vh = np.linalg.svd(G)
-        #     except Exception as exception:
-        #         if verbose:
-        #             print(exception)
-        #         break
-        #
-        #     # calculate detection test statistic
-        #     warn = S[dims]*(sum(S[dims:])/float(len(S[dims:])))/S[0]
-        #     if verbose:
-        #         print("\nDetection test statistic:",warn)
-        #
-        #     if warn > threshold:
-        #         ri = None
-        #
-        #         u_mins = set(np.argsort(U[:,dims])[:2])
-        #         u_maxes = set(np.argsort(U[:,dims])[-2:])
-        #         v_mins = set(np.argsort(Vh[dims,:])[:2])
-        #         v_maxes = set(np.argsort(Vh[dims,:])[-2:])
-        #
-        #         def test_option(ri_option):
-        #             # remove option
-        #             D_opt = np.delete(D.copy(),ri_option,axis=0)
-        #             D_opt = np.delete(D_opt,ri_option,axis=1)
-        #
-        #             # reperform double centering to obtain Gram matrix
-        #             n_opt = D_opt.shape[0]
-        #             J_opt = np.eye(n_opt) - (1./n_opt)*np.ones((n_opt,n_opt))
-        #             G_opt = -0.5*J_opt.dot(D_opt).dot(J_opt)
-        #
-        #             # perform singular value decomposition
-        #             _, S_opt, _ = np.linalg.svd(G_opt)
-        #
-        #             # calculate detection test statistic
-        #             warn_opt = S_opt[dims]*(sum(S_opt[dims:])/float(len(S_opt[dims:])))/S_opt[0]
-        #
-        #             return warn_opt
-        #
-        #
-        #         # get all potential options
-        #         ri_options = u_mins | v_mins | u_maxes | v_maxes
-        #         # remove the receiver as a potential fault
-        #         ri_options = ri_options - set([reci])
-        #         ri_tested = []
-        #         ri_warns = []
-        #
-        #         ui = -1
-        #         while np.argsort(np.abs(U[:,dims]))[ui] in ri_options:
-        #             ri_option = np.argsort(np.abs(U[:,dims]))[ui]
-        #
-        #             # calculate test statistic after removing index
-        #             warn_opt = test_option(ri_option)
-        #
-        #             # break if test statistic decreased below threshold
-        #             if warn_opt < threshold:
-        #                 ri = ri_option
-        #                 if verbose:
-        #                     print("chosen ri: ", ri)
-        #                 break
-        #             else:
-        #                 ri_tested.append(ri_option)
-        #                 ri_warns.append(warn_opt)
-        #             ui -= 1
-        #
-        #         # continue searching set if didn't find index
-        #         if ri == None:
-        #             ri_options_left = list(ri_options - set(ri_tested))
-        #
-        #             for ri_option in ri_options_left:
-        #                 warn_opt = test_option(ri_option)
-        #
-        #                 if warn_opt < threshold:
-        #                     ri = ri_option
-        #                     if verbose:
-        #                         print("chosen ri: ", ri)
-        #                     break
-        #                 else:
-        #                     ri_tested.append(ri_option)
-        #                     ri_warns.append(warn_opt)
-        #
-        #         # if no faults decreased below threshold, then remove the
-        #         # index corresponding to the lowest test statistic value
-        #         if ri == None:
-        #             idx_best = np.argmin(np.array(ri_warns))
-        #             ri = ri_tested[idx_best]
-        #             if verbose:
-        #                 print("chosen ri: ", ri)
-        #     else:
-        #         break
+        # important step! remove 1 since index 0 is the receiver index
+        fault_idxs = [i-1 for i in fault_idxs]
 
         fault_edm_subset = np.array([0] * len(navdata_subset))
-        fault_edm_subset[fault_indexes] = 1
-        fault_edm_subset[nan_indexes] = 2
+        fault_edm_subset[fault_idxs] = 1
+        fault_edm_subset[nan_idxs] = 2
         fault_edm += list(fault_edm_subset)
 
     data["data_45means"] = data_45means
@@ -378,6 +274,41 @@ def fde_edm(navdata, max_faults=1, threshold=1.0, verbose=False):
 
     return navdata, data
 
+def _edm_detection_statistic(edm):
+    """Calculate the EDM FDE detection statistic.
+
+    Parameters
+    ----------
+    edm : np.ndarray
+        Euclidean distance matrix from GNSS measurements
+
+    Returns
+    -------
+    detection_statistic : list
+        EDM FDE detection statistics
+    svd_u : np.ndarray
+        The U matrix from SVD
+    svd_s : np.nddary
+        The Sigma matrix from SVD
+    svd_v : np.ndarray
+        The V matrix from SVD
+
+    """
+
+    dims = edm.shape[1]
+
+    # double center EDM to retrive the corresponding Gram matrix
+    center = np.eye(dims) - (1./dims) * np.ones((dims,dims))
+    gram = -0.5 * center @ edm @ center
+
+    svd_u, svd_s, svd_vt = np.linalg.svd(gram,full_matrices=True)
+    svd_v = svd_vt.T
+    svd_s = np.atleast_2d(svd_s)
+    print("svd s:",svd_s.shape)
+
+    detection_statistic = list(np.mean(svd_s[:,3:5],axis=1))
+
+    return detection_statistic, svd_u, svd_s, svd_v
 
 def fde_residual_old(navdata, receiver_state, max_faults, threshold,
                  verbose=False):
@@ -426,14 +357,14 @@ def fde_residual_old(navdata, receiver_state, max_faults, threshold,
         corr_pr_m = navdata_subset["corr_pr_m"]
 
         # remove NaN indexes
-        nan_indexes = sorted(list(set(np.arange(subset_length)[np.isnan(sv_m).any(axis=0)]).union( \
+        nan_idxs = sorted(list(set(np.arange(subset_length)[np.isnan(sv_m).any(axis=0)]).union( \
                                   set(np.arange(subset_length)[np.isnan(corr_pr_m)]).union( \
                                   ))))[::-1]
 
         original_indexes = np.arange(subset_length)
         # remove NaN indexes
-        navdata_subset.remove(cols=nan_indexes,inplace=True)
-        original_indexes = np.delete(original_indexes, nan_indexes)
+        navdata_subset.remove(cols=nan_idxs,inplace=True)
+        original_indexes = np.delete(original_indexes, nan_idxs)
 
         if len(navdata_subset) < 6:
             ri = []
@@ -479,7 +410,7 @@ def fde_residual_old(navdata, receiver_state, max_faults, threshold,
 
         fault_residual_subset = np.array([0] * subset_length)
         fault_residual_subset[original_indexes[ri]] = 1
-        fault_residual_subset[nan_indexes] = 2
+        fault_residual_subset[nan_idxs] = 2
         fault_residual += list(fault_residual_subset)
 
 
@@ -529,13 +460,13 @@ def fde_solution_separation_old(navdata, max_faults, threshold,
         corr_pr_m = navdata_subset["corr_pr_m"]
 
         # remove NaN indexes
-        nan_indexes = sorted(list(set(np.arange(subset_length)[np.isnan(sv_m).any(axis=0)]).union( \
+        nan_idxs = sorted(list(set(np.arange(subset_length)[np.isnan(sv_m).any(axis=0)]).union( \
                                   set(np.arange(subset_length)[np.isnan(corr_pr_m)]).union( \
                                   ))))[::-1]
 
         # fault_ss_subset = np.array([0] * len(navdata_subset))
         # fault_ss_subset[tri] = 1
-        # fault_ss_subset[nan_indexes] = 2
+        # fault_ss_subset[nan_idxs] = 2
         # fault_ss += list(fault_ss_subset)
 
     # navdata["fault_ss"] = fault_ss
@@ -591,15 +522,15 @@ def fde_edm_old(navdata, max_faults, threshold=1.0, verbose=False):
         corr_pr_m = navdata_subset["corr_pr_m"]
 
         # remove NaN indexes
-        nan_indexes = sorted(list(set(np.arange(nsl)[np.isnan(sv_m).any(axis=0)]).union( \
+        nan_idxs = sorted(list(set(np.arange(nsl)[np.isnan(sv_m).any(axis=0)]).union( \
                                   set(np.arange(nsl)[np.isnan(corr_pr_m)]).union( \
                                   ))))[::-1]
 
         D = _edm_from_satellites_ranges(sv_m,corr_pr_m)
 
         # add one to account for the receiver in D
-        ri = list(np.array(nan_indexes)+1)  # index to remove
-        tri = nan_indexes.copy()            # removed indexes (in transmitter frame)
+        ri = list(np.array(nan_idxs)+1)  # index to remove
+        tri = nan_idxs.copy()            # removed indexes (in transmitter frame)
         reci = 0                            # index of the receiver
         oi = np.arange(D.shape[0])                 # original indexes
 
@@ -729,7 +660,7 @@ def fde_edm_old(navdata, max_faults, threshold=1.0, verbose=False):
 
         fault_edm_subset = np.array([0] * len(navdata_subset))
         fault_edm_subset[tri] = 1
-        fault_edm_subset[nan_indexes] = 2
+        fault_edm_subset[nan_idxs] = 2
         fault_edm += list(fault_edm_subset)
 
     navdata["fault_edm"] = fault_edm
@@ -738,7 +669,7 @@ def fde_edm_old(navdata, max_faults, threshold=1.0, verbose=False):
 
     return navdata
 
-def evaluate_fde(navdata, method, fault_truth_row, verbose=True,
+def evaluate_fde(navdata, method, fault_truth_row="fault_gt", verbose=True,
                  **kwargs):
     """Evaluate FDE methods and compute accuracy scores
 
