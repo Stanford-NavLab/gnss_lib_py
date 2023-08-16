@@ -570,11 +570,37 @@ def wrap_0_to_2pi(angles):
 
 
 def pz90_to_inertial(pos_pz90, vel_pz90, acc_pz90, theta_Ge):
+    """Convert PZ-90 coordinates to inertial coordinates.
 
+    Primarily used for computing GLONASS SV states. There is functionally
+    no difference between WGS-84 and PZ-90 based ECEF coordinates and
+    they're treated as the same in gnss_lib_py.
+
+    Parameters
+    ----------
+    pos_pz90 : np.ndarray
+        3xN array of PZ-90 ECEF positions.
+    vel_pz90 : np.ndarray
+        3xN array of PZ-90 ECEF velocities.
+    acc_pz90 : np.ndarray
+        3xN array of PZ-90 ECEF accelerations.
+    theta_Ge : float
+        The sidereal time in Greenwich at midnight GMT of the date at
+        which the epoch is specified.
+
+    Returns
+    -------
+    pos_inertial : np.ndarray
+        3xN array of positions in an inertial frame of reference.
+    vel_inertial : np.ndarray
+        3xN array of velocities in an inertial frame of reference.
+    acc_inertial : np.ndarray
+        3xN array of accelerations in an inertial frame of reference.
+    """
     # Define inertial variables
     pos_inertial = np.empty_like(pos_pz90)
     vel_inertial = np.empty_like(vel_pz90)
-    jacobian_inertial = np.empty_like(acc_pz90)
+    acc_inertial = np.empty_like(acc_pz90)
     pos_inertial[0, :] = pos_pz90[0,:]*np.cos(theta_Ge) - pos_pz90[1, :]*np.sin(theta_Ge)
     pos_inertial[1, :] = pos_pz90[0,:]*np.sin(theta_Ge) + pos_pz90[1, :]*np.cos(theta_Ge)
     pos_inertial[2, :] = pos_pz90[2,:]
@@ -587,16 +613,38 @@ def pz90_to_inertial(pos_pz90, vel_pz90, acc_pz90, theta_Ge):
                         + consts.OMEGA_E_DOT*pos_inertial[0, :]
     vel_inertial[2, :] = vel_pz90[2, :]
 
-    jacobian_inertial = acc_pz90[0, :]*np.cos(theta_Ge) \
+    acc_inertial[0, :] = acc_pz90[0, :]*np.cos(theta_Ge) \
                         - acc_pz90[1, :]*np.sin(theta_Ge)
-    jacobian_inertial = acc_pz90[0, :]*np.sin(theta_Ge) \
+    acc_inertial[1, :] = acc_pz90[0, :]*np.sin(theta_Ge) \
                         + acc_pz90[1, :]*np.cos(theta_Ge)
-    jacobian_inertial = acc_pz90[2, :]
+    acc_inertial[2, :] = acc_pz90[2, :]
 
-    return pos_inertial, vel_inertial, jacobian_inertial
+    return pos_inertial, vel_inertial, acc_inertial
 
 
 def inertial_to_pz90(pos_inertial, theta_G):
+    """Convert inertial coordinates back to PZ-90 coordinates.
+
+    Primarily used for computing GLONASS SV states. There is functionally
+    no difference between the WGS-84 ECEF frame of references, which is
+    used by GPS, Galileo and other systems, and PZ-90. Both those systems
+    are assumed to be the same here.
+
+    Parameters
+    ----------
+    pos_inertial : np.ndarray
+        3xN array of positions in an inertial frame of reference.
+    theta_G : float
+        Sidereal time at Greenwich meridian at the time at which positions
+        were computed. The original input time in this case was in the
+        GLONASS frame of reference, which was converted to the sidereal
+        time.
+
+    Returns
+    -------
+    pos_pz90 : np.ndarray
+        3xN array of PZ-90 ECEF positions.
+    """
     pos_pz90 = np.empty_like(pos_inertial)
     pos_pz90[0, :] = pos_inertial[0, :]*np.cos(theta_G) + pos_inertial[1, :]*np.sin(theta_G)
     pos_pz90[1, :] = -pos_inertial[0, :]*np.sin(theta_G) + pos_inertial[1, :]*np.cos(theta_G)

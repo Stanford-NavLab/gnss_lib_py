@@ -13,10 +13,14 @@ from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers.android import AndroidDerived2022
-from gnss_lib_py.utils.coordinates import ecef_to_el_az, add_el_az
-from gnss_lib_py.utils.coordinates import geodetic_to_ecef
-from gnss_lib_py.utils.coordinates import ecef_to_geodetic, LocalCoord
-from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
+from gnss_lib_py.utils.coordinates import (ecef_to_el_az,
+                                           add_el_az,
+                                           geodetic_to_ecef,
+                                           ecef_to_geodetic,
+                                           LocalCoord,
+                                           wrap_0_to_2pi,
+                                           pz90_to_inertial,
+                                           inertial_to_pz90)
 
 
 @pytest.fixture(name="local_ecef")
@@ -457,3 +461,18 @@ def test_wrap_0_to_2pi():
     angles_out = np.concatenate((np.linspace(np.pi,7*np.pi/4.,4),
                                  np.linspace(0,3*np.pi/4.,4)))
     np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
+
+
+def test_pz90_to_inertial(local_ecef):
+    """Test that conversion from inertial to PZ90 and back is the same.
+
+    Parameters
+    ----------
+    local_ecef : np.ndarray
+        Local ECEF coordinates for Stanford Durand building.
+
+    """
+    # inertial_pos, inertial_vel, inertial_acc = pz90_to_inertial(local_ecef)
+    # inertial_back = inertial_to_pz90(inertial)
+    # np.testing.assert_array_almost_equal(local_ecef,inertial_back)
+    raise NotImplementedError("Need to figure out the sidereal time values first")
