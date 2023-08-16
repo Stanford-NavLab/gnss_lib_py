@@ -30,7 +30,7 @@ The modularity of :code:`gnss_lib_py` is made possibly by the unifying
 numeric and string data consistently.
 We provide standard row names for :code:`NavData` elements on the
 :ref:`reference page<reference>`.
-These names ensure cross compatability between different datasets and
+These names ensure cross compatibility between different datasets and
 algorithms.
 
 Source Code

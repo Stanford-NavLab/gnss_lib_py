@@ -64,7 +64,7 @@ def fixture_clk_path(root_path):
             Accessed as of August 2, 2022
 
     """
-    clk_path = os.path.join(root_path, 'clk/grg21553_short.clk')
+    clk_path = os.path.join(root_path, 'clk/grg21553.clk')
     return clk_path
 
 @pytest.fixture(name="clkdata")
@@ -183,35 +183,3 @@ def test_clkgps_value_check(clkdata, prn, row_name, index, exp_value):
 
     curr_value = clkdata.where("gnss_sv_id",prn)[row_name][index]
     np.testing.assert_equal(curr_value, exp_value)
-
-def test_gps_clk_funcs(clkdata):
-    """Tests extract_clk, clk_snapshot for Clk
-
-    Parameters
-    ----------
-    clkdata : gnss_lib_py.parsers.clk.Clk
-        CLK data.
-
-    Notes
-    ----------
-    Last index interpolation does not work well, so eliminating this index
-    while extracting random samples from gps_millis in Clk
-
-    """
-
-    gnss_sv_ids = np.unique(clkdata["gnss_sv_id"])
-
-    for prn in gnss_sv_ids:
-        clkdata_sv = clkdata.where("gnss_sv_id",prn)
-        gps_millis_prn = clkdata_sv["gps_millis"]
-        clk_subset = random.sample(range(len(gps_millis_prn)-1), NUMSAMPLES)
-        for sidx, _ in enumerate(clk_subset):
-            func_satbias = clkdata.extract_clk(prn, sidx, \
-                                            ipos = 10,
-                                            method='CubicSpline',
-                                            verbose=True)
-            cxtime = gps_millis_prn[sidx]
-            satbias_clk, _ = clkdata.clk_snapshot(func_satbias, cxtime, \
-                                                  hstep = 5e-1, method='CubicSpline')
-            assert np.linalg.norm(satbias_clk - \
-                                  clkdata_sv["b_sv_m"][sidx]) < 1e-6

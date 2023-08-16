@@ -25,7 +25,7 @@ The modularity of `gnss_lib_py` is made possibly by the unifying
 numeric and string data consistently.
 We provide standard row names for `NavData` elements on the
 [reference page](https://gnss-lib-py.readthedocs.io/en/latest/reference/reference.html).
-These names ensure cross compatability between different datasets and
+These names ensure cross compatibility between different datasets and
 algorithms.
 
 Documentation
