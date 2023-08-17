@@ -371,6 +371,8 @@ def fde_residual_old(navdata, max_faults, threshold,
                      verbose=False, debug=False):
     """Residual-based fault detection and exclusion.
 
+    Implemented based on paper from Parkinson [1]_.
+
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
@@ -397,6 +399,12 @@ def fde_residual_old(navdata, max_faults, threshold,
         value of 1 indicates a detected fault and 0 indicates that
         no fault was detected, and 2 indicates an unknown fault status
         usually due to lack of necessary columns or information.
+
+    References
+    ----------
+    .. [1] Parkinson, Bradford W., and Penina Axelrad. "Autonomous GPS
+           integrity monitoring using the pseudorange residual."
+           Navigation 35.2 (1988): 255-274.
 
     """
 
@@ -427,18 +435,11 @@ def fde_residual_old(navdata, max_faults, threshold,
         navdata_subset.remove(cols=nan_idxs,inplace=True)
         original_indexes = np.delete(original_indexes, nan_idxs)
 
-
-        # solve for residuals
-        receiver_state = solve_wls(navdata_subset)
-        solve_residuals(navdata_subset, receiver_state, inplace=True)
-        # if len(navdata_subset) < 6:
         ri = []
         if len(navdata_subset) > 6:
-            residuals = navdata_subset["residuals_m"].reshape(-1,1)
 
             # test statistic
-            r = np.sqrt(residuals.T.dot(residuals)[0,0] \
-                         / (subset_length - 4) )
+            r = _residual_detection_statistic(navdata_subset)
 
             if verbose:
                 print("residual test statistic:",r)
@@ -448,12 +449,15 @@ def fde_residual_old(navdata, max_faults, threshold,
                 ri = set()
                 r_subsets = []
                 for ss in range(len(navdata_subset)):
-                    residual_subset = np.delete(residuals,ss,axis=0)
-                    r_subset = np.sqrt(residual_subset.T.dot(residual_subset)[0,0] \
-                                 / (len(residual_subset) - 4) )
+                    navdata_exclude = navdata_subset.remove(cols=[ss])
+                    r_subset = _residual_detection_statistic(navdata_exclude)
+
                     if verbose:
                         r_subsets.append(r_subset)
                     # adjusted threshold metric
+                    if verbose:
+                        print("r_subset/r:",r_subset/r,ss,"removed")
+                    # 1. chosen based on similarity to 8m/10m ratio from [1]_.
                     if r_subset/r < 1.:
                         ri.add(ss)
 
@@ -462,8 +466,6 @@ def fde_residual_old(navdata, max_faults, threshold,
                         print("NONE fail:")
                         print("r: ",r)
                         print("ri: ",ri)
-                        for rri, rrr in enumerate(residuals):
-                            print(rri, rrr, r_subsets[rri]/r)
             else:
                 if verbose:
                     print("threshold fail:")
@@ -491,6 +493,22 @@ def fde_residual_old(navdata, max_faults, threshold,
         debug_info["compute_times"] = compute_times
         return navdata, debug_info
     return navdata
+
+def _residual_detection_statistic(navdata):
+    """Detection statistic for Residual-based fault detection.
+
+    """
+    # solve for residuals
+    receiver_state = solve_wls(navdata)
+    solve_residuals(navdata, receiver_state, inplace=True)
+    # if len(navdata_subset) < 6:
+    residuals = navdata["residuals_m"].reshape(-1,1)
+
+    # test statistic
+    detection_statistic = np.sqrt(residuals.T.dot(residuals)[0,0] \
+                        / (len(navdata) - 4) )
+
+    return detection_statistic
 
 def fde_solution_separation_old(navdata, max_faults, threshold,
                             verbose=False):
