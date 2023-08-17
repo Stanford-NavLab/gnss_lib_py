@@ -49,7 +49,7 @@ GNSS_ORDER = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
 mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
                                 +  cycler(marker=MARKERS))
 
-def plot_metric(navdata, *args, groupby=None, avg_y=False,
+def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
                 title=None, save=False, prefix="", fname=None,
                 markeredgecolor="k", markeredgewidth=0.2, **kwargs):
     """Plot specific metric from a row of the NavData class.
@@ -97,7 +97,10 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False,
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
 
-    fig, axes = _get_new_fig()
+    if fig is None:
+        fig, axes = _get_new_fig()
+    else:
+        axes = fig.get_axes()[0]
 
     if x_metric is None:
         x_data = None
