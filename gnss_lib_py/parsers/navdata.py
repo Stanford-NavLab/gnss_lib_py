@@ -12,6 +12,7 @@ import copy
 import numpy as np
 import pandas as pd
 
+import gnss_lib_py.utils.file_operations as fo
 
 class NavData():
     """gnss_lib_py specific class for handling data.
@@ -970,8 +971,12 @@ class NavData():
 
         return dframe
 
-    def to_csv(self, output_path="navdata.csv", index=False, **kwargs): #pragma: no cover
-        """Save data as csv
+    def to_csv(self, output_path=None, index=False, prefix="",
+               **kwargs): #pragma: no cover
+        """Save data as csv.
+
+        Saves to a "results" directory if the ``output_path`` varaible
+        is not set.
 
         Parameters
         ----------
@@ -979,6 +984,8 @@ class NavData():
             Path where csv should be saved
         index : bool
             If True, will write csv row names (index).
+        prefix : string
+            File prefix to add to filename if output_path not specified.
         header : bool
             If True (default), will list out names as columns
         sep : string
@@ -986,6 +993,16 @@ class NavData():
 
         """
         pd_df = self.pandas_df()
+
+        if output_path is None:
+            # create results folder if it does not yet exist.
+            log_path = os.path.join(os.getcwd(),"results",fo.TIMESTAMP)
+            fo.make_dir(log_path)
+
+            if prefix != "" and not prefix.endswith('_'):
+                prefix += "_"
+            output_path = os.path.join(log_path, prefix + "navdata.csv")
+
         pd_df.to_csv(output_path, index=index, **kwargs)
 
     @property

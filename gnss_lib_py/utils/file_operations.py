@@ -37,3 +37,5 @@ def get_timestamp():
     """
     timestamp =  time.strftime("%Y%m%d%H%M%S")
     return timestamp
+
+TIMESTAMP = get_timestamp()

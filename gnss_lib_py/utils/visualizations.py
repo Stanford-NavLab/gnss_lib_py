@@ -48,11 +48,10 @@ GNSS_ORDER = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
 
 mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
                                 +  cycler(marker=MARKERS))
-TIMESTAMP = fo.get_timestamp()
 
-def plot_metric(navdata, *args, groupby=None, title=None, save=False,
-                prefix="", fname=None, markeredgecolor="k",
-                markeredgewidth=0.2, **kwargs):
+def plot_metric(navdata, *args, groupby=None, avg_y=False,
+                title=None, save=False, prefix="", fname=None,
+                markeredgecolor="k", markeredgewidth=0.2, **kwargs):
     """Plot specific metric from a row of the NavData class.
 
     Parameters
@@ -65,6 +64,9 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
         first is plotted on the x-axis and the second on the y-axis.
     groupby : string
         Row name by which to group and label plots.
+    avg_y : bool
+        Whether or not to average across the y values for each x
+        timestep when doing groupby
     title : string
         Title for the plot.
     save : bool
@@ -119,6 +121,15 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
                 x_data = range(len(y_data))
             else:
                 x_data = np.atleast_1d(subset[x_metric])
+            if avg_y:
+                # average y values for each x
+                x_unique = sorted(np.unique(x_data))
+                y_avg = []
+                for x_val in x_unique:
+                    x_idxs = np.argwhere(x_data==x_val)
+                    y_avg.append(np.mean(y_data[x_idxs]))
+                x_data = x_unique
+                y_data = y_avg
             axes.plot(x_data, y_data,
                       label=_get_label({groupby:group}),
                       markeredgecolor = markeredgecolor,
@@ -553,12 +564,14 @@ def _get_label(inputs):
     # handle units specially.
     units = {"m","km",
              "deg","rad",
-             "sec","s","hr","min",
+             "millis","ms","sec","s","hr","min",
              "mps","kmph","mph",
              "dgps","radps",
              "mps2",
              }
     unit_replacements = {
+                         "ms" : "milliseconds",
+                         "millis" : "milliseconds",
                          "mps" : "m/s",
                          "kmph" : "km/hr",
                          "mph" : "miles/hr",
@@ -664,7 +677,7 @@ def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cov
         if (len(fnames) == 1 and fnames[0] is None) \
             or fnames[fig_idx] is None:
             # create results folder if it does not yet exist.
-            log_path = os.path.join(os.getcwd(),"results",TIMESTAMP)
+            log_path = os.path.join(os.getcwd(),"results",fo.TIMESTAMP)
             fo.make_dir(log_path)
 
             # make name path friendly
@@ -848,7 +861,7 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
         if (len(fnames) == 1 and fnames[0] is None) \
             or fnames[fig_idx] is None:
             # create results folder if it does not yet exist.
-            log_path = os.path.join(os.getcwd(),"results",TIMESTAMP)
+            log_path = os.path.join(os.getcwd(),"results",fo.TIMESTAMP)
             fo.make_dir(log_path)
 
             # make name path friendly
