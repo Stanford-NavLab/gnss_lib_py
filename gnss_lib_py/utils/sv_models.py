@@ -10,23 +10,23 @@ import warnings
 
 import numpy as np
 
-import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils.coordinates import ecef_to_el_az
+
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex, \
-_find_delxyz_range
-from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
-from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.clk import Clk
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex, RinexNav
-from gnss_lib_py.parsers.rinex_nav import _compute_eccentric_anomaly
-from gnss_lib_py.parsers.rinex_nav import _estimate_sv_clock_corr
+from gnss_lib_py.parsers.rinex_nav import (get_time_cropped_rinex,
+                                           RinexNav,
+                                           _compute_eccentric_anomaly,
+                                           _estimate_sv_clock_corr,
+                                           _find_delxyz_range)
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
-from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
-from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH, load_ephemeris
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
+from gnss_lib_py.utils.time_conversions import gps_millis_to_tow, gps_millis_to_datetime
+from gnss_lib_py.utils.ephemeris_downloader import (DEFAULT_EPHEM_PATH,
+                                                    load_ephemeris,
+                                                    combine_gnss_sv_ids)
 
 
 def add_sv_states(navdata, source = 'precise', file_paths = None,
@@ -641,7 +641,7 @@ def _filter_ephemeris_measurements(measurements, constellations,
     measurements_subset = measurements.where('gnss_id', keep_consts, condition="eq")
 
     # preprocessing of received quantities for downloading ephemeris file
-    eph_sv = _combine_gnss_sv_ids(measurements)
+    eph_sv = combine_gnss_sv_ids(measurements)
     lookup_sats = list(np.unique(eph_sv))
     start_gps_millis = np.min(measurements['gps_millis'])
     # Download the ephemeris file for all the satellites in the measurement files
@@ -655,39 +655,6 @@ def _filter_ephemeris_measurements(measurements, constellations,
     else:
         iono_params = None
     return measurements_subset, ephem, iono_params
-
-
-def _combine_gnss_sv_ids(measurement_frame):
-    """Combine string `gnss_id` and integer `sv_id` into single `gnss_sv_id`.
-
-    `gnss_id` contains strings like 'gps' and 'glonass' and `sv_id` contains
-    integers. The newly returned `gnss_sv_id` is formatted as `Axx` where
-    `A` is a single letter denoting the `gnss_id` and `xx` denote the two
-    digit `sv_id` of the satellite.
-
-    Parameters
-    ----------
-    measurement_frame : gnss_lib_py.parsers.navdata.NavData
-        NavData instance containing measurements including `gnss_id` and
-        `sv_id`.
-
-    Returns
-    -------
-    gnss_sv_id : np.ndarray
-	New row values that combine `gnss_id` and `sv_id` into a something
-	similar to 'R01' or 'G12' for example.
-
-    Notes
-    -----
-    For reference on strings and the contellation characters corresponding
-    to them, refer to :code:`CONSTELLATION_CHARS` in
-    `gnss_lib_py/utils/constants.py`.
-
-    """
-    constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
-    gnss_chars = [constellation_char_inv[const] for const in np.array(measurement_frame['gnss_id'], ndmin=1)]
-    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(np.array(measurement_frame['sv_id'], ndmin=1))])
-    return gnss_sv_id
 
 
 def _sort_ephem_measures(measure_frame, ephem):
@@ -713,7 +680,7 @@ def _sort_ephem_measures(measure_frame, ephem):
         in the input measurements.
 
     """
-    gnss_sv_id = _combine_gnss_sv_ids(measure_frame)
+    gnss_sv_id = combine_gnss_sv_ids(measure_frame)
     sorted_sats_ind = np.argsort(gnss_sv_id)
     inv_sort_order = np.argsort(sorted_sats_ind)
     sorted_sats = gnss_sv_id[sorted_sats_ind]
@@ -739,32 +706,6 @@ def _extract_pos_vel_arr(sv_posvel):
     sv_pos = sv_posvel[['x_sv_m', 'y_sv_m', 'z_sv_m']]
     sv_vel   = sv_posvel[['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']]
     return sv_pos, sv_vel
-
-
-def _find_delxyz_range(sv_posvel, rx_ecef):
-    """Return difference of satellite and rx_pos positions and distance between them.
-
-    Parameters
-    ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        Satellite position and velocities.
-    rx_ecef : np.ndarray
-        3x1 Receiver 3D ECEF position [m].
-
-    Returns
-    -------
-    del_pos : np.ndarray
-        Difference between satellite positions and receiver position.
-    true_range : np.ndarray
-        Distance between satellite and receiver positions.
-    """
-    rx_ecef = np.reshape(rx_ecef, [3, 1])
-    satellites = len(sv_posvel)
-    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
-    sv_pos = sv_pos.reshape(rx_ecef.shape[0], satellites)
-    del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
-    true_range = np.linalg.norm(del_pos, axis=0)
-    return del_pos, true_range
 
 def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
                                  clk_parsed_file, inplace=False,
@@ -800,12 +741,12 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
 
     # combine gnss_id and sv_id into gnss_sv_ids
     if inplace:
-        navdata["gnss_sv_id"] = _combine_gnss_sv_ids(navdata)
+        navdata["gnss_sv_id"] = combine_gnss_sv_ids(navdata)
         sp3_parsed_file.interpolate_sp3(navdata, verbose=verbose)
         clk_parsed_file.interpolate_clk(navdata, verbose=verbose)
     else:
         new_navdata = navdata.copy()
-        new_navdata["gnss_sv_id"] = _combine_gnss_sv_ids(new_navdata)
+        new_navdata["gnss_sv_id"] = combine_gnss_sv_ids(new_navdata)
         sp3_parsed_file.interpolate_sp3(new_navdata, verbose=verbose)
         clk_parsed_file.interpolate_clk(new_navdata, verbose=verbose)
 
