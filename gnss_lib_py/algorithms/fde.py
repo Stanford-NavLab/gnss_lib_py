@@ -779,7 +779,6 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
         fault_percentages.append(truth_fault_count/measurement_count)
         timesteps += 1
 
-
     if verbose:
         print("\nDATASET METRICS")
         print("timesteps:",timesteps)
@@ -806,8 +805,9 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     result = solve_fde(navdata, method=method, remove_outliers=False,
                               verbose=verbose, debug=debug, **kwargs)
     if debug:
-        debug_info = result[1]
+        navdata, debug_info = result
     else:
+        navdata = result
         debug_info = {}
 
     estimated_faults = navdata["fault_" + method]
@@ -907,9 +907,9 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     metrics["accuracy"] = accuracy
     metrics["balanced_accuracy"] = balanced_accuracy
     metrics["timestep_min_ms"] = timestep_min*1000
-    metrics["timestep_mean_ms"] = timestep_min*1000
-    metrics["timestep_median_ms"] = timestep_min*1000
-    metrics["timestep_max_ms"] = timestep_min*1000
+    metrics["timestep_mean_ms"] = timestep_mean*1000
+    metrics["timestep_median_ms"] = timestep_median*1000
+    metrics["timestep_max_ms"] = timestep_max*1000
 
     return metrics
 
