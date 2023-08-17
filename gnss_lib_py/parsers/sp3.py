@@ -12,9 +12,9 @@ import numpy as np
 from scipy import interpolate
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.utils.constants import CONSTELLATION_CHARS
+# from gnss_lib_py.utils.constants import CONSTELLATION_CHARS
 from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
-
+from gnss_lib_py.utils.ephemeris_downloader import split_gnss_sv_ids
 
 class Sp3(NavData):
     """sp3 specific loading and preprocessing for any GNSS constellation.
@@ -89,8 +89,9 @@ class Sp3(NavData):
 
                     gps_millis.append(gps_millis_timestep)
                     gnss_sv_ids.append(gnss_sv_id)
-                    gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
-                    sv_id.append(int(gnss_sv_id[1:]))
+                    temp_gnss_id, temp_sv_id = split_gnss_sv_ids(gnss_sv_id=[gnss_sv_id])
+                    gnss_id.append(temp_gnss_id[0])
+                    sv_id.append(temp_sv_id[0])
                     x_sv_m.append(float(temp[1])*1e3)
                     y_sv_m.append(float(temp[2])*1e3)
                     z_sv_m.append(float(temp[3])*1e3)

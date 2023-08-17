@@ -14,6 +14,7 @@ import requests
 import numpy as np
 from pytest_lazyfixture import lazy_fixture
 
+from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.time_conversions as tc
 import gnss_lib_py.utils.ephemeris_downloader as ed
 # pylint: disable=protected-access
@@ -556,3 +557,34 @@ def test_valid_ephemeris(all_ephem_paths,sp3_path,clk_path):
                                                file_paths=[sp3_path,clk_path])
     assert valid
     assert os.path.split(path)[-1] == "grg21553.clk"
+
+
+def test_combine_split_gnss_sv_ids():
+    """Tests combining and splitting `gnss_sv_id`, `gnss_id`, and `sv_id`.
+
+    """
+    # Test the vector case
+    true_gnss_sv_id = np.asarray(["G01", "G02", "G20", "R02", "R10", "E05", "C10"],
+                                 dtype=object)
+    true_gnss_id = np.asarray(["gps", "gps","gps", "glonass", "glonass",
+                                 "galileo", "beidou"], dtype=object)
+    true_sv_id = np.array([1, 2, 20, 2, 10, 5, 10])
+    out_gnss_id, out_sv_id = ed.split_gnss_sv_ids(gnss_sv_id=true_gnss_sv_id)
+    np.testing.assert_equal(true_gnss_id, out_gnss_id)
+    np.testing.assert_equal(true_sv_id, out_sv_id)
+
+    out_gnss_sv_id = ed.combine_gnss_sv_ids(gnss_id = true_gnss_id, sv_id = true_sv_id)
+    np.testing.assert_equal(true_gnss_sv_id, out_gnss_sv_id)
+    # Test the NavData case
+    navdata = NavData()
+    navdata['t_idx'] = np.arange(np.size(true_gnss_sv_id))
+    navdata['gnss_sv_id'] = true_gnss_sv_id
+    navdata['gnss_id'] = true_gnss_id
+    navdata['sv_id'] = true_sv_id
+    out_navdata_gnss_id, out_navdata_sv_id = ed.split_gnss_sv_ids(navdata=navdata)
+    np.testing.assert_equal(true_gnss_id, out_navdata_gnss_id)
+    np.testing.assert_equal(true_sv_id, out_navdata_sv_id)
+
+    out_navdata_gnss_sv_id = ed.combine_gnss_sv_ids(navdata=navdata)
+    np.testing.assert_equal(true_gnss_sv_id, out_navdata_gnss_sv_id)
+

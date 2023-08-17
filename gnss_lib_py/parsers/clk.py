@@ -14,6 +14,7 @@ from scipy import interpolate
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS, C
 from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
+from gnss_lib_py.utils.ephemeris_downloader import split_gnss_sv_ids
 
 class Clk(NavData):
     """Clk specific loading and preprocessing for any GNSS constellation.
@@ -81,8 +82,9 @@ class Clk(NavData):
                                      tzinfo=timezone.utc)
                 gps_millis_timestep = gps_datetime_to_gps_millis(curr_time)
                 gnss_sv_ids.append(gnss_sv_id)
-                gnss_id.append(CONSTELLATION_CHARS[gnss_sv_id[0]])
-                sv_id.append(int(gnss_sv_id[1:]))
+                temp_gnss_id, temp_sv_id = split_gnss_sv_ids(gnss_sv_id=[gnss_sv_id])
+                gnss_id.append(temp_gnss_id[0])
+                sv_id.append(temp_sv_id[0])
                 gps_millis.append(gps_millis_timestep)
                 # clock bias is given in seconds, convert to meters
                 b_sv_m.append(float(timelist_val[9]) * C)

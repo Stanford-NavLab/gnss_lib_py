@@ -69,6 +69,7 @@ import unlzw3
 import numpy as np
 
 import gnss_lib_py.utils.time_conversions as tc
+import gnss_lib_py.utils.constants as consts
 
 DEFAULT_EPHEM_PATH = os.path.join(os.getcwd(), 'data', 'ephemeris')
 
@@ -208,6 +209,94 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
             needed_files.append(filepath)
 
     return existing_paths, needed_files
+
+
+def combine_gnss_sv_ids(navdata=None, gnss_id=None, sv_id=None):
+    """Combine string `gnss_id` and integer `sv_id` into single `gnss_sv_id`.
+
+    This function takes either a `NavData` instance or the arrays `gnss_id`
+    and `sv_id` separately. Either of the two inputs must be provided though.
+
+    `gnss_id` contains strings like 'gps' and 'glonass' and `sv_id` contains
+    integers. The newly returned `gnss_sv_id` is formatted as `Axx` where
+    `A` is a single letter denoting the `gnss_id` and `xx` denote the two
+    digit `sv_id` of the satellite.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing measurements including `gnss_id` and
+        `sv_id`.
+    gnss_id : np.ndarray
+        Array containing strings for each GNSS ID correponding to the
+        first character in the `gnss_sv_ids`.
+    sv_id : np.ndarray
+        Array containing integers for each SV ID corresponding to the
+        numbers i nthe `gnss_sv_ids`.
+
+    Returns
+    -------
+    gnss_sv_id : np.ndarray
+	New row values that combine `gnss_id` and `sv_id` into a something
+	similar to 'R01' or 'G12' for example.
+
+    Notes
+    -----
+    For reference on strings and the contellation characters corresponding
+    to them, refer to :code:`CONSTELLATION_CHARS` in
+    `gnss_lib_py/utils/constants.py`.
+
+    """
+    if navdata is not None:
+        gnss_id = navdata['gnss_id']
+        sv_id = navdata['sv_id']
+    else:
+        assert gnss_id is not None and sv_id is not None, \
+        "If navdata instance is not given, arrays needed for gnss_id and sv_id"
+    constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
+    gnss_chars = [constellation_char_inv[const] for const in np.array(gnss_id, ndmin=1)]
+    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(np.array(sv_id, ndmin=1))])
+    return gnss_sv_id
+
+
+def split_gnss_sv_ids(navdata=None, gnss_sv_id=None):
+    """Break the single `gnss_sv_id` into individual `gnss_id` and `sv_id`.
+
+    This function takes either a `NavData` instance or an array but at
+    least one of the two must be provided.
+
+    `gnss_sv_id` is formatted as `Axx` where `A` is a single letter
+    denoting the `gnss_id` and `xx` denote the two digit `sv_id` of the
+    satellite. `gnss_id` contains strings like 'gps' and 'glonass' and
+    `sv_id` contains integers.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing measurements including `gnss_sv_id`.
+    gnss_sv_id : np.ndarray
+        Array containing 3 character combined GNSS and SV ID.
+
+    Returns
+    -------
+    gnss_id : np.ndarray
+        Array containing strings for each GNSS ID correponding to the
+        first character in the `gnss_sv_ids`.
+    sv_id : np.ndarray
+        Array containing integers for each SV ID corresponding to the
+        numbers i nthe `gnss_sv_ids`.
+
+    """
+    if navdata is not None:
+        gnss_sv_id = navdata['gnss_sv_id']
+    else:
+        assert gnss_sv_id is not None, \
+        "If navdata instance is not given, array needed for gnss_sv_id"
+    gnss_id = np.asarray([consts.CONSTELLATION_CHARS[gnss_sv_id_val[0]]
+                          for gnss_sv_id_val in gnss_sv_id],
+                          dtype=object)
+    sv_id =  np.asarray([int(gnss_sv_id_val[1:]) for gnss_sv_id_val in gnss_sv_id])
+    return gnss_id, sv_id
 
 def _download_ephemeris(file_type, needed_files, download_directory,
                        verbose=False):
