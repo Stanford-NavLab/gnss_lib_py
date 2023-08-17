@@ -132,7 +132,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
             states.append([timestamp, np.nan, np.nan, np.nan, np.nan])
 
     if len(states) == 0:
-        states = [[] for i in range(5)]
+        states = [[np.nan]*5]
     states = np.array(states)
 
     state_estimate = NavData()
