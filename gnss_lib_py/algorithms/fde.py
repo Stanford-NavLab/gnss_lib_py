@@ -923,13 +923,13 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     # x_rx_wls_edm_m = []
     # y_rx_wls_edm_m = []
     # z_rx_wls_edm_m = []
-    x_rx_wls_residual_m = []
-    y_rx_wls_residual_m = []
-    z_rx_wls_residual_m = []
-    for _, _, navdata_subset in navdata.loop_time("gps_millis"):
-
-        # navdata subset length
-        nsl = len(navdata_subset)
+    # x_rx_wls_residual_m = []
+    # y_rx_wls_residual_m = []
+    # z_rx_wls_residual_m = []
+    # for _, _, navdata_subset in navdata.loop_time("gps_millis"):
+    #
+    #     # navdata subset length
+    #     nsl = len(navdata_subset)
 
         # # using all measurements
         # state_estimate = solve_wls(navdata_subset)
@@ -950,10 +950,10 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
         # z_rx_wls_edm_m += [state_estimate["z_rx_wls_m"]] * nsl
 
         # using edm non-faulty measurements
-        state_estimate = solve_wls(navdata_subset.where("fault_residual",0))
-        x_rx_wls_residual_m += [state_estimate["x_rx_wls_m"]] * nsl
-        y_rx_wls_residual_m += [state_estimate["y_rx_wls_m"]] * nsl
-        z_rx_wls_residual_m += [state_estimate["z_rx_wls_m"]] * nsl
+        # state_estimate = solve_wls(navdata_subset.where("fault_residual",0))
+        # x_rx_wls_residual_m += [state_estimate["x_rx_wls_m"]] * nsl
+        # y_rx_wls_residual_m += [state_estimate["y_rx_wls_m"]] * nsl
+        # z_rx_wls_residual_m += [state_estimate["z_rx_wls_m"]] * nsl
 
     # navdata["x_rx_wls_all_m"] = x_rx_wls_all_m
     # navdata["y_rx_wls_all_m"] = y_rx_wls_all_m
@@ -964,9 +964,9 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     # navdata["x_rx_wls_edm_m"] = x_rx_wls_edm_m
     # navdata["y_rx_wls_edm_m"] = y_rx_wls_edm_m
     # navdata["z_rx_wls_edm_m"] = z_rx_wls_edm_m
-    navdata["x_rx_wls_residual_m"] = x_rx_wls_residual_m
-    navdata["y_rx_wls_residual_m"] = y_rx_wls_residual_m
-    navdata["z_rx_wls_residual_m"] = z_rx_wls_residual_m
+    # navdata["x_rx_wls_residual_m"] = x_rx_wls_residual_m
+    # navdata["y_rx_wls_residual_m"] = y_rx_wls_residual_m
+    # navdata["z_rx_wls_residual_m"] = z_rx_wls_residual_m
 
     # navdata["all_pos_error"] = np.linalg.norm(navdata[["x_rx_m",
     #                                                    "y_rx_m",
@@ -989,13 +989,13 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     #                                                    "y_rx_wls_edm_m",
     #                                                    "z_rx_wls_edm_m"]],
     #                                                    axis=0)
-    navdata["fault_residual_pos_error"] = np.linalg.norm(navdata[["x_rx_m",
-                                                             "y_rx_m",
-                                                             "z_rx_m"]] -
-                                              navdata[["x_rx_wls_residual_m",
-                                                       "y_rx_wls_residual_m",
-                                                       "z_rx_wls_residual_m"]],
-                                                       axis=0)
+    # navdata["fault_residual_pos_error"] = np.linalg.norm(navdata[["x_rx_m",
+    #                                                          "y_rx_m",
+    #                                                          "z_rx_m"]] -
+    #                                           navdata[["x_rx_wls_residual_m",
+    #                                                    "y_rx_wls_residual_m",
+    #                                                    "z_rx_wls_residual_m"]],
+    #                                                    axis=0)
 
     metrics = {}
     metrics["dataset_timesteps"] = timesteps
@@ -1045,11 +1045,11 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     # metrics["fault_edm_pos_error_mean"] = np.mean(navdata["fault_edm_pos_error"])
     # metrics["fault_edm_pos_error_max"] = np.max(navdata["fault_edm_pos_error"])
     # metrics["fault_edm_pos_error_std"] = np.std(navdata["fault_edm_pos_error"])
-    metrics["fault_residual_pos_error_min"] = np.min(navdata["fault_residual_pos_error"])
-    metrics["fault_residual_pos_error_median"] = np.median(navdata["fault_residual_pos_error"])
-    metrics["fault_residual_pos_error_mean"] = np.mean(navdata["fault_residual_pos_error"])
-    metrics["fault_residual_pos_error_max"] = np.max(navdata["fault_residual_pos_error"])
-    metrics["fault_residual_pos_error_std"] = np.std(navdata["fault_residual_pos_error"])
+    # metrics["fault_residual_pos_error_min"] = np.min(navdata["fault_residual_pos_error"])
+    # metrics["fault_residual_pos_error_median"] = np.median(navdata["fault_residual_pos_error"])
+    # metrics["fault_residual_pos_error_mean"] = np.mean(navdata["fault_residual_pos_error"])
+    # metrics["fault_residual_pos_error_max"] = np.max(navdata["fault_residual_pos_error"])
+    # metrics["fault_residual_pos_error_std"] = np.std(navdata["fault_residual_pos_error"])
 
     return metrics, navdata
 
