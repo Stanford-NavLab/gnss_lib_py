@@ -109,8 +109,8 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
             title = _get_label({y_metric:y_metric})
     else:
         if title is None:
-            title = _get_label({x_metric:x_metric}) + " vs. " \
-                  + _get_label({y_metric:y_metric})
+            title = _get_label({y_metric:y_metric}) + " vs. " \
+                  + _get_label({x_metric:x_metric})
         xlabel = _get_label({x_metric:x_metric})
 
     if groupby is not None:
