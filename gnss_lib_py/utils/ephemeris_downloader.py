@@ -255,7 +255,7 @@ def combine_gnss_sv_ids(navdata=None, gnss_id=None, sv_id=None):
         "If navdata instance is not given, arrays needed for gnss_id and sv_id"
     constellation_char_inv = {const : gnss_char for gnss_char, const in consts.CONSTELLATION_CHARS.items()}
     gnss_chars = [constellation_char_inv[const] for const in np.array(gnss_id, ndmin=1)]
-    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv:02}' for col_num, sv in enumerate(np.array(sv_id, ndmin=1))])
+    gnss_sv_id = np.asarray([gnss_chars[col_num] + f'{sv}'.zfill(2) for col_num, sv in enumerate(np.array(sv_id, ndmin=1))])
     return gnss_sv_id
 
 
@@ -379,13 +379,13 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
         # add every day before if timestamp falls between 0am-2am
         needed_dates.update({dt.date() - timedelta(days=1) for dt in dt_timestamps
                         if (dt <= datetime.combine(dt.date(),
-                                        time(2,tzinfo=timezone.utc)))
+                                        time(4,tzinfo=timezone.utc)))
                         })
         # add every day after if timestamp falls between 10pm and midnight
         #   but only if the datetime is not the current day
         needed_dates.update({dt.date() + timedelta(days=1) for dt in dt_timestamps
                         if ((dt >= datetime.combine(dt.date(),
-                                        time(22,tzinfo=timezone.utc))) &
+                                        time(20,tzinfo=timezone.utc))) &
                              (dt.date() != datetime.utcnow().date()))
                         })
 

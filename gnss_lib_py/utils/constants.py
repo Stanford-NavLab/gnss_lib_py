@@ -71,6 +71,9 @@ GRAV = -9.80665
 WEEKSEC = 604800
 """ int : Number of seconds in a week [s]."""
 
+DAYSEC = 86400
+""" int : Number of seconds in a day [s]"""
+
 GPS_EPOCH_0 = datetime(1980, 1, 6, 0, 0, 0, 0, tzinfo=timezone.utc)
 """ datetime.datetime: Starting time for GPS epoch"""
 
