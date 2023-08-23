@@ -12,6 +12,7 @@ import pytest
 import numpy as np
 import plotly.graph_objects as go
 from pytest_lazyfixture import lazy_fixture
+import matplotlib.pyplot as plt
 
 import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
@@ -242,7 +243,6 @@ def test_plot_metrics(derived):
         Instance of AndroidDerived2021 for testing.
 
     """
-
     test_rows = [
                  "raw_pr_m",
                  ]
@@ -250,8 +250,10 @@ def test_plot_metrics(derived):
     for row in derived.rows:
         if not derived.is_str(row):
             if row in test_rows:
+                fig = plt.figure()
                 for groupby in ["gnss_id",None]:
-                    fig = viz.plot_metric(derived, row, groupby=groupby,
+                    fig = viz.plot_metric(derived, row,
+                                          groupby = groupby,
                                           save=False)
                     viz.close_figures(fig)
         else:
@@ -281,6 +283,23 @@ def test_plot_metrics(derived):
                 fig = viz.plot_metric(derived, row, "raw_pr_m", save=False)
                 viz.close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
+
+    viz.close_figures()
+
+    # test repeating figure and average y
+    fig = plt.figure()
+    fig = viz.plot_metric(derived, "gps_millis", "raw_pr_m",
+                          fig = fig,
+                          groupby = "gnss_id",
+                          save=False)
+    fig = viz.plot_metric(derived, "gps_millis", "raw_pr_m",
+                            fig = fig,
+                            groupby = "gnss_id",
+                            avg_y = True,
+                            linestyle="dotted",
+                            save=False,
+                            )
+    viz.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
         viz.plot_metric(derived, "raw_pr_m", save=True, prefix=1)

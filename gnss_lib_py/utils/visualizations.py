@@ -67,6 +67,9 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
     avg_y : bool
         Whether or not to average across the y values for each x
         timestep when doing groupby
+    fig : matplotlib.pyplot.Figure
+         Previous figure on which to add current plotting. Default of
+         None plots on a new figure.
     title : string
         Title for the plot.
     save : bool
@@ -97,7 +100,8 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
 
-    fig, axes = _get_new_fig()
+    # create a new figure if none provided
+    fig, axes = _get_new_fig(fig)
 
     if x_metric is None:
         x_data = None
@@ -156,7 +160,7 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(_get_label({y_metric:y_metric}))
-    fig.tight_layout()
+    fig.set_layout_engine(layout="tight")
 
     if save: # pragma: no cover
         _save_figure(fig, title, prefix, fname)
@@ -361,7 +365,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
                    title=_get_label({"constellation":"constellation"}))
 
-    fig.tight_layout()
+    fig.set_layout_engine(layout='tight')
 
     if save: # pragma: no cover
         _save_figure(fig, "skyplot", prefix=prefix, fnames=fname)
@@ -525,8 +529,13 @@ def close_figures(figs=None):
     else:
         raise TypeError("Must be either a single figure or list of figures.")
 
-def _get_new_fig():
+def _get_new_fig(fig=None):
     """Creates new default figure and axes.
+
+    Parameters
+    ----------
+    fig : matplotlib.pyplot.figure
+        Previous figure to format to style.
 
     Returns
     -------
@@ -537,8 +546,15 @@ def _get_new_fig():
 
     """
 
-    fig = plt.figure()
-    axes = plt.gca()
+    if fig is None:
+        fig = plt.figure()
+        axes = plt.gca()
+    elif len(fig.get_axes()) == 0:
+        print(fig.get_axes())
+        axes = plt.gca()
+    else:
+        print(fig.get_axes())
+        axes = fig.get_axes()[0]
 
     axes.ticklabel_format(useOffset=False)
     fig.autofmt_xdate() # rotate x labels automatically
