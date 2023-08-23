@@ -47,7 +47,6 @@ class Sp3(NavData):
             input_paths = [input_paths]
 
         gps_millis = []
-        unix_millis = []
         gnss_sv_ids = []
         gnss_id = []
         sv_id = []
@@ -105,7 +104,8 @@ class Sp3(NavData):
         self["z_sv_m"] = z_sv_m
 
     def interpolate_sp3(self, navdata, window=6, verbose=False):
-        """Interpolate ECEF position data from sp3 file.
+        """Interpolate ECEF position data from sp3 file, inplace to
+        given navdata instance.
 
         Parameters
         ----------
@@ -148,7 +148,7 @@ class Sp3(NavData):
 
                 xyz_sv_m = np.zeros((6,len(navdata_id)))
 
-                # iterate through needed polynoials so don't repeat fit
+                # iterate through needed polynomials so don't repeat fit
                 insert_indexes = np.searchsorted(x_data,navdata_id_gps_millis)
                 for insert_index in np.unique(insert_indexes):
                     max_index = min(len(sp3_id)-1,insert_index+int(window/2))

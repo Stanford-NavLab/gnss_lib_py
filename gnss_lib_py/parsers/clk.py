@@ -94,7 +94,8 @@ class Clk(NavData):
         self["b_sv_m"] = b_sv_m
 
     def interpolate_clk(self, navdata, window=6, verbose=False):
-        """Interpolate clock data from clk file.
+        """Interpolate clock data from clk file, adding inplace to given
+        NavData instance.
 
         Parameters
         ----------
@@ -143,7 +144,7 @@ class Clk(NavData):
                 b_sv_m = np.zeros(len(navdata_id))
                 b_dot_sv_mps = np.zeros(len(navdata_id))
 
-                # iterate through needed polynoials so don't repeat fit
+                # iterate through needed polynomials so don't repeat fit
                 insert_indexes = np.searchsorted(x_data,navdata_id_gps_millis)
                 for insert_index in np.unique(insert_indexes):
                     max_index = min(len(clk_id)-1,insert_index+int(window/2))
