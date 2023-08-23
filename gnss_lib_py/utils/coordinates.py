@@ -622,7 +622,7 @@ def pz90_to_inertial(pos_pz90, vel_pz90, acc_pz90, theta_Ge):
     return pos_inertial, vel_inertial, acc_inertial
 
 
-def inertial_to_pz90(pos_inertial, theta_G):
+def inertial_to_pz90(pos_inertial, vel_inertial, theta_G):
     """Convert inertial coordinates back to PZ-90 coordinates.
 
     Primarily used for computing GLONASS SV states. There is functionally
@@ -650,4 +650,15 @@ def inertial_to_pz90(pos_inertial, theta_G):
     pos_pz90[1, :] = -pos_inertial[0, :]*np.sin(theta_G) + pos_inertial[1, :]*np.cos(theta_G)
     pos_pz90[2, :] = pos_inertial[2, :]
 
-    return pos_pz90
+    vel_pz90 = np.empty_like(vel_inertial)
+    vel_inertial_wo_earth = vel_inertial \
+                        + np.vstack([consts.OMEGA_E_DOT*pos_inertial[1,:],
+                                    -consts.OMEGA_E_DOT*pos_inertial[0,:],
+                                    np.zeros_like(pos_inertial[2, :])])
+    vel_pz90[0, :] = vel_inertial_wo_earth[0, :]*np.cos(theta_G) \
+                    +vel_inertial_wo_earth[1, :]*np.sin(theta_G)
+    vel_pz90[1, :] = -vel_inertial_wo_earth[0, :]*np.sin(theta_G) \
+                    +vel_inertial_wo_earth[1, :]*np.sin(theta_G)
+    vel_pz90[2, :] = vel_inertial_wo_earth[2, :]
+
+    return pos_pz90, vel_pz90

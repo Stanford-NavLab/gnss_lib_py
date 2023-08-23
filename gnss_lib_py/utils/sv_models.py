@@ -15,11 +15,12 @@ from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.clk import Clk
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex_nav import (get_time_cropped_rinex,
+from gnss_lib_py.parsers.rinex_nav import (load_rinex_nav,
                                            RinexNav,
                                            _compute_eccentric_anomaly,
                                            _estimate_sv_clock_corr,
-                                           _find_delxyz_range)
+                                           _find_delxyz_range,
+                                           _extract_pos_vel_arr)
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
@@ -645,7 +646,7 @@ def _filter_ephemeris_measurements(measurements, constellations,
     lookup_sats = list(np.unique(eph_sv))
     start_gps_millis = np.min(measurements['gps_millis'])
     # Download the ephemeris file for all the satellites in the measurement files
-    ephem = get_time_cropped_rinex(start_gps_millis, lookup_sats,
+    ephem = load_rinex_nav(start_gps_millis, lookup_sats,
                                    ephemeris_path)
     if get_iono:
         keys = list(ephem.iono_params.keys())
@@ -687,25 +688,6 @@ def _sort_ephem_measures(measure_frame, ephem):
     rx_ephem = ephem.where('gnss_sv_id', sorted_sats, condition="eq")
     return rx_ephem, sorted_sats_ind, inv_sort_order
 
-
-def _extract_pos_vel_arr(sv_posvel):
-    """Extract satellite positions and velocities into numpy arrays.
-
-    Parameters
-    ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        NavData containing satellite position and velocity states.
-
-    Returns
-    -------
-    sv_pos : np.ndarray
-        ECEF satellite x, y and z positions 3xN [m].
-    sv_vel : np.ndarray
-        ECEF satellite x, y and z velocities 3xN [m].
-    """
-    sv_pos = sv_posvel[['x_sv_m', 'y_sv_m', 'z_sv_m']]
-    sv_vel   = sv_posvel[['vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps']]
-    return sv_pos, sv_vel
 
 def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
                                  clk_parsed_file, inplace=False,

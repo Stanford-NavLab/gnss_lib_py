@@ -14,7 +14,7 @@ import numpy as np
 from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import AndroidDerived2022, AndroidGroundTruth2022
-from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
+from gnss_lib_py.parsers.rinex_nav import load_rinex_nav
 
 def pytest_collection_modifyitems(items):
     """Run ephemeris download tests after all other tests.
@@ -322,7 +322,7 @@ def fixture_all_gps_ephem(ephemeris_path, start_time, all_gps_sats):
         satellites at the start time for measurement reception.
     """
 
-    ephem = get_time_cropped_rinex(start_time, all_gps_sats,
+    ephem = load_rinex_nav(start_time, all_gps_sats,
                                    ephemeris_path)
     return ephem
 

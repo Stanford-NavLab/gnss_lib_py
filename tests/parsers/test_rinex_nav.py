@@ -12,7 +12,8 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.rinex_nav import RinexNav, get_time_cropped_rinex
+from gnss_lib_py.parsers.rinex_nav import RinexNav, load_rinex_nav
+import gnss_lib_py.parsers.rinex_nav as rinex_nav
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 
@@ -98,7 +99,7 @@ def test_rinex_nav_init_multi(ephem_path):
                          [
                           datetime(2020, 5, 16, 11, 47, 48, tzinfo=timezone.utc),
                          ])
-def test_get_time_cropped_rinex(ephem_path, ephem_time, satellites):
+def test_load_rinex_nav(ephem_path, ephem_time, satellites):
     """Create instance of Ephemeris manager and fetch ephemeris file.
 
     Check type and rows.
@@ -117,7 +118,7 @@ def test_get_time_cropped_rinex(ephem_path, ephem_time, satellites):
 
     ephem_time = datetime_to_gps_millis(ephem_time)
 
-    ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path,
+    ephem = load_rinex_nav(ephem_time, satellites, ephem_path,
                                     verbose=True)
 
     # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
@@ -165,7 +166,7 @@ def test_get_ephem_fails(ephem_path, ephem_time, satellites):
     ephem_time = datetime_to_gps_millis(ephem_time)
 
     with pytest.raises(RuntimeError) as excinfo:
-        get_time_cropped_rinex(ephem_time, satellites, ephem_path)
+        load_rinex_nav(ephem_time, satellites, ephem_path)
     assert "ephemeris data" in str(excinfo.value)
 
 
@@ -205,3 +206,44 @@ def test_no_iono_params(ephem_path):
     rinex_path = os.path.join(ephem_path,"rinex","nav",
                                    "BRDM00DLR_S_20230730000_01D_MN_no_gps_iono.rnx")
     RinexNav(rinex_path)
+
+
+def test_gmst_calculation():
+    """
+    Notes
+    -----
+    Verified by comparing with the GMST calculated from
+    https://www.omnicalculator.com/everyday-life/sidereal-time#how-to-calculate-sidereal-time-greenwich-sidereal-time-calculator-mean-and-apparent
+    """
+    query_datetime = np.datetime64('2020-05-15T02:00:00.000000')
+    exp_hour = 15
+    exp_min = 32
+    exp_sec = 44
+    exp_time = exp_hour + exp_min/60 + exp_sec/3600
+    exp_time_rads = exp_time * 2 * np.pi / 24
+    out_gmst_rad = rinex_nav._find_gmst_at_midnight(query_datetime)
+    # np.testing.assert_almost_equal(exp_time_rads, out_gmst_rad, decimal=2)
+
+    # Test that the function works for an array of datetimes
+    query_datetime_2 = np.datetime64('2020-05-15T04:00:00.000000')
+    exp_time_2 = exp_hour + exp_min/60 + exp_sec/3600
+    exp_time_rads_2 = exp_time * 2 * np.pi / 24
+
+    query_datetime_array = np.array([query_datetime, query_datetime_2])
+    out_gmst_array = rinex_nav._find_gmst_at_midnight(query_datetime_array)
+    np.testing.assert_almost_equal(np.asarray([exp_time_rads, exp_time_rads]),
+                                    out_gmst_array, decimal=2)
+
+    query_datetime_3 = np.datetime64('2020-05-16T00:00:00.000000')
+    #NOTE: The sidereal time actually changes by more than 24 hours when
+    # the day changes, hence the minutes are different here
+    exp_hour_2 = 15
+    exp_min_2 = 36
+    exp_sec_2 = 44
+    exp_time_2 = exp_hour_2 + exp_min_2/60 + exp_sec_2/3600
+    exp_time_rads_2 = exp_time_2  * 2 * np.pi / 24
+    query_datetime_array = np.array([query_datetime, query_datetime_2, query_datetime_3])
+    out_gmst_array = rinex_nav._find_gmst_at_midnight(query_datetime_array)
+    np.testing.assert_almost_equal(np.asarray([exp_time_rads, exp_time_rads, exp_time_rads_2]),
+                                   out_gmst_array, decimal = 2)
+

@@ -471,8 +471,25 @@ def test_pz90_to_inertial(local_ecef):
     local_ecef : np.ndarray
         Local ECEF coordinates for Stanford Durand building.
 
+    Notes
+    -----
+
+    This function requires that the sidereal time be known, for both the
+    start of the day and the time at which the coordinates are converted
+    back. In this case, we use the sideral time at the start of the day
+    and also convert back at the same time to verify that both conversions
+    are equivalent.
+    For this function, we use the sidereal time at the UTC beginning of
+    15th May 2020, which is 4.069832051118946 radians.
     """
-    # inertial_pos, inertial_vel, inertial_acc = pz90_to_inertial(local_ecef)
-    # inertial_back = inertial_to_pz90(inertial)
-    # np.testing.assert_array_almost_equal(local_ecef,inertial_back)
-    raise NotImplementedError("Need to figure out the sidereal time values first")
+    theta_g = 4.069832051118946
+    inertial_pos, inertial_vel, inertial_acc = pz90_to_inertial(local_ecef,
+                                                                np.zeros([3, 1]),
+                                                                np.zeros([3, 1]),
+                                                                theta_g)
+    inertial_back, vel_back = inertial_to_pz90(inertial_pos, inertial_vel, theta_g)
+    np.testing.assert_array_almost_equal(local_ecef,inertial_back)
+    # The velocity should be account for the rotation of the Earth
+    np.testing.assert_array_almost_equal(np.zeros([3,1]), vel_back, decimal=0)
+    # The acceleration should be zero
+    np.testing.assert_almost_equal(inertial_acc, np.zeros([3, 1]))
