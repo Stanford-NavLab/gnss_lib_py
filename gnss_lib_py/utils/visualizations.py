@@ -49,9 +49,9 @@ GNSS_ORDER = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
 mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
                                 +  cycler(marker=MARKERS))
 
-def plot_metric(navdata, *args, groupby=None, title=None, save=False,
-                prefix="", fname=None, markeredgecolor="k",
-                markeredgewidth=0.2, **kwargs):
+def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
+                title=None, save=False, prefix="", fname=None,
+                markeredgecolor="k", markeredgewidth=0.2, **kwargs):
     """Plot specific metric from a row of the NavData class.
 
     Parameters
@@ -64,6 +64,9 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
         first is plotted on the x-axis and the second on the y-axis.
     groupby : string
         Row name by which to group and label plots.
+    avg_y : bool
+        Whether or not to average across the y values for each x
+        timestep when doing groupby
     title : string
         Title for the plot.
     save : bool
@@ -118,6 +121,17 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
                 x_data = range(len(y_data))
             else:
                 x_data = np.atleast_1d(subset[x_metric])
+            if avg_y:
+                # average y values for each x
+                x_unique = sorted(np.unique(x_data))
+                y_avg = []
+                for x_val in x_unique:
+                    x_idxs = np.argwhere(x_data==x_val)
+                    y_avg.append(np.mean(y_data[x_idxs]))
+                x_data = x_unique
+                y_data = y_avg
+                # change name
+                group = group + "_avg"
             axes.plot(x_data, y_data,
                       label=_get_label({groupby:group}),
                       markeredgecolor = markeredgecolor,
