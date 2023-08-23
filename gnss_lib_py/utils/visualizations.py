@@ -103,8 +103,8 @@ def plot_metric(navdata, *args, groupby=None, title=None, save=False,
             title = _get_label({y_metric:y_metric})
     else:
         if title is None:
-            title = _get_label({x_metric:x_metric}) + " vs. " \
-                  + _get_label({y_metric:y_metric})
+            title = _get_label({y_metric:y_metric}) + " vs. " \
+                  + _get_label({x_metric:x_metric})
         xlabel = _get_label({x_metric:x_metric})
 
     if groupby is not None:
@@ -552,12 +552,14 @@ def _get_label(inputs):
     # handle units specially.
     units = {"m","km",
              "deg","rad",
-             "sec","s","hr","min",
+             "millis","ms","sec","s","hr","min",
              "mps","kmph","mph",
              "dgps","radps",
              "mps2",
              }
     unit_replacements = {
+                         "ms" : "milliseconds",
+                         "millis" : "milliseconds",
                          "mps" : "m/s",
                          "kmph" : "km/hr",
                          "mph" : "miles/hr",
@@ -579,6 +581,10 @@ def _get_label(inputs):
             value = str(int(float(value)))
         except ValueError:
             pass
+
+        # special exceptions for known times
+        if value in ("gps_millis","unix_millis"):
+            value = value.split("_")[0] + "_time_millis"
 
         value = value.split("_")
         if value[-1] in units:
