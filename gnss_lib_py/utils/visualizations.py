@@ -338,6 +338,15 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
             points = np.reshape(points,(-1, 1, 2))
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
             norm = plt.Normalize(0,len(segments))
+
+            # ignore segments that cross more than 15 degrees in azimuth
+            # between timesteps and are at an elevation less than 30
+            # degrees which are assumed to be the satellites
+            # coming in and out of view in a later part of the orbit
+            trimmed_indxs = ~(((np.abs(np.diff(np.unwrap(segments[:,:,0]))) > np.pi/12.)[:,0]) \
+                             & (np.mean(segments[:,:,1],axis=1) < 30.))
+            segments = segments[trimmed_indxs]
+
             local_coord = LineCollection(segments, cmap=cmap,
                             norm=norm, linewidths=(4,),
                             array = range(len(segments)))
