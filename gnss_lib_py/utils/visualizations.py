@@ -93,6 +93,10 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
 
     """
 
+    if not isinstance(navdata,NavData):
+        raise TypeError("first arg to plot_metrics must be a "\
+                          + "NavData object.")
+
     x_metric, y_metric = _parse_metric_args(navdata, *args)
 
     if groupby is not None:
@@ -203,6 +207,10 @@ def plot_metric_by_constellation(navdata, *args, save=False, prefix="",
 
     """
 
+    if not isinstance(navdata,NavData):
+        raise TypeError("first arg to plot_metric_by_constellation "\
+                          + "must be a NavData object.")
+
     x_metric, y_metric = _parse_metric_args(navdata, *args)
 
     if not isinstance(prefix, str):
@@ -289,6 +297,10 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         Figure object of skyplot.
 
     """
+
+    if not isinstance(navdata,NavData):
+        raise TypeError("first arg to plot_skyplot "\
+                          + "must be a NavData object.")
 
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
@@ -550,10 +562,8 @@ def _get_new_fig(fig=None):
         fig = plt.figure()
         axes = plt.gca()
     elif len(fig.get_axes()) == 0:
-        print(fig.get_axes())
         axes = plt.gca()
     else:
-        print(fig.get_axes())
         axes = fig.get_axes()[0]
 
     axes.ticklabel_format(useOffset=False)

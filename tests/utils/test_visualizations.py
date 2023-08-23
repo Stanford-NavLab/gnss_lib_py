@@ -308,6 +308,10 @@ def test_plot_metrics(derived):
     with pytest.raises(ValueError) as excinfo:
         viz.plot_metric(derived, 'raw_pr_m', row, row, save=False)
 
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_metric("derived", 'raw_pr_m', save=False)
+    assert "NavData" in str(excinfo.value)
+
 def test_plot_metrics_by_constellation(derived):
     """Test for plotting metrics by constellation.
 
@@ -341,6 +345,10 @@ def test_plot_metrics_by_constellation(derived):
         viz.plot_metric_by_constellation(derived, "raw_pr_m", save=True,
                                          prefix=1)
     assert "Prefix" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_metric_by_constellation("derived", "raw_pr_m", save=True)
+    assert "NavData" in str(excinfo.value)
 
     derived_no_gnss_id = derived.remove(rows="gnss_id")
     with pytest.raises(KeyError) as excinfo:
@@ -388,6 +396,10 @@ def test_plot_skyplot(navdata, state_estimate):
     with pytest.raises(TypeError) as excinfo:
         viz.plot_skyplot(navdata.copy(), state_estimate, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_skyplot("derived", "raw_pr_m", save=True)
+    assert "NavData" in str(excinfo.value)
 
     for row in ["x_sv_m","y_sv_m","z_sv_m","gps_millis"]:
         derived_removed = navdata.remove(rows=row)
