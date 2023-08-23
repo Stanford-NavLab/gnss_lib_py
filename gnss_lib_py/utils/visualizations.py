@@ -48,7 +48,6 @@ GNSS_ORDER = ["gps","glonass","galileo","beidou","qzss","irnss","sbas",
 
 mpl.rcParams['axes.prop_cycle'] = (cycler(color=STANFORD_COLORS) \
                                 +  cycler(marker=MARKERS))
-TIMESTAMP = fo.get_timestamp()
 
 def plot_metric(navdata, *args, groupby=None, title=None, save=False,
                 prefix="", fname=None, markeredgecolor="k",
@@ -664,7 +663,7 @@ def _save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cov
         if (len(fnames) == 1 and fnames[0] is None) \
             or fnames[fig_idx] is None:
             # create results folder if it does not yet exist.
-            log_path = os.path.join(os.getcwd(),"results",TIMESTAMP)
+            log_path = os.path.join(os.getcwd(),"results",fo.TIMESTAMP)
             fo.make_dir(log_path)
 
             # make name path friendly
@@ -848,7 +847,7 @@ def _save_plotly(figures, titles=None, prefix="", fnames=None,
         if (len(fnames) == 1 and fnames[0] is None) \
             or fnames[fig_idx] is None:
             # create results folder if it does not yet exist.
-            log_path = os.path.join(os.getcwd(),"results",TIMESTAMP)
+            log_path = os.path.join(os.getcwd(),"results",fo.TIMESTAMP)
             fo.make_dir(log_path)
 
             # make name path friendly
