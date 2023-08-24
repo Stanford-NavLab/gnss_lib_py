@@ -452,7 +452,6 @@ def test_skyplot_trim(root_path):
     receiver_state["z_rx_m"] = z_rx_m
 
     fig = viz.plot_skyplot(sp3,receiver_state)
-
     # verify that two line segments were removed. Should be 57 not 59
     # after trimming the two separated ones.
     for child in fig.get_children():
@@ -460,8 +459,33 @@ def test_skyplot_trim(root_path):
             for grandchild in child.get_children():
                 if isinstance(grandchild,mpl.collections.LineCollection):
                     assert len(grandchild.get_array()) == 57
-
     viz.close_figures()
+
+    fig = viz.plot_skyplot(sp3,receiver_state,trim_options={"az" : 95.})
+    # verify that only one line segment was removed. Should be 58 not 59
+    # after trimming the one larger than 95 degrees in azimuth separated ones.
+    for child in fig.get_children():
+        if isinstance(child,mpl.projections.polar.PolarAxes):
+            for grandchild in child.get_children():
+                if isinstance(grandchild,mpl.collections.LineCollection):
+                    assert len(grandchild.get_array()) == 58
+    viz.close_figures()
+
+    fig = viz.plot_skyplot(sp3,receiver_state,trim_options={"gps_millis" : 3.5E6})
+    # verify that only one line segment was removed. Should be 58 not 59
+    # after trimming the one larger than 95 degrees in azimuth separated ones.
+    for child in fig.get_children():
+        if isinstance(child,mpl.projections.polar.PolarAxes):
+            for grandchild in child.get_children():
+                if isinstance(grandchild,mpl.collections.LineCollection):
+                    assert len(grandchild.get_array()) == 57
+    viz.close_figures()
+
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_skyplot(sp3, receiver_state, step=20.1)
+    assert "step" in str(excinfo.value)
+
 
 def test_get_label():
     """Test for getting nice labels.
