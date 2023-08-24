@@ -56,10 +56,16 @@ F = -4.442807633e-10
 """float : Relativistic correction term [s/m^(1/2)]."""
 
 F1 = 1.57542e9
-"""float : GPS L1 frequency [Hz]."""
+"""float : GPS L1 and Galileo E1 frequency [Hz]."""
 
 F2 = 1.22760e9
 """float : GPS L2 frequency [Hz]."""
+
+E5a = 1.176450e9
+"""float : Galileo E5a frequency [Hz]."""
+
+E5b = 1.207140e9
+"""float : Galileo E5b frequency [Hz]."""
 
 T_TRANS = 70*0.001
 """float : Average time taken for signal transmission from GPS sats to
