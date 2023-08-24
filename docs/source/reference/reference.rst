@@ -46,8 +46,17 @@ their use in ``gnss_lib_py``.
     retrieved on 23rd June, 2023): for parsing NMEA files with GGA and RMC messages.
   * *SP3*: used to determine SV positions for precise
   * *GLONASS ICD* (retrieved from this `link <https://www.unavco.org/help/glossary/docs/ICD_GLONASS_4.0_(1998)_en.pdf>`__
-    retrieved on 27th June, 2023): for determining GLOASS SV states from
+    retrieved on 27th June, 2023): for determining GLONASS SV states from
     broadcast satellite positions, velocities, and accelerations.
+  * *GPS ICD* (retrieved from this `link <https://www.gps.gov/technical/icwg/IS-GPS-200N.pdf>`__
+    retrieved on 28th August, 2023): for determining GPS SV states, clock
+    corrections and other required quantities from broadcast information.
+  * *GALILEO ICD* (retrieved from this `link <https://www.gsc-europa.eu/sites/default/files/sites/all/files/Galileo_OS_SIS_ICD_v2.0.pdf>`__
+    retrieved on 28th August, 2023): for determining GALILEO SV states, clock
+    corrections and other required quantities from broadcast information.
+  * *BEIDOU ICD* (retrieved from this `link <hhttp://en.beidou.gov.cn/SYSTEMS/ICD/>`__
+    retrieved on 28th August, 2023): for determining Beidou SV states, clock
+    corrections and other required quantities from broadcast information.
 
 Package Architecture
 --------------------
