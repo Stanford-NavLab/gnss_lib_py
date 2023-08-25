@@ -153,7 +153,9 @@ def trim_rinex_data(gps_millis, rinex_nav, constellations=None):
 
     References
     ----------
-    ..  [1] http://acc.igs.org/misc/rinex304.pdf
+    ..  [1] Rinex Specification Document
+        http://acc.igs.org/misc/rinex304.pdf. Retrieved on 23rd August,
+        2023.
     """
     # Split the rinex data into the GLONASS and SBAS part and find the
     # closest time to the query time
@@ -601,6 +603,11 @@ def rinex_to_sv_states(gps_millis, rinex_nav, rx_pos=None):
 def estimate_joint_sv_states(gps_millis, rinex_nav):
     """Given a time and rinex_nav, estimate SV states for all satellites.
 
+    Empirically and through observation on datasets, other than leap
+    seconds, the timing corrections are in the order of nanoseconds. Since
+    our application does not deal with nanosecond level times, we do not
+    incorporate these smaller inter-constellation timing corrections.
+
     Parameters
     ----------
     gps_millis : float
@@ -946,38 +953,14 @@ def _compute_eccentric_anomaly(gps_week, gps_tow, ephem, tol=1e-5, max_iter=10):
     return ecc_anom
 
 
-def _find_delxyz_range(sv_posvel, rx_ecef):
-    """Return difference of satellite and rx_pos positions and distance between them.
-
-    Parameters
-    ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
-        Satellite position and velocities.
-    rx_ecef : np.ndarray
-        3x1 Receiver 3D ECEF position [m].
-
-    Returns
-    -------
-    del_pos : np.ndarray
-        Difference between satellite positions and receiver position.
-    true_range : np.ndarray
-        Distance between satellite and receiver positions.
-    """
-    rx_ecef = np.reshape(rx_ecef, [3, 1])
-    satellites = len(sv_posvel)
-    sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
-    sv_pos = sv_pos.reshape(rx_ecef.shape[0], satellites)
-    del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
-    true_range = np.linalg.norm(del_pos, axis=0)
-    return del_pos, true_range
-
-
 def _estimate_sv_clock_corr(gps_millis, ephem):
     """Calculate the modelled satellite clock delay
 
     Assumes that clock delays are calculated for E1 signals for Galileo
     satellites. The group delays are calculated according to the Galileo
-    ICD[3]_.
+    ICD [4]_.
+    Uses the first clock correction for the group delay calculation for
+    Beidou signals [5]_.
 
     Parameters
     ---------
@@ -998,8 +981,13 @@ def _estimate_sv_clock_corr(gps_millis, ephem):
 
     References
     ----------
-    ..  [3] Galileo Open Service Signal In Space Interface Control Document,
+    ..  [4] Galileo Open Service Signal In Space Interface Control Document,
         Issue 2.0, January 2021, Retreived on 24 August, 2023
+        https://www.gsc-europa.eu/sites/default/files/sites/all/files/Galileo_OS_SIS_ICD_v2.0.pdf
+    ..  [5] BeiDou Navigation Satellite System Signal In Space Interface
+        Control Document, Open Service Signal B1I (Version 1.0), 2012,
+        Retreived on 23 August, 2023.
+        http://en.beidou.gov.cn/SYSTEMS/ICD/
 
     """
     # Extract required GPS constants
@@ -1047,8 +1035,23 @@ def _estimate_sv_clock_corr(gps_millis, ephem):
 
 
 def num_int_for_sv_states(gps_millis, num_int_rinex):
-    rx_gnss_sv_id = np.unique(num_int_rinex['gnss_sv_id'])
+    """Calculate SV states for GLONASS like satellite parameters.
 
+    Parameters
+    ----------
+    gps_millis : float
+        The query time at which SV states need to be calculated.
+    num_int_rinex : gnss_lib_py.parsers.rinex_nav.RinexNav
+        RinexNav or RinexNav like NavData instance containing ephemeris
+        parameters for GLONASS like satellites.
+
+    Returns
+    -------
+    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+        NavData containing satellite positions, velocities, corresponding
+        time with GNSS ID and SV number.
+    """
+    rx_gnss_sv_id = np.unique(num_int_rinex['gnss_sv_id'])
     sv_posvel = NavData()
     for gnss_sv_id in rx_gnss_sv_id:
         num_int_rinex_sv = num_int_rinex.where('gnss_sv_id', gnss_sv_id, 'eq')
@@ -1074,6 +1077,29 @@ def num_int_for_sv_states(gps_millis, num_int_rinex):
 
 def num_int_single_sv(gps_millis, num_int_rinex_sv):
     """
+    Calculate SV states for a single GLONASS like satellite.
+
+    This function estimates positions and velocities in the PZ-90 frame
+    of reference The PZ-90 and WGS-84 frame of reference are similar, with
+    sub-meter level differences and are treated as the same in this
+    function.
+    Parameters
+    ----------
+    gps_millis : float
+        The query time at which SV states need to be calculated.
+    num_int_rinex_sv : gnss_lib_py.parsers.navdata.NavData
+        NavData instance containing ephemeris parameters for a single
+        GLONASS like satellite.
+
+    Returns
+    -------
+    times : np.ndarray
+        Times at which SV states are calculated.
+    est_pos : np.ndarray
+        Estimated ECEF SV positions at the times, 3xN array [m]
+    est_vel : np.ndarray
+        Estimated ECEF SV velocities at the times, 3xN array [m/s]
+
     Notes
     -----
     Algorithm used is from
@@ -1156,15 +1182,6 @@ def num_int_single_sv(gps_millis, num_int_rinex_sv):
         t_span_back = (t_e[0], np.min(t_k))
         t_eval_back = np.flatnonzero(t_k < t_e[0])
 
-    #TODO: See if the t_eval has to be removed
-    # num_t = 10
-    # t_eval = np.linspace(t_span_fwd[0], t_span_fwd[1], num_t)
-    # print(f't_eval:{t_eval}')
-    # print(f't_span:{t_span}')
-    # print(f't_e:{t_e}')
-    # print(f't_k:{t_k}')
-    # print('initial condition', s0)
-
     sol_fwd = solve_ivp(_glonass_sv_dynamics,
                         t_span_fwd,
                         s0,
@@ -1189,21 +1206,50 @@ def num_int_single_sv(gps_millis, num_int_rinex_sv):
     pos_iner = np.vstack((x_iner, y_iner, z_iner))
     vx_iner, vy_iner, vz_iner = y_out[3, :], y_out[4, :], y_out[5, :]
     vel_iner = np.vstack((vx_iner, vy_iner, vz_iner))
-    #TODO: Create a conversion back to PZ90 for the velocities and use
-    # it to report the velocities
     theta_G_arr = theta_G0 + consts.OMEGA_E_DOT* t_out
     est_pos_pz90, est_vel_pz90 = inertial_to_pz90(pos_iner, vel_iner, theta_G_arr)
-    # print('times')
-    # for t in t_out:
-    #     print(t)
-    #     print(start_of_day + np.timedelta64(int(np.round(t, decimals=0)), 's'))
-    # print('pos_out_x', est_pos_pz90[0, :])
-    # print('pos_out_y', est_pos_pz90[1, :])
-    # print('pos_out_z', est_pos_pz90[2, :])
     return t_out, est_pos_pz90, est_vel_pz90
 
 
 def _find_gmst_at_midnight(timestamps):
+    """Find the Greenwich Mean Sidereal Time at midnight UTC for given time.
+
+    Parameters
+    ----------
+    timestamps : np.ndarray/ np.datetime64
+        Query timestamp as a value or array with `dtype=np.datetime64`.
+
+    Returns
+    -------
+    gmst_rad : np.ndarray/float
+        GMST in hours, converted to equivalent radians [rad]
+
+    Notes
+    -----
+    Code is adapted from [6]_, which was originally a GMST calculator for
+    hours, minutes, and seconds. An abridged version of the license
+    statement from that code is included below.
+
+    References
+    ----------
+    ..  [6] Sidereal Time and Julian Date Calculator
+        Revision history: Justine Haupt, v1.0 (11/23/17)
+        https://github.com/jhaupt/Sidereal-Time-Calculator/blob/master/SiderealTimeCalculator.py
+
+    License
+    -------
+    This program is free software: you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <https://www.gnu.org/licenses/>
+    """
     #TODO: Add a license statement here
     # https://github.com/jhaupt/Sidereal-Time-Calculator/blob/master/SiderealTimeCalculator.py
     # be a result of a constant (ish) offset in the GMST calculation
@@ -1228,10 +1274,37 @@ def _find_gmst_at_midnight(timestamps):
     return gmst_rad
 
 
-def _glonass_sv_dynamics(t, s, acc_x_iner, acc_y_iner, acc_z_iner): # pragma: no cover
+def _glonass_sv_dynamics(t, s, acc_x_iner, acc_y_iner, acc_z_iner):
+    """Glonass SV model, as given in the ICD [7]_.
+
+    Parameters
+    ----------
+    t : float
+        Time at which the function is evaluated.
+    s : np.ndarray
+        Initial condition for the integration.
+    acc_x_iner : float
+        Acceleration in the inertial frame in the x direction. This value
+        is a parameter for the initial value problem (IVP) that's solved.
+    acc_y_iner : float
+        Acceleration in the inertial frame in the y direction. This value
+        is a parameter for the initial value problem (IVP) that's solved.
+    acc_z_iner : float
+        Acceleration in the inertial frame in the z direction. This value
+        is a parameter for the initial value problem (IVP) that's solved.
+
+    Returns
+    -------
+    s_dot : np.ndarray
+        Derivative of the state vector at the time `t` for given `s`.
+
+    References
+    ----------
+    ..  [7] GLONASS ICD
+        https://www.unavco.org/help/glossary/docs/ICD_GLONASS_4.0_(1998)_en.pdf.
+        Retrieved on 27th June, 2023.
+
     """
-    """
-    #TODO: Test this function
     # Extract the values from the input initial conditions
     x_iner = s[0]
     y_iner = s[1]

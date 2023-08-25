@@ -54,7 +54,7 @@ their use in ``gnss_lib_py``.
   * *GALILEO ICD* (retrieved from this `link <https://www.gsc-europa.eu/sites/default/files/sites/all/files/Galileo_OS_SIS_ICD_v2.0.pdf>`__
     retrieved on 28th August, 2023): for determining GALILEO SV states, clock
     corrections and other required quantities from broadcast information.
-  * *BEIDOU ICD* (retrieved from this `link <hhttp://en.beidou.gov.cn/SYSTEMS/ICD/>`__
+  * *BEIDOU ICD* (retrieved from this `link <http://en.beidou.gov.cn/SYSTEMS/ICD/>`__
     retrieved on 28th August, 2023): for determining Beidou SV states, clock
     corrections and other required quantities from broadcast information.
 
