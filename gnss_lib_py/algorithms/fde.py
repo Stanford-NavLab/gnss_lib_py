@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from gnss_lib_py.algorithms.residuals import solve_residuals
 from gnss_lib_py.algorithms.snapshot import solve_wls
+from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 
 def solve_fde(navdata, method="residual", remove_outliers=False,
               max_faults=None, threshold=None,verbose=False,
@@ -48,6 +49,30 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
         usually due to lack of necessary columns or information.
 
     """
+
+    # corr_pr_m_new = []
+    # for _, _, navdata_subset in navdata.loop_time("gps_millis"):
+    #     # add ECEF coordinates
+    #     ecef_xyz = geodetic_to_ecef(navdata_subset[["lat_rx_gt_deg",
+    #                                           "lon_rx_gt_deg",
+    #                                           "alt_rx_gt_m"
+    #                                         ]])
+    #     navdata_subset["x_rx_gt_m"] = ecef_xyz[0,:]
+    #     navdata_subset["y_rx_gt_m"] = ecef_xyz[1,:]
+    #     navdata_subset["z_rx_gt_m"] = ecef_xyz[2,:]
+    #     # data.to_csv("example_smartloc_pre_wls.csv")
+    #
+    #     # estimate receiver clock bias
+    #     wls_state_estimate = solve_wls(navdata_subset,
+    #                                        only_bias = True,
+    #                                        # delta_t_decimals=6,
+    #                                        receiver_state=navdata_subset,
+    #                                        )
+    #
+    #     corr_pr_m_new += list(navdata_subset["corr_pr_m"] - wls_state_estimate["b_rx_wls_m"])
+    #
+    # navdata["corr_pr_m"] = corr_pr_m_new
+
 
     if method == "residual":
         navdata = fde_residual_old(navdata, max_faults=max_faults,
@@ -111,7 +136,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
     MIN_SATELLITES = 4
 
     if threshold is None:
-        threshold = 1E6
+        threshold = 0.6
 
     # number of check indexes
     if max_faults is None:
@@ -127,8 +152,6 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
             time_start = time.time()
 
         nsl = len(navdata_subset)
-        if verbose:
-            print("gt faults:",np.argwhere(navdata_subset["fault_gt"]==1)[:,0])
         sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
         corr_pr_m = navdata_subset["corr_pr_m"]
 
@@ -136,8 +159,17 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
         nan_idxs = sorted(list(set(np.arange(nsl)[np.isnan(sv_m).any(axis=0)]).union( \
                                set(np.arange(nsl)[np.isnan(corr_pr_m)]).union( \
                                   ))))[::-1]
+        navdata_subset.remove(cols=nan_idxs,inplace=True)
+        sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        corr_pr_m = navdata_subset["corr_pr_m"]
+
+        if verbose:
+            print("nan_idxs:",nan_idxs)
+            print("gt faults:",np.argwhere(navdata_subset["NLOS (0 == no, 1 == yes, 2 == No Information)"]==1)[:,0])
+
         fault_idxs = []
-        orig_idxs = np.arange(nsl+1) # add one for receiver index
+        orig_idxs = np.arange(len(navdata_subset)+1) # add one for receiver index
+        pre_nan_idxs = np.delete(np.arange(nsl+1), nan_idxs)
 
         edm = _edm_from_satellites_ranges(sv_m,corr_pr_m)
 
@@ -151,16 +183,18 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
                 or (max_faults is not None and len(fault_idxs) == max_faults):
                 break
 
-
             try:
                 edm_detect = np.delete(np.delete(edm,fault_idxs,0),fault_idxs,1)
                 detection_statistic_detect, svd_u, svd_s, svd_v = _edm_detection_statistic(edm_detect)
                 detection_statistic = detection_statistic_detect[0]
             except Exception as exception:
                 if verbose:
+                    print("edm detect:",edm_detect)
                     print(exception)
-                print(exception)
                 break
+
+            if verbose:
+                print("detection statistic:",detection_statistic)
 
             if detection_statistic < threshold:
                 if verbose:
@@ -290,9 +324,9 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
             detection_statistic = detection_statistic_exclude[min_idx]
 
         # important step! remove 1 since index 0 is the receiver index
-        fault_idxs = [i-1 for i in fault_idxs]
+        fault_idxs = [pre_nan_idxs[i-1] for i in fault_idxs]
 
-        fault_edm_subset = np.array([0] * len(navdata_subset))
+        fault_edm_subset = np.array([0] * nsl)
         fault_edm_subset[fault_idxs] = 1
         fault_edm_subset[nan_idxs] = 2
         fault_edm += list(fault_edm_subset)
@@ -470,8 +504,6 @@ def fde_residual_old(navdata, max_faults, threshold,
                 if verbose:
                     print("threshold fail:")
                     print("r: ",r)
-                    for rri, rrr in enumerate(residuals):
-                        print(rri, rrr)
 
             ri = list(ri)
 
