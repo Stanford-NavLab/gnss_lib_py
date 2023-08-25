@@ -658,7 +658,7 @@ def inertial_to_pz90(pos_inertial, vel_inertial, theta_G):
     vel_pz90[0, :] = vel_inertial_wo_earth[0, :]*np.cos(theta_G) \
                     +vel_inertial_wo_earth[1, :]*np.sin(theta_G)
     vel_pz90[1, :] = -vel_inertial_wo_earth[0, :]*np.sin(theta_G) \
-                    +vel_inertial_wo_earth[1, :]*np.sin(theta_G)
+                    +vel_inertial_wo_earth[1, :]*np.cos(theta_G)
     vel_pz90[2, :] = vel_inertial_wo_earth[2, :]
 
     return pos_pz90, vel_pz90

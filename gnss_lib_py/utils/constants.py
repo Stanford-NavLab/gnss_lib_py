@@ -83,7 +83,17 @@ DAYSEC = 86400
 GPS_EPOCH_0 = datetime(1980, 1, 6, 0, 0, 0, 0, tzinfo=timezone.utc)
 """ datetime.datetime: Starting time for GPS epoch"""
 
+BEIDOU_EPOCH_0 = datetime(2006, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+""" datetime.datetime: Starting time for Beidou epoch"""
+
+GPS_BEIDOU_OFFSET_MILLIS = 14e3
+""" int : Milliseconds by which Beidou and GPS times differ."""
+
+GPS_BEIDOU_WEEK_OFFSET = 1356
+""" int : GPS week number when Beidou epoch started."""
+
 MILLIS_PER_DAY = 86400000
+""" int : Number of milliseconds in a day [ms]."""
 
 TROPO_DELAY_C1 = 2.47
 """float : First coefficient of simplified tropospheric delay model developed in [1]_."""
