@@ -24,6 +24,11 @@ Standard Installation
 
       pip install gnss-lib-py
 
+Run on Google Colab
+---------------------
+
+**You can now run `gnss_lib_py` in Google Colab for free.** The notebook `demo.ipynb <https://colab.research.google.com/drive/1WDbPJ4CeLXu-Zza2iS5oz2mieDb6Hcf1>`__ shows how to run the library in just a few steps.
+
 Editable Installation
 ---------------------
 
