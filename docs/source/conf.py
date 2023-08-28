@@ -46,6 +46,7 @@ extensions = [
                 'sphinx.ext.autodoc',
                 'sphinx.ext.napoleon',
                 'sphinx.ext.linkcode',
+                'sphinx_copybutton',
                 'nbsphinx',
                 'nbsphinx_link',
                 'IPython.sphinxext.ipython_console_highlighting',
