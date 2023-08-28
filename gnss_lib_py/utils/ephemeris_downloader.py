@@ -37,14 +37,35 @@ If the SP3 or CLK date requested is within the last two weeks, then the
 rapid solution from GFZ is downloaded (GFZ0MGXRAP). The GFZ rapid
 solution became available starting GPS week 2038 or Jan 27, 2019. The
 GFZ rapid solution includes: GPS+GLO+GAL+BDS+QZS
+More about the GFZ solution can be found on their MGEX website [8]_.
 
 If the SP3 or CLK date requested is more than two weeks previous to the
 current date, then the CODE final solution is downloaded (COD0MGXFIN).
-The CODE final solutions became available starting GPS week 1962 or
-Aug 13, 2017. The CODE final solution includes: GPS+GLO+GAL+BDS+QZS
+The CODE final SP3 solutions became available starting GPS week 1962 or
+Aug 13, 2017.
+
+The CODE final CLK solution becomes available GPS week 2113
+or July 5th, 2020.
+
+The CODE final solution includes: GPS+GLO+GAL+BDS+QZS
+More about the CODE solution can be found in their papers [6]_[7]_.
+
+WUM0MGXFIN for CLK from week 2035 to week 2112
+
+for week 2034??
+
+wum for CLK from week 1962 to week 2033
+
+com available week 1690 and after for SP3
+week 1710 and after for clk and both end on week 1961.
+More about the CODE com solution can be found in their papers [9]_[10]_.
+
+gbm available week 2017 day 772 and after
 
 Details on the MGEX precise orbit and clock products can be found on the
 IGS website [4]_.
+
+IGS files can be viewed online using their file browser [5]_.
 
 References
 ----------
@@ -52,8 +73,15 @@ References
 .. [2] https://igs.org/mgex/data-products/#bce
 .. [3] https://network.igs.org/
 .. [4] https://igs.org/mgex/data-products/#orbit_clock
-
+.. [5] https://igs.bkg.bund.de/browseFiles
+.. [6] http://dx.doi.org/10.1016/j.asr.2020.04.038
+.. [7] http://dx.doi.org/10.7892/boris.75882.3
+.. [8] https://www.gfz-potsdam.de/en/section/space-geodetic-techniques/projects/mgex
+.. [9] http://doi.org/10.1007/1345_2015_161
+.. [10] http://doi.org/10.1007/s00190-016-0968-8
 """
+
+# CLK: 2020, 7, 2
 
 __authors__ = "Shubh Gupta, Ashwin Kanhere, Derek Knowles"
 __date__ = "13 July 2021"
@@ -87,7 +115,7 @@ def load_ephemeris(file_type, gps_millis,
         GPS milliseconds for which downloaded ephemeris should be
         obtained.
     constellations : list, set, or array-like
-        Constellations for which to download ephemeris.
+        Constellations for which to download ephemeris, i.e. ["gps"].
     file_paths : list, string or path-like
         Paths to existing ephemeris files if they exist.
     download_directory : string or path-like
@@ -138,7 +166,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
         GPS milliseconds for which downloaded ephemeris should be
         obtained.
     constellations : list, set, or array-like
-        Constellations for which to download ephemeris.
+        Constellations for which to download ephemeris, i.e. ["gps"].
     file_paths : string or path-like
         Paths to existing ephemeris files if they exist.
     verbose : bool
@@ -165,6 +193,10 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
         possible_types = []
 
         if file_type == "rinex_nav":
+            if date < datetime(2013,1,1):
+                raise RuntimeError("gnss_lib_py cannot automatically " \
+                                 + "download rinex nav files for "\
+                                 + "times before Jan 1, 2013")
             if datetime.utcnow().date() == date:
                 possible_types = ["rinex_nav_today"]
             else:
@@ -185,20 +217,32 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
                         possible_types += ["rinex_nav_multi_s"]
 
         if file_type == "sp3":
+            if date < datetime(2017,8,13):
+                raise RuntimeError("gnss_lib_py cannot automatically " \
+                                 + "download sp3 files for "\
+                                 + "times before Aug 13, 2017")
             if datetime.utcnow().date() - timedelta(days=3) < date:
                 possible_types += ["sp3_rapid_CODE"]
             elif datetime.utcnow().date() - timedelta(days=14) < date:
                 possible_types += ["sp3_rapid_GFZ"]
-            else:
+            elif date >= datetime(2017, 8, 13).date():
                 possible_types += ["sp3_final_CODE"]
+            else:
+                possible_types += ["sp3_final_GFZ"]
 
         if file_type == "clk":
+            if date < datetime(2017,8,13):
+                raise RuntimeError("gnss_lib_py cannot automatically " \
+                                 + "download clk files for "\
+                                 + "times before Aug 13, 2017")
             if datetime.utcnow().date() - timedelta(days=3) < date:
                 possible_types += ["clk_rapid_CODE"]
             elif datetime.utcnow().date() - timedelta(days=14) < date:
                 possible_types += ["clk_rapid_GFZ"]
-            else:
+            elif date >= datetime(2017, 8, 13).date():
                 possible_types += ["clk_final_CODE"]
+            else:
+                possible_types += ["clk_final_GFZ"]
 
         already_exists, filepath = _valid_ephemeris_in_paths(date,
                                                 possible_types, file_paths)
@@ -401,7 +445,6 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1][-22:] == recommended_file[1][-25:-3]:
                     return True, path
 
-
         # rinex that only contains GPS
         elif possible_type == "rinex_nav_gps":
             recommended_file = ("gdc.cddis.eosdis.nasa.gov",
@@ -508,7 +551,7 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".sp3":
                     return True, path
 
-        # sp3 if longer than two weeks ago
+        # sp3 if longer than two weeks ago and more recent than Aug 13, 2017
         elif possible_type == "sp3_final_CODE":
             gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
                                          time(tzinfo=timezone.utc)))
@@ -530,6 +573,27 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                     return True, path
             for path in file_paths:
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".sp3":
+                    return True, path
+
+        # sp3 before Aug 13, 2017
+        elif possible_type == "sp3_final_GFZ":
+            gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
+                                         time(tzinfo=timezone.utc)))
+            recommended_file = ("gdc.cddis.eosdis.nasa.gov",
+                                "/gnss/products/" \
+                              + str(gps_week).zfill(4) + "/" \
+                              + "gbm" + str(gps_week).zfill(4) \
+                              + str((timetuple.tm_wday+1)%7) \
+                              + ".sp3.Z")
+            recommended_files.append(recommended_file)
+            if file_paths is None:
+                return False, recommended_file
+            # check compatible file types
+            for path in file_paths:
+                if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
                     return True, path
 
         # clk from last three days
@@ -580,7 +644,7 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
                     return True, path
 
-        # clk if longer than two weeks ago
+        # clk if longer than two weeks ago and more recent than Aug 13, 2017
         elif possible_type == "clk_final_CODE":
             gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
                                          time(tzinfo=timezone.utc)))
@@ -602,6 +666,27 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                     return True, path
             for path in file_paths:
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
+                    return True, path
+
+        # clk before Aug 13, 2017
+        elif possible_type == "clk_final_GFZ":
+            gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
+                                         time(tzinfo=timezone.utc)))
+            recommended_file = ("gdc.cddis.eosdis.nasa.gov",
+                                "/gnss/products/" \
+                              + str(gps_week).zfill(4) + "/" \
+                              + "gbm" + str(gps_week).zfill(4) \
+                              + str((timetuple.tm_wday+1)%7) \
+                              + ".clk.Z")
+            recommended_files.append(recommended_file)
+            if file_paths is None:
+                return False, recommended_file
+            # check compatible file types
+            for path in file_paths:
+                if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
                     return True, path
 
         else:
