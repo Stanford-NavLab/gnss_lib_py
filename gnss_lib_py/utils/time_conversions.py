@@ -590,32 +590,3 @@ def tzinfo_to_utc(t_datetime):
     if t_datetime.tzinfo != timezone.utc:
         t_datetime = t_datetime.astimezone(timezone.utc)
     return t_datetime
-
-
-def datetime_to_beidou_millis_since_gps_0(t_datetimes):
-    if isinstance(t_datetimes,datetime):
-        t_datetimes = [t_datetimes]
-    if isinstance(t_datetimes,np.ndarray) \
-        and len(np.atleast_1d(t_datetimes)) == 1:
-        t_datetimes = [t_datetimes.item()]
-
-    beidou_millis_since_gps_0_list = []
-
-    for t_datetime in t_datetimes:
-        t_datetime = tzinfo_to_utc(t_datetime)
-        # Extract the number of Beidou leapseconds
-        if t_datetime < GPS_EPOCH_0:
-            raise RuntimeError("Need input time after GPS epoch " \
-                            + str(GPS_EPOCH_0))
-        for row_num, time_frame in enumerate(LEAPSECONDS_TABLE):
-            if t_datetime >= time_frame:
-                out_leapsecs = len(BEIDOU_LEAP_SECONDS)-1 - row_num
-                break
-        beidou_millis_since_gps_0 = 1000*(t_datetime - GPS_EPOCH_0).total_seconds()
-        beidou_millis_since_gps_0 += out_leapsecs*1000
-        beidou_millis_since_gps_0_list.append(beidou_millis_since_gps_0)
-
-    beidou_millis_since_gps_0_list = np.squeeze(np.asarray(
-                                            beidou_millis_since_gps_0_list,
-                                            dtype=np.float64))
-    return beidou_millis_since_gps_0_list
