@@ -1,5 +1,8 @@
 """Functions to download Rinex, SP3, and CLK ephemeris files.
 
+Rinex Navigation
+----------------
+
 Rinex navigation files are pulled from one of five sources. More about
 rinex files can be found in the CDDIS documentation [1]_.
 
@@ -23,49 +26,72 @@ downloaded from CDDIS. These multi-gnss files include:
 GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS. For more information on multi-gnss
 combined rinex navigation files, see MGEX documentation [2]_.
 
-IGS network station information can be found at [3]_.
-
+SP3 and CLK within Two Weeks
+----------------------------
 SP3 and CLK files are obtained from CDDIS and produced by either the
-Center for Orbit Determination in Europe (CODE) or GeoForschungsZentrum
-Potsdam (GFZ). Products are available through the MGEX data program [4]_.
+Center for Orbit Determination in Europe (CODE), GeoForschungsZentrum
+Potsdam (GFZ) or Wuhan University. Products are available through the
+MGEX data program [4]_. Details on the MGEX precise orbit and clock
+products can be found on the IGS website [4]_.
 
 If the SP3 or CLK date requested is within the three days, then the
 rapid solution from CODE is downloaded (COD0OPSRAP). The CODE rapid
-solution includes: GPS+GLO+GAL
+solution includes: GPS+GLO+GAL.
 
 If the SP3 or CLK date requested is within the last two weeks, then the
 rapid solution from GFZ is downloaded (GFZ0MGXRAP). The GFZ rapid
 solution became available starting GPS week 2038 or Jan 27, 2019. The
-GFZ rapid solution includes: GPS+GLO+GAL+BDS+QZS
-More about the GFZ solution can be found on their MGEX website [8]_.
+GFZ rapid solution includes: GPS+GLO+GAL+BDS+QZS. More about the GFZ
+solution can be found on their MGEX website [8]_.
 
-If the SP3 or CLK date requested is more than two weeks previous to the
-current date, then the CODE final solution is downloaded (COD0MGXFIN).
-The CODE final SP3 solutions became available starting GPS week 1962 or
-Aug 13, 2017.
+SP3 Older than Two Weeks
+------------------------
+If the SP3 date requested is more than two weeks previous to the
+current date and GPS week 1962 or later, then the CODE final solution
+is downloaded (COD0MGXFIN). The CODE final SP3 solutions became
+available starting GPS week 1962 or Aug 13, 2017. The CODE final
+solution includes: GPS+GLO+GAL+BDS+QZS. More about the CODE solution can
+be found in their papers [6]_[7]_.
 
-The CODE final CLK solution becomes available GPS week 2113
-or July 5th, 2020.
+If the SP3 date requested is between GPS week 1690 and 1961 or between
+May 25, 2012 and Aug 12, 2017, then the CODE 'com' short name solution
+is downloaded. More about the CODE 'com' solution can be found in their
+papers [9]_[10]_.
 
-The CODE final solution includes: GPS+GLO+GAL+BDS+QZS
-More about the CODE solution can be found in their papers [6]_[7]_.
+CLK Older than Two Weeks
+------------------------
+If the CLK date requested is more than two weeks previous to the
+current date and GPS week 2113 or later, then the CODE final solution
+is downloaded (COD0MGXFIN). The CODE final CLK solutions became
+available starting GPS week 2113 or July 5th, 2020. The CODE final
+solution includes: GPS+GLO+GAL+BDS+QZS. More about the CODE solution can
+be found in their papers [6]_[7]_.
 
-WUM0MGXFIN for CLK from week 2035 to week 2112
+If the CLK date requested is between GPS week 2034 and 2112 or between
+Jan 1, 2019 and July 4th, 2020, then the Wuhan University final
+solution is downloaded (WUM0MGXFIN). More about the WUM0MGXFIN solution
+can be found in their documention [11]_.
 
-for week 2034??
+If the CLK date requested is week GPS week 2034 and between Dec 30, 2018
+and Dec 31, 2018, then the GFZ short name solution is downloaded (gbm).
+More about the GFZ 'gbm' solution can be found in their
+documentation [13]_[14]_.
 
-wum for CLK from week 1962 to week 2033
+If the CLK date requested is between GPS week 1962 and 2033 or between
+Aug 13, 2017 and Dec 29th, 2018 then the Wuhan University short name
+solution is downloaded (wum). More about the "wum" solution can be found
+in their paper [12]_.
 
-com available week 1690 and after for SP3
-week 1710 and after for clk and both end on week 1961.
-More about the CODE com solution can be found in their papers [9]_[10]_.
+If the CLK date requested is between GPS week 1710 and 1961 or between
+Oct 14, 2012 and Aug 12, 2017, then the CODE 'com' short name solution
+is downloaded. More about the CODE 'com' solution can be found in their
+papers [9]_[10]_.
 
-gbm available week 2017 day 772 and after
+IGS Resources
+-------------
 
-Details on the MGEX precise orbit and clock products can be found on the
-IGS website [4]_.
-
-IGS files can be viewed online using their file browser [5]_.
+IGS network station information can be found at [3]_. IGS files can be
+viewed online using their file browser [5]_.
 
 References
 ----------
@@ -79,6 +105,11 @@ References
 .. [8] https://www.gfz-potsdam.de/en/section/space-geodetic-techniques/projects/mgex
 .. [9] http://doi.org/10.1007/1345_2015_161
 .. [10] http://doi.org/10.1007/s00190-016-0968-8
+.. [11] https://files.igs.org/pub/center/analysis/WUM0MGXFIN.acn
+.. [12] http://dx.doi.org/10.1007/s00190-015-0862-9
+.. [13] https://files.igs.org/pub/resource/pubs/workshop/2014/Workshop%202014%20-%20PS11%20-%20Deng%20-%202226%20-%20Precise%20orbit%20determination%20of%20Beidou%20Satellites%20at%20GFZ.pdf
+.. [14] http://doi.org/10.1007/1345_2015_120
+
 """
 
 # CLK: 2020, 7, 2
@@ -193,7 +224,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
         possible_types = []
 
         if file_type == "rinex_nav":
-            if date < datetime(2013,1,1):
+            if date < datetime(2013,1,1).date():
                 raise RuntimeError("gnss_lib_py cannot automatically " \
                                  + "download rinex nav files for "\
                                  + "times before Jan 1, 2013")
@@ -217,10 +248,10 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
                         possible_types += ["rinex_nav_multi_s"]
 
         if file_type == "sp3":
-            if date < datetime(2017,8,13):
+            if date < datetime(2012,5,25).date():
                 raise RuntimeError("gnss_lib_py cannot automatically " \
                                  + "download sp3 files for "\
-                                 + "times before Aug 13, 2017")
+                                 + "times before May 25, 2012")
             if datetime.utcnow().date() - timedelta(days=3) < date:
                 possible_types += ["sp3_rapid_CODE"]
             elif datetime.utcnow().date() - timedelta(days=14) < date:
@@ -228,21 +259,27 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
             elif date >= datetime(2017, 8, 13).date():
                 possible_types += ["sp3_final_CODE"]
             else:
-                possible_types += ["sp3_final_GFZ"]
+                possible_types += ["sp3_short_CODE"]
 
         if file_type == "clk":
-            if date < datetime(2017,8,13):
+            if date < datetime(2012,10,14).date():
                 raise RuntimeError("gnss_lib_py cannot automatically " \
                                  + "download clk files for "\
-                                 + "times before Aug 13, 2017")
+                                 + "times before Oct 14, 2012")
             if datetime.utcnow().date() - timedelta(days=3) < date:
                 possible_types += ["clk_rapid_CODE"]
             elif datetime.utcnow().date() - timedelta(days=14) < date:
                 possible_types += ["clk_rapid_GFZ"]
-            elif date >= datetime(2017, 8, 13).date():
+            elif date >= datetime(2020, 7, 5).date():
                 possible_types += ["clk_final_CODE"]
+            elif date >= datetime(2019, 1, 1).date():
+                possible_types += ["clk_final_WUM"]
+            elif date >= datetime(2018, 12, 30).date():
+                possible_types += ["clk_short_GFZ"]
+            elif date >= datetime(2017, 8, 13).date():
+                possible_types += ["clk_short_WUM"]
             else:
-                possible_types += ["clk_final_GFZ"]
+                possible_types += ["clk_short_CODE"]
 
         already_exists, filepath = _valid_ephemeris_in_paths(date,
                                                 possible_types, file_paths)
@@ -575,14 +612,14 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".sp3":
                     return True, path
 
-        # sp3 before Aug 13, 2017
-        elif possible_type == "sp3_final_GFZ":
+        # sp3 before Aug 13, 2017 and May 25, 2012 or later
+        elif possible_type == "sp3_short_CODE":
             gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
                                          time(tzinfo=timezone.utc)))
             recommended_file = ("gdc.cddis.eosdis.nasa.gov",
                                 "/gnss/products/" \
                               + str(gps_week).zfill(4) + "/" \
-                              + "gbm" + str(gps_week).zfill(4) \
+                              + "com" + str(gps_week).zfill(4) \
                               + str((timetuple.tm_wday+1)%7) \
                               + ".sp3.Z")
             recommended_files.append(recommended_file)
@@ -644,7 +681,7 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
                     return True, path
 
-        # clk if longer than two weeks ago and more recent than Aug 13, 2017
+        # clk if longer than two weeks ago and more recent than Jul 5, 2020
         elif possible_type == "clk_final_CODE":
             gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
                                          time(tzinfo=timezone.utc)))
@@ -668,14 +705,80 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
                     return True, path
 
-        # clk before Aug 13, 2017
-        elif possible_type == "clk_final_GFZ":
+        # clk for Jan 1, 2019 to Jul 4, 2020
+        elif possible_type == "clk_final_WUM":
+            gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
+                                         time(tzinfo=timezone.utc)))
+            recommended_file = ("gdc.cddis.eosdis.nasa.gov",
+                                "/gnss/products/" \
+                              + str(gps_week).zfill(4) + "/" \
+                              + "WUM0MGXFIN_" + str(timetuple.tm_year) \
+                              + str(timetuple.tm_yday).zfill(3) \
+                              + "0000_01D_30S_CLK.CLK.gz")
+            recommended_files.append(recommended_file)
+            if file_paths is None:
+                return False, recommended_file
+            # check compatible file types
+            for path in file_paths:
+                if os.path.split(path)[1] + ".gz" == os.path.split(recommended_file[1])[1]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][10:] == os.path.split(recommended_file[1])[1][10:-3]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".clk":
+                    return True, path
+
+        # clk for Dec 30, 2018 to Dec 31, 2018
+        elif possible_type == "clk_short_GFZ":
             gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
                                          time(tzinfo=timezone.utc)))
             recommended_file = ("gdc.cddis.eosdis.nasa.gov",
                                 "/gnss/products/" \
                               + str(gps_week).zfill(4) + "/" \
                               + "gbm" + str(gps_week).zfill(4) \
+                              + str((timetuple.tm_wday+1)%7) \
+                              + ".clk.Z")
+            recommended_files.append(recommended_file)
+            if file_paths is None:
+                return False, recommended_file
+            # check compatible file types
+            for path in file_paths:
+                if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
+                    return True, path
+
+        # clk for Aug 13, 2017 to Dec 29, 2018
+        elif possible_type == "clk_short_WUM":
+            gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
+                                         time(tzinfo=timezone.utc)))
+            recommended_file = ("gdc.cddis.eosdis.nasa.gov",
+                                "/gnss/products/" \
+                              + str(gps_week).zfill(4) + "/" \
+                              + "wum" + str(gps_week).zfill(4) \
+                              + str((timetuple.tm_wday+1)%7) \
+                              + ".clk.Z")
+            recommended_files.append(recommended_file)
+            if file_paths is None:
+                return False, recommended_file
+            # check compatible file types
+            for path in file_paths:
+                if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
+                    return True, path
+            for path in file_paths:
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
+                    return True, path
+
+        # clk for Oct 14, 2012 to Aug 12, 2017
+        elif possible_type == "clk_short_CODE":
+            gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
+                                         time(tzinfo=timezone.utc)))
+            recommended_file = ("gdc.cddis.eosdis.nasa.gov",
+                                "/gnss/products/" \
+                              + str(gps_week).zfill(4) + "/" \
+                              + "com" + str(gps_week).zfill(4) \
                               + str((timetuple.tm_wday+1)%7) \
                               + ".clk.Z")
             recommended_files.append(recommended_file)
