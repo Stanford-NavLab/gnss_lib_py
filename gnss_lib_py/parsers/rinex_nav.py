@@ -16,7 +16,6 @@ __date__ = "13 July 2021"
 import os
 import warnings
 from datetime import datetime, timezone
-import sys
 
 import numpy as np
 import pandas as pd
@@ -28,13 +27,11 @@ from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.utils.coordinates import pz90_to_inertial, inertial_to_pz90
 from gnss_lib_py.utils.time_conversions import (datetime_to_gps_millis,
                                                 gps_millis_to_tow,
-                                                gps_millis_to_datetime,
-                                                datetime_to_beidou_millis_since_gps_0,
-                                                gps_datetime_to_gps_millis,
-                                                tzinfo_to_utc)
+                                                gps_millis_to_datetime)
 from gnss_lib_py.utils.ephemeris_downloader import (load_ephemeris,
                                                     DEFAULT_EPHEM_PATH,
-                                                    split_gnss_sv_ids)
+                                                    split_gnss_sv_ids,
+                                                    combine_gnss_sv_ids)
 
 
 def load_rinex_nav(timestamp, satellites=None,
@@ -115,7 +112,7 @@ def load_rinex_nav(timestamp, satellites=None,
                           verbose=verbose)
     rinex_iono_params = rinex_data.iono_params
 
-    time_cropped_rinex = trim_rinex_data(timestamp_millis, rinex_data)
+    time_cropped_rinex = get_closest_rinex_data(timestamp_millis, rinex_data)
     if satellites is not None and len(time_cropped_rinex) < len(satellites):
         # raise a RunTime warning because there are some satellites for which
         # ephimerides were not available
@@ -127,7 +124,7 @@ def load_rinex_nav(timestamp, satellites=None,
     return time_cropped_rinex
 
 
-def trim_rinex_data(gps_millis, rinex_nav, constellations=None):
+def get_closest_rinex_data(gps_millis, rinex_nav, constellations=None):
     """Find the appropriate closest rinex entry for the given gps_millis.
 
     For GPS, Galileo, Beidou, QZSS, and IRNSS, ephemeris parameters for
@@ -157,13 +154,6 @@ def trim_rinex_data(gps_millis, rinex_nav, constellations=None):
         http://acc.igs.org/misc/rinex304.pdf. Retrieved on 23rd August,
         2023.
     """
-    # Split the rinex data into the GLONASS and SBAS part and find the
-    # closest time to the query time
-    #TODO: The tests for this should check that the lengths are correct
-    # that the right times were extracted and that the corresponding
-    # values are correct too
-    # Those tests can also be used to test the get_time_cropped_rinex function
-    # which is basically a wrapper for this function at this point
     if constellations is not None:
         if isinstance(constellations, str):
             constellations = [constellations]
@@ -349,6 +339,14 @@ class RinexNav(NavData):
         self['gnss_id'] = np.asarray(gnss_id)
         self['sv_id'] = np.asarray(gnss_nums, dtype=int)
 
+        # Some constellations have multiple data sources for the same SV ID
+        # at the same time. We don't use this information so these duplicate
+        # entries are discarded.
+        gnss_sv_ids = np.unique(self['gnss_sv_id'])
+        duplicate_gnss_sv_ids = [gnss_sv_id for gnss_sv_id in gnss_sv_ids if '_' in gnss_sv_id ]
+        remove_cols = self.argwhere('gnss_sv_id', duplicate_gnss_sv_ids, 'eq')
+        self.remove(cols=remove_cols, inplace=True)
+
     def _get_ephemeris_dataframe(self, rinex_path, constellations=None):
         """Load/download ephemeris files and process into DataFrame
 
@@ -490,18 +488,6 @@ class RinexNav(NavData):
         iono_corr_key['irnss'] = ['IRNA', 'IRNB']
         return iono_corr_key
 
-    @staticmethod
-    def _clock_corr_key():
-        clock_corr_key = {}
-        clock_corr_key['gps'] = ['GPUT']
-        clock_corr_key['glonass'] = ['GLUT']
-        clock_corr_key['galileo'] = ['GAUT']
-        clock_corr_key['beidou'] = ['BDUT']
-        clock_corr_key['qzss'] = ['QZUT']
-        clock_corr_key['irnss'] = ['IRUT']
-        clock_corr_key['sbas'] = ['SBUT']
-        return clock_corr_key
-
     def load_leapseconds(self, rinex_header):
         """Read leapseconds from Rinex file
 
@@ -597,7 +583,7 @@ def rinex_to_sv_states(gps_millis, rinex_nav, rx_pos=None):
         t_corr = true_range/consts.C
         sv_states = estimate_joint_sv_states(gps_millis-1000.*t_corr, rinex_nav)
         sv_states.sort('gps_millis', inplace=True)
-
+    sv_states['gnss_sv_id'] = combine_gnss_sv_ids(sv_states)
     return sv_states
 
 def estimate_joint_sv_states(gps_millis, rinex_nav):
@@ -702,6 +688,13 @@ def orbit_params_to_sv_states(gps_millis, ephem_orbit_params):
 
     Satellite velocity calculations based on algorithms introduced in [2]_.
 
+    This function provides meter level accurate SV states, when compared
+    to SP3 reference positions for GPS and Galileo satellites. However,
+    for Beidou satellites, x-errors go upto 10s of meters in x and y
+    directions but stay meter level for the z-direction. This applies to
+    the test date and time `datetime(2020, 5, 15, 15, 29, 42, tzinfo=timezone.utc)`
+    and the hour preceding this time.
+
     References
     ----------
     ..  [2] Misra, P. and Enge, P,
@@ -733,9 +726,14 @@ def orbit_params_to_sv_states(gps_millis, ephem_orbit_params):
     sma      = sqrt_sma**2      # semi-major axis
 
     sqrt_mu_a = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
-    if 'gps_week' in ephem_orbit_params.rows:
+
+    if 'gps_week' in ephem_orbit_params.rows \
+    and not np.all(np.isnan(ephem_orbit_params['gps_week'])):
+        # The additional condition is required because gps_week might be
+        # a row in the ephem but without values in it
         gpsweek_diff = (np.mod(gps_week,1024) - np.mod(ephem_orbit_params['gps_week'],1024))*consts.WEEKSEC
-    elif 'beidou_week' in ephem_orbit_params.rows:
+    elif 'beidou_week' in ephem_orbit_params.rows \
+    and not np.all(np.isnan(ephem_orbit_params['beidou_week'])):
         beidou_week = gps_week - consts.GPS_BEIDOU_WEEK_OFFSET
         gpsweek_diff = (beidou_week - ephem_orbit_params['beidou_week'])*consts.WEEKSEC
     sv_posvel = NavData()
@@ -927,9 +925,11 @@ def _compute_eccentric_anomaly(gps_week, gps_tow, ephem, tol=1e-5, max_iter=10):
     sqrt_mu_a = np.sqrt(consts.MU_EARTH) * sqrt_sma**-3 # mean angular motion
     ecc        = ephem['e']     # eccentricity
     #Times for computing positions
-    if 'gps_week' in ephem.rows:
+    if 'gps_week' in ephem.rows and not np.all(np.isnan(ephem['gps_week'])):
+        # The additional condition is required because gps_week might be
+        # a row in the ephem but without values in it
         gpsweek_diff = (np.mod(gps_week,1024) - np.mod(ephem['gps_week'],1024))*consts.WEEKSEC
-    elif 'beidou_week' in ephem.rows:
+    elif 'beidou_week' in ephem.rows and not np.all(np.isnan(ephem['beidou_week'])):
         beidou_week = gps_week - consts.GPS_BEIDOU_WEEK_OFFSET
         gpsweek_diff = (beidou_week - ephem['beidou_week'])*consts.WEEKSEC
     delta_t = gps_tow - ephem['t_oe'] + gpsweek_diff
@@ -1105,23 +1105,12 @@ def num_int_single_sv(gps_millis, num_int_rinex_sv):
     Algorithm used is from
     https://gssc.esa.int/navipedia/index.php/GLONASS_Satellite_Coordinates_Computation
     """
-    #TODO: Figure out if this function should be used for a single SV
-    #TODO: Vectorize this for multiple call times in gps_millis
-    #TODO: See if this is correct for SBAS as well or if things need to
-    # be changed
-    # TODO: Strip the timezones from the times below and vectorize them
-    # print('before conversion', gps_millis)
-    # print(f'type before conversion', type(gps_millis))
-    # print('Using GLONASS constants') # Tested with glonass constants, nothing changed
     if not isinstance(gps_millis, (np.ndarray, list, tuple)):
         gps_millis = np.atleast_1d(gps_millis)
     if np.size(gps_millis)==1:
         gps_millis = np.atleast_1d(gps_millis)
-    # print('after conversion', gps_millis)
-    # print(f'type gps_millis', type(gps_millis))
-    # print(f'shape after conversion: {gps_millis.shape}')
-    t_k = np.asarray([np.datetime64(gps_millis_to_datetime(gps_milli)) for gps_milli in gps_millis],
-                     dtype=np.datetime64)
+    t_k = np.asarray([np.datetime64(gps_millis_to_datetime(gps_milli).replace(tzinfo=None)) \
+                      for gps_milli in gps_millis], dtype=np.datetime64)
     t_e_timestamp =gps_millis_to_datetime(num_int_rinex_sv['gps_millis'])
     # remove the timezone information because numpy.datetime is not timezone aware
     t_e_timestamp = np.datetime64(t_e_timestamp.replace(tzinfo=None))
@@ -1150,7 +1139,6 @@ def num_int_single_sv(gps_millis, num_int_rinex_sv):
 
     t_k_timestamps = t_k + delta
     theta_G0 = _find_gmst_at_midnight(t_e_timestamp)
-    # print(f't_k_timestamp: {t_k_timestamps}')
     start_of_day = np.asarray([np.datetime64(t_k_case, 'D') for t_k_case in t_k_timestamps])
     t_k = (t_k_timestamps - start_of_day) / np.timedelta64(1, 's')
     t_e = (t_e_timestamp - start_of_day) / np.timedelta64(1, 's')
