@@ -18,8 +18,9 @@ results/*
 ##### Project specific file types ######
 ########################################
 
-# ignore downloaded csv files in notebook tutorials
+# ignore downloaded csv files in notebook tutorials or for other tests
 *.csv
+!data/unit_test/rinex/nav/parsed_sv_state_test.csv
 !data/unit_test/*/*.csv
 !notebooks/tutorials/myreceiver.csv
 
