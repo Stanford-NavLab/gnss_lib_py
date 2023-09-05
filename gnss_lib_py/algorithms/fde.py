@@ -75,7 +75,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
 
 
     if method == "residual":
-        navdata = fde_residual_old(navdata, max_faults=max_faults,
+        navdata = fde_greedy_residual(navdata, max_faults=max_faults,
                                         threshold=threshold,verbose=verbose,
                                         **kwargs)
     elif method == "ss":
@@ -144,7 +144,9 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
     else:
         nci_nominal = max_faults + 5
 
-    compute_times = []
+    if debug:
+        compute_times = []
+        navdata_timing = []
 
     for _, _, navdata_subset in navdata.loop_time('gps_millis'):
 
@@ -209,52 +211,22 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
             nci = min(nci_nominal,len(edm_detect))
             u3_suspects = list(np.argsort(np.abs(svd_u[:,3]))[::-1][:nci])
             u4_suspects = list(np.argsort(np.abs(svd_u[:,4]))[::-1][:nci])
-            v3_suspects = list(np.argsort(np.abs(svd_v[:,3]))[::-1][:nci])
-            v4_suspects = list(np.argsort(np.abs(svd_v[:,4]))[::-1][:nci])
-            suspects = u3_suspects + u4_suspects \
-                     + v3_suspects + v4_suspects
+            suspects = u3_suspects + u4_suspects
             counts = {i:suspects.count(i) for i in (set(suspects)-set([0]))}
             if verbose:
                 print("counts:",counts)
             # suspects must be in all four singular vectors
             # also convert to the original edm indexes
             fault_suspects = [[np.delete(orig_idxs,fault_idxs)[i]]
-                               for i,v in counts.items() if v == 4]
-
-            # avg_u = list(np.argsort(np.mean(np.abs(svd_u)[:,3:5],axis=1))[::-1][:nci])
-            # avg_v = list(np.argsort(np.mean(np.abs(svd_v)[:,3:5],axis=1))[::-1][:nci])
-            # suspects = avg_u + avg_v
-            # counts = {i:suspects.count(i) for i in (set(suspects)-set([0]))}
-            # if verbose:
-            #     print("counts:",counts)
-            # # suspects must be in all four singular vectors
-            # # also convert to the original edm indexes
-            # fault_suspects = [[np.delete(orig_idxs,fault_idxs)[i]]
-            #                    for i,v in counts.items() if v == 2]
-
-            # print(np.mean(np.abs(svd_u)[:,3:5],axis=1))
-            # print(svd_u.shape)
-            # print("avg_u:",avg_u)
-            # print("unitity:",list(np.argsort(np.mean(np.abs(svd_u)[:,3:5],axis=1)[::-1][:nci]))
-
+                               for i,v in counts.items() if v == 2]
 
             # break out if no new suspects
             if len(fault_suspects) == 0:
                 break
 
-            # plt.figure()
-            # plt.imshow(U)
-            # plt.colorbar()
-            #
-            # plt.figure()
-            # plt.imshow(Vh)
-            # plt.colorbar()
-
             if verbose:
                 print("U3 abs",u3_suspects)
                 print("U4 abs",u4_suspects)
-                print("V3 abs",v3_suspects)
-                print("V4 abs",v4_suspects)
 
             stacked_edms = [np.delete(np.delete(edm,fault_idxs+i,0),
                                                 fault_idxs+i,1) \
@@ -266,19 +238,19 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
             detection_statistic_exclude, _, svd_s_exclude, _ = _edm_detection_statistic(edms_exclude)
 
             # add also all fault suspects combined together
-            if len(fault_suspects) > 1 and (max_faults is None
-                or len(fault_suspects)+len(fault_idxs) <= max_faults) \
-                and (len(edm) - len(fault_suspects) - len(fault_idxs)) > MIN_SATELLITES+1:
-                all_faults = [i[0] for i in fault_suspects]
-                edm_all_faults = np.delete(np.delete(edm,fault_idxs+all_faults,0),
-                                                         fault_idxs+all_faults,1)
-                detection_statistic_all, _, svd_s_all, _ = _edm_detection_statistic(edm_all_faults)
-
-                # add to combined arrays to make argmin easy
-                stacked_edms.append(edm_all_faults)
-                detection_statistic_exclude += detection_statistic_all
-                adjusted_indexes.append(np.delete(orig_idxs,fault_idxs+all_faults))
-                fault_suspects.append(all_faults)
+            # if len(fault_suspects) > 1 and (max_faults is None
+            #     or len(fault_suspects)+len(fault_idxs) <= max_faults) \
+            #     and (len(edm) - len(fault_suspects) - len(fault_idxs)) > MIN_SATELLITES+1:
+            #     all_faults = [i[0] for i in fault_suspects]
+            #     edm_all_faults = np.delete(np.delete(edm,fault_idxs+all_faults,0),
+            #                                              fault_idxs+all_faults,1)
+            #     detection_statistic_all, _, svd_s_all, _ = _edm_detection_statistic(edm_all_faults)
+            #
+            #     # add to combined arrays to make argmin easy
+            #     stacked_edms.append(edm_all_faults)
+            #     detection_statistic_exclude += detection_statistic_all
+            #     adjusted_indexes.append(np.delete(orig_idxs,fault_idxs+all_faults))
+            #     fault_suspects.append(all_faults)
 
             # also add detection with none removed
             detection_statistic_exclude += detection_statistic_detect
@@ -294,7 +266,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
                 for s_index in range(len(svd_s_exclude)):
                     plt.scatter(list(range(svd_s_exclude.shape[1])),svd_s_exclude[s_index,:],
                                 label=str(fault_suspects[s_index])+" removed")
-                plt.scatter(list(range(svd_s_all.shape[1])),svd_s_all[0],label="all removed")
+                # plt.scatter(list(range(svd_s_all.shape[1])),svd_s_all[0],label="all removed")
                 # plt.yscale("log")
                 plt.legend()
 
@@ -303,7 +275,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
                 for s_index in range(len(svd_s_exclude)):
                     plt.scatter(0,detection_statistic_exclude[s_index],
                                 label=str(fault_suspects[s_index])+" removed")
-                plt.scatter(0,detection_statistic_all,label="all removed")
+                # plt.scatter(0,detection_statistic_all,label="all removed")
                 # plt.yscale("log")
                 plt.legend()
 
@@ -334,6 +306,8 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
         if debug:
             time_end = time.time()
             compute_times.append(time_end-time_start)
+            navdata_timing += list([time_end-time_start] * nsl)
+
 
     navdata["fault_edm"] = fault_edm
     if verbose:
@@ -341,6 +315,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
 
     debug_info = {}
     if debug:
+        navdata["compute_time_s"] = navdata_timing
         debug_info["compute_times"] = compute_times
         return navdata, debug_info
     return navdata
@@ -401,11 +376,11 @@ def _edm_detection_statistic(edm):
 
     return detection_statistic, svd_u, svd_s, svd_v
 
-def fde_residual_old(navdata, max_faults, threshold,
+def fde_greedy_residual(navdata, max_faults, threshold,
                      verbose=False, debug=False):
     """Residual-based fault detection and exclusion.
 
-    Implemented based on paper from Parkinson [1]_.
+    Implemented based on paper from Blanch et al [1]_.
 
     Parameters
     ----------
@@ -436,9 +411,10 @@ def fde_residual_old(navdata, max_faults, threshold,
 
     References
     ----------
-    .. [1] Parkinson, Bradford W., and Penina Axelrad. "Autonomous GPS
-           integrity monitoring using the pseudorange residual."
-           Navigation 35.2 (1988): 255-274.
+    .. [1] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
+           exclusion with a large number of measurements." Proceedings
+           of the 2015 International Technical Meeting of the Institute
+           of Navigation. 2015.
 
     """
 
@@ -447,7 +423,9 @@ def fde_residual_old(navdata, max_faults, threshold,
         threshold = 10
 
 
-    compute_times = []
+    if debug:
+        compute_times = []
+        navdata_timing = []
 
     for _, _, navdata_subset in navdata.loop_time('gps_millis'):
 
@@ -469,52 +447,48 @@ def fde_residual_old(navdata, max_faults, threshold,
         navdata_subset.remove(cols=nan_idxs,inplace=True)
         original_indexes = np.delete(original_indexes, nan_idxs)
 
-        ri = []
-        if len(navdata_subset) > 6:
+        fault_idxs = []
+        if len(navdata_subset) > 5:
 
             # test statistic
-            r = _residual_detection_statistic(navdata_subset)
+            receiver_state = solve_wls(navdata_subset)
+            solve_residuals(navdata_subset, receiver_state, inplace=True)
+
+            chi_square = _residual_chi_square(navdata_subset, receiver_state)
 
             if verbose:
-                print("residual test statistic:",r)
+                print("residual test statistic:",chi_square)
 
-            # iterate through subsets if r is above detection threshold
-            if r > threshold:
-                ri = set()
-                r_subsets = []
-                for ss in range(len(navdata_subset)):
-                    navdata_exclude = navdata_subset.remove(cols=[ss])
-                    r_subset = _residual_detection_statistic(navdata_exclude)
+            # greedy removal if chi_square above detection threshold
+            while chi_square > threshold:
 
-                    if verbose:
-                        r_subsets.append(r_subset)
-                    # adjusted threshold metric
-                    if verbose:
-                        print("r_subset/r:",r_subset/r,ss,"removed")
-                    # 1. chosen based on similarity to 8m/10m ratio from [1]_.
-                    if r_subset/r < 1.:
-                        ri.add(ss)
+                if len(navdata_subset) < 5 or (max_faults is not None and len(fault_idxs) >= max_faults):
+                    break
 
-                if len(ri) == 0:
-                    if verbose:
-                        print("NONE fail:")
-                        print("r: ",r)
-                        print("ri: ",ri)
-            else:
+                normalized_residual = _residual_exclude(navdata_subset,receiver_state)
+                fault_idx = np.argsort(normalized_residual)[-1]
+
+                navdata_subset.remove(cols=[fault_idx], inplace=True)
+                fault_idxs.append(original_indexes[fault_idx])
+                original_indexes = np.delete(original_indexes, fault_idx)
+
+                # test statistic
+                receiver_state = solve_wls(navdata_subset)
+                solve_residuals(navdata_subset, receiver_state, inplace=True)
+                chi_square = _residual_chi_square(navdata_subset, receiver_state)
+
                 if verbose:
-                    print("threshold fail:")
-                    print("r: ",r)
-
-            ri = list(ri)
+                    print("chi square:",chi_square,"after removing index:",fault_idxs)
 
         fault_residual_subset = np.array([0] * subset_length)
-        fault_residual_subset[original_indexes[ri]] = 1
+        fault_residual_subset[fault_idxs] = 1
         fault_residual_subset[nan_idxs] = 2
         fault_residual += list(fault_residual_subset)
 
         if debug:
             time_end = time.time()
             compute_times.append(time_end-time_start)
+            navdata_timing += list([time_end-time_start] * subset_length)
 
     navdata["fault_residual"] = fault_residual
     if verbose:
@@ -522,25 +496,86 @@ def fde_residual_old(navdata, max_faults, threshold,
 
     debug_info = {}
     if debug:
+        navdata["compute_time_s"] = navdata_timing
         debug_info["compute_times"] = compute_times
         return navdata, debug_info
     return navdata
 
-def _residual_detection_statistic(navdata):
-    """Detection statistic for Residual-based fault detection.
+def _residual_chi_square(navdata, receiver_state):
+    """Chi square test for residuals.
+
+    Implemented from Blanch et al [2]_.
+
+    References
+    ----------
+    .. [2] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
+           exclusion with a large number of measurements." Proceedings
+           of the 2015 International Technical Meeting of the Institute
+           of Navigation. 2015.
 
     """
+
     # solve for residuals
     receiver_state = solve_wls(navdata)
     solve_residuals(navdata, receiver_state, inplace=True)
-    # if len(navdata_subset) < 6:
     residuals = navdata["residuals_m"].reshape(-1,1)
 
-    # test statistic
-    detection_statistic = np.sqrt(residuals.T.dot(residuals)[0,0] \
-                        / (len(navdata) - 4) )
+    # weights
+    weights = np.eye(len(navdata))
 
-    return detection_statistic
+    # geometry matrix
+    geo_matrix = (receiver_state[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]].reshape(-1,1) \
+               -  navdata[["x_sv_m","y_sv_m","z_sv_m"]]).T
+    geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
+
+    chi_square = residuals.T @ (weights - weights @ geo_matrix \
+               @ np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) @ geo_matrix.T @ weights ) @ residuals
+    chi_square = chi_square.item()
+
+    return chi_square
+
+def _residual_exclude(navdata, receiver_state):
+    """Detection statistic for Residual-based fault detection.
+
+    Implemented from Blanch et al [3]_.
+
+    References
+    ----------
+    .. [3] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
+           exclusion with a large number of measurements." Proceedings
+           of the 2015 International Technical Meeting of the Institute
+           of Navigation. 2015.
+
+    """
+    # solve for residuals
+
+    residuals = navdata["residuals_m"].reshape(-1,1)
+
+    # weights
+    weights = np.eye(len(navdata))
+
+    # geometry matrix
+    geo_matrix = (receiver_state[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]].reshape(-1,1) \
+               -  navdata[["x_sv_m","y_sv_m","z_sv_m"]]).T
+    geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
+
+    # calculate normalized residual
+    x_tilde = np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) @ geo_matrix.T @ weights @ residuals
+
+    normalized_residual = np.divide(np.multiply(np.diag(weights).reshape(-1,1),
+                                               (residuals - geo_matrix @ x_tilde)**2),
+                                    np.diag(1 - weights @ geo_matrix @ \
+                                     np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) @ geo_matrix.T).reshape(-1,1))
+
+    normalized_residual = normalized_residual[:,0]
+    # for i in range(len(navdata)):
+    #     ri = weights[i,i]*(residuals[i,0] - geo_matrix[i,:].reshape(1,-1) @ x_tilde)**2 \
+    #       / (1 - weights[i,i] * geo_matrix[i,:].reshape(1,-1) @ \
+    #          np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) @ geo_matrix[i,:].reshape(-1,1))
+    #     print(ri)
+    # print(hi)
+
+    return normalized_residual
 
 def fde_solution_separation_old(navdata, max_faults, threshold,
                             verbose=False):
