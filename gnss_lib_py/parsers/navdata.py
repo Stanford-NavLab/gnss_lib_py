@@ -106,7 +106,7 @@ class NavData():
         if not isinstance(csv_path, (str, os.PathLike)):
             raise TypeError("csv_path must be string or path-like")
         if not os.path.exists(csv_path):
-            raise FileNotFoundError("file not found")
+            raise FileNotFoundError(csv_path,"file not found")
 
         self._build_navdata()
 
