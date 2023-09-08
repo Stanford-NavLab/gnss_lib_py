@@ -127,7 +127,7 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
     single_exp_values : list
         List of lists containing time instance, gnss_sv_id, and expected
         value for different Rinex use cases.
-    
+
     """
     count = 0
     for _, _, rinex_frame in rinex_single_values.loop_time('gps_millis'):
@@ -241,3 +241,16 @@ def test_rinex_obs_3_fails(rinex_mixed_values):
         if count == 1:
             sv_not_pseudo = rinex_frame.where('gnss_sv_id', 'G29', 'eq')
             assert len(sv_not_pseudo) == 0
+
+def test_multi_constellation(root_path):
+    """Test multi constellation support
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing all Rinex 3 .o files for unit tests.
+
+    """
+    rinex_path = os.path.join(root_path,
+                              'TWTF00TWN_R_20232490000_01D_30S_MO.rnx')
+    rinex_navdata = RinexObs(rinex_path)
