@@ -10,7 +10,6 @@ import os
 import pytest
 import numpy as np
 
-from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.android import AndroidDerived2022
 from gnss_lib_py.algorithms.fde import solve_fde, evaluate_fde
 
@@ -30,7 +29,6 @@ def fixture_root_path_2022():
                 os.path.realpath(__file__))))
     root_path_2022 = os.path.join(root_path, 'data','unit_test','android_2022')
     return root_path_2022
-
 
 @pytest.fixture(name="derived_2022_path")
 def fixture_derived_2022_path(root_path_2022):
@@ -84,101 +82,52 @@ def fixture_load_derived(derived_2022_path):
     derived = AndroidDerived2022(derived_2022_path)
     return derived
 
-@pytest.fixture(name="state_estimate")
-def fixture_compute_state_estimate(derived):
-    """Load instance of AndroidDerived2022.
-
-    Parameters
-    ----------
-    derived : AndroidDerived2022
-        Instance of AndroidDerived2022 for testing.
-
-    Returns
-    -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        WLS state estimate.
-
-
-    """
-    state_estimate = solve_wls(derived, only_bias=True,
-                               receiver_state=derived)
-    return state_estimate
-
-def test_fde_residual_old(derived, state_estimate):
+@pytest.mark.parametrize('method',
+                        [
+                         "residual",
+                         "edm",
+                        ])
+def test_solve_fde(derived, method):
     """Test residual-based FDE.
 
     Parameters
     ----------
     derived : AndroidDerived2022
         Instance of AndroidDerived2022 for testing.
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        WLS state estimate.
+    method : string
+        Method for fault detection and exclusion.
 
     """
 
     # test without removing outliers
     navdata = derived.copy()
+    navdata = solve_fde(navdata, method=method)
+    assert "fault_" + method in navdata.rows
 
-    navdata = solve_fde(navdata, receiver_state=state_estimate.copy(),
+    # max thresholds shouldn't remove any
+    navdata = derived.copy()
+    navdata = solve_fde(navdata, threshold=np.inf, method=method)
+    assert sum(navdata.where("fault_" + method,1)["fault_" + method]) == 0
+
+    # min threshold should remove most all
+    navdata = derived.copy()
+    navdata = solve_fde(navdata, threshold=-np.inf, method=method)
+    print(sum(navdata.where("fault_" + method,1)["fault_" + method]))
+    assert len(navdata.where("fault_" + method,0)) == 24
+    num_unknown = len(navdata.where("fault_" + method,2))
+
+    navdata = derived.copy()
+    original_length = len(navdata)
+    navdata = solve_fde(navdata,
+                        threshold=-np.inf,
+                        max_faults=1,
+                        method=method,
+                        remove_outliers=True,
                         verbose=True)
-    assert "fault_residual" in navdata.rows
-    print(navdata["MultipathIndicator"])
-
-    # test with removing outliers
-    navdata = derived.copy()
-    navdata = solve_fde(navdata, receiver_state=state_estimate.copy(),
-                        remove_outliers=True)
-    assert "fault_residual" in navdata.rows
-    np.testing.assert_array_equal(np.unique(navdata["fault_residual"]),
+    assert "fault_" + method in navdata.rows
+    np.testing.assert_array_equal(np.unique(navdata["fault_" + method]),
                                   np.array([0]))
-
-def test_fde_ss(derived):
-    """Test solution separation FDE.
-
-    Parameters
-    ----------
-    derived : AndroidDerived2022
-        Instance of AndroidDerived2022 for testing.
-
-    """
-
-
-    # test without removing outliers
-    navdata = derived.copy()
-    navdata = solve_fde(navdata,"ss")
-    assert "fault_ss" in navdata.rows
-    print(navdata["MultipathIndicator"])
-
-    # test with removing outliers
-    navdata = derived.copy()
-    navdata = solve_fde(navdata,"ss",remove_outliers=True)
-    assert "fault_ss" in navdata.rows
-    np.testing.assert_array_equal(np.unique(navdata["fault_ss"]),
-                                  np.array([0]))
-
-def test_fde_edm_old(derived):
-    """Test Euclidean distance matrix-based FDE.
-
-    Parameters
-    ----------
-    derived : AndroidDerived2022
-        Instance of AndroidDerived2022 for testing.
-
-    """
-
-
-    # test without removing outliers
-    navdata = derived.copy()
-    navdata = solve_fde(navdata,"edm",verbose=True)
-    assert "fault_edm" in navdata.rows
-    print(navdata["MultipathIndicator"])
-
-    # test with removing outliers
-    navdata = derived.copy()
-    navdata = solve_fde(navdata,"edm",remove_outliers=True,verbose=True)
-    assert "fault_edm" in navdata.rows
-    np.testing.assert_array_equal(np.unique(navdata["fault_edm"]),
-                                  np.array([0]))
+    assert len(navdata) == original_length - num_unknown - 6
 
 def test_fde_fails(derived):
     """Test that solve_fde fails when it should.
@@ -194,28 +143,25 @@ def test_fde_fails(derived):
         solve_fde(derived, method="perfect_method")
     assert "invalid method" in str(excinfo.value)
 
-
-def test_evaluate_fde(derived, state_estimate):
+@pytest.mark.parametrize('method',
+                        [
+                         "residual",
+                         "edm",
+                        ])
+def test_evaluate_fde(derived, method):
     """Evaluate FDE methods.
 
     Parameters
     ----------
     derived : AndroidDerived2022
         Instance of AndroidDerived2022 for testing.
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        WLS state estimate.
+    method : string
+        Method for fault detection and exclusion.
 
     """
 
-    # test EDM FDE
     navdata = derived.copy()
-    evaluate_fde(navdata,"edm",
+    evaluate_fde(navdata,
+                 method=method,
                  fault_truth_row="MultipathIndicator",
-                 verbose=True)
-
-    # test residual FDE
-    navdata = derived.copy()
-    evaluate_fde(navdata,"residual",
-                 fault_truth_row="MultipathIndicator",
-                 receiver_state=state_estimate,
                  verbose=True)
