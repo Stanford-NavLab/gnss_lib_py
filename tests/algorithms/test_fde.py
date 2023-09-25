@@ -10,6 +10,7 @@ import os
 import pytest
 import numpy as np
 
+from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import AndroidDerived2022
 from gnss_lib_py.algorithms.fde import solve_fde, evaluate_fde
 
@@ -175,3 +176,24 @@ def test_evaluate_fde(derived, method):
                      verbose=False,
                      time_fde=False,
                      )
+
+def test_edm_breakouts():
+    """Test places when EDM FDE should breakout.
+
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+
+    # test case when there should be nothing removed
+    csv_path = os.path.join(root_path, 'data','unit_test','fde',
+                            'nothing_removed.csv')
+    navdata = NavData(csv_path=csv_path)
+    solve_fde(navdata,"edm",threshold=0)
+
+    # test case when there are no fault suspects
+    csv_path = os.path.join(root_path, 'data','unit_test','fde',
+                            'no_suspects.csv')
+    navdata = NavData(csv_path=csv_path)
+    solve_fde(navdata,"edm",threshold=0)
