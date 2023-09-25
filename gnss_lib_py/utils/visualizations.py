@@ -67,6 +67,9 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
     avg_y : bool
         Whether or not to average across the y values for each x
         timestep when doing groupby
+    fig : matplotlib.pyplot.Figure
+         Previous figure on which to add current plotting. Default of
+         None plots on a new figure.
     title : string
         Title for the plot.
     save : bool
@@ -90,6 +93,10 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
 
     """
 
+    if not isinstance(navdata,NavData):
+        raise TypeError("first arg to plot_metrics must be a "\
+                          + "NavData object.")
+
     x_metric, y_metric = _parse_metric_args(navdata, *args)
 
     if groupby is not None:
@@ -97,10 +104,8 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
 
-    if fig is None:
-        fig, axes = _get_new_fig()
-    else:
-        axes = fig.get_axes()[0]
+    # create a new figure if none provided
+    fig, axes = _get_new_fig(fig)
 
     if x_metric is None:
         x_data = None
@@ -133,6 +138,8 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
                     y_avg.append(np.mean(y_data[x_idxs]))
                 x_data = x_unique
                 y_data = y_avg
+                # change name
+                group = group + "_avg"
             axes.plot(x_data, y_data,
                       label=_get_label({groupby:group}),
                       markeredgecolor = markeredgecolor,
@@ -157,7 +164,7 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(_get_label({y_metric:y_metric}))
-    fig.tight_layout()
+    fig.set_layout_engine(layout="tight")
 
     if save: # pragma: no cover
         _save_figure(fig, title, prefix, fname)
@@ -199,6 +206,10 @@ def plot_metric_by_constellation(navdata, *args, save=False, prefix="",
          List of figures of plotted metrics.
 
     """
+
+    if not isinstance(navdata,NavData):
+        raise TypeError("first arg to plot_metric_by_constellation "\
+                          + "must be a NavData object.")
 
     x_metric, y_metric = _parse_metric_args(navdata, *args)
 
@@ -247,8 +258,9 @@ def plot_metric_by_constellation(navdata, *args, save=False, prefix="",
 
     return figs
 
-def plot_skyplot(navdata, receiver_state, save=False, prefix="",
-                 fname=None, add_sv_id_label=True):
+def plot_skyplot(navdata, receiver_state,
+                 save=False, prefix="", fname=None,
+                 add_sv_id_label=True, step = "auto", trim_options=None):
     """Skyplot of satellite positions relative to receiver.
 
     First adds ``el_sv_deg`` and ``az_sv_deg`` rows to navdata if they
@@ -279,6 +291,38 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
     add_sv_id_label : bool
         If the ``sv_id`` row is available, will add SV ID label near the
         satellite trail.
+    step : int or "auto"
+        Skyplot plotting is sped up by only plotting a portion of the
+        satellite trajectories. If default is set to "auto" then it will
+        plot a maximum of 50 points across each satellite trajectory. If
+        the step variable is set to a positive integer ``n`` then only
+        every nth point will be used in the trajectory. Setting the
+        steps variable to 1 will plot every satellite trajectory point
+        and may be slow to plot.
+    trim_options : None or dict
+        The ``trim_options`` variables gives control for line segments
+        being trimmed between satellite points. For example, if 24 hours
+        of a satellite is plotted, often the satellite will come in and
+        out of view and the segment between when it was lost from view
+        and when the satellite comes back in view should be trimmed.
+        If trim_options is set to the default of None, then the default
+        is set of trimming according to az_and_el and gps_millis. The
+        current options for the trim_options dictionary are listed here.
+        {"az" : az_limit} means that if at two timesteps the azimuth
+        difference in degrees is greater than az_limit, then the line
+        segment will be trimmed.
+        {"az_and_el" : (az_limit,el_limit)} means that if at two
+        timesteps the azimuth difference in degrees is greater than
+        az_limit as well as the average of the elevation angle across
+        the two timesteps is less than el_limit in degrees, then the
+        line segment will be trimmed. The el_limit is because satellites
+        near 90 degrees elevation can traverse large amounts of degrees
+        in azimuth in a valid trajectory but at low elevations should
+        not have such large azimuth changes quickly.
+        {"gps_millis",gps_millis_limit} means that line segments will be
+        trimmed if the milliseconds between the two points is larger
+        than the gps_millis_limit. This option only works if the
+        gps_millis row is included in the ``navdata`` variable input.
 
     Returns
     -------
@@ -287,11 +331,15 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
 
     """
 
+    if not isinstance(navdata,NavData):
+        raise TypeError("first arg to plot_skyplot "\
+                          + "must be a NavData object.")
+
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
 
-    if "el_sv_deg" not in navdata.rows or "az_sv_deg" not in navdata.rows:
-        add_el_az(navdata, receiver_state, inplace=True)
+    # add elevation and azimuth data.
+    add_el_az(navdata, receiver_state, inplace=True)
 
     # create new figure
     fig = plt.figure(figsize=(6,4.5))
@@ -315,14 +363,59 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         # iterate through each satellite
         for sv_name in np.unique(const_subset["sv_id"]):
             sv_subset = const_subset.where("sv_id",sv_name)
+
             # only plot ~ 50 points for each sat to decrease time
-            # it takes to plot these line collections
-            step = max(1,int(len(sv_subset)/50.))
+            # it takes to plot these line collections if step == "auto"
+            if isinstance(step,str) and step == "auto":
+                step = max(1,int(len(sv_subset)/50.))
+            elif isinstance(step, int):
+                step = max(1,step)
+            else:
+                raise TypeError("step varaible must be 'auto' or int")
             points = np.array([np.atleast_1d(sv_subset["az_sv_rad"])[::step],
                                np.atleast_1d(sv_subset["el_sv_deg"])[::step]]).T
             points = np.reshape(points,(-1, 1, 2))
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
             norm = plt.Normalize(0,len(segments))
+
+            if trim_options is None:
+                trim_options = {
+                                "az_and_el" : (15.,30.),
+                                "gps_millis" : 3.6E6,
+                                }
+            plotted_idxs = np.array([True] * len(segments))
+
+            if "az" in trim_options and len(segments) > 2:
+                # ignore segments that cross more than az_limit degrees
+                # in azimuth between timesteps
+                az_limit = np.radians(trim_options["az"])
+                az_idxs = ~((np.abs(np.diff(np.unwrap(segments[:,:,0]))) >= az_limit)[:,0])
+                plotted_idxs = np.bitwise_and(plotted_idxs, az_idxs)
+            if "az_and_el" in trim_options and len(segments) > 2:
+                # ignore segments that cross more than az_limit degrees
+                # in azimuth between timesteps and are at an elevation
+                # less than el_limit degrees.
+                # These satellites are assumed to be the satellites
+                # coming in and out of view in a later part of the orbit
+                az_limit = np.radians(trim_options["az_and_el"][0])
+                el_limit = trim_options["az_and_el"][1]
+                az_and_el_idxs = ~(((np.abs(np.diff(np.unwrap(segments[:,:,0]))) >= az_limit)[:,0]) \
+                                 & (np.mean(segments[:,:,1],axis=1) <= el_limit))
+                plotted_idxs = np.bitwise_and(plotted_idxs, az_and_el_idxs)
+            if "gps_millis" in trim_options and "gps_millis" in sv_subset.rows \
+                and len(segments) > 2:
+                # ignore segments if there is more than gps_millis_limit
+                # milliseconds between the time segments
+                gps_millis_limit = trim_options["gps_millis"]
+
+                all_times = np.atleast_2d(sv_subset["gps_millis"][::step]).T
+                point_times = np.concatenate([all_times[:-1],all_times[1:]],
+                                              axis=1)
+                gps_millis_idxs = (np.abs(np.diff(point_times)) <= gps_millis_limit)[:,0]
+                plotted_idxs = np.bitwise_and(plotted_idxs, gps_millis_idxs)
+
+            segments = segments[list(plotted_idxs)]
+
             local_coord = LineCollection(segments, cmap=cmap,
                             norm=norm, linewidths=(4,),
                             array = range(len(segments)))
@@ -362,7 +455,7 @@ def plot_skyplot(navdata, receiver_state, save=False, prefix="",
         axes.legend(loc="upper left", bbox_to_anchor=(1.05, 1),
                    title=_get_label({"constellation":"constellation"}))
 
-    fig.tight_layout()
+    fig.set_layout_engine(layout='tight')
 
     if save: # pragma: no cover
         _save_figure(fig, "skyplot", prefix=prefix, fnames=fname)
@@ -526,8 +619,13 @@ def close_figures(figs=None):
     else:
         raise TypeError("Must be either a single figure or list of figures.")
 
-def _get_new_fig():
+def _get_new_fig(fig=None):
     """Creates new default figure and axes.
+
+    Parameters
+    ----------
+    fig : matplotlib.pyplot.figure
+        Previous figure to format to style.
 
     Returns
     -------
@@ -538,8 +636,13 @@ def _get_new_fig():
 
     """
 
-    fig = plt.figure()
-    axes = plt.gca()
+    if fig is None:
+        fig = plt.figure()
+        axes = plt.gca()
+    elif len(fig.get_axes()) == 0:
+        axes = plt.gca()
+    else:
+        axes = fig.get_axes()[0]
 
     axes.ticklabel_format(useOffset=False)
     fig.autofmt_xdate() # rotate x labels automatically
@@ -596,6 +699,10 @@ def _get_label(inputs):
             value = str(int(float(value)))
         except ValueError:
             pass
+
+        # special exceptions for known times
+        if value in ("gps_millis","unix_millis"):
+            value = value.split("_")[0] + "_time_millis"
 
         value = value.split("_")
         if value[-1] in units:

@@ -25,7 +25,7 @@ def make_dir(directory): # pragma: no cover
         except OSError as error:
             raise OSError("Unable to create directory " + directory) from error
 
-def get_timestamp():
+def _get_timestamp():
     """Returns timestamp of the current time.
 
     Returns
@@ -38,4 +38,4 @@ def get_timestamp():
     timestamp =  time.strftime("%Y%m%d%H%M%S")
     return timestamp
 
-TIMESTAMP = get_timestamp()
+TIMESTAMP = _get_timestamp()
