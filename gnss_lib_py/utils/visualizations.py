@@ -338,8 +338,8 @@ def plot_skyplot(navdata, receiver_state,
     if not isinstance(prefix, str):
         raise TypeError("Prefix must be a string.")
 
-    if "el_sv_deg" not in navdata.rows or "az_sv_deg" not in navdata.rows:
-        add_el_az(navdata, receiver_state, inplace=True)
+    # add elevation and azimuth data.
+    add_el_az(navdata, receiver_state, inplace=True)
 
     # create new figure
     fig = plt.figure(figsize=(6,4.5))
