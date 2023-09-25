@@ -148,14 +148,9 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
                 or (max_faults is not None and len(fault_idxs) == max_faults):
                 break
 
-            try:
-                edm_detect = np.delete(np.delete(edm,fault_idxs,0),fault_idxs,1)
-                detection_statistic_detect, svd_u, svd_s, _ = _edm_detection_statistic(edm_detect)
-                detection_statistic = detection_statistic_detect[0]
-            except Exception as exception:
-                if verbose:
-                    print(exception)
-                break
+            edm_detect = np.delete(np.delete(edm,fault_idxs,0),fault_idxs,1)
+            detection_statistic_detect, svd_u, svd_s, _ = _edm_detection_statistic(edm_detect)
+            detection_statistic = detection_statistic_detect[0]
 
             if verbose:
                 print("detection statistic:",detection_statistic)
@@ -393,14 +388,19 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        NavData of GNSS measurements which must include the receiver's
-        estimated state: x_rx*_m, y_rx*_m, z_rx*_m, b_rx*_m as well as
-        the satellite states: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
+        NavData of GNSS measurements which must include the satellite
+        positions: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
         as timing "gps_millis" and the corrected pseudorange corr_pr_m.
+        Additionally, the ground truth fault row must exist as indicated
+        by the fault the ``fault_truth_row`` variable.
     method : string
         Method for fault detection and exclusion either "residual" for
         residual-based, "ss" for solution separation or "edm" for
         Euclidean Distance Matrix-based.
+    fault_truth_row : string
+        Row that indicates the ground truth for the fault status. This
+        row is used to provide results on how well each method performs
+        at fault detection and exclusion.
     time_fde : bool
         Additional debugging info added like timing
     verbose : bool
@@ -463,30 +463,21 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
                   + missed_detection + unknown
 
     # compute accuracy metrics
-    try:
-        tpr = true_positive / (true_positive + missed_detection)
-    except ZeroDivisionError:
-        tpr = 0.0
-    try:
-        tnr = true_negative / (true_negative + false_alarm)
-    except ZeroDivisionError:
-        tnr = 0.0
-    try:
-        mdr = missed_detection / (missed_detection + true_positive)
-    except ZeroDivisionError:
-        mdr = 0.0
-    try:
-        far = false_alarm / (false_alarm + true_negative)
-    except ZeroDivisionError:
-        far = 0.0
+    tpr = true_positive / (true_positive + missed_detection) \
+          if (true_positive + missed_detection) else 0.
+    tnr = true_negative / (true_negative + false_alarm) \
+          if (true_negative + false_alarm) else 0.
+    mdr = missed_detection / (missed_detection + true_positive) \
+          if (missed_detection + true_positive) else 0.
+    far = false_alarm / (false_alarm + true_negative) \
+          if (false_alarm + true_negative) else 0.
 
     accuracy = (true_positive + true_negative) / (true_positive \
              + true_negative + missed_detection + false_alarm)
     balanced_accuracy = (tpr + tnr) / 2.
-    try:
-        precision = true_positive / (true_positive + false_alarm)
-    except ZeroDivisionError:
-        precision = 0
+
+    precision = true_positive / (true_positive + false_alarm) \
+                if (true_positive + false_alarm) else 0.
     recall = tpr
 
 
@@ -540,10 +531,10 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     metrics["precision"] = precision
     metrics["recall"] = recall
     metrics["accuracy"] = accuracy
+    metrics["balanced_accuracy"] = balanced_accuracy
 
     # compute timing metrics
     if "compute_times" in timing_info:
-        metrics["balanced_accuracy"] = balanced_accuracy
         metrics["timestep_min_ms"] = np.min(timing_info["compute_times"])*1000
         metrics["timestep_mean_ms"] = np.mean(timing_info["compute_times"])*1000
         metrics["timestep_median_ms"] = np.median(timing_info["compute_times"])*1000

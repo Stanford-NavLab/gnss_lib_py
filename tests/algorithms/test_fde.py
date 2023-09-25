@@ -164,4 +164,14 @@ def test_evaluate_fde(derived, method):
     evaluate_fde(navdata,
                  method=method,
                  fault_truth_row="MultipathIndicator",
-                 verbose=True)
+                 verbose=True,
+                 time_fde=True,
+                 )
+
+    if method == "edm":
+        evaluate_fde(navdata,
+                     method=method,
+                     fault_truth_row="MultipathIndicator",
+                     verbose=False,
+                     time_fde=False,
+                     )
