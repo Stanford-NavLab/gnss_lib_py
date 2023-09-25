@@ -35,7 +35,8 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     Parameters
     ----------
     measurements : gnss_lib_py.parsers.navdata.NavData
-        Instance of the NavData class
+        Instance of the NavData class which must include at least
+        ``gps_millis``, ``x_sv_m``, ``y_sv_m``, and ``z_sv_m``
     weight_type : string
         Must either be None or the name of a row in measurements
     only_bias : bool
@@ -132,7 +133,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
             states.append([timestamp, np.nan, np.nan, np.nan, np.nan])
 
     if len(states) == 0:
-        states = [[np.nan]*5]
+        states = np.empty((0,5))
     states = np.array(states)
 
     state_estimate = NavData()
