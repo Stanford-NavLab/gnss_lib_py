@@ -43,6 +43,7 @@ for baseline position solutions.
    :maxdepth: 1
 
    tutorials_algorithms_notebook
+   tutorials_fde_notebook
 
 
 Utility Tutorials
