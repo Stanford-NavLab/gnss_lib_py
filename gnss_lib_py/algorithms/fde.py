@@ -22,21 +22,23 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        NavData of GNSS measurements which must include the receiver's
-        estimated state: x_rx*_m, y_rx*_m, z_rx*_m, b_rx*_m as well as
-        the satellite states: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
-        as timing "gps_millis" and the corrected pseudorange corr_pr_m.
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
+        well as the time row ``gps_millis`` and the corrected
+        pseudorange ``corr_pr_m``.
     method : string
         Method for fault detection and exclusion either "residual" for
         residual-based or "edm" for Euclidean Distance Matrix-based.
     remove_outliers : bool
-        If true, will remove detected faults from NavData instance and
-        unknown timesteps.
+        If true, will remove detected faults from the returned NavData
+        instance and unknown timesteps (both 1 and 2 fault status).
         If false, will detect but not exclude faults or unknowns.
     max_faults : int
         Maximum number of faults to detect and/or exclude.
     threshold : float
         Detection threshold.
+    verbose : bool
+        If true, prints extra debugging statements.
 
     Returns
     -------
@@ -64,8 +66,8 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
 
     return navdata
 
-def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
-            time_fde=False):
+def fde_edm(navdata, max_faults=None, threshold=1.0, time_fde=False,
+            verbose=False):
     """Euclidean distance matrix-based fault detection and exclusion.
 
     See [1]_ for more detailed explanation of algorithm.
@@ -73,13 +75,17 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        NavData of GNSS measurements which must include the
-        the satellite states: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
-        as gps_millis and the corrected pseudorange corr_pr_m.
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
+        well as the time row ``gps_millis`` and the corrected
+        pseudorange ``corr_pr_m``.
     max_faults : int
         Maximum number of faults to detect and/or exclude.
     threshold : float
         Detection threshold.
+    time_fde : bool
+        If true, will time the fault detection and exclusion steps and
+        return that info.
     verbose : bool
         Prints extra debugging print statements if true.
 
@@ -90,6 +96,9 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
         value of 1 indicates a detected fault and 0 indicates that
         no fault was detected, and 2 indicates an unknown fault status
         usually due to lack of necessary columns or information.
+    timing_info : dict
+        If time_fde is true, also returns a dictionary of the compute
+        times in seconds for each iteration.
 
     References
     ----------
@@ -113,7 +122,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
         compute_times = []
         navdata_timing = []
 
-    for ts, _, navdata_subset in navdata.loop_time('gps_millis'):
+    for _, _, navdata_subset in navdata.loop_time('gps_millis'):
         if time_fde:
             time_start = time.time()
 
@@ -149,7 +158,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
                 break
 
             edm_detect = np.delete(np.delete(edm,fault_idxs,0),fault_idxs,1)
-            detection_statistic_detect, svd_u, svd_s, _ = _edm_detection_statistic(edm_detect)
+            detection_statistic_detect, svd_u, _, _ = _edm_detection_statistic(edm_detect)
             detection_statistic = detection_statistic_detect[0]
 
             if verbose:
@@ -240,23 +249,26 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, verbose=False,
         return navdata, timing_info
     return navdata
 
-def fde_greedy_residual(navdata, max_faults, threshold,
-                     verbose=False, time_fde=False):
+def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
+                        verbose=False):
     """Residual-based fault detection and exclusion.
 
-    Implemented based on paper from Blanch et al [1]_.
+    Implemented based on paper from Blanch et al [2]_.
 
     Parameters
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
-        NavData of GNSS measurements which must include the receiver's
-        estimated state: x_rx*_m, y_rx*_m, z_rx*_m, b_rx*_m as well as
-        the satellite states: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
-        as timing "gps_millis" and the corrected pseudorange corr_pr_m.
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
+        well as the time row ``gps_millis`` and the corrected
+        pseudorange ``corr_pr_m``.
     max_faults : int
         Maximum number of faults to detect and/or exclude.
     threshold : float
         Detection threshold.
+    time_fde : bool
+        If true, will time the fault detection and exclusion steps and
+        return that info.
     verbose : bool
         Prints extra debugging print statements if true.
 
@@ -267,10 +279,13 @@ def fde_greedy_residual(navdata, max_faults, threshold,
         value of 1 indicates a detected fault and 0 indicates that
         no fault was detected, and 2 indicates an unknown fault status
         usually due to lack of necessary columns or information.
+    timing_info : dict
+        If time_fde is true, also returns a dictionary of the compute
+        times in seconds for each iteration.
 
     References
     ----------
-    .. [1] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
+    .. [2] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
            exclusion with a large number of measurements." Proceedings
            of the 2015 International Technical Meeting of the Institute
            of Navigation. 2015.
@@ -321,7 +336,8 @@ def fde_greedy_residual(navdata, max_faults, threshold,
             # greedy removal if chi_square above detection threshold
             while chi_square > threshold:
 
-                if len(navdata_subset) < 5 or (max_faults is not None and len(fault_idxs) >= max_faults):
+                if len(navdata_subset) < 5 or (max_faults is not None \
+                                           and len(fault_idxs) >= max_faults):
                     break
 
                 normalized_residual = _residual_exclude(navdata_subset,receiver_state)
@@ -365,10 +381,16 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
                  **kwargs):
     """Evaluate FDE methods and compute accuracy scores
 
+    The row designated in the ``fault_truth_row`` variable must indicate
+    ground truth faults according to the following convention.
+    A value of 1 indicates a fault and 0 indicates no fault. 2 indicates
+    an unknown fault status usually due to lack of necessary columns or
+    information.
+
     Measurements that are returned as "unknown" (fault=2) by the fault
     detection method are excluded from all accuracy scores.
 
-    Accuracy metrics are defined accordingly.
+    Accuracy metrics are defined accordingly:
 
     True Positive (TP) : estimated = 1, truth = 1
     True Negative (TN) : estimated = 0, truth = 0
@@ -389,8 +411,9 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     ----------
     navdata : gnss_lib_py.parsers.navdata.NavData
         NavData of GNSS measurements which must include the satellite
-        positions: x_sv_m, y_sv_m, z_sv_m, b_sv_m as well
-        as timing "gps_millis" and the corrected pseudorange corr_pr_m.
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
+        well as the time row ``gps_millis`` and the corrected
+        pseudorange ``corr_pr_m``.
         Additionally, the ground truth fault row must exist as indicated
         by the fault the ``fault_truth_row`` variable.
     method : string
@@ -402,9 +425,16 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
         row is used to provide results on how well each method performs
         at fault detection and exclusion.
     time_fde : bool
-        Additional debugging info added like timing
+        Additional debugging info added like timing.
     verbose : bool
         Prints extra debugging print statements if true.
+
+    Returns
+    -------
+    metrics : dict
+        Combined metrics that were computed.
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        Resulting NavData from ``solve_fde()``.
 
     """
     truth_fault_counts = []
@@ -480,8 +510,6 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
                 if (true_positive + false_alarm) else 0.
     recall = tpr
 
-
-
     if verbose:
         print("\n")
         print(method.upper() + " FDE METRICS")
@@ -545,7 +573,7 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
 def _edm(points):
     """Creates a Euclidean distance matrix (EDM) from point locations.
 
-    See [1]_ for more explanation.
+    See [3]_ for more explanation.
 
     Parameters
     ----------
@@ -562,7 +590,7 @@ def _edm(points):
 
     References
     ----------
-    ..  [1] I. Dokmanic, R. Parhizkar, J. Ranieri, and M. Vetterli.
+    ..  [3] I. Dokmanic, R. Parhizkar, J. Ranieri, and M. Vetterli.
         “Euclidean Distance Matrices: Essential Theory, Algorithms,
         and Applications.” 2015. arxiv.org/abs/1502.07541.
 
@@ -579,6 +607,8 @@ def _edm_from_satellites_ranges(sv_pos, ranges):
     Creates an EDM from a combination of known satellite positions as
     well as ranges from between the receiver and satellites.
 
+    Technique introduced in detail in [4]_.
+
     Parameters
     ----------
     sv_pos : np.array
@@ -590,9 +620,16 @@ def _edm_from_satellites_ranges(sv_pos, ranges):
 
     Returns
     -------
-    D : np.array
+    edm : np.array
         Euclidean distance matrix in the shape (1 + s) x (1 + s) where
         s is the number of satellites
+
+    References
+    ----------
+    ..  [4] Knowles, Derek, and Grace Gao. "Euclidean distance
+            matrix-based rapid fault detection and exclusion."
+            NAVIGATION: Journal of the Institute of Navigation 70.1
+            (2023).
 
     """
     num_s = sv_pos.shape[1]
@@ -604,7 +641,7 @@ def _edm_from_satellites_ranges(sv_pos, ranges):
     return edm
 
 def _edm_detection_statistic(edm):
-    """Calculate the EDM FDE detection statistic [4]_.
+    """Calculate the EDM FDE detection statistic [5]_.
 
     Parameters
     ----------
@@ -624,7 +661,7 @@ def _edm_detection_statistic(edm):
 
     References
     ----------
-    ..  [4] D. Knowles and G. Gao. "Detection and Exclusion of Multiple
+    ..  [5] D. Knowles and G. Gao. "Detection and Exclusion of Multiple
             Faults using Euclidean Distance Matrices." ION GNSS+ 2023.
 
     """
@@ -651,11 +688,26 @@ def _edm_detection_statistic(edm):
 def _residual_chi_square(navdata, receiver_state):
     """Chi square test for residuals.
 
-    Implemented from Blanch et al [2]_.
+    Implemented from Blanch et al [6]_.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m`` and residuals
+        ``residuals_m``.
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Reciever state that must include the receiver's state of:
+        ``x_rx_wls_m``, ``y_rx_wls_m``, and ``z_rx_wls_m``.
+
+    Returns
+    -------
+    chi_square : float
+        Chi square test statistic.
 
     References
     ----------
-    .. [2] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
+    .. [6] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
            exclusion with a large number of measurements." Proceedings
            of the 2015 International Technical Meeting of the Institute
            of Navigation. 2015.
@@ -663,8 +715,6 @@ def _residual_chi_square(navdata, receiver_state):
     """
 
     # solve for residuals
-    receiver_state = solve_wls(navdata)
-    solve_residuals(navdata, receiver_state, inplace=True)
     residuals = navdata["residuals_m"].reshape(-1,1)
 
     # weights
@@ -676,7 +726,8 @@ def _residual_chi_square(navdata, receiver_state):
     geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
 
     chi_square = residuals.T @ (weights - weights @ geo_matrix \
-               @ np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) @ geo_matrix.T @ weights ) @ residuals
+               @ np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) \
+               @ geo_matrix.T @ weights ) @ residuals
     chi_square = chi_square.item()
 
     return chi_square
@@ -684,18 +735,32 @@ def _residual_chi_square(navdata, receiver_state):
 def _residual_exclude(navdata, receiver_state):
     """Detection statistic for Residual-based fault detection.
 
-    Implemented from Blanch et al [3]_.
+    Implemented from Blanch et al [7]_.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.parsers.navdata.NavData
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m`` and residuals
+        ``residuals_m``.
+    receiver_state : gnss_lib_py.parsers.navdata.NavData
+        Reciever state that must include the receiver's state of:
+        ``x_rx_wls_m``, ``y_rx_wls_m``, and ``z_rx_wls_m``.
+
+    Returns
+    -------
+    normalized_residual : np.ndarray
+        Array of the normalized residual for each satellite.
 
     References
     ----------
-    .. [3] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
+    .. [7] Blanch, Juan, Todd Walter, and Per Enge. "Fast multiple fault
            exclusion with a large number of measurements." Proceedings
            of the 2015 International Technical Meeting of the Institute
            of Navigation. 2015.
 
     """
     # solve for residuals
-
     residuals = navdata["residuals_m"].reshape(-1,1)
 
     # weights
@@ -707,12 +772,14 @@ def _residual_exclude(navdata, receiver_state):
     geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
 
     # calculate normalized residual
-    x_tilde = np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) @ geo_matrix.T @ weights @ residuals
+    x_tilde = np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) \
+            @ geo_matrix.T @ weights @ residuals
 
     normalized_residual = np.divide(np.multiply(np.diag(weights).reshape(-1,1),
                                                (residuals - geo_matrix @ x_tilde)**2),
                                     np.diag(1 - weights @ geo_matrix @ \
-                                     np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) @ geo_matrix.T).reshape(-1,1))
+                                     np.linalg.pinv(geo_matrix.T @ weights @ geo_matrix) \
+                                     @ geo_matrix.T).reshape(-1,1))
 
     normalized_residual = normalized_residual[:,0]
 
