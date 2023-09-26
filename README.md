@@ -72,7 +72,7 @@ In the directory organization above:
       * Weighted Least Squares
       * Extended Kalman Filter
       * Calculating pseudorange residuals
-      * Calculating multi-GNSS satellite PVT information
+      * Fault detection and exclusion
   * The data parsers in the `parsers` directory allow for either loading
     GNSS data into `gnss_lib_py`'s unifying `NavData` class or parsing
     precise ephemerides data.
@@ -87,8 +87,9 @@ In the directory organization above:
       * [CLK clock products](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/clock_products.html)
 
   * The `utils` directory contains utilities used to handle
-    GNSS measurements, time conversions, visualizations, satellite
-    simulation, file operations, etc.
+    GNSS measurements, time conversions, coordinate transformations,
+    visualizations, calculating multi-GNSS satellite PVT information,
+    satellite simulation, file operations, etc.
 
 Installation
 ------------
