@@ -139,7 +139,7 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
                 x_data = x_unique
                 y_data = y_avg
                 # change name
-                group = group + "_avg"
+                group = str(group) + "_avg"
             axes.plot(x_data, y_data,
                       label=_get_label({groupby:group}),
                       markeredgecolor = markeredgecolor,
