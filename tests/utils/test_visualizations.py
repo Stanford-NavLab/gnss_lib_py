@@ -12,12 +12,16 @@ import pytest
 import numpy as np
 import plotly.graph_objects as go
 from pytest_lazyfixture import lazy_fixture
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
+from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.parsers.android import AndroidDerived2021
 from gnss_lib_py.parsers.android import AndroidDerived2022
 from gnss_lib_py.parsers.android import AndroidGroundTruth2021
+from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 
 # pylint: disable=protected-access
 
@@ -34,7 +38,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
+    root_path = os.path.join(root_path, 'data/unit_test/')
     return root_path
 
 @pytest.fixture(name="derived_path")
@@ -61,7 +65,8 @@ def fixture_derived_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
+    derived_path = os.path.join(root_path, 'android_2021',
+                                'Pixel4_derived.csv')
     return derived_path
 
 @pytest.fixture(name="derived_path_xl")
@@ -93,7 +98,8 @@ def fixture_derived_path_xl(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    derived_path = os.path.join(root_path, 'Pixel4XL_derived.csv')
+    derived_path = os.path.join(root_path, 'android_2021',
+                                'Pixel4XL_derived.csv')
     return derived_path
 
 @pytest.fixture(name="root_path_2022")
@@ -209,6 +215,7 @@ def fixture_load_gtruth(root_path):
         Instance of AndroidGroundTruth2021 for testing
     """
     gtruth = AndroidGroundTruth2021(os.path.join(root_path,
+                                 'android_2021',
                                  'Pixel4_ground_truth.csv'))
     return gtruth
 
@@ -242,7 +249,6 @@ def test_plot_metrics(derived):
         Instance of AndroidDerived2021 for testing.
 
     """
-
     test_rows = [
                  "raw_pr_m",
                  ]
@@ -250,8 +256,10 @@ def test_plot_metrics(derived):
     for row in derived.rows:
         if not derived.is_str(row):
             if row in test_rows:
+                fig = plt.figure()
                 for groupby in ["gnss_id",None]:
-                    fig = viz.plot_metric(derived, row, groupby=groupby,
+                    fig = viz.plot_metric(derived, row,
+                                          groupby = groupby,
                                           save=False)
                     viz.close_figures(fig)
         else:
@@ -282,12 +290,33 @@ def test_plot_metrics(derived):
                 viz.close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
+    viz.close_figures()
+
+    # test repeating figure and average y
+    fig = plt.figure()
+    fig = viz.plot_metric(derived, "gps_millis", "raw_pr_m",
+                          fig = fig,
+                          groupby = "gnss_id",
+                          save=False)
+    fig = viz.plot_metric(derived, "gps_millis", "raw_pr_m",
+                            fig = fig,
+                            groupby = "gnss_id",
+                            avg_y = True,
+                            linestyle="dotted",
+                            save=False,
+                            )
+    viz.close_figures(fig)
+
     with pytest.raises(TypeError) as excinfo:
         viz.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
     with pytest.raises(ValueError) as excinfo:
         viz.plot_metric(derived, 'raw_pr_m', row, row, save=False)
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_metric("derived", 'raw_pr_m', save=False)
+    assert "NavData" in str(excinfo.value)
 
 def test_plot_metrics_by_constellation(derived):
     """Test for plotting metrics by constellation.
@@ -322,6 +351,10 @@ def test_plot_metrics_by_constellation(derived):
         viz.plot_metric_by_constellation(derived, "raw_pr_m", save=True,
                                          prefix=1)
     assert "Prefix" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_metric_by_constellation("derived", "raw_pr_m", save=True)
+    assert "NavData" in str(excinfo.value)
 
     derived_no_gnss_id = derived.remove(rows="gnss_id")
     with pytest.raises(KeyError) as excinfo:
@@ -370,6 +403,10 @@ def test_plot_skyplot(navdata, state_estimate):
         viz.plot_skyplot(navdata.copy(), state_estimate, save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_skyplot("derived", "raw_pr_m", save=True)
+    assert "NavData" in str(excinfo.value)
+
     for row in ["x_sv_m","y_sv_m","z_sv_m","gps_millis"]:
         derived_removed = navdata.remove(rows=row)
         with pytest.raises(KeyError) as excinfo:
@@ -392,6 +429,63 @@ def test_plot_skyplot(navdata, state_estimate):
             viz.plot_skyplot(navdata, state_double, save=False)
         assert row[:4]+'*'+row[4:] in str(excinfo.value)
         assert "More than 1" in str(excinfo.value)
+
+def test_skyplot_trim(root_path):
+    """Test trimming separate time instances for same SV.
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing unit test data
+
+    """
+
+    sp3_path = os.path.join(root_path,"vis","sp3_g05.csv")
+    sp3 = NavData(csv_path=sp3_path)
+
+    lat, lon, alt = -77.87386688990695, -34.62755517700375, 0.
+    x_rx_m, y_rx_m, z_rx_m = geodetic_to_ecef(np.array([[lat,lon,alt]]))[0]
+    receiver_state = NavData()
+    receiver_state["gps_millis"] = 0.
+    receiver_state["x_rx_m"] = x_rx_m
+    receiver_state["y_rx_m"] = y_rx_m
+    receiver_state["z_rx_m"] = z_rx_m
+
+    fig = viz.plot_skyplot(sp3,receiver_state)
+    # verify that two line segments were removed. Should be 57 not 59
+    # after trimming the two separated ones.
+    for child in fig.get_children():
+        if isinstance(child,mpl.projections.polar.PolarAxes):
+            for grandchild in child.get_children():
+                if isinstance(grandchild,mpl.collections.LineCollection):
+                    assert len(grandchild.get_array()) == 57
+    viz.close_figures()
+
+    fig = viz.plot_skyplot(sp3,receiver_state,trim_options={"az" : 95.})
+    # verify that only one line segment was removed. Should be 58 not 59
+    # after trimming the one larger than 95 degrees in azimuth separated ones.
+    for child in fig.get_children():
+        if isinstance(child,mpl.projections.polar.PolarAxes):
+            for grandchild in child.get_children():
+                if isinstance(grandchild,mpl.collections.LineCollection):
+                    assert len(grandchild.get_array()) == 58
+    viz.close_figures()
+
+    fig = viz.plot_skyplot(sp3,receiver_state,trim_options={"gps_millis" : 3.5E6})
+    # verify that only one line segment was removed. Should be 58 not 59
+    # after trimming the one larger than 95 degrees in azimuth separated ones.
+    for child in fig.get_children():
+        if isinstance(child,mpl.projections.polar.PolarAxes):
+            for grandchild in child.get_children():
+                if isinstance(grandchild,mpl.collections.LineCollection):
+                    assert len(grandchild.get_array()) == 57
+    viz.close_figures()
+
+
+    with pytest.raises(TypeError) as excinfo:
+        viz.plot_skyplot(sp3, receiver_state, step=20.1)
+    assert "step" in str(excinfo.value)
+
 
 def test_get_label():
     """Test for getting nice labels.
