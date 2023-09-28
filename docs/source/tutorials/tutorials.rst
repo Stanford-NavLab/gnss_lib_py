@@ -14,7 +14,7 @@ few lines of code.
 NavData Tutorial
 ---------------------
 
-Sections of this tutorial shows how to interact with our standard :code:`NavData`
+Sections of this tutorial show how to interact with our standard :code:`NavData`
 class.
 
 .. toctree::
