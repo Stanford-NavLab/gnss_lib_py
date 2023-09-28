@@ -670,6 +670,8 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
     # iterate through all trace options
     for trace_name in sorted(os.listdir(folder_path)):
         trace_path = os.path.join(folder_path, trace_name)
+        if not os.path.isdir(trace_path): # pragma: no cover
+            continue
         # iterate through all phone types
         for phone_type in sorted(os.listdir(trace_path)):
             data_path = os.path.join(folder_path,trace_name,
