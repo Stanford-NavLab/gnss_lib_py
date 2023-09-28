@@ -11,6 +11,7 @@ import numpy as np
 from gnss_lib_py.algorithms.residuals import solve_residuals
 from gnss_lib_py.algorithms.snapshot import solve_wls
 
+
 def solve_fde(navdata, method="residual", remove_outliers=False,
               max_faults=None, threshold=None, verbose=False,
               **kwargs):
@@ -30,8 +31,9 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
         Method for fault detection and exclusion either "residual" for
         residual-based or "edm" for Euclidean Distance Matrix-based.
     remove_outliers : bool
-        If true, will remove detected faults from the returned NavData
-        instance and unknown timesteps (both 1 and 2 fault status).
+        If `True`, removes measurements with detected faults (fault status 1)
+        and measurements with unknown fault status (fault status 2)
+        from the returned NavData instance.
         If false, will detect but not exclude faults or unknowns.
     max_faults : int
         Maximum number of faults to detect and/or exclude.
@@ -44,9 +46,9 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
     -------
     navdata : gnss_lib_py.parsers.navdata.NavData
         Result includes a new row of ``fault_<method>`` where a
-        value of 1 indicates a detected fault and 0 indicates that
+        value of 1 indicates a detected fault, 0 indicates that
         no fault was detected, and 2 indicates an unknown fault status
-        usually due to lack of necessary columns or information.
+        which is usually due to lack of necessary columns or information.
 
     """
 
@@ -65,6 +67,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
         navdata = navdata.where("fault_" + method, 0)
 
     return navdata
+
 
 def fde_edm(navdata, max_faults=None, threshold=1.0, time_fde=False,
             verbose=False):
@@ -249,6 +252,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, time_fde=False,
         return navdata, timing_info
     return navdata
 
+
 def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
                         verbose=False):
     """Residual-based fault detection and exclusion.
@@ -331,11 +335,12 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
             chi_square = _residual_chi_square(navdata_subset, receiver_state)
 
             if verbose:
-                print("residual test statistic:",chi_square)
+                print("chi squared residual test statistic:",chi_square)
 
             # greedy removal if chi_square above detection threshold
             while chi_square > threshold:
-
+            # stop removing indexes either b/c you need at least four
+            # satellites or if maximum number of faults has been reached
                 if len(navdata_subset) < 5 or (max_faults is not None \
                                            and len(fault_idxs) >= max_faults):
                     break
@@ -353,7 +358,7 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
                 chi_square = _residual_chi_square(navdata_subset, receiver_state)
 
                 if verbose:
-                    print("chi square:",chi_square,"after removing index:",fault_idxs)
+                    print("chi squared:",chi_square,"after removing index:",fault_idxs)
 
         fault_residual_subset = np.array([0] * subset_length)
         fault_residual_subset[fault_idxs] = 1
@@ -375,6 +380,7 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
         timing_info["compute_times"] = compute_times
         return navdata, timing_info
     return navdata
+
 
 def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
                  time_fde=False, verbose=False,
@@ -418,8 +424,7 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
         by the fault the ``fault_truth_row`` variable.
     method : string
         Method for fault detection and exclusion either "residual" for
-        residual-based, "ss" for solution separation or "edm" for
-        Euclidean Distance Matrix-based.
+        residual-based or "edm" for Euclidean Distance Matrix-based.
     fault_truth_row : string
         Row that indicates the ground truth for the fault status. This
         row is used to provide results on how well each method performs
@@ -570,6 +575,7 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
 
     return metrics, navdata
 
+
 def _edm(points):
     """Creates a Euclidean distance matrix (EDM) from point locations.
 
@@ -600,6 +606,7 @@ def _edm(points):
     edm = np.diag(gram).reshape(-1,1).dot(np.ones((1,dims))) \
         - 2.*gram + np.ones((dims,1)).dot(np.diag(gram).reshape(1,-1))
     return edm
+
 
 def _edm_from_satellites_ranges(sv_pos, ranges):
     """Creates a Euclidean distance matrix (EDM) from points and ranges.
@@ -639,6 +646,7 @@ def _edm_from_satellites_ranges(sv_pos, ranges):
     edm[1:,1:] = _edm(sv_pos)
 
     return edm
+
 
 def _edm_detection_statistic(edm):
     """Calculate the EDM FDE detection statistic [5]_.
@@ -684,6 +692,7 @@ def _edm_detection_statistic(edm):
     detection_statistic = list(detection_statistic)
 
     return detection_statistic, svd_u, svd_s, svd_v
+
 
 def _residual_chi_square(navdata, receiver_state):
     """Chi square test for residuals.
@@ -731,6 +740,7 @@ def _residual_chi_square(navdata, receiver_state):
     chi_square = chi_square.item()
 
     return chi_square
+
 
 def _residual_exclude(navdata, receiver_state):
     """Detection statistic for Residual-based fault detection.
