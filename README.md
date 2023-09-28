@@ -72,7 +72,7 @@ In the directory organization above:
       * Weighted Least Squares
       * Extended Kalman Filter
       * Calculating pseudorange residuals
-      * Calculating multi-GNSS satellite PVT information
+      * Fault detection and exclusion
   * The data parsers in the `parsers` directory allow for either loading
     GNSS data into `gnss_lib_py`'s unifying `NavData` class or parsing
     precise ephemerides data.
@@ -87,8 +87,9 @@ In the directory organization above:
       * [CLK clock products](https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/clock_products.html)
 
   * The `utils` directory contains utilities used to handle
-    GNSS measurements, time conversions, visualizations, satellite
-    simulation, file operations, etc.
+    GNSS measurements, time conversions, coordinate transformations,
+    visualizations, calculating multi-GNSS satellite PVT information,
+    satellite simulation, file operations, etc.
 
 Installation
 ------------
@@ -125,8 +126,9 @@ Answers to common questions can be found in the [troubleshooting section](https:
 Attribution
 -----------
 This project is a product of the [Stanford NAV Lab](https://navlab.stanford.edu/)
-and currently maintained by Ashwin Kanhere and Derek Knowles. If using
-this project in your own work please cite the following:
+and currently maintained by Ashwin Kanhere (akanhere [at] stanford [dot] edu)
+and Derek Knowles (dcknowles [at] stanford [dot] edu). If using
+this project in your own work please cite either of the following:
 
 ```
 
@@ -136,6 +138,19 @@ this project in your own work please cite the following:
       booktitle={Proceedings of the 35th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2022)},
       institution = {Stanford University},
       year = {2022 [Online]},
+      url = {https://github.com/Stanford-NavLab/gnss_lib_py},
+      doi = {10.33012/2022.18525}
+   }
+```
+
+```
+
+   @inproceedings{knowles_kanhere_baselines_2023,
+      title = {Localization and Fault Detection Baselines From an Open-Source Python GNSS Library},
+      author={Knowles, Derek and Kanhere, Ashwin V and Gao, Grace},
+      booktitle={Proceedings of the 36th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2023)},
+      institution = {Stanford University},
+      year = {2023 [Online]},
       url = {https://github.com/Stanford-NavLab/gnss_lib_py},
    }
 ```

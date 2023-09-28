@@ -323,6 +323,8 @@ def plot_skyplot(navdata, receiver_state,
         trimmed if the milliseconds between the two points is larger
         than the gps_millis_limit. This option only works if the
         gps_millis row is included in the ``navdata`` variable input.
+        Default options for the trim options are :code:`"az_and_el" : (15.,30.)`
+        and :code:`"gps_millis" : 3.6E6`.
 
     Returns
     -------
