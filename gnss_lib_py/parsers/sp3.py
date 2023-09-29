@@ -59,7 +59,7 @@ class Sp3(NavData):
             if not isinstance(input_path, (str, os.PathLike)):
                 raise TypeError("input_path must be string or path-like")
             if not os.path.exists(input_path):
-                raise FileNotFoundError("file not found")
+                raise FileNotFoundError(input_path,"file not found")
 
             # Load in the file
             with open(input_path, 'r', encoding="utf-8") as infile:

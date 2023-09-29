@@ -11,14 +11,14 @@ The tutorials below show you how to interact with our standard
 :code:`NavData` class and how to run standard baselines all with only a
 few lines of code.
 
-NavData Tutorials
+NavData Tutorial
 ---------------------
 
-This tutorial shows how to interact with our standard :code:`NavData`
+Sections of this tutorial show how to interact with our standard :code:`NavData`
 class.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    tutorials_navdata_notebook
 
@@ -43,6 +43,7 @@ for baseline position solutions.
    :maxdepth: 1
 
    tutorials_algorithms_notebook
+   tutorials_fde_notebook
 
 
 Utility Tutorials
@@ -59,4 +60,3 @@ available in the :code:`utils` directory.
    tutorials_utilities_notebook
    tutorials_ephemeris_downloader_notebook
    tutorials_sv_models_notebook
-   tutorials_gnss_models_notebook

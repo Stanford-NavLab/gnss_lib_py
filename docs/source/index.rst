@@ -5,8 +5,10 @@
 
 gnss_lib_py
 ===========
-
 .. _mainpage:
+
+|build|  |codecov|  |documentation|  |colab|
+
 
 :code:`gnss_lib_py` is a modular Python tool for parsing, analyzing, and
 visualizing Global Navigation Satellite Systems (GNSS) data and state
@@ -81,7 +83,7 @@ In the directory organization above:
       * Weighted Least Squares
       * Extended Kalman Filter
       * Calculating pseudorange residuals
-      * Calculating multi-GNSS satellite PVT information
+      * Fault detection and exclusion
   * The data parsers in the :code:`parsers` directory allow for loading
     GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class
     or parsing precise ephemerides data.
@@ -96,8 +98,9 @@ In the directory organization above:
       * `CLK clock products <https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/clock_products.html>`__
 
   * The :code:`utils` directory contains utilities used to handle
-    GNSS measurements, time conversions, visualizations, satellite
-    simulation, file operations, etc.
+    GNSS measurements, time conversions, coordinate transformations,
+    visualizations, calculating multi-GNSS satellite PVT information,
+    satellite simulation, file operations, etc.
 
 Installation
 ------------
@@ -136,19 +139,33 @@ Answers to common questions can be found in the
 Attribution
 -----------
 This project is a product of the `Stanford NAV Lab <https://navlab.stanford.edu/>`__
-and currently maintained by Ashwin Kanhere and Derek Knowles. If using
-this project in your own work please cite the following:
+and currently maintained by Ashwin Kanhere (akanhere [at] stanford [dot] edu)
+and Derek Knowles (dcknowles [at] stanford [dot] edu). If using
+this project in your own work please cite either of the following:
 
 .. code-block:: bash
 
-   @inproceedings{knowlesmodular2022,
+   @inproceedings{knowles_kanhere_modular2022,
       title = {A Modular and Extendable GNSS Python Library},
       author={Knowles, Derek and Kanhere, Ashwin V and Bhamidipati, Sriramya and Gao, Grace},
       booktitle={Proceedings of the 35th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2022)},
       institution = {Stanford University},
       year = {2022 [Online]},
       url = {https://github.com/Stanford-NavLab/gnss_lib_py},
+      doi = {10.33012/2022.18525}
    }
+
+.. code-block:: bash
+
+   @inproceedings{knowles_kanhere_baselines_2023,
+      title = {Localization and Fault Detection Baselines From an Open-Source Python GNSS Library},
+      author={Knowles, Derek and Kanhere, Ashwin V and Gao, Grace},
+      booktitle={Proceedings of the 36th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2023)},
+      institution = {Stanford University},
+      year = {2023 [Online]},
+      url = {https://github.com/Stanford-NavLab/gnss_lib_py},
+   }
+
 
 Additionally, we would like to thank `all contributors <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__ to this project.
 
@@ -162,3 +179,12 @@ Additionally, we would like to thank `all contributors <https://github.com/Stanf
    reference/reference.rst
    contributing/contributing.rst
    troubleshooting
+
+.. |build| image:: https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml/badge.svg
+   :target: https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml
+.. |codecov| image:: https://codecov.io/gh/Stanford-NavLab/gnss_lib_py/branch/main/graph/badge.svg?token=1FBGEWRFM6
+   :target: https://codecov.io/gh/Stanford-NavLab/gnss_lib_py
+.. |documentation| image:: https://readthedocs.org/projects/gnss_lib_py/badge/?version=latest
+   :target: https://gnss-lib-py.readthedocs.io/en/latest/?badge=latest
+.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/drive/1DYfuiM5ipz0B-lgjKYcL1Si-V4jNBEac?usp=sharing
