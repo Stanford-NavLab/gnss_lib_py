@@ -5,8 +5,10 @@
 
 gnss_lib_py
 ===========
-
 .. _mainpage:
+
+|build|  |codecov|  |documentation|  |colab|
+
 
 :code:`gnss_lib_py` is a modular Python tool for parsing, analyzing, and
 visualizing Global Navigation Satellite Systems (GNSS) data and state
@@ -177,3 +179,12 @@ Additionally, we would like to thank `all contributors <https://github.com/Stanf
    reference/reference.rst
    contributing/contributing.rst
    troubleshooting
+
+.. |build| image:: https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml/badge.svg
+   :target: https://github.com/Stanford-NavLab/gnss_lib_py/actions/workflows/build.yml
+.. |codecov| image:: https://codecov.io/gh/Stanford-NavLab/gnss_lib_py/branch/main/graph/badge.svg?token=1FBGEWRFM6
+   :target: https://codecov.io/gh/Stanford-NavLab/gnss_lib_py
+.. |documentation| image:: https://readthedocs.org/projects/gnss_lib_py/badge/?version=latest
+   :target: https://gnss-lib-py.readthedocs.io/en/latest/?badge=latest
+.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/drive/1DYfuiM5ipz0B-lgjKYcL1Si-V4jNBEac?usp=sharing
