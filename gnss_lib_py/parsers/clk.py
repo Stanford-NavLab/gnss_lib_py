@@ -57,7 +57,7 @@ class Clk(NavData):
             if not isinstance(input_path, (str, os.PathLike)):
                 raise TypeError("input_path must be string or path-like")
             if not os.path.exists(input_path):
-                raise FileNotFoundError("file not found")
+                raise FileNotFoundError(input_path,"file not found")
 
             # Read Clock file
             with open(input_path, 'r', encoding="utf-8") as infile:
@@ -93,80 +93,71 @@ class Clk(NavData):
         self["sv_id"] = sv_id
         self["b_sv_m"] = b_sv_m
 
-    def extract_clk(self, gnss_sv_id, sidx, ipos = 10, \
-                         method='CubicSpline', verbose = False):
-        """Computing interpolated function over clk data for any GNSS
+    def interpolate_clk(self, navdata, window=6, verbose=False):
+        """Interpolate clock data from clk file, adding inplace to given
+        NavData instance.
 
         Parameters
         ----------
-        gnss_sv_id : string
-            Constellations and SV id of satellite for which position is
-            to be determined.
-            See standard nomenclature reference for more details.
-        sidx : int
-            Nearest index within clk time series around which interpolated
-            function needs to be centered.
-        ipos : int
-            No. of data points from clk data on either side of sidx
-            that will be used for computing interpolated function.
-        method : string
-            Type of interpolation method used for clk data (the default is
-            CubicSpline, which depicts third-order polynomial).
+        navdata : gnss_lib_py.parsers.navdata.NavData
+            Instance of the NavData class that must include rows for
+            ``gps_millis`` and ``gnss_sv_id``
+        window : int
+            Number of points to use in interpolation window.
         verbose : bool
-            If true, prints extra debugging statements.
+            Flag (True/False) for whether to print intermediate steps useful
+            for debugging/reviewing (the default is False)
 
-        Returns
-        -------
-        func_satbias : np.ndarray
-            Instance with 1-D array of scipy.interpolate.interpolate.interp1d
-            that is loaded with .clk data
         """
+        # add satellite indexes if not present already.
+        sv_idx_keys = ['b_sv_m', 'b_dot_sv_mps']
 
-        clkdata = self.where("gnss_sv_id",gnss_sv_id)
+        for sv_idx_key in sv_idx_keys:
+            if sv_idx_key not in navdata.rows:
+                navdata[sv_idx_key] = np.nan
 
-        if method=='CubicSpline':
-            low_i = (sidx - ipos) if (sidx - ipos) >= 0 else 0
-            high_i = (sidx + ipos) if (sidx + ipos) <= len(clkdata["gps_millis"]) else -1
+        available_svs_from_clk = np.unique(self["gnss_sv_id"])
 
+        for gnss_sv_id in np.unique(navdata["gnss_sv_id"]):
             if verbose:
-                print('Nearest clk: ', sidx, clkdata["gps_millis"][sidx],
-                                             clkdata["b_sv_m"][sidx])
+                print("interpolating clk for ",gnss_sv_id)
+            navdata_id = navdata.where("gnss_sv_id",gnss_sv_id)
+            navdata_id_gps_millis = np.atleast_1d(navdata_id["gps_millis"])
 
-            func_satbias = interpolate.CubicSpline(clkdata["gps_millis"][low_i:high_i], \
-                                                   clkdata["b_sv_m"][low_i:high_i])
+            if gnss_sv_id in available_svs_from_clk:
+                clk_id = self.where("gnss_sv_id",gnss_sv_id)
+                x_data = clk_id["gps_millis"]
+                y_data = clk_id["b_sv_m"]
 
-        return func_satbias
+                if np.min(navdata_id_gps_millis) < x_data[0] \
+                    or np.max(navdata_id_gps_millis) > x_data[-1]:
+                    raise RuntimeError("clk data does not include all "\
+                                     + "times in measurement file.")
 
+                b_sv_m = np.zeros(len(navdata_id))
+                b_dot_sv_mps = np.zeros(len(navdata_id))
 
-    def clk_snapshot(self, func_satbias, cxtime, hstep = 5e-1,
-                     method='CubicSpline'):
-        """Compute satellite clock bias and drift from clk interpolated function
+                # iterate through needed polynomials so don't repeat fit
+                insert_indexes = np.searchsorted(x_data,navdata_id_gps_millis)
+                for insert_index in np.unique(insert_indexes):
+                    max_index = min(len(clk_id)-1,insert_index+int(window/2))
+                    min_index = max(0,insert_index-int(window/2))
+                    x_window = x_data[min_index:max_index]
+                    y_window = y_data[min_index:max_index]
 
-        Parameters
-        ----------
-        func_satbias : scipy.interpolate._cubic.CubicSpline
-            Instance with interpolated function for satellite bias from .clk data
-        cxtime : float
-            Time at which satellite clock bias and drift is to be computed
-        hstep : float
-            Step size in milliseconds used to computing clock drift using
-            central differencing (the default is 5e-1)
-        method : string
-            Type of interpolation method used for sp3 data (the default is
-            CubicSpline, which depicts third-order polynomial)
+                    insert_index_idxs = np.argwhere(insert_indexes==insert_index)
+                    x_interpret = navdata_id_gps_millis[insert_index_idxs]
 
-        Returns
-        -------
-        satbias_clk : float
-            Computed satellite clock bias (in seconds)
-        satdrift_clk : float
-            Computed satellite clock drift (in seconds/seconds)
-        """
+                    poly = np.polynomial.polynomial.Polynomial.fit(x_window, y_window, deg=3)
+                    b_sv = poly(x_interpret)
 
-        if method=='CubicSpline':
-            sat_t = func_satbias([cxtime-0.5*hstep, cxtime, cxtime+0.5*hstep])
+                    polyder = poly.deriv()
+                    b_dot_sv = polyder(x_interpret)
 
-        satbias_clk = sat_t[1]
-        satdrift_clk = (sat_t[2]-sat_t[0]) / hstep
+                    b_sv_m[insert_index_idxs] = b_sv
+                    # multiply by 1000 since currently meters/milliseconds
+                    b_dot_sv_mps[insert_index_idxs] = b_dot_sv*1000
 
-        return satbias_clk, (satdrift_clk * 1e3)
+                row_idx = navdata.argwhere("gnss_sv_id",gnss_sv_id)
+                navdata["b_sv_m",row_idx] = b_sv_m
+                navdata["b_dot_sv_mps",row_idx] = b_dot_sv_mps

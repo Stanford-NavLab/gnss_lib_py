@@ -421,7 +421,7 @@ class AndroidRawImu(NavData):
         if not isinstance(input_path, (str, os.PathLike)):
             raise TypeError("input_path must be string or path-like")
         if not os.path.exists(input_path):
-            raise FileNotFoundError("file not found")
+            raise FileNotFoundError(input_path,"file not found")
 
         with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
@@ -491,7 +491,7 @@ class AndroidRawFixes(NavData):
         if not isinstance(input_path, (str, os.PathLike)):
             raise TypeError("input_path must be string or path-like")
         if not os.path.exists(input_path):
-            raise FileNotFoundError("file not found")
+            raise FileNotFoundError(input_path,"file not found")
 
         with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
@@ -541,7 +541,7 @@ def make_csv(input_path, output_directory, field, show_path=False):
         if not isinstance(input_path, (str, os.PathLike)):
             raise TypeError("input_path must be string or path-like")
         if not os.path.exists(input_path):
-            raise FileNotFoundError("file not found")
+            raise FileNotFoundError(input_path,"file not found")
 
         with open(input_path, 'r', encoding="utf8") as in_txt:
             for line in in_txt:
@@ -671,6 +671,8 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
     # iterate through all trace options
     for trace_name in sorted(os.listdir(folder_path)):
         trace_path = os.path.join(folder_path, trace_name)
+        if not os.path.isdir(trace_path): # pragma: no cover
+            continue
         # iterate through all phone types
         for phone_type in sorted(os.listdir(trace_path)):
             data_path = os.path.join(folder_path,trace_name,
