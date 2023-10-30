@@ -424,7 +424,7 @@ def fixture_navdata_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    navdata_path = os.path.join(root_path, "android_2021/Pixel4_derived_clkdiscnt.csv")
+    navdata_path = os.path.join(root_path, "google_decimeter_2021/Pixel4_derived_clkdiscnt.csv")
     return navdata_path
 
 @pytest.fixture(name="navdata")

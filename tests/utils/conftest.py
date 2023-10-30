@@ -76,7 +76,7 @@ def fixture_android_root_path(root_path):
     android_root_path : string
         Folder location containing Android Derived 2022 measurements
     """
-    android_root_path = os.path.join(root_path, 'android_2022')
+    android_root_path = os.path.join(root_path, 'google_decimeter_2022')
     return android_root_path
 
 

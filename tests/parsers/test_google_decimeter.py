@@ -6,7 +6,6 @@ __authors__ = "Ashwin Kanhere, Derek Knowles"
 __date__ = "10 Nov 2021"
 
 import os
-import pathlib
 
 import pytest
 import numpy as np
@@ -32,7 +31,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2021')
+    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2021')
     return root_path
 
 
@@ -331,56 +330,6 @@ def test_android_concat(derived, pd_df):
         np.testing.assert_array_equal(combined_navdata["intersignal_bias_m"],
                                       combined_df["isrbM"])
 
-def test_imu_raw(android_raw_path):
-    """Test that AndroidRawImu initialization
-
-    Parameters
-    ----------
-    android_raw_path : pytest.fixture
-        Path to Android Raw measurements text log file
-    """
-    test_imu = google_decimeter.AndroidRawImu(android_raw_path)
-    isinstance(test_imu, NavData)
-
-    test_imu = google_decimeter.AndroidRawImu(pathlib.Path(android_raw_path))
-    isinstance(test_imu, NavData)
-
-    # raises exception if not a file path
-    with pytest.raises(FileNotFoundError):
-        google_decimeter.AndroidRawImu("not_a_file.txt")
-    with pytest.raises(FileNotFoundError):
-        google_decimeter.AndroidRawImu(pathlib.Path("not_a_file.txt"))
-
-    # raises exception if input not string or path-like
-    with pytest.raises(TypeError):
-        google_decimeter.AndroidRawImu([])
-
-
-def test_fix_raw(android_raw_path):
-    """Test that AndroidRawFixes initialization
-
-    Parameters
-    ----------
-    android_raw_path : pytest.fixture
-        Path to Android Raw measurements text log file
-    """
-    test_fix = google_decimeter.AndroidRawFixes(android_raw_path)
-    isinstance(test_fix, NavData)
-
-    test_fix = google_decimeter.AndroidRawFixes(pathlib.Path(android_raw_path))
-    isinstance(test_fix, NavData)
-
-    # raises exception if not a file path
-    with pytest.raises(FileNotFoundError):
-        google_decimeter.AndroidRawFixes("not_a_file.txt")
-    with pytest.raises(FileNotFoundError):
-        google_decimeter.AndroidRawFixes(pathlib.Path("not_a_file.txt"))
-
-    # raises exception if input not string or path-like
-    with pytest.raises(TypeError):
-        google_decimeter.AndroidRawFixes([])
-
-
 def test_navdata_type(derived):
     """Test that all subclasses inherit from NavData
 
@@ -432,61 +381,6 @@ def test_shape_update(derived):
     np.testing.assert_equal(old_shape[1], new_shape[1])
     # should have added one new row
     np.testing.assert_equal(old_shape[0] + 1, new_shape[0])
-
-@pytest.mark.parametrize('file_type',
-                        ['Accel',
-                        'Gyro',
-                        'Fix'])
-def test_csv_equivalence(android_raw_path, root_path, file_type):
-    """Test equivalence of loaded measurements and data from split csv
-
-    Parameters
-    ----------
-    android_raw_path : pytest.fixture
-        Path to Android Raw measurements text log file
-
-    root_path : pytest.fixture
-        Path to location of all data for Android unit testing
-
-    file_type : string
-        Type of measurement to be extracted into csv files
-
-    """
-    #NOTE: Times for gyroscope measurements are overridden by accel times
-    # and are not checked in this test for any measurement
-    no_check = ['utcTimeMillis', 'elapsedRealtimeNanos']
-    if file_type=='Accel' or file_type=='Gyro':
-        test_measure = google_decimeter.AndroidRawImu(android_raw_path)
-    elif file_type=='Fix':
-        test_measure = google_decimeter.AndroidRawFixes(android_raw_path)
-    output_directory = os.path.join(root_path, 'csv_test')
-    csv_loc = google_decimeter.make_csv(android_raw_path, output_directory,
-                               file_type)
-    test_df = pd.read_csv(csv_loc)
-    test_measure = google_decimeter.AndroidRawImu(android_raw_path)
-    row_map = test_measure._row_map()
-    for col_name in test_df.columns:
-        if col_name in row_map:
-            row_idx = row_map[col_name]
-        else:
-            row_idx = col_name
-        if col_name in no_check or col_name :
-            break
-        measure_slice = test_measure[row_idx, :]
-        df_slice = test_df[col_name].values
-        np.testing.assert_almost_equal(measure_slice, df_slice)
-    os.remove(csv_loc)
-    for file in os.listdir(output_directory):
-        os.remove(os.path.join(output_directory, file))
-    os.rmdir(output_directory)
-
-    # raises exception if not a file path
-    with pytest.raises(FileNotFoundError):
-        google_decimeter.make_csv("", output_directory, file_type)
-
-    # raises exception if input not string or path-like
-    with pytest.raises(TypeError):
-        google_decimeter.make_csv([], output_directory, file_type)
 
 @pytest.fixture(name="android_gtruth_path")
 def fixture_gtruth_path(root_path):
@@ -566,7 +460,7 @@ def fixture_root_path_2022():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2022')
+    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2022')
     return root_path
 
 

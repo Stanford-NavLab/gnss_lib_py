@@ -28,7 +28,7 @@ def fixture_root_path_2022():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path_2022 = os.path.join(root_path, 'data','unit_test','android_2022')
+    root_path_2022 = os.path.join(root_path, 'data','unit_test','google_decimeter_2022')
     return root_path_2022
 
 @pytest.fixture(name="derived_2022_path")

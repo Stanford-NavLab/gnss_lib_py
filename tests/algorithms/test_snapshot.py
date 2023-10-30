@@ -257,7 +257,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
+    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2021/')
     return root_path
 
 
@@ -332,7 +332,7 @@ def fixture_derived_2022_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    derived_2022_path = os.path.join(root_path, '../android_2022/device_gnss.csv')
+    derived_2022_path = os.path.join(root_path, '../google_decimeter_2022/device_gnss.csv')
     return derived_2022_path
 
 

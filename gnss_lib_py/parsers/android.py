@@ -430,3 +430,119 @@ class AndroidRawGnss(NavData):
     #     #TODO: Implement method that uses time reference and returns
     #     # datetime object
     #     raise NotImplementedError
+
+
+class AndroidRawImu(NavData):
+    """Class handling IMU measurements from raw Android dataset.
+
+    Inherits from NavData().
+    """
+    def __init__(self, input_path, group_time=10):
+        self.group_time = group_time
+        pd_df = self.preprocess(input_path)
+        super().__init__(pandas_df=pd_df)
+
+
+    def preprocess(self, input_path):
+        """Read Android raw file and produce IMU dataframe objects
+
+        Parameters
+        ----------
+        input_path : string or path-like
+            File location of data file to read.
+
+        Returns
+        -------
+        measurements : pd.DataFrame
+            Dataframe that contains the accel and gyro measurements from
+            the log.
+
+        """
+
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(input_path,"file not found")
+
+        with open(input_path, encoding="utf8") as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                if row[0][0] == '#':
+                    if 'Accel' in row[0]:
+                        accel = [row[1:]]
+                    elif 'Gyro' in row[0]:
+                        gyro = [row[1:]]
+                else:
+                    if row[0] == 'Accel':
+                        accel.append(row[1:])
+                    elif row[0] == 'Gyro':
+                        gyro.append(row[1:])
+
+        accel = pd.DataFrame(accel[1:], columns = accel[0],
+                             dtype=np.float64)
+        gyro = pd.DataFrame(gyro[1:], columns = gyro[0],
+                            dtype=np.float64)
+
+        #Drop common columns from gyro and keep values from accel
+        gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'],
+                  inplace=True)
+        measurements = pd.concat([accel, gyro], axis=1)
+        #NOTE: Assuming pandas index corresponds to measurements order
+        #NOTE: Override times of gyro measurements with corresponding
+        # accel times
+        return measurements
+
+    @staticmethod
+    def _row_map():
+        row_map = {'AccelXMps2' : 'acc_x_mps2',
+                   'AccelYMps2' : 'acc_y_mps2',
+                   'AccelZMps2' : 'acc_z_mps2',
+                   'GyroXRadPerSec' : 'ang_vel_x_radps',
+                   'GyroYRadPerSec' : 'ang_vel_y_radps',
+                   'GyroZRadPerSec' : 'ang_vel_z_radps',
+                   }
+        return row_map
+
+
+class AndroidRawFixes(NavData):
+    """Class handling location fix measurements from raw Android dataset.
+
+    Inherits from NavData().
+    """
+    def __init__(self, input_path):
+        pd_df = self.preprocess(input_path)
+        super().__init__(pandas_df=pd_df)
+
+
+    def preprocess(self, input_path):
+        """Read Android raw file and produce location fix dataframe objects
+
+        Parameters
+        ----------
+        input_path : string or path-like
+            File location of data file to read.
+
+        Returns
+        -------
+        fix_df : pd.DataFrame
+            Dataframe that contains the location fixes from the log.
+
+        """
+
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(input_path,"file not found")
+
+        with open(input_path, encoding="utf8") as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                if row[0][0] == '#':
+                    if 'Fix' in row[0]:
+                        android_fixes = [row[1:]]
+                else:
+                    if row[0] == 'Fix':
+                        android_fixes.append(row[1:])
+
+        fix_df = pd.DataFrame(android_fixes[1:], columns = android_fixes[0])
+        return fix_df
