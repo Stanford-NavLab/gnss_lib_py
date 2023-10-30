@@ -22,6 +22,7 @@ results/*
 *.csv
 !data/unit_test/*/*.csv
 !notebooks/tutorials/myreceiver.csv
+!data/unit_test/google_decimeter_2023/2023-09-07-18-59-us-ca/pixel7pro/device_gnss.csv
 
 # Ignore downloaded precise ephimerides files by default
 *.sp3

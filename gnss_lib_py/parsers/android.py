@@ -60,6 +60,9 @@ class AndroidRawGnss(NavData):
             skip_rows = []
             header_row = None
             for row in reader:
+                if len(row) == 0:
+                    skip_rows.append(row_idx)
+                    continue
                 if row[0][0] == '#':
                     if 'Raw' in row[0]:
                         header_row = row_idx
@@ -69,15 +72,13 @@ class AndroidRawGnss(NavData):
                     skip_rows.append(row_idx)
                 row_idx += 1
 
-        measurements = pd. read_csv(input_path,
+        measurements = pd.read_csv(input_path,
                                     skip_blank_lines = False,
                                     header = header_row,
                                     skiprows = skip_rows,
+                                    dtype={'AccumulatedDeltaRangeUncertaintyMeters':np.float64},
                                     )
         # measurements = pd.DataFrame(read_measures[1:], columns = read_measures[0], dtype=np.float64)
-        print(measurements)
-        for col in measurements.columns:
-            print(col,measurements[col].dtype  )
 
         return measurements
 
@@ -89,8 +90,6 @@ class AndroidRawGnss(NavData):
         # rename gnss_id
         gnss_id = np.array([consts.CONSTELLATION_ANDROID[i] for i in self["gnss_id"]])
         self["gnss_id"] = gnss_id
-
-        #
 
     @staticmethod
     def _row_map():

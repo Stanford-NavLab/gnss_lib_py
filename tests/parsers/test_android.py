@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers import android
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2023
 from gnss_lib_py.parsers.navdata import NavData
 
 # pylint: disable=protected-access
@@ -31,7 +32,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2021')
+    root_path = os.path.join(root_path, 'data/unit_test')
     return root_path
 
 @pytest.fixture(name="android_raw_path")
@@ -63,7 +64,66 @@ def fixture_raw_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    raw_path = os.path.join(root_path, 'Pixel4_GnssLog.txt')
+    raw_path = os.path.join(root_path, 'google_decimeter_2021',
+                            'Pixel4_GnssLog.txt')
+    return raw_path
+
+@pytest.fixture(name="android_raw_2023_path")
+def fixture_raw_2023_path(root_path):
+    """Filepath of Android Raw measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    raw_path : string
+        Location for text log file with Android Raw measurements
+
+    Notes
+    -----
+    Test data is a subset of the 2023 Google Challenge [3]_.
+
+    References
+    ----------
+    .. [3] https://www.kaggle.com/competitions/smartphone-decimeter-2023/overview
+
+    """
+    raw_path = os.path.join(root_path, 'google_decimeter_2023',
+                            '2023-09-07-18-59-us-ca',
+                            'pixel7pro',
+                            'gnss_log.txt')
+    return raw_path
+
+@pytest.fixture(name="android_derived_2023_path")
+def fixture_derived_2023_path(root_path):
+    """Filepath of Android derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    raw_path : string
+        Location for text log file with Android Raw measurements
+
+    Notes
+    -----
+    Test data is a subset of the 2023 Google Challenge [4]_.
+
+    References
+    ----------
+    .. [4] https://www.kaggle.com/competitions/smartphone-decimeter-2023/overview
+
+    """
+    raw_path = os.path.join(root_path, 'google_decimeter_2023',
+                            '2023-09-07-18-59-us-ca',
+                            'pixel7pro',
+                            'device_gnss.csv')
     return raw_path
 
 def test_imu_raw(android_raw_path):
@@ -113,19 +173,6 @@ def test_fix_raw(android_raw_path):
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
         android.AndroidRawFixes([])
-
-def test_raw_load(android_raw_path):
-    """Test basic loading of android raw file.
-
-    Parameters
-    ----------
-    raw_path : string
-        Location for text log file with Android Raw measurements
-
-    """
-    navdata = android.AndroidRawGnss(input_path=android_raw_path)
-
-    print(navdata)
 
 def make_csv(input_path, output_directory, field, show_path=False):
     """Write specific data types from a GNSS android log to a CSV.
@@ -237,3 +284,27 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
         make_csv([], output_directory, file_type)
+
+def test_raw_load(android_raw_2023_path, android_derived_2023_path):
+    """Test basic loading of android raw file.
+
+    Parameters
+    ----------
+    android_raw_2023_path : string
+        Location for text log file with Android Raw measurements.
+    android_derived_2023_path : string
+        Location for text log file with Android derived measurements.
+
+    """
+    # load derived data
+    derived = AndroidDerived2023(input_path=android_derived_2023_path)
+
+    # load raw data
+    raw = android.AndroidRawGnss(input_path=android_raw_2023_path)
+
+    # make sure the same data is contained in both
+    assert len(derived) == len(raw)
+
+    print(raw)
+
+    print(derived.shape,"vs.",raw.shape)
