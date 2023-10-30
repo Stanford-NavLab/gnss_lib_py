@@ -11,7 +11,7 @@ import warnings
 import pytest
 import numpy as np
 
-from gnss_lib_py.parsers.android import AndroidDerived2021, AndroidDerived2022
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021, AndroidDerived2022
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import wls, solve_wls
 

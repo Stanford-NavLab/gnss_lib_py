@@ -18,7 +18,7 @@ from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
 import gnss_lib_py.utils.time_conversions as tc
-from gnss_lib_py.parsers.android import AndroidDerived2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
 # pylint: disable=protected-access
 
 # Number of time to run meausurement simulation code

@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.algorithms.snapshot import solve_wls
-from gnss_lib_py.parsers.android import AndroidDerived2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
 from gnss_lib_py.parsers.navdata import NavData
 from gnss_lib_py.algorithms.residuals import solve_residuals
 

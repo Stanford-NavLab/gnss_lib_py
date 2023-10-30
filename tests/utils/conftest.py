@@ -13,7 +13,7 @@ import numpy as np
 
 from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.android import AndroidDerived2022, AndroidGroundTruth2022
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022, AndroidGroundTruth2022
 from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
 
 def pytest_collection_modifyitems(items):
@@ -174,7 +174,7 @@ def fixture_derived(derived_path):
 
     Returns
     -------
-    derived : gnss_lib_py.parsers.android.AndroidDerived2022
+    derived : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android Derived measurements for testing
     """
     derived = AndroidDerived2022(derived_path)
@@ -190,12 +190,12 @@ def fixture_derived_gps_l1(android_derived):
 
     Parameters
     ----------
-    android_derived : gnss_lib_py.parsers.android.AndroidDerived2022
+    android_derived : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android Derived measurements for testing
 
     Returns
     -------
-    android_gps_l1 : gnss_lib_py.parsers.android.AndroidDerived2022
+    android_gps_l1 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android Derived measurements containing only entries that
         correspond to the GPS contellation and L1 frequency band.
     """
@@ -210,13 +210,13 @@ def fixture_derived_gps_l1_reversed(android_gps_l1):
 
     Parameters
     ----------
-    android_gps_l1 : gnss_lib_py.parsers.android.AndroidDerived2022
+    android_gps_l1 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android Derived measurements containing only entries that
         correspond to the GPS contellation and L1 frequency band.
 
     Returns
     -------
-    android_gps_l1_reversed : gnss_lib_py.parsers.android.AndroidDerived2022
+    android_gps_l1_reversed : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android GPS L1 measurements with reversed SV IDs in a single time
         instance.
     """
@@ -236,7 +236,7 @@ def fixture_android_state(android_derived):
 
     Parameters
     ----------
-    android_derived : gnss_lib_py.parsers.android.AndroidDerived2022
+    android_derived : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android Derived measurements for testing
 
     Returns
@@ -260,7 +260,7 @@ def fixture_gt(gt_path):
 
     Returns
     -------
-    android_gt : gnss_lib_py.parsers.android.AndroidGroundTruth2022
+    android_gt : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2022
         NavData containing ground truth for Android measurements.
     """
     android_gt = AndroidGroundTruth2022(gt_path)
@@ -286,7 +286,7 @@ def fixture_start_time(android_gt):
 
     Parameters
     ----------
-    android_gt : gnss_lib_py.parsers.android.AndroidGroundTruth2022
+    android_gt : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2022
         NavData containing ground truth for Android measurements.
 
     Returns
@@ -337,7 +337,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
     all_gps_ephem : gnss_lib_py.parsers.navdata.NavData
         NavData instance containing ephemeris parameters for all GPS
         satellites at the start time for measurement reception.
-    android_gps_l1 : gnss_lib_py.parsers.android.AndroidDerived2022
+    android_gps_l1 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android Derived measurements containing only entries that
         correspond to the GPS contellation and L1 frequency band.
 

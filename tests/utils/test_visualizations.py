@@ -18,9 +18,9 @@ import matplotlib.pyplot as plt
 import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.android import AndroidDerived2021
-from gnss_lib_py.parsers.android import AndroidDerived2022
-from gnss_lib_py.parsers.android import AndroidGroundTruth2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
+from gnss_lib_py.parsers.google_decimeter import AndroidGroundTruth2021
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 
 # pylint: disable=protected-access
