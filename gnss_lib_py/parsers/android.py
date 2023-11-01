@@ -8,7 +8,6 @@ __date__ = "02 Nov 2021"
 
 import os
 import csv
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -33,18 +32,21 @@ class AndroidRawGnss(NavData):
 
 
     """
-    def __init__(self, input_path, verbose=False, use_carrier=False):
+    def __init__(self, input_path, verbose=False, filter=False):
         """Android GNSSStatus file parser.
 
         Parameters
         ----------
         input_path : string or path-like
             Path to measurement csv file.
+        filter : bool
+            Filter noisy measurements based on known conditions.
         verbose : bool
             If true, prints extra debugging statements.
 
         """
         self.verbose = verbose
+        self.filter = filter
         pd_df = self.preprocess(input_path)
         super().__init__(pandas_df=pd_df)
 
@@ -78,7 +80,10 @@ class AndroidRawGnss(NavData):
                                     skiprows = skip_rows,
                                     dtype={'AccumulatedDeltaRangeUncertaintyMeters':np.float64},
                                     )
-        # measurements = pd.DataFrame(read_measures[1:], columns = read_measures[0], dtype=np.float64)
+
+        print(measurements)
+        for col in measurements.columns:
+            print(col,measurements[col].dtype)
 
         return measurements
 
@@ -90,6 +95,111 @@ class AndroidRawGnss(NavData):
         # rename gnss_id
         gnss_id = np.array([consts.CONSTELLATION_ANDROID[i] for i in self["gnss_id"]])
         self["gnss_id"] = gnss_id
+
+        # add gps milliseconds
+        self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
+
+        # calculate pseudorange
+        # Based off of MATLAB code from Google's gps-measurement-tools
+        # repository: https://github.com/google/gps-measurement-tools. Compare
+        # with opensource/ProcessGnssMeas.m
+        gps_week_number = np.floor(-self["FullBiasNanos"]*1e-9/consts.WEEKSEC)
+        gps_week_nanos = gps_week_number*consts.WEEKSEC*1E9
+        tx_rx_nanos = self["TimeNanos"] - self["FullBiasNanos",0] - gps_week_nanos
+        t_rx_secs = (tx_rx_nanos - self["TimeOffsetNanos"] - self["BiasNanos"])*1E-9
+        t_tx_secs = self["ReceivedSvTimeNanos"]*1E-9
+        self["raw_pr_m"] = (t_rx_secs - t_tx_secs)*consts.C
+
+        # receiver_time = (self["TimeNanos"] + self["TimeOffsetNanos"] \
+        #               - self["FullBiasNanos",0] - self["BiasNanos"]) \
+        #               - current_gps_week*consts.WEEKSEC*1E9
+
+        # self["raw_pr_m"] = (receiver_time - self["ReceivedSvTimeNanos"])\
+        #                  * 1E-9 * consts.C
+
+        # add pseudorange uncertainty
+        self["raw_pr_sigma_m"] = np.where((self["ReceivedSvTimeUncertaintyNanos"]!=1000000000),
+                                          consts.C * 1E-9 * self["ReceivedSvTimeUncertaintyNanos"],
+                                          np.nan)
+
+        if self.filter:
+            self.filter_measurements(t_rx_secs)
+
+    def filter_measurements(self,t_rx_secs):
+        """Filter noisy measurements.
+
+
+        The State variable options are shown on [4]_.
+
+        References
+        ----------
+        .. [1] Michael Fu, Mohammed Khider, Frank van Diggelen, Dave
+               Orendorff. "Workshop for Google Smartphone Decimeter
+               Challenge (SDC) 2023-2024." ION GNSS+ 2023.
+        .. [2] https://github.com/google/gps-measurement-tools/blob/master/opensource/ProcessGnssMeas.m
+        .. [3] https://github.com/google/gps-measurement-tools/blob/master/opensource/SetDataFilter.m
+        .. [4] https://developer.android.com/reference/android/location/GnssMeasurement#STATE_TOW_DECODED
+        """
+
+        # FullBiasNanos is zero or invalid
+        full_bias_filter = set(self.argwhere("FullBiasNanos",0,"geq"))
+        filter_idxs = full_bias_filter
+
+
+        # BiasUncertaintyNanos is too large
+        bias_uncertainty_filter = set(self.argwhere("BiasUncertaintyNanos",40.,"geq"))
+        print("bias_uncertainty_filter:",len(bias_uncertainty_filter))
+        filter_idxs.update(bias_uncertainty_filter)
+
+        # arrival time is negative or unrealistically large
+        arrival_time_filter = set(np.argwhere(t_rx_secs>=1e7)[:,0])
+        arrival_time_filter.update(set(np.argwhere(t_rx_secs<0)[:,0]))
+        print("arrival_time_filter:",len(arrival_time_filter))
+        filter_idxs.update(arrival_time_filter)
+
+        # unknown constellations
+        constellation_filter = set(self.argwhere("gnss_id","unknown"))
+        print("constellation_filter:",len(constellation_filter))
+        filter_idxs.update(constellation_filter)
+
+        # TimeNanos is empty
+        time_nanos_filter = set(self.argwhere("TimeNanos",np.nan))
+        print("time_nanos_filter:",len(time_nanos_filter))
+        filter_idxs.update(time_nanos_filter)
+
+        # state is not STATE_TOW_DECODED.
+        state_tow_decoded = 0x8
+        state_filter = set(np.argwhere(~np.logical_and(self["State"],
+                                                          state_tow_decoded))[:,0])
+        print("state_filter:",len(state_filter))
+        filter_idxs.update(state_filter)
+
+        # ReceivedSvTimeUncertaintyNanos is too large
+        received_uncertainty_filter = set(self.argwhere("ReceivedSvTimeUncertaintyNanos",500,"geq"))
+        print("received_uncertainty_filter:",len(received_uncertainty_filter))
+        filter_idxs.update(received_uncertainty_filter)
+
+        # AdrState violates condition
+        # ADR_STATE_VALID == 1 & ADR_STATE_RESET == 0
+        # & ADR_STATE_CYCLE_SLIP == 0
+        ADR_STATE_VALID = 0x1
+        adr_valid = np.logical_and(self["AccumulatedDeltaRangeState"],ADR_STATE_VALID)
+        ADR_STATE_RESET = 0x2
+        adr_reset = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)
+        ADR_STATE_CYCLE_SLIP = 0x4
+        adr_slip = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool)
+        adr_state_filter = set(np.argwhere(~np.logical_and(np.logical_and(adr_valid,adr_reset),adr_slip))[:,0])
+        print("adr_state_filter:",len(adr_state_filter))
+        filter_idxs.update(adr_state_filter)
+
+        # AdrUncertaintyMeters is too large
+        adr_uncertainty_filter = set(self.argwhere("AccumulatedDeltaRangeUncertaintyMeters",0.15,"geq"))
+        print("adr_uncertainty_filter:",len(adr_uncertainty_filter))
+        filter_idxs.update(adr_uncertainty_filter)
+
+        # removed filtered measurements
+        filter_idxs = sorted(list(filter_idxs))
+        self.remove(cols=filter_idxs,inplace=True)
 
     @staticmethod
     def _row_map():
@@ -103,7 +213,7 @@ class AndroidRawGnss(NavData):
         """
 
         row_map = {
-                   # "utcTimeMillis" : "",
+                   "utcTimeMillis" : "unix_millis",
                    # "TimeNanos" : "",
                    # "LeapSecond" : "",
                    # "TimeUncertaintyNanos" : "",
@@ -142,294 +252,6 @@ class AndroidRawGnss(NavData):
                   }
 
         return row_map
-    #     measurements = measurements.astype(self._column_types())
-    #
-    #     #TODO: Empty columns are being cast to strings. Change to Nan or 0
-    #     single_sv = measurements['Svid'].astype(str).str.len() == 1
-    #     measurements.loc[single_sv, 'Svid'] =\
-    #         '0' + measurements.loc[single_sv, 'Svid'].astype(str)
-    #
-    #     # # Compatibility with RINEX files
-    #     # measurements.loc[measurements['ConstellationType'].astype(str) == '1', 'Constellation'] = 'G'
-    #     # measurements.loc[measurements['ConstellationType'].astype(str) == '3', 'Constellation'] = 'R'
-    #     # measurements['SvName'] = measurements['Constellation'].astype(str) + measurements['Svid'].astype(str)
-    #     #
-    #     # measurements = measurements.astype(self._column_types())
-    #     # Drop non-GPS measurements
-    #     #TODO: Introduce multi-constellation support
-    #     measurements = measurements.loc[measurements['Constellation'] == 'G']
-    #     #TODO: ^^Explicitly deal with GPS L1 instead of just GPS
-    #
-    #     col_map = self._column_map()
-    #     measurements.rename(columns=col_map, inplace=True)
-    #     return measurements
-    #
-    # @staticmethod
-    # def _column_map():
-    #     #TODO: Keep android column names or change?
-    #     col_map = {'SvName' : 'SV',
-    #                 'Svid' : 'PRN'}
-    #     return col_map
-    #
-    # @staticmethod
-    # def _column_types():
-    #     col_types = {'ConstellationType': int,
-    #                 'Svid': int}
-    #     return col_types
-    #
-    # def postprocess(self):
-    #     """Built on correct_log
-    #     """
-    #     # Check clock and measurement fields
-    #     self._check_gnss_clock()
-    #     self._check_gnss_measurements()
-    #     if self.use_carrier:
-    #         self._check_carrier_phase()
-    #     self._compute_times()
-    #     self._compute_pseudorange()
-    #
-    #
-    # def _check_gnss_clock(self):
-    #     """Checks and fixes clock field errors
-    #     Additonal checks added from [1]_.
-    #     Notes
-    #     -----
-    #     Based off of MATLAB code from Google's gps-measurement-tools
-    #     repository: https://github.com/google/gps-measurement-tools. Compare
-    #     with CheckGnssClock() in opensource/ReadGnssLogger.m
-    #     References
-    #     ----------
-    #     .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-    #     "Android Raw GNSS Measurement Datasets for Precise Positioning."
-    #     Proceedings of the 33rd International Technical Meeting of the
-    #     Satellite Division of The Institute of Navigation (ION GNSS+
-    #     2020). 2020.
-    #     """
-    #     #TODO: Check if there is way to add a single reference and cite
-    #     # it multiple times
-    #     # list of clock fields
-    #     gnss_clock_fields = [
-    #     'TimeNanos',
-    #     'TimeUncertaintyNanos',
-    #     'TimeOffsetNanos',
-    #     'LeapSecond',
-    #     'FullBiasNanos',
-    #     'BiasUncertaintyNanos',
-    #     'DriftNanosPerSecond',
-    #     'DriftUncertaintyNanosPerSecond',
-    #     'HardwareClockDiscontinuityCount',
-    #     'BiasNanos'
-    #     ]
-    #     gnss_fields = self.rows
-    #     for field in gnss_clock_fields:
-    #         if field not in gnss_fields:
-    #             self._update_log('WARNING: '+field+' (Clock) is missing from GNSS Logger file')
-    #     measure_ok = all(x in gnss_fields for x in ['TimeNanos', 'FullBiasNanos'])
-    #     if not measure_ok:
-    #         self._update_log('FAIL clock check.')
-    #         raise RuntimeError("Measurement file failed clock check")
-    #
-    #     # Measurements should be discarded if TimeNanos is empty
-    #     if np.isnan(self["TimeNanos", :]).any():
-    #         self['all'] = self['all', np.logical_not(np.isnan(self["TimeNanos"]))]
-    #         self._update_log('Empty or invalid TimeNanos')
-    #
-    #     if 'BiasNanos' not in gnss_fields:
-    #         self["BiasNanos"] = 0
-    #     if 'TimeOffsetNanos' not in gnss_fields:
-    #         self["TimeOffsetNanos"] = 0
-    #     if 'HardwareClockDiscontinuityCount' not in gnss_fields:
-    #         self["HardwareClockDiscontinuityCount"] = 0
-    #         self._update_log('WARNING: Added HardwareClockDiscontinuityCount=0 because it is missing from GNSS Logger file')
-    #
-    #     # measurements should be discarded if FullBiasNanos is zero or invalid
-    #     if np.asarray(self["FullBiasNanos", :] >= 0).any():
-    #         self["FullBiasNanos"] = -1*self["FullBiasNanos", :]
-    #         self._update_log('WARNING: FullBiasNanos wrong sign. Should be negative. Auto changing inside check_gnss_clock')
-    #
-    #     # Discard measurements if BiasUncertaintyNanos is too large
-    #     # TODO: figure out how to choose this parameter better
-    #     if np.asarray(self["BiasUncertaintyNanos", :] >= 40.).any():
-    #         count = (self["BiasUncertaintyNanos", :] >= 40.).sum()
-    #         self._update_log(str(count) + ' rows with too large BiasUncertaintyNanos')
-    #         self['all'] = self['all', self["BiasUncertaintyNanos", :] < 40.]
-    #         #TODO: Figure out a way that actually works and implement
-    #
-    #     self["allRxMillis"] = (self["TimeNanos", :] - self["FullBiasNanos", :])//1e6
-    #
-    #
-    # def _check_gnss_measurements(self):
-    #     """Checks that GNSS measurement fields exist in dataframe.
-    #     Additonal checks added from [1]_.
-    #     Notes
-    #     -----
-    #     Based off of MATLAB code from Google's gps-measurement-tools
-    #     repository: https://github.com/google/gps-measurement-tools. Compare
-    #     with ReportMissingFields() in opensource/ReadGnssLogger.m
-    #     References
-    #     ----------
-    #     .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-    #     "Android Raw GNSS Measurement Datasets for Precise Positioning."
-    #     Proceedings of the 33rd International Technical Meeting of the
-    #     Satellite Division of The Institute of Navigation (ION GNSS+
-    #     2020). 2020.
-    #     """
-    #     # list of measurement fields
-    #     gnss_measurement_fields = [
-    #         'Cn0DbHz',
-    #         'ConstellationType',
-    #         'MultipathIndicator',
-    #         'PseudorangeRateMetersPerSecond',
-    #         'PseudorangeRateUncertaintyMetersPerSecond',
-    #         'ReceivedSvTimeNanos',
-    #         'ReceivedSvTimeUncertaintyNanos',
-    #         'State',
-    #         'Svid',
-    #         'AccumulatedDeltaRangeMeters',
-    #         'AccumulatedDeltaRangeUncertaintyMeters'
-    #         ]
-    #     gnss_fields = self.rows
-    #     for field in gnss_measurement_fields:
-    #         if field not in gnss_fields:
-    #             self._update_log('WARNING: '+field+' (Measurement) is missing from GNSS Logger file')
-    #
-    #     # Discard measurements if state is neither of following
-    #     STATE_TOW_DECODED = 0x8
-    #     STATE_TOW_KNOWN = 0x4000
-    #     decoded_state = np.logical_and(self['State', :], STATE_TOW_DECODED)
-    #     known_state = np.logical_and(self["State", :], STATE_TOW_KNOWN)
-    #     valid_state_idx = decoded_state
-    #     invalid_state_count = np.invert(np.logical_or(decoded_state, known_state)).sum()
-    #     if invalid_state_count > 0:
-    #         self._update_log(str(invalid_state_count) + " rows have " + \
-    #                             "state TOW neither decoded nor known")
-    #         valid_state_idx = (self["State", :] & STATE_TOW_DECODED).astype(bool) | \
-    #                         (self["State", :] & STATE_TOW_KNOWN).astype(bool)
-    #         self['all'] = self['all', valid_state_idx]
-    #     # Discard measurements if ReceivedSvTimeUncertaintyNanos is high
-    #     # TODO: figure out how to choose this parameter better
-    #     if np.any(self["ReceivedSvTimeUncertaintyNanos", :] >= 150.):
-    #         count = (self["ReceivedSvTimeUncertaintyNanos", :] >= 150.).sum()
-    #         self._update_log(str(count) + ' rows with too large ReceivedSvTimeUncertaintyNanos')
-    #         self['all'] = self['all', self["ReceivedSvTimeUncertaintyNanos", :] < 150.]
-    #         #TODO: Updating all values here
-    #
-    # def _check_carrier_phase(self):
-    #     """Checks that carrier phase measurements are valid
-    #     Checks taken from [1]_.
-    #     References
-    #     ----------
-    #     .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-    #     "Android Raw GNSS Measurement Datasets for Precise Positioning."
-    #     Proceedings of the 33rd International Technical Meeting of the
-    #     Satellite Division of The Institute of Navigation (ION GNSS+
-    #     2020). 2020.
-    #     """
-    #
-    #     # Measurements should be discarded if AdrState violates
-    #     # ADR_STATE_VALID == 1 & ADR_STATE_RESET == 0
-    #     # & ADR_STATE_CYCLE_SLIP == 0
-    #     ADR_STATE_VALID = 0x1
-    #     ADR_STATE_RESET = 0x2
-    #     ADR_STATE_CYCLE_SLIP = 0x4
-    #
-    #     invalid_state_count = np.invert((self["AccumulatedDeltaRangeState", :] & ADR_STATE_VALID).astype(bool) &
-    #                         np.invert((self["AccumulatedDeltaRangeState", :] & ADR_STATE_RESET).astype(bool)) &
-    #                         np.invert((self["AccumulatedDeltaRangeState", :] & ADR_STATE_CYCLE_SLIP).astype(bool))).sum()
-    #     if invalid_state_count > 0:
-    #         self._update_log(str(invalid_state_count) + " rows have " + \
-    #                             "ADRstate invalid")
-    #         #TODO: Same operation is happening twice, functionalize or perform once
-    #         valid_states = (self["AccumulatedDeltaRangeState", :] & ADR_STATE_VALID).astype(bool) & \
-    #                         np.invert((self["AccumulatedDeltaRangeState", :] & ADR_STATE_RESET).astype(bool)) & \
-    #                         np.invert((self["AccumulatedDeltaRangeState", :] & ADR_STATE_CYCLE_SLIP).astype(bool))
-    #         self['all'] = self['all' , valid_states]
-    #
-    #     # Discard measurements if AccumulatedDeltaRangeUncertaintyMeters
-    #     # is too large
-    #     #TODO: figure out how to choose this parameter better
-    #     if any(self["AccumulatedDeltaRangeUncertaintyMeters", :] >= 0.15):
-    #         count = (self["AccumulatedDeltaRangeUncertaintyMeters", :] >= 0.15).sum()
-    #         self._update_log(str(count) + 'rows with too large' +
-    #                         ' AccumulatedDeltaRangeUncertaintyMeters')
-    #         self['all'] = self['all', self["AccumulatedDeltaRangeUncertaintyMeters", :] < 0.15]
-    #         #TODO: Updating all values here
-    #
-    # def _compute_times(self):
-    #     """Compute times and epochs for GNSS measurements.
-    #     Additional checks added from [1]_.
-    #     Notes
-    #     -----
-    #     Based off of MATLAB code from Google's gps-measurement-tools
-    #     repository: https://github.com/google/gps-measurement-tools. Compare
-    #     with opensource/ProcessGnssMeas.m
-    #     References
-    #     ----------
-    #     .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-    #     "Android Raw GNSS Measurement Datasets for Precise Positioning."
-    #     Proceedings of the 33rd International Technical Meeting of the
-    #     Satellite Division of The Institute of Navigation (ION GNSS+
-    #     2020). 2020.
-    #     """
-    #     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
-    #     WEEKSEC = 604800
-    #     self['gps_week'] = np.floor(-1*self['FullBiasNanos', :]*1e-9/WEEKSEC)
-    #     self['toe_nanos'] = self['TimeNanos', :] - (self['FullBiasNanos', :] + self['BiasNanos', :])
-    #
-    #     # Measurements should be discarded if arrival time is negative
-    #     if np.any(self['toe_nanos', :] <= 0) > 0:
-    #         self['all'] = self['all', self['toe_nanos'] > 0]
-    #         self._update_log("negative arrival times removed")
-    #     # TODO: Discard measurements if arrival time is too large
-    #
-    #     self['tRxNanos'] = (self['TimeNanos', :]+self['TimeOffsetNanos', :])-(self['FullBiasNanos', 0]+self['BiasNanos',:])
-    #     self['tRxSeconds'] = 1e-9*self['tRxNanos', :] - WEEKSEC * self['gps_week', :]
-    #     self['tTxSeconds'] = 1e-9*(self['ReceivedSvTimeNanos', :] + self['TimeOffsetNanos', :])
-    #     leap_nan = np.isnan(self['LeapSecond', :])
-    #     leap_not_nan = np.logical_not(leap_nan)
-    #     # leap_not_nan = np.logical_not(np.isnan(self['LeapSecond', :]), dtype=self.arr_dtype)
-    #     self['LeapSecond'] = leap_not_nan *self['LeapSecond', :]
-    #     #TODO: Check the timing functions
-    #     self.time_refs['UtcTimeNanoes'] = self['toe_nanos', 0]
-    #     self["UtcTimeNanos"] = self['toe_nanos', :] - self.time_refs['UtcTimeNanos'] - self["LeapSecond", :] * 1E9
-    #     self.time_refs['UnixTime'] = self['toe_nanos', 0]
-    #     self['UnixTime'] = self['toe_nanos', :] - self.time_refs['UtcTimeNanos']
-    #     #TODO: Do we need to store intermediary values and lug them around?
-    #
-    #     self['Epoch'] = 0*np.zeros([len(self), 1])
-    #     print(type(self['UnixTime', 0][0]))
-    #     print(self['UnixTime', :]- np.roll(self['UnixTime', :], -1))
-    #     # epoch_non_zero = np.where(self['UnixTime', :] - np.roll(self['UnixTime', :], 1) > timedelta(milliseconds=200))
-    #     #TODO: Figure out a possibly better way of doing this
-    #     # epoch_non_zero = np.where(self['UnixTime', :] - np.roll(self['UnixTime', :], 1) > 0.2)
-    #     # self['Epoch', epoch_non_zero] = 1
-    #     # print(np.cumsum(self['Epoch', :]))
-    #     #TODO: Fix the method for calculating self['Epoch', :]
-    #     # self['Epoch'] = np.cumsum(self['Epoch', :])
-    #
-    # def _compute_pseudorange(self):
-    #     """Compute psuedorange values and add to dataframe.
-    #     Notes
-    #     -----
-    #     Based off of MATLAB code from Google's gps-measurement-tools
-    #     repository: https://github.com/google/gps-measurement-tools. Compare
-    #     with opensource/ProcessGnssMeas.m
-    #     """
-    #     self['Pseudorange_seconds'] = self['tRxSeconds', :] - self['tTxSeconds', :]
-    #     print(self['Pseudorange_seconds', :]*gpsconsts.C)
-    #     self['pseudo'] = self['Pseudorange_seconds', :]*gpsconsts.C
-    #     self['pseudo_sigma'] = gpsconsts.C * 1e-9 * self['ReceivedSvTimeUncertaintyNanos', :]
-    #
-    # def _update_log(self, msg):
-    #     self.log.append(msg)
-    #     if self.verbose:
-    #         print(msg)
-    #
-    # def _return_times(self, key):
-    #     #TODO: Implement method that uses time reference and returns
-    #     # datetime object
-    #     raise NotImplementedError
-
 
 class AndroidRawImu(NavData):
     """Class handling IMU measurements from raw Android dataset.

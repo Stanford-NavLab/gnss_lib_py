@@ -13,6 +13,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
+import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.parsers import android
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2023
 from gnss_lib_py.parsers.navdata import NavData
@@ -305,6 +306,52 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
     # make sure the same data is contained in both
     assert len(derived) == len(raw)
 
+    equal_rows = ["unix_millis",
+                 "gps_millis",
+                 "gnss_id",
+                 "sv_id",
+                 ]
+    for row in equal_rows:
+        print(row)
+        np.testing.assert_array_equal(raw[row],derived[row])
+
+    almost_equal_rows = [
+                         "cn0_dbhz",
+                         "raw_pr_sigma_m",
+                         # "raw_pr_m"
+                        ]
+    bad_count = 0
+    for row in almost_equal_rows:
+        print(row)
+        print(len(raw[row]))
+        print(len(np.where(raw[row]==derived[row])[0]))
+        print(raw[row].dtype,derived[row].dtype)
+
+        for ii in range(len(raw[row])):
+            try:
+                np.testing.assert_array_almost_equal(raw[row,ii],derived[row,ii])
+            except:
+                bad_count += 1
+                print(ii,raw[row,ii].item(),derived[row,ii].item())
+                print("diff:",raw[row,ii].item()-derived[row,ii].item())
+                # print(raw["FullBiasNanos",ii]*consts.C*1E-9)
+                # print(raw["TimeNanos",ii]*consts.C*1E-9)
+                # print(raw["TimeOffsetNanos",ii]*consts.C*1E-9)
+                # print(raw["BiasNanos",ii]*consts.C*1E-9)
+                # print(raw["ReceivedSvTimeNanos",ii]*consts.C*1E-9)
+                # print(raw["TimeUncertaintyNanos",ii]*consts.C*1E-9)
+                # print(raw["ReceivedSvTimeUncertaintyNanos",ii]*consts.C*1E-9)
+            # assert raw[row,ii].item() == derived[row,ii].item()
+        print("bad_count:",bad_count)
+        # np.testing.assert_array_almost_equal(raw[row],derived[row])
+
     print(raw)
 
     print(derived.shape,"vs.",raw.shape)
+
+    print(derived.where("raw_pr_sigma_m",np.nan,"neq").shape)
+
+    print(derived["sv_id"])
+    print(raw["sv_id"])
+    print(derived["gnss_id"])
+    print(raw["gnss_id"])
