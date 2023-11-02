@@ -18,7 +18,7 @@ from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.time_conversions import unix_to_gps_millis
-from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
+from gnss_lib_py.utils.time_conversions import gps_to_unix_millis, get_leap_seconds
 
 class AndroidRawGnss(NavData):
     """Handles Raw GNSS measurements from Android.
@@ -90,11 +90,21 @@ class AndroidRawGnss(NavData):
     def postprocess(self):
         """Postprocess loaded NavData.
 
+        Arrival time taken from [5]_.
+
+        References
+        ----------
+        .. [5] https://www.euspa.europa.eu/system/files/reports/gnss_raw_measurement_web_0.pdf
+
         """
 
         # rename gnss_id
         gnss_id = np.array([consts.CONSTELLATION_ANDROID[i] for i in self["gnss_id"]])
         self["gnss_id"] = gnss_id
+
+        # update svn for QZSS constellation
+        qzss_idxs = self.argwhere("gnss_id","qzss")
+        self["sv_id",qzss_idxs] = [consts.QZSS_PRN_SVN[i] for i in self.where("gnss_id","qzss")["sv_id"]]
 
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
@@ -103,24 +113,53 @@ class AndroidRawGnss(NavData):
         # Based off of MATLAB code from Google's gps-measurement-tools
         # repository: https://github.com/google/gps-measurement-tools. Compare
         # with opensource/ProcessGnssMeas.m
-        gps_week_number = np.floor(-self["FullBiasNanos"]*1e-9/consts.WEEKSEC)
-        gps_week_nanos = gps_week_number*consts.WEEKSEC*1E9
-        tx_rx_nanos = self["TimeNanos"] - self["FullBiasNanos",0] - gps_week_nanos
-        t_rx_secs = (tx_rx_nanos - self["TimeOffsetNanos"] - self["BiasNanos"])*1E-9
+        gps_week_nanos = np.floor(-self["FullBiasNanos"]*1e-9/consts.WEEKSEC)*consts.WEEKSEC*1E9
+        tx_rx_gnss_ns = self["TimeNanos"] - self["FullBiasNanos",0] - self["TimeOffsetNanos"] - self["BiasNanos"]
+
+        t_rx_secs = np.zeros(len(self))
+
+        # gps constellation
+        tx_rx_gps_secs = (tx_rx_gnss_ns - gps_week_nanos)*1E-9
+        t_rx_secs = np.where(self["gnss_id"]=="gps",
+                             tx_rx_gps_secs,
+                             t_rx_secs)
+        # tx_rx_nanos = self["TimeNanos"] - self["FullBiasNanos",0] - gps_week_nanos
+        # tx_rx_secs_gps = (tx_rx_nanos - self["TimeOffsetNanos"] - self["BiasNanos"])*1E-9,
+
+        # beidou constellation
+        tx_rx_beidou_secs = (tx_rx_gnss_ns - gps_week_nanos)*1E-9 - 14.
+        t_rx_secs = np.where(self["gnss_id"]=="beidou",
+                             tx_rx_beidou_secs,
+                             t_rx_secs)
+
+        # galileo constellation
+        # nanos_per_100ms = 100*1E6
+        # ms_number_nanos = np.floor(-self["FullBiasNanos"]/nanos_per_100ms)*nanos_per_100ms
+        # tx_rx_galileo_secs = (tx_rx_gnss_ns - ms_number_nanos)*1E-9
+        t_rx_secs = np.where(self["gnss_id"]=="galileo",
+                             tx_rx_gps_secs,
+                             t_rx_secs)
+
+        # glonass constellation
+        nanos_per_day = 1E9*24*60*60
+        day_number_nanos = np.floor(-self["FullBiasNanos"]/nanos_per_day)*nanos_per_day
+        tx_rx_glonass_secs = (tx_rx_gnss_ns - day_number_nanos)*1E-9\
+                           + 3*60*60 - get_leap_seconds(self["gps_millis",0].item())
+        t_rx_secs = np.where(self["gnss_id"]=="glonass",
+                             tx_rx_glonass_secs,
+                             t_rx_secs)
+
+        # qzss constellation
+        tx_rx_qzss_secs = (tx_rx_gnss_ns - gps_week_nanos)*1E-9
+        t_rx_secs = np.where(self["gnss_id"]=="qzss",
+                             tx_rx_qzss_secs,
+                             t_rx_secs)
+
         t_tx_secs = self["ReceivedSvTimeNanos"]*1E-9
         self["raw_pr_m"] = (t_rx_secs - t_tx_secs)*consts.C
 
-        # receiver_time = (self["TimeNanos"] + self["TimeOffsetNanos"] \
-        #               - self["FullBiasNanos",0] - self["BiasNanos"]) \
-        #               - current_gps_week*consts.WEEKSEC*1E9
-
-        # self["raw_pr_m"] = (receiver_time - self["ReceivedSvTimeNanos"])\
-        #                  * 1E-9 * consts.C
-
         # add pseudorange uncertainty
-        self["raw_pr_sigma_m"] = np.where((self["ReceivedSvTimeUncertaintyNanos"]!=1000000000),
-                                          consts.C * 1E-9 * self["ReceivedSvTimeUncertaintyNanos"],
-                                          np.nan)
+        self["raw_pr_sigma_m"] = consts.C * 1E-9 * self["ReceivedSvTimeUncertaintyNanos"]
 
         if self.filter:
             self.filter_measurements(t_rx_secs)

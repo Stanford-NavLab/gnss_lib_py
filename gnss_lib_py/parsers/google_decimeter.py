@@ -413,7 +413,7 @@ class AndroidDerived2023(AndroidDerived2022):
 def solve_kaggle_baseline(navdata):
     """Convert Decimeter challenge baseline into state_estimate.
 
-    The baseline solution was provided in 2022, but not in 2021.
+    The baseline solution was provided in 2022 and 2023, but not in 2021.
 
     Parameters
     ----------

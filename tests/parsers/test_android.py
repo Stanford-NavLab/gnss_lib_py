@@ -315,6 +315,94 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
         print(row)
         np.testing.assert_array_equal(raw[row],derived[row])
 
+def test_raw_derived_values(android_raw_2023_path, android_derived_2023_path):
+    """Test calculation of derived values.
+
+    Parameters
+    ----------
+    android_raw_2023_path : string
+        Location for text log file with Android Raw measurements.
+    android_derived_2023_path : string
+        Location for text log file with Android derived measurements.
+
+    """
+
+    # load derived data
+    derived = AndroidDerived2023(input_path=android_derived_2023_path)
+    import gnss_lib_py as glp
+    derived_baseline = glp.solve_kaggle_baseline(derived)
+    # fig1 = glp.plot_map(derived_baseline)
+    # fig1.show()
+#
+    # load raw data
+    raw = android.AndroidRawGnss(input_path=android_raw_2023_path,
+                                 filter=False)
+
+    print("pre length:",len(raw),len(derived))
+    assert len(derived) == len(raw)
+    # raw["gps_millis"] -= 100/1E6
+
+    # raw = raw.where("gnss_id",("gps","galileo"))
+    # raw["gps_millis"] -= raw["raw_pr_m",0] / consts.C * 1E3
+    # raw["raw_pr_m"] += 28.48
+    full_states = glp.add_sv_states(raw,source="precise",verbose=True)
+    # + full_states['b_sv_m'] \
+    full_states["corr_pr_m"] = full_states["raw_pr_m"] \
+                             + derived['b_sv_m'] \
+                             - derived['intersignal_bias_m'] \
+                             - derived['tropo_delay_m'] \
+                             - derived['iono_delay_m'] \
+
+    # print(full_states[["raw_pr_m","corr_pr_m"]])
+    for constellation in np.unique(raw["gnss_id"]):
+        print(full_states.where("gnss_id",constellation)["gnss_id"])
+
+        print(full_states.where("gnss_id",constellation)["x_sv_m","y_sv_m","z_sv_m","b_sv_m"] \
+             -derived.where("gnss_id",constellation)["x_sv_m","y_sv_m","z_sv_m","b_sv_m"])
+        print(full_states.where("gnss_id",constellation)["raw_pr_m","corr_pr_m"] \
+             -derived.where("gnss_id",constellation)["raw_pr_m","corr_pr_m"])
+
+    full_states = full_states.where("gnss_id",("gps","galileo","glonass"))
+
+    # glp.plot_metric_by_constellation(full_states,"gps_millis","corr_pr_m")
+    # import matplotlib.pyplot as plt
+    # plt.show()
+
+    # for ii in range(len(full_states)):
+    #     print(full_states["raw_pr_m",ii],derived["raw_pr_m",ii],
+    #           full_states["raw_pr_m",ii]-derived["raw_pr_m",ii])
+
+    wls_estimate = glp.solve_wls(full_states)
+    print(wls_estimate)
+    print(wls_estimate["b_rx_wls_m"])
+
+    fig2 = glp.plot_map(derived_baseline,wls_estimate)
+    # fig2 = glp.plot_map(wls_estimate)
+    fig2.show()
+
+
+
+
+def test_raw_filters(android_raw_2023_path, android_derived_2023_path):
+    """Test removal of outlier measurements.
+
+    Parameters
+    ----------
+    android_raw_2023_path : string
+        Location for text log file with Android Raw measurements.
+    android_derived_2023_path : string
+        Location for text log file with Android derived measurements.
+
+    """
+
+    # load derived data
+    derived = AndroidDerived2023(input_path=android_derived_2023_path)
+
+    # load raw data
+    raw = android.AndroidRawGnss(input_path=android_raw_2023_path)
+
+
+
     almost_equal_rows = [
                          "cn0_dbhz",
                          "raw_pr_sigma_m",

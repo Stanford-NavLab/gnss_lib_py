@@ -11,6 +11,7 @@ References
    Version 3.04. http://acc.igs.org/misc/rinex304.pdf
 .. [3] https://developer.android.com/reference/android/location/GnssStatus#constants_1
 .. [4] https://developer.android.com/reference/android/location/GnssMeasurement#getCodeType()
+.. [5] https://sys.qzss.go.jp/dod/en/constellation.html
 
 """
 
@@ -103,13 +104,10 @@ CONSTELLATION_ANDROID = {1 :'gps',
                          }
 """dict : Satellite System identifier from GNSSStatus specification [3]_."""
 
-SIGNAL_ANDROID = {1 :'gps',
-                         3 :'glonass',
-                         2 :'sbas',
-                         5 :'beidou',
-                         6 :'galileo',
-                         4 :'qzss',
-                         7 :'irnss',
-                         0 : 'unknown',
-                         }
-"""dict : Satellite System identifier from GNSSStatus specification [4]_."""
+QZSS_PRN_SVN = {193 : 1,
+                194 : 2,
+                199 : 3,
+                195 : 4,
+                196 : 5,
+               }
+"""dict : Translation from PRN to SVN for the QZSS constellation [5]_."""
