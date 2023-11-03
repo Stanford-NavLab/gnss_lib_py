@@ -13,7 +13,7 @@ def test_get_timestamp():
     """Test for getting timestamp.
 
     """
-    timestamp = fo.get_timestamp()
+    timestamp = fo._get_timestamp()
 
     # timestamp should be of length 14, YYYYMMDDHHMMSS
     assert len(timestamp) == 14

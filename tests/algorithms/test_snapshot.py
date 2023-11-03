@@ -646,3 +646,23 @@ def test_rotation_of_earth_fix(derived_2022):
         error_rotn = np.mean(np.abs(google_wls[idx, :] - glp_wls[idx, :]))
         error_no_rotn = np.mean(np.abs(google_wls[idx, :] - glp_wls_no_rotn[idx, :]))
         assert error_rotn < error_no_rotn
+
+def test_solve_wls_empty():
+    """Test scenario where an empty measurement class is passed in.
+
+    """
+
+    measurements = NavData()
+    measurements["gps_millis"] = []
+    measurements["x_sv_m"] = []
+    measurements["y_sv_m"] = []
+    measurements["z_sv_m"] = []
+    with pytest.warns(RuntimeWarning) as warns:
+        state_estimate = solve_wls(measurements)
+
+    # should have the following contents
+    assert "gps_millis" in state_estimate.rows
+    assert "x_rx_wls_m" in state_estimate.rows
+    assert "y_rx_wls_m" in state_estimate.rows
+    assert "z_rx_wls_m" in state_estimate.rows
+    assert "b_rx_wls_m" in state_estimate.rows
