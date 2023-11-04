@@ -32,7 +32,7 @@ class AndroidRawGnss(NavData):
 
 
     """
-    def __init__(self, input_path, verbose=False, filter=False):
+    def __init__(self, input_path, filter_measurements=True, verbose=False):
         """Android GNSSStatus file parser.
 
         Parameters
@@ -46,7 +46,7 @@ class AndroidRawGnss(NavData):
 
         """
         self.verbose = verbose
-        self.filter = filter
+        self.filter_measurements = filter_measurements
         pd_df = self.preprocess(input_path)
         super().__init__(pandas_df=pd_df)
 
@@ -81,10 +81,6 @@ class AndroidRawGnss(NavData):
                                     dtype={'AccumulatedDeltaRangeUncertaintyMeters':np.float64},
                                     )
 
-        print(measurements)
-        for col in measurements.columns:
-            print(col,measurements[col].dtype)
-
         return measurements
 
     def postprocess(self):
@@ -103,8 +99,9 @@ class AndroidRawGnss(NavData):
         self["gnss_id"] = gnss_id
 
         # update svn for QZSS constellation
-        qzss_idxs = self.argwhere("gnss_id","qzss")
-        self["sv_id",qzss_idxs] = [consts.QZSS_PRN_SVN[i] for i in self.where("gnss_id","qzss")["sv_id"]]
+        if "qzss" in np.unique(self["gnss_id"]):
+            qzss_idxs = self.argwhere("gnss_id","qzss")
+            self["sv_id",qzss_idxs] = [consts.QZSS_PRN_SVN[i] for i in self.where("gnss_id","qzss")["sv_id"]]
 
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
@@ -161,10 +158,10 @@ class AndroidRawGnss(NavData):
         # add pseudorange uncertainty
         self["raw_pr_sigma_m"] = consts.C * 1E-9 * self["ReceivedSvTimeUncertaintyNanos"]
 
-        if self.filter:
-            self.filter_measurements(t_rx_secs)
+        if self.filter_measurements:
+            self.filter_raw_measurements(t_rx_secs)
 
-    def filter_measurements(self,t_rx_secs):
+    def filter_raw_measurements(self,t_rx_secs):
         """Filter noisy measurements.
 
 
