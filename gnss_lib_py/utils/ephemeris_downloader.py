@@ -178,8 +178,9 @@ def load_ephemeris(file_type, gps_millis,
                                                download_directory, verbose)
     except ftplib.error_perm as err:
         # try second options for some files
-        print(err)
-        print("Retrying download...")
+        if verbose:
+            print(err)
+            print("Retrying download...")
         if "Connection timed out" in str(err): #pragma: no cover
             pass
         elif "WUM0MGXFIN" in str(err):
@@ -772,9 +773,7 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
             for path in file_paths: # exact file match
                 if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            print("2. looking for:",os.path.split(recommended_file[1])[1][3:])
             for path in file_paths: # other short form files
-                print("2. found path:",os.path.split(path)[1][3:] + ".Z")
                 if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1][3:]:
                     return True, path
             for path in file_paths: # other long form files
