@@ -228,8 +228,9 @@ def test_load_sp3_clk(ephem_datetime, file_type, ephem_path, paths):
 
 @pytest.mark.parametrize('ephem_datetime',
                          [
-                          datetime(2021, 4, 28, 12, tzinfo=timezone.utc),
+                          datetime(2017, 3, 14, 12, tzinfo=timezone.utc),
                           datetime(2020, 5, 17, 11, 17, 1, tzinfo=timezone.utc),
+                          datetime(2021, 4, 28, 12, tzinfo=timezone.utc),
                           datetime(2023, 3, 14, 11, 17, 1, tzinfo=timezone.utc),
                          ])
 @pytest.mark.parametrize('possible_types',
@@ -237,16 +238,14 @@ def test_load_sp3_clk(ephem_datetime, file_type, ephem_path, paths):
                           ["sp3_rapid_CODE"],
                           ["sp3_rapid_GFZ"],
                           ["sp3_final_CODE"],
-                          ["clk_rapid_CODE"],
-                          ["clk_rapid_GFZ"],
-                          ["clk_final_CODE"],
+                          ["sp3_short_CODE"],
                          ])
 @pytest.mark.parametrize('paths',
                          [
                           lazy_fixture("all_ephem_paths"),
                          ])
-def test_sp3_clk_different_source(ephem_datetime, possible_types, paths):
-    """Test using a different source for sp3 and clk.
+def test_sp3_different_source(ephem_datetime, possible_types, paths):
+    """Test using a different source for sp3.
 
     Parameters
     ----------
@@ -265,6 +264,55 @@ def test_sp3_clk_different_source(ephem_datetime, possible_types, paths):
                                                paths)
     assert valid
     assert os.path.getsize(file) > 0.
+
+@pytest.mark.parametrize('ephem_datetime',
+                         [
+                          datetime(2017, 3, 14, 12, tzinfo=timezone.utc),
+                          datetime(2018, 3, 14, 12, tzinfo=timezone.utc),
+                          datetime(2018, 12, 30, 12, tzinfo=timezone.utc),
+                          datetime(2019, 3, 14, 12, tzinfo=timezone.utc),
+                          datetime(2020, 5, 17, 11, 17, 1, tzinfo=timezone.utc),
+                          datetime(2021, 4, 28, 12, tzinfo=timezone.utc),
+                          datetime(2023, 3, 14, 11, 17, 1, tzinfo=timezone.utc),
+                         ])
+@pytest.mark.parametrize('possible_types',
+                         [
+                          ["clk_rapid_CODE"],
+                          ["clk_rapid_GFZ"],
+                          ["clk_final_CODE"],
+                          ["clk_final_WUM"],
+                          ["clk_short_GFZ"],
+                          ["clk_short_WUM"],
+                          ["clk_short_CODE"],
+                         ])
+@pytest.mark.parametrize('paths',
+                         [
+                          lazy_fixture("all_ephem_paths"),
+                         ])
+def test_clk_different_source(ephem_datetime, possible_types, paths):
+    """Test using a different source for clk.
+
+    Parameters
+    ----------
+    ephem_datetime : datetime.datetime
+        Ephemeris clock time
+    possible_types : list
+        What file types would fulfill the requirement in preference
+        order.
+    paths : string or path-like
+        Paths to existing ephemeris files if they exist.
+
+    """
+    valid, file = ed._valid_ephemeris_in_paths(ephem_datetime.date(),
+                                               possible_types,
+                                               paths)
+    assert valid
+    assert os.path.getsize(file) > 0.
+
+    # test version without any paths added
+    valid, file = ed._valid_ephemeris_in_paths(ephem_datetime.date(),
+                                               possible_types)
+    assert not valid
 
 def test_extract_ephemeris_dates():
     """Test extracting the correct days from timestamps.
@@ -415,8 +463,31 @@ def test_ftp_download(ephem_download_path):
                           file_paths=paths,
                           verbose=True)
 
+    # test when WUM0MGXFIN doesn't exist and is replaced
+    paths = ed.load_ephemeris("clk",
+                              tc.datetime_to_gps_millis(datetime(2020,6,7,12,
+                                                        tzinfo=timezone.utc)),
+                              download_directory=ephem_download_path,
+                              verbose=True)
+    assert os.path.getsize(paths[0]) > 1E7
+    remove_download_eph(ephem_download_path)
 
+    # test when wum doesn't exist and is replaced
+    paths = ed.load_ephemeris("clk",
+                              tc.datetime_to_gps_millis(datetime(2018,7,15,12,
+                                                        tzinfo=timezone.utc)),
+                              download_directory=ephem_download_path,
+                              verbose=True)
+    assert os.path.getsize(paths[0]) > 1E7
+    remove_download_eph(ephem_download_path)
 
+    # test when BRDM00DLR_R doesn't exist and is replaced
+    paths = ed.load_ephemeris("rinex_nav",
+                              tc.datetime_to_gps_millis(datetime(2016,6,24,12,
+                                                        tzinfo=timezone.utc)),
+                              download_directory=ephem_download_path,
+                              verbose=True)
+    assert os.path.getsize(paths[0]) > 1E6
     remove_download_eph(ephem_download_path)
 
 def download_igs(requests_url):
@@ -509,6 +580,52 @@ def test_verify_ephemeris():
                                                         verbose=True)
     assert len(existing_paths) == 0
     assert needed_files[0][0] == 'igs-ftp.bkg.bund.de'
+
+    clk_dates = [
+                 tc.datetime_to_gps_millis(datetime(2017, 3, 14, 12,
+                                           tzinfo=timezone.utc)),
+                 tc.datetime_to_gps_millis(datetime(2018, 3, 14, 12,
+                                           tzinfo=timezone.utc)),
+                 tc.datetime_to_gps_millis(datetime(2018, 12, 30, 12,
+                                           tzinfo=timezone.utc)),
+                 tc.datetime_to_gps_millis(datetime(2019, 3, 14, 12,
+                                           tzinfo=timezone.utc)),
+                ]
+    for gps_millis in clk_dates:
+        existing_paths, needed_files = ed._verify_ephemeris("clk",
+                                                            gps_millis,
+                                                            verbose=True)
+        assert len(existing_paths) == 0
+        assert len(needed_files) == 1
+
+    sp3_dates = [
+                 tc.datetime_to_gps_millis(datetime(2017, 3, 14, 12,
+                                           tzinfo=timezone.utc)),
+                ]
+    for gps_millis in sp3_dates:
+        existing_paths, needed_files = ed._verify_ephemeris("sp3",
+                                                            gps_millis,
+                                                            verbose=True)
+        assert len(existing_paths) == 0
+        assert len(needed_files) == 1
+
+    with pytest.raises(RuntimeError) as excinfo:
+        ed._verify_ephemeris("rinex_nav",
+                             tc.datetime_to_gps_millis(datetime(2012,12,31,12,
+                                                        tzinfo=timezone.utc)))
+    assert "rinex nav" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        ed._verify_ephemeris("sp3",
+                             tc.datetime_to_gps_millis(datetime(2012,5,24,12,
+                                                        tzinfo=timezone.utc)))
+    assert "sp3" in str(excinfo.value)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        ed._verify_ephemeris("clk",
+                             tc.datetime_to_gps_millis(datetime(2012,10,13,12,
+                                                        tzinfo=timezone.utc)))
+    assert "clk" in str(excinfo.value)
 
 def test_valid_ephemeris(all_ephem_paths,sp3_path,clk_path):
     """Extra tests for full valid coverage.
