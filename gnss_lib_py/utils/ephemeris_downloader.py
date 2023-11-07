@@ -51,12 +51,12 @@ current date and GPS week 1962 or later, then the CODE final solution
 is downloaded (COD0MGXFIN). The CODE final SP3 solutions became
 available starting GPS week 1962 or Aug 13, 2017. The CODE final
 solution includes: GPS+GLO+GAL+BDS+QZS. More about the CODE solution can
-be found in their papers [6]_[7]_.
+be found in their papers [6]_ [7]_.
 
 If the SP3 date requested is between GPS week 1690 and 1961 or between
 May 25, 2012 and Aug 12, 2017, then the CODE 'com' short name solution
 is downloaded. More about the CODE 'com' solution can be found in their
-papers [9]_[10]_.
+papers [9]_ [10]_.
 
 CLK Older than Two Weeks
 ------------------------
@@ -65,7 +65,7 @@ current date and GPS week 2113 or later, then the CODE final solution
 is downloaded (COD0MGXFIN). The CODE final CLK solutions became
 available starting GPS week 2113 or July 5th, 2020. The CODE final
 solution includes: GPS+GLO+GAL+BDS+QZS. More about the CODE solution can
-be found in their papers [6]_[7]_.
+be found in their papers [6]_ [7]_.
 
 If the CLK date requested is between GPS week 2034 and 2112 or between
 Jan 1, 2019 and July 4th, 2020, then the Wuhan University final
@@ -75,7 +75,7 @@ can be found in their documention [11]_.
 If the CLK date requested is week GPS week 2034 and between Dec 30, 2018
 and Dec 31, 2018, then the GFZ short name solution is downloaded (gbm).
 More about the GFZ 'gbm' solution can be found in their
-documentation [13]_[14]_.
+documentation [13]_ [14]_.
 
 If the CLK date requested is between GPS week 1962 and 2033 or between
 Aug 13, 2017 and Dec 29th, 2018 then the Wuhan University short name
@@ -85,7 +85,7 @@ in their paper [12]_.
 If the CLK date requested is between GPS week 1710 and 1961 or between
 Oct 14, 2012 and Aug 12, 2017, then the CODE 'com' short name solution
 is downloaded. More about the CODE 'com' solution can be found in their
-papers [9]_[10]_.
+papers [9]_ [10]_.
 
 IGS Resources
 -------------
@@ -171,9 +171,61 @@ def load_ephemeris(file_type, gps_millis,
                                                      constellations,
                                                      file_paths,
                                                      verbose)
+    try:
+        downloaded_paths = _download_ephemeris(file_type,
+                                               needed_files,
+                                               download_directory, verbose)
+    except ftplib.error_perm as err:
+        # try second options for some files
+        if verbose:
+            print(err)
+        if "Connection timed out" in str(err): #pragma: no cover
+            if verbose:
+                print("Retrying download.")
+        elif "WUM0MGXFIN" in str(err) and file_type == "clk":
+            if verbose:
+                print("Retrying download with GFZ0MGXRAP.")
+            needed_files = [(x[0],x[1].replace("WUM0MGXFIN","GFZ0MGXRAP"))
+                            for x in needed_files]
+        elif "wum" in str(err) and file_type == "clk":
+            if verbose:
+                print("Retrying download with gbm.")
+            needed_files = [(x[0],x[1].replace("wum","gbm"))
+                            for x in needed_files]
+        elif "BRDM00DLR" in str(err) and file_type == "rinex_nav":
+            if verbose:
+                print("Retrying download with BRDC00IGS.")
+            needed_files = [(x[0],x[1].replace("BRDM00DLR_S","BRDC00IGS_R"))
+                            for x in needed_files]
+            needed_files = [(x[0],x[1].replace("BRDM00DLR_R","BRDC00IGS_R"))
+                            for x in needed_files]
 
-    downloaded_paths = _download_ephemeris(file_type, needed_files,
-                                          download_directory, verbose)
+    try:
+        # second download attempt
+        downloaded_paths = _download_ephemeris(file_type,
+                                               needed_files,
+                                               download_directory,
+                                               verbose)
+    except ftplib.error_perm as err:
+        # on Nov 26, 2013 - Dec 5, 2013 the entire DDD/YYp/ directory
+        # is missing, so use gps and glonass only in that case.
+        if "BRDC00IGS_R" in str(err) and file_type == "rinex_nav":
+            if verbose:
+                print("Retrying download with gps/glonass only.")
+            _,needed_gps = _verify_ephemeris(file_type,
+                                             gps_millis,
+                                             ["gps"],
+                                             verbose=verbose)
+            _,needed_glonass = _verify_ephemeris(file_type,
+                                                 gps_millis,
+                                                 ["glonass"],
+                                                 verbose=verbose)
+            needed_files = needed_gps + needed_glonass
+        # third download attempt
+        downloaded_paths = _download_ephemeris(file_type,
+                                               needed_files,
+                                               download_directory,
+                                               verbose)
 
     if verbose:
         if len(existing_paths) > 0:
@@ -626,11 +678,16 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
             if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in file_paths:
+            for path in file_paths: # exact match
                 if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in file_paths:
-                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
+            for path in file_paths: # other short form files
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1][3:]:
+                    return True, path
+            for path in file_paths: # other long form files
+                if os.path.split(path)[1][11:] == str(timetuple.tm_year) \
+                                                + str(timetuple.tm_yday).zfill(3) \
+                                                + "0000_01D_05M_ORB.SP3":
                     return True, path
 
         # clk from last three days
@@ -743,11 +800,16 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
             if file_paths is None:
                 return False, recommended_file
             # check compatible file types
-            for path in file_paths:
+            for path in file_paths: # exact file match
                 if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
                     return True, path
-            for path in file_paths:
-                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
+            for path in file_paths: # other short form files
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1][3:]:
+                    return True, path
+            for path in file_paths: # other long form files
+                if os.path.split(path)[1][11:] == str(timetuple.tm_year) \
+                                                + str(timetuple.tm_yday).zfill(3) \
+                                                + "0000_01D_30S_CLK.CLK":
                     return True, path
 
         # clk for Aug 13, 2017 to Dec 29, 2018
@@ -768,7 +830,12 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
                     return True, path
             for path in file_paths:
-                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1][3:]:
+                    return True, path
+            for path in file_paths: # other long form files
+                if os.path.split(path)[1][11:] == str(timetuple.tm_year) \
+                                                + str(timetuple.tm_yday).zfill(3) \
+                                                + "0000_01D_30S_CLK.CLK":
                     return True, path
 
         # clk for Oct 14, 2012 to Aug 12, 2017
@@ -789,9 +856,13 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1] + ".Z" == os.path.split(recommended_file[1])[1]:
                     return True, path
             for path in file_paths:
-                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1]:
+                if os.path.split(path)[1][3:] + ".Z" == os.path.split(recommended_file[1])[1][3:]:
                     return True, path
-
+            for path in file_paths: # other long form files
+                if os.path.split(path)[1][11:] == str(timetuple.tm_year) \
+                                                + str(timetuple.tm_yday).zfill(3) \
+                                                + "0000_01D_30S_CLK.CLK":
+                    return True, path
         else:
             raise RuntimeError(possible_type,"invalid possible_type "\
                                 +"for valid ephemeris")
@@ -930,7 +1001,7 @@ def _get_rinex_extension(timestamp):
     """Get file extension of rinex file based on timestamp.
 
     GPS and Glonass Rinex files switched from .Z to .gz on
-    December 1, 2020 [5]_.
+    December 1, 2020 [15]_.
 
     Parameters
     ----------
@@ -944,7 +1015,7 @@ def _get_rinex_extension(timestamp):
 
     References
     ----------
-    .. [5] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
+    .. [15] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 
     """
     # switched from .Z to .gz compression format on December 1st, 2020

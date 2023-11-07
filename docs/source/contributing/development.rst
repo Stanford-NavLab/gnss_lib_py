@@ -101,7 +101,7 @@ Standard GitHub Workflow
       git push origin your-name/name-of-your-bugfix-or-feature
 
 13. Submit a pull request through GitHub. For the base branch
-    in the pull request, select the latest version release branch :code:`vx.Y.Z`
+    in the pull request, select the latest version release branch :code:`vX.Y.Z`
     (with the highest number of all such branches). *Do not target the*
     :code:`main` *branch in your pull request.* In the pull request,
     add a code review request for a current maintainer of the repository.
@@ -202,7 +202,7 @@ NAVLab GitHub Workflow
       git push origin your-name/name-of-your-bugfix-or-feature
 
 13. Submit a pull request through GitHub. For the base branch
-    in the pull request, select the latest version release branch :code:`vx.Y.Z`
+    in the pull request, select the latest version release branch :code:`vX.Y.Z`
     (with the highest number of all such branches). *Do not target the*
     :code:`main` *branch in your pull request.* In the pull request,
     add a code review request for a current maintainer of the repository.
