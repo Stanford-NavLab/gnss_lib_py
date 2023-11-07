@@ -14,11 +14,8 @@ import pandas as pd
 
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
-from gnss_lib_py.utils.coordinates import geodetic_to_ecef
-from gnss_lib_py.utils.coordinates import ecef_to_geodetic
+from gnss_lib_py.utils.time_conversions import get_leap_seconds
 from gnss_lib_py.utils.time_conversions import unix_to_gps_millis
-from gnss_lib_py.utils.time_conversions import gps_to_unix_millis, get_leap_seconds
 
 class AndroidRawGnss(NavData):
     """Handles Raw GNSS measurements from Android.
@@ -64,8 +61,9 @@ class AndroidRawGnss(NavData):
             for row in reader:
                 if len(row) == 0:
                     skip_rows.append(row_idx)
-                    continue
-                if row[0][0] == '#':
+                elif len(row[0]) == 0:
+                    skip_rows.append(row_idx)
+                elif row[0][0] == '#':
                     if 'Raw' in row[0]:
                         header_row = row_idx
                     elif header_row is not None:
@@ -393,13 +391,36 @@ class AndroidRawFixes(NavData):
 
         with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
+            row_idx = 0
+            skip_rows = []
+            header_row = None
             for row in reader:
-                if row[0][0] == '#':
+                if len(row) == 0:
+                    skip_rows.append(row_idx)
+                elif len(row[0]) == 0:
+                    skip_rows.append(row_idx)
+                elif row[0][0] == '#':
                     if 'Fix' in row[0]:
-                        android_fixes = [row[1:]]
-                else:
-                    if row[0] == 'Fix':
-                        android_fixes.append(row[1:])
+                        header_row = row_idx
+                    elif header_row is not None:
+                        skip_rows.append(row_idx)
+                elif row[0] != 'Fix':
+                    skip_rows.append(row_idx)
+                row_idx += 1
 
-        fix_df = pd.DataFrame(android_fixes[1:], columns = android_fixes[0])
+        fix_df = pd.read_csv(input_path,
+                             skip_blank_lines = False,
+                             header = header_row,
+                             skiprows = skip_rows,
+                             )
+
+        fix_df.to_csv("fix.csv")
+
         return fix_df
+
+    @staticmethod
+    def _row_map():
+        row_map = {'LatitudeDegrees' : 'lat_rx_deg',
+                   'LongitudeDegrees' : 'lon_rx_deg',
+                   }
+        return row_map
