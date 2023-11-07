@@ -112,8 +112,6 @@ References
 
 """
 
-# CLK: 2020, 7, 2
-
 __authors__ = "Shubh Gupta, Ashwin Kanhere, Derek Knowles"
 __date__ = "13 July 2021"
 
@@ -171,7 +169,6 @@ def load_ephemeris(file_type, gps_millis,
                                                      constellations,
                                                      file_paths,
                                                      verbose)
-
     try:
         downloaded_paths = _download_ephemeris(file_type,
                                                needed_files,
@@ -180,22 +177,53 @@ def load_ephemeris(file_type, gps_millis,
         # try second options for some files
         if verbose:
             print(err)
-            print("Retrying download...")
         if "Connection timed out" in str(err): #pragma: no cover
-            pass
-        elif "WUM0MGXFIN" in str(err):
+            if verbose:
+                print("Retrying download.")
+        elif "WUM0MGXFIN" in str(err) and file_type == "clk":
+            if verbose:
+                print("Retrying download with GFZ0MGXRAP.")
             needed_files = [(x[0],x[1].replace("WUM0MGXFIN","GFZ0MGXRAP"))
                             for x in needed_files]
-        elif "wum" in str(err):
+        elif "wum" in str(err) and file_type == "clk":
+            if verbose:
+                print("Retrying download with gbm.")
             needed_files = [(x[0],x[1].replace("wum","gbm"))
                             for x in needed_files]
-        elif "BRDM00DLR_R" in str(err):
+        elif "BRDM00DLR" in str(err) and file_type == "rinex_nav":
+            if verbose:
+                print("Retrying download with BRDC00IGS.")
+            needed_files = [(x[0],x[1].replace("BRDM00DLR_S","BRDC00IGS_R"))
+                            for x in needed_files]
             needed_files = [(x[0],x[1].replace("BRDM00DLR_R","BRDC00IGS_R"))
                             for x in needed_files]
 
+    try:
+        # second download attempt
         downloaded_paths = _download_ephemeris(file_type,
                                                needed_files,
-                                               download_directory, verbose)
+                                               download_directory,
+                                               verbose)
+    except ftplib.error_perm as err:
+        # on Nov 26, 2013 - Dec 5, 2013 the entire DDD/YYp/ directory
+        # is missing, so use gps and glonass only in that case.
+        if "BRDC00IGS_R" in str(err) and file_type == "rinex_nav":
+            if verbose:
+                print("Retrying download with gps/glonass only.")
+            _,needed_gps = _verify_ephemeris(file_type,
+                                             gps_millis,
+                                             ["gps"],
+                                             verbose=verbose)
+            _,needed_glonass = _verify_ephemeris(file_type,
+                                                 gps_millis,
+                                                 ["glonass"],
+                                                 verbose=verbose)
+            needed_files = needed_gps + needed_glonass
+        # third download attempt
+        downloaded_paths = _download_ephemeris(file_type,
+                                               needed_files,
+                                               download_directory,
+                                               verbose)
 
     if verbose:
         if len(existing_paths) > 0:

@@ -482,12 +482,14 @@ def test_ftp_download(ephem_download_path):
     remove_download_eph(ephem_download_path)
 
     # test when BRDM00DLR_R doesn't exist and is replaced
+    # use case between Nov 26, 2013 - Dec 5, 2013 when the entire
+    # DDD/YYp/ directory is missing
     paths = ed.load_ephemeris("rinex_nav",
-                              tc.datetime_to_gps_millis(datetime(2016,6,24,12,
+                              tc.datetime_to_gps_millis(datetime(2013,12,3,12,
                                                         tzinfo=timezone.utc)),
                               download_directory=ephem_download_path,
                               verbose=True)
-    assert os.path.getsize(paths[0]) > 1E6
+    assert os.path.getsize(paths[0]) > 1E5
     remove_download_eph(ephem_download_path)
 
 def download_igs(requests_url):
