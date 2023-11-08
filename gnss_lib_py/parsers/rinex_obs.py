@@ -4,7 +4,9 @@ __authors__ = "Ashwin Kanhere"
 __date__ = "26 July 2023"
 
 import numpy as np
+import pandas as pd
 import georinex as gr
+from datetime import timezone, datetime
 
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.constants as consts
@@ -31,7 +33,6 @@ class RinexObs(NavData):
 
 
     """
-    #TODO: Add support for selecting constellations and bands
     def __init__(self, input_path):
         """Loading Rinex observation files into a NavData based class.
 
@@ -50,16 +51,15 @@ class RinexObs(NavData):
         rx_bands = []
         for rx_measures in obs_measure_types.values():
             for single_measure in rx_measures:
-                band = single_measure[1]
+                band = single_measure[1:]
                 if band not in rx_bands:
-                    rx_bands.extend(band)
+                    rx_bands.append(band)
         obs_file.dropna(how='all', inplace=True)
         obs_file.reset_index(inplace=True)
         # Convert time to gps_millis
-        # Use the vectorized version of datetime_to_gps_millis
-        gps_millis = [np.float64(datetime_to_gps_millis(df_row['time'])) \
-                                for _, df_row in obs_file.iterrows()]
-        obs_file['gps_millis'] = gps_millis
+        datetime_series = [d.to_pydatetime().astimezone(timezone.utc)
+                           for d in obs_file["time"]]
+        obs_file['gps_millis'] = datetime_to_gps_millis(datetime_series)
         obs_file = obs_file.drop(columns=['time'])
         obs_file = obs_file.rename(columns={"sv":"sv_id"})
         # Convert gnss_sv_id to gnss_id and sv_id (plus gnss_sv_id)
@@ -79,25 +79,35 @@ class RinexObs(NavData):
             keep_rows = info_rows.copy()
             measure_type_dict = self._measure_type_dict()
             for measure_char, measure_row in measure_type_dict.items():
-                measure_band_row = \
-                    obs_navdata_raw.find_wildcard_indexes(f'{measure_char}{band}*',
-                                                          max_allow=1)
-                measure_row_chars = measure_band_row[f'{measure_char}{band}*'][0]
-                rename_map[measure_row_chars] = measure_row
-                keep_rows.append(measure_row_chars)
+                measure_band_row = measure_char + band
+                rename_map[measure_band_row] = measure_row
+                keep_rows.append(measure_char + band)
+                if measure_band_row not in obs_navdata_raw.rows:
+                    obs_navdata_raw[measure_band_row] = np.array(len(obs_navdata_raw)*[np.nan])
             band_navdata = obs_navdata_raw.copy(rows=keep_rows)
             band_navdata.rename(rename_map, inplace=True)
             # Remove the cases with NaNs in the measurements
-            for row in rename_map.values():
-                band_navdata = band_navdata.where(row, np.nan, 'neq')
+            nan_indexes = np.argwhere(np.isnan(band_navdata[["carrier_phase",
+            	             "raw_doppler_hz",
+                             "cn0_dbhz"]]).all(axis=0))[:,0].tolist()
+            # Remove the cases with NaNs in the pseudorange
+            nan_indexes += np.argwhere(np.isnan(band_navdata[["raw_pr_m"
+                                                             ]]))[:,0].tolist()
+            nan_indexes = sorted(list(set(nan_indexes)))
+            if len(nan_indexes) > 0:
+                band_navdata.remove(cols=nan_indexes,inplace=True)
+
             # Assign the gnss_lib_py standard names for signal_type
             rx_constellations = np.unique(band_navdata['gnss_id'])
             signal_type_dict = self._signal_type_dict()
             signal_types = np.empty(len(band_navdata), dtype=object)
+            observation_codes = np.empty(len(band_navdata), dtype=object)
             for constellation in rx_constellations:
                 signal_type = signal_type_dict[constellation][band]
                 signal_types[band_navdata['gnss_id']==constellation] = signal_type
+                observation_codes[band_navdata['gnss_id']==constellation] = band
             band_navdata['signal_type'] = signal_types
+            band_navdata['observation_code'] = observation_codes
             if len(self) == 0:
                 self.concat(band_navdata, inplace=True)
             else:
@@ -124,39 +134,141 @@ class RinexObs(NavData):
     def _signal_type_dict():
         """Dictionary from constellation and signal bands to signal types.
 
+        Transformations from Section 5.1 in [2]_ and 5.2.17 from [3]_.
+
         Returns
         -------
         signal_type_dict : Dict
             Dictionary of the form {constellation_band : {band : signal_type}}
+
+        References
+        ----------
+        .. [2] https://files.igs.org/pub/data/format/rinex304.pdf
+        .. [3] https://files.igs.org/pub/data/format/rinex305.pdf
+
         """
         signal_type_dict = {}
-        signal_type_dict['gps'] = {'1' : 'l1',
-                                '2' : 'l2',
-                                '5' : 'l5'}
-        signal_type_dict['glonass'] = {'1' : 'g1',
-                                    '4' : 'g1a',
-                                    '2' : 'g2',
-                                    '6' : 'g2a',
-                                    '3' : 'g3'}
-        signal_type_dict['galileo'] = {'1' : 'e1',
-                                    '5' : 'e5a',
-                                    '7' : 'e5b',
-                                    '8' : 'e5',
-                                    '6' : 'e6'}
-        signal_type_dict['sbas'] = {'1' : 'l1',
-                                    '5' : 'l5'}
-        signal_type_dict['qzss'] = {'1' : 'l1',
-                                    '2' : 'l2',
-                                    '5' : 'l5',
-                                    '6' : 'l6'}
-        # beidou needs to be refined because the current level of detail isn't enough
-        # to distinguish between different signals
-        signal_type_dict['beidou'] = {'2' : 'b1',
-                                    '1' : 'b1c',
-                                    '5' : 'b2a',
-                                    '7' : 'b2b',
-                                    '8' : 'b2',
-                                    '6' : 'b3'}
-        signal_type_dict['irnss'] = {'5' : 'l5',
-                                    '9' : 's'}
+        signal_type_dict['gps'] = {'1C' : 'l1',
+                                   '1S' : 'l1',
+                                   '1L' : 'l1',
+                                   '1X' : 'l1',
+                                   '1P' : 'l1',
+                                   '1W' : 'l1',
+                                   '1Y' : 'l1',
+                                   '1M' : 'l1',
+                                   '1N' : 'l1',
+                                   '2C' : 'l2',
+                                   '2D' : 'l2',
+                                   '2S' : 'l2',
+                                   '2L' : 'l2',
+                                   '2X' : 'l2',
+                                   '2P' : 'l2',
+                                   '2W' : 'l2',
+                                   '2Y' : 'l2',
+                                   '2M' : 'l2',
+                                   '2N' : 'l2',
+                                   '5I' : 'l5',
+                                   '5Q' : 'l5',
+                                   '5X' : 'l5',
+                                   }
+        signal_type_dict['glonass'] = {'1C' : 'g1',
+                                       '1P' : 'g1',
+                                       '4A' : 'g1a',
+                                       '4B' : 'g1a',
+                                       '4X' : 'g1a',
+                                       '2C' : 'g2',
+                                       '2P' : 'g2',
+                                       '6A' : 'g2a',
+                                       '6B' : 'g2a',
+                                       '6X' : 'g2a',
+                                       '3I' : 'g3',
+                                       '3Q' : 'g3',
+                                       '3X' : 'g3',
+                                       }
+        signal_type_dict['galileo'] = {'1A' : 'e1',
+                                       '1B' : 'e1',
+                                       '1C' : 'e1',
+                                       '1X' : 'e1',
+                                       '1Z' : 'e1',
+                                       '5I' : 'e5a',
+                                       '5Q' : 'e5a',
+                                       '5X' : 'e5a',
+                                       '7I' : 'e5b',
+                                       '7Q' : 'e5b',
+                                       '7X' : 'e5b',
+                                       '8I' : 'e5',
+                                       '8Q' : 'e5',
+                                       '8X' : 'e5',
+                                       '6A' : 'e6',
+                                       '6B' : 'e6',
+                                       '6C' : 'e6',
+                                       '6X' : 'e6',
+                                       '6Z' : 'e6',
+                                       }
+        signal_type_dict['sbas'] = {'1C' : 'l1',
+                                    '5I' : 'l5',
+                                    '5Q' : 'l5',
+                                    '5X' : 'l5',
+                                    }
+        signal_type_dict['qzss'] = {'1C' : 'l1',
+                                    '1S' : 'l1',
+                                    '1L' : 'l1',
+                                    '1X' : 'l1',
+                                    '1Z' : 'l1',
+                                    '1B' : 'l1',
+                                    '2S' : 'l2',
+                                    '2L' : 'l2',
+                                    '2X' : 'l2',
+                                    '5I' : 'l5',
+                                    '5Q' : 'l5',
+                                    '5X' : 'l5',
+                                    '5D' : 'l5',
+                                    '5P' : 'l5',
+                                    '5Z' : 'l5',
+                                    '6S' : 'l6',
+                                    '6L' : 'l6',
+                                    '6X' : 'l6',
+                                    '6E' : 'l6',
+                                    '6Z' : 'l6',
+                                    }
+        signal_type_dict['beidou'] = {'2I' : 'b1',
+                                      '2Q' : 'b1',
+                                      '2X' : 'b1',
+                                      '1D' : 'b1c',
+                                      '1P' : 'b1c',
+                                      '1X' : 'b1c',
+                                      '1A' : 'b1c',
+                                      '1N' : 'b1c',
+                                      '1S' : 'b1a',
+                                      '1L' : 'b1a',
+                                      '1Z' : 'b1a',
+                                      '5D' : 'b2a',
+                                      '5P' : 'b2a',
+                                      '5X' : 'b2a',
+                                      '7I' : 'b2b',
+                                      '7Q' : 'b2b',
+                                      '7X' : 'b2b',
+                                      '7D' : 'b2b',
+                                      '7P' : 'b2b',
+                                      '7Z' : 'b2b',
+                                      '8D' : 'b2',
+                                      '8P' : 'b2',
+                                      '8X' : 'b2',
+                                      '6I' : 'b3',
+                                      '6Q' : 'b3',
+                                      '6X' : 'b3',
+                                      '6A' : 'b3',
+                                      '6D' : 'b3a',
+                                      '6P' : 'b3a',
+                                      '6Z' : 'b3a',
+                                      }
+        signal_type_dict['irnss'] = {'5A' : 'l5',
+                                     '5B' : 'l5',
+                                     '5C' : 'l5',
+                                     '5X' : 'l5',
+                                     '9A' : 's',
+                                     '9B' : 's',
+                                     '9C' : 's',
+                                     '9X' : 's',
+                                     }
         return signal_type_dict
