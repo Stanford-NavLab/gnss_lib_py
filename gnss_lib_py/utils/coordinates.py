@@ -512,6 +512,8 @@ def add_el_az(navdata, receiver_state, inplace=False):
     for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
 
         pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        # handle scenario with only a single SV returned as 1D array
+        pos_sv_m = np.atleast_2d(pos_sv_m).reshape(3,-1)
 
         # find time index for receiver_state NavData instance
         rx_t_idx = np.argmin(np.abs(receiver_state["gps_millis"] - timestamp))
