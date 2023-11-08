@@ -3,10 +3,10 @@
 __authors__ = "Ashwin Kanhere"
 __date__ = "26 July 2023"
 
+from datetime import timezone
+
 import numpy as np
-import pandas as pd
 import georinex as gr
-from datetime import timezone, datetime
 
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.constants as consts
