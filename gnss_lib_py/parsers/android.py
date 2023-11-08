@@ -40,7 +40,6 @@ class AndroidRawGnss(NavData):
                                         "sv_time_uncertainty" : 500.,
                                         "adr_valid" : True,
                                         "adr_uncertainty" : 15.
-
                                         },
                  verbose=False):
         """Android GNSSStatus file parser.
@@ -49,14 +48,19 @@ class AndroidRawGnss(NavData):
         ----------
         input_path : string or path-like
             Path to measurement csv file.
-        filter : bool
+        filter_measurements : bool
             Filter noisy measurements based on known conditions.
+        measurement_filters : dict
+            Conditions under which measurements should be filtered. An
+            emptry dictionary passed into measurement_filters is
+            equivalent to setting filter_measurements to False.
         verbose : bool
             If true, prints extra debugging statements.
 
         """
         self.verbose = verbose
         self.filter_measurements = filter_measurements
+        self.measurement_filters = measurement_filters
         pd_df = self.preprocess(input_path)
         super().__init__(pandas_df=pd_df)
 
@@ -131,8 +135,6 @@ class AndroidRawGnss(NavData):
         t_rx_secs = np.where(self["gnss_id"]=="gps",
                              tx_rx_gps_secs,
                              t_rx_secs)
-        # tx_rx_nanos = self["TimeNanos"] - self["FullBiasNanos",0] - gps_week_nanos
-        # tx_rx_secs_gps = (tx_rx_nanos - self["TimeOffsetNanos"] - self["BiasNanos"])*1E-9,
 
         # beidou constellation
         tx_rx_beidou_secs = (tx_rx_gnss_ns - gps_week_nanos)*1E-9 - 14.
@@ -189,59 +191,93 @@ class AndroidRawGnss(NavData):
         """
 
         # FullBiasNanos is zero or invalid
-        full_bias_filter = set(self.argwhere("FullBiasNanos",0,"geq"))
-        filter_idxs = full_bias_filter
+        if "bias_valid" in self.measurement_filters \
+            and self.measurement_filters["bias_valid"]:
+            full_bias_filter = set(self.argwhere("FullBiasNanos",0,"geq"))
+            filter_idxs = full_bias_filter
+            if self.verbose:
+                print("bias_valid removed",len(full_bias_filter))
 
         # BiasUncertaintyNanos is too large
-        bias_uncertainty_filter = set(self.argwhere("BiasUncertaintyNanos",40.,"geq"))
-        print("bias_uncertainty_filter:",len(bias_uncertainty_filter))
-        filter_idxs.update(bias_uncertainty_filter)
+        if "bias_uncertainty" in self.measurement_filters:
+            bias_uncertainty_filter = set(self.argwhere("BiasUncertaintyNanos",
+                                          self.measurement_filters["bias_uncertainty"],"geq"))
+            filter_idxs.update(bias_uncertainty_filter)
+            if self.verbose:
+                print("bias_uncertainty_filter removed",
+                      len(bias_uncertainty_filter))
 
         # arrival time is negative or unrealistically large
-        arrival_time_filter = set(np.argwhere(t_rx_secs>=1e7)[:,0])
-        arrival_time_filter.update(set(np.argwhere(t_rx_secs<0)[:,0]))
-        print("arrival_time_filter:",len(arrival_time_filter))
-        filter_idxs.update(arrival_time_filter)
+        if "arrival_time" in self.measurement_filters \
+            and self.measurement_filters["arrival_time"]:
+            arrival_time_filter = set(np.argwhere(t_rx_secs>=1e7)[:,0])
+            arrival_time_filter.update(set(np.argwhere(t_rx_secs<0)[:,0]))
+            filter_idxs.update(arrival_time_filter)
+            if self.verbose:
+                print("arrival_time_filter removed",
+                      len(arrival_time_filter))
 
         # unknown constellations
-        constellation_filter = set(self.argwhere("gnss_id","unknown"))
-        print("constellation_filter:",len(constellation_filter))
-        filter_idxs.update(constellation_filter)
+        if "unknown_constellations" in self.measurement_filters \
+            and self.measurement_filters["unknown_constellations"]:
+            constellation_filter = set(self.argwhere("gnss_id","unknown"))
+            filter_idxs.update(constellation_filter)
+            if self.verbose:
+                print("constellation_filter removed",
+                      len(constellation_filter))
 
         # TimeNanos is empty
-        time_nanos_filter = set(self.argwhere("TimeNanos",np.nan))
-        print("time_nanos_filter:",len(time_nanos_filter))
-        filter_idxs.update(time_nanos_filter)
+        if "time_valid" in self.measurement_filters \
+            and self.measurement_filters["time_valid"]:
+            time_nanos_filter = set(self.argwhere("TimeNanos",np.nan))
+            filter_idxs.update(time_nanos_filter)
+            if self.verbose:
+                print("time_nanos_filter removed",
+                      len(time_nanos_filter))
 
         # state is not STATE_TOW_DECODED.
-        state_tow_decoded = 0x8
-        state_filter = set(np.argwhere(~np.logical_and(self["State"],
-                                                          state_tow_decoded))[:,0])
-        print("state_filter:",len(state_filter))
-        filter_idxs.update(state_filter)
+        if "state_decoded" in self.measurement_filters \
+            and self.measurement_filters["state_decoded"]:
+            state_tow_decoded = 0x8
+            state_filter = set(np.argwhere(~np.logical_and(self["State"],
+                                                              state_tow_decoded))[:,0])
+            filter_idxs.update(state_filter)
+            if self.verbose:
+                print("state_filter removed",len(state_filter))
 
         # ReceivedSvTimeUncertaintyNanos is too large
-        received_uncertainty_filter = set(self.argwhere("ReceivedSvTimeUncertaintyNanos",500,"geq"))
-        print("received_uncertainty_filter:",len(received_uncertainty_filter))
-        filter_idxs.update(received_uncertainty_filter)
+        if "sv_time_uncertainty" in self.measurement_filters:
+            received_uncertainty_filter = set(self.argwhere("ReceivedSvTimeUncertaintyNanos",
+                                            self.measurement_filters["sv_time_uncertainty"],"geq"))
+            filter_idxs.update(received_uncertainty_filter)
+            if self.verbose:
+                print("received_uncertainty_filter removed",
+                      len(received_uncertainty_filter))
 
         # AdrState violates condition
         # ADR_STATE_VALID == 1 & ADR_STATE_RESET == 0
         # & ADR_STATE_CYCLE_SLIP == 0
-        ADR_STATE_VALID = 0x1
-        adr_valid = np.logical_and(self["AccumulatedDeltaRangeState"],ADR_STATE_VALID)
-        ADR_STATE_RESET = 0x2
-        adr_reset = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)
-        ADR_STATE_CYCLE_SLIP = 0x4
-        adr_slip = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool)
-        adr_state_filter = set(np.argwhere(~np.logical_and(np.logical_and(adr_valid,adr_reset),adr_slip))[:,0])
-        print("adr_state_filter:",len(adr_state_filter))
-        filter_idxs.update(adr_state_filter)
+        if "adr_valid" in self.measurement_filters \
+            and self.measurement_filters["adr_valid"]:
+            ADR_STATE_VALID = 0x1
+            adr_valid = np.logical_and(self["AccumulatedDeltaRangeState"],ADR_STATE_VALID)
+            ADR_STATE_RESET = 0x2
+            adr_reset = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)
+            ADR_STATE_CYCLE_SLIP = 0x4
+            adr_slip = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool)
+            adr_state_filter = set(np.argwhere(~np.logical_and(np.logical_and(adr_valid,adr_reset),adr_slip))[:,0])
+            filter_idxs.update(adr_state_filter)
+            if self.verbose:
+                print("adr_state_filter removed",len(adr_state_filter))
 
-        # AdrUncertaintyMeters is too large
-        adr_uncertainty_filter = set(self.argwhere("AccumulatedDeltaRangeUncertaintyMeters",0.15,"geq"))
-        print("adr_uncertainty_filter:",len(adr_uncertainty_filter))
-        filter_idxs.update(adr_uncertainty_filter)
+        # adr_uncertainty is too large
+        if "adr_uncertainty" in self.measurement_filters:
+            adr_uncertainty_filter = set(self.argwhere("AccumulatedDeltaRangeUncertaintyMeters",
+                                    self.measurement_filters["adr_uncertainty"],"geq"))
+            filter_idxs.update(adr_uncertainty_filter)
+            if self.verbose:
+                print("adr_uncertainty_filter removed",
+                      len(adr_uncertainty_filter))
 
         # removed filtered measurements
         filter_idxs = sorted(list(filter_idxs))
