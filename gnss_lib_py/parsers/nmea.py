@@ -78,6 +78,9 @@ class Nmea(NavData):
 
         with open(input_path, "r", encoding='UTF-8') as open_file:
             for line in open_file:
+                # android NMEA files add "NMEA," at the start of each
+                # new line, so remove it before parsing
+                line = line.replace("NMEA,","")
                 check_ind = line.find('*')
                 if not check and '*' in line:
                     # This is the case where a checksum exists but
@@ -102,7 +105,7 @@ class Nmea(NavData):
                             pd_df = pd.concat([pd_df, new_row])
                             field_dict = {}
                             prev_timestamp = msg.timestamp
-                    if msg.sentence_type in msg_types:
+                    if "sentence_type" in msg.__dir__() and msg.sentence_type in msg_types:
                         # Both GGA and RMC messages have the latitude and
                         # longitude in them and the following lines should
                         # extract the relevant coordinates in decimal form
@@ -135,7 +138,11 @@ class Nmea(NavData):
             pd_df = pd.concat([pd_df, new_row])
         # As per `gnss_lib_py` standards, convert the heading from degrees
         # to radians
-        pd_df['true_course_rad'] = (np.pi/180.)*pd_df['true_course'].astype(float)
+        pd_df['true_course_rad'] = (np.pi/180.)*pd_df['true_course']\
+                                                .replace("",np.nan)\
+                                                .fillna(method='bfill')\
+                                                .fillna(method='ffill')\
+                                                .astype(float)
         # Convert the given altitude value to float based on the given units
 
         # Assuming that altitude units are always meters
