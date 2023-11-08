@@ -146,11 +146,22 @@ class Nmea(NavData):
         # Convert the given altitude value to float based on the given units
 
         # Assuming that altitude units are always meters
-        pd_df['altitude'] = pd_df['altitude'].astype(float)
+        pd_df['altitude'] = pd_df['altitude'].replace("",np.nan)\
+                                             .fillna(method='bfill')\
+                                             .fillna(method='ffill')\
+                                             .astype(float)
+        pd_df["num_sats"] = pd_df["num_sats"].astype('int64')
         super().__init__(pandas_df=pd_df)
         if include_ecef:
             self.include_ecef()
 
+    def postprocess(self):
+        """Postprocess loaded NMEA.
+
+        """
+
+        # remove data with zero satellite observations
+        self.remove(cols=self.argwhere("num_sats",0),inplace=True)
 
     @staticmethod
     def _row_map():
