@@ -29,7 +29,20 @@ class AndroidRawGnss(NavData):
 
 
     """
-    def __init__(self, input_path, filter_measurements=True, verbose=False):
+    def __init__(self, input_path,
+                 filter_measurements=True,
+                 measurement_filters = {"bias_valid" : True,
+                                        "bias_uncertainty" : 40.,
+                                        "arrival_time" : True,
+                                        "unknown_constellations" : True,
+                                        "time_valid" : True,
+                                        "state_decoded" : True,
+                                        "sv_time_uncertainty" : 500.,
+                                        "adr_valid" : True,
+                                        "adr_uncertainty" : 15.
+
+                                        },
+                 verbose=False):
         """Android GNSSStatus file parser.
 
         Parameters
@@ -178,7 +191,6 @@ class AndroidRawGnss(NavData):
         # FullBiasNanos is zero or invalid
         full_bias_filter = set(self.argwhere("FullBiasNanos",0,"geq"))
         filter_idxs = full_bias_filter
-
 
         # BiasUncertaintyNanos is too large
         bias_uncertainty_filter = set(self.argwhere("BiasUncertaintyNanos",40.,"geq"))
@@ -422,5 +434,6 @@ class AndroidRawFixes(NavData):
     def _row_map():
         row_map = {'LatitudeDegrees' : 'lat_rx_deg',
                    'LongitudeDegrees' : 'lon_rx_deg',
+                   'AltitudeMeters' : 'alt_rx_m',
                    }
         return row_map
