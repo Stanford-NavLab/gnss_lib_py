@@ -39,7 +39,8 @@ results/*
 # Ignore NMEA files by default
 *.nmea
 # Include unit test NMEA files
-!data/unit_test/*/*.nmea
+!data/unit_test/nmea/*.nmea
+!data/unit_test/android/nmea/*.nmea
 
 # Ignore downloaded broadcast ephimerides files by default
 *.*n
