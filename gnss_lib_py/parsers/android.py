@@ -118,7 +118,8 @@ class AndroidRawGnss(NavData):
         # update svn for QZSS constellation
         if "qzss" in np.unique(self["gnss_id"]):
             qzss_idxs = self.argwhere("gnss_id","qzss")
-            self["sv_id",qzss_idxs] = [consts.QZSS_PRN_SVN[i] for i in self.where("gnss_id","qzss")["sv_id"]]
+            self["sv_id",qzss_idxs] = [consts.QZSS_PRN_SVN[i] \
+                        for i in self.where("gnss_id","qzss")["sv_id"]]
 
         # add singal type information where available
         self["signal_type"] = np.array([consts.CODE_TYPE_ANDROID[x].get(y,"") \
@@ -281,14 +282,15 @@ class AndroidRawGnss(NavData):
             adr_reset = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)
             ADR_STATE_CYCLE_SLIP = 0x4
             adr_slip = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool)
-            adr_state_filter = set(np.argwhere(~np.logical_and(np.logical_and(adr_valid,adr_reset),adr_slip))[:,0])
+            adr_state_filter = set(np.argwhere(~np.logical_and(np.logical_and(adr_valid,
+                                    adr_reset),adr_slip))[:,0])
             filter_idxs.update(adr_state_filter)
             if self.verbose:
                 print("adr_state_filter removed",len(adr_state_filter))
 
         # adr_uncertainty is too large
         if "adr_uncertainty" in self.measurement_filters:
-            adr_uncertainty_filter = set(self.argwhere("AccumulatedDeltaRangeUncertaintyMeters",
+            adr_uncertainty_filter = set(self.argwhere("accumulated_delta_range_sigma_m",
                                     self.measurement_filters["adr_uncertainty"],"geq"))
             filter_idxs.update(adr_uncertainty_filter)
             if self.verbose:
@@ -312,41 +314,11 @@ class AndroidRawGnss(NavData):
 
         row_map = {
                    "utcTimeMillis" : "unix_millis",
-                   # "TimeNanos" : "",
-                   # "LeapSecond" : "",
-                   # "TimeUncertaintyNanos" : "",
-                   # "FullBiasNanos" : "",
-                   # "BiasNanos" : "",
-                   # "BiasUncertaintyNanos" : "",
-                   # "DriftNanosPerSecond" : "",
-                   # "DriftUncertaintyNanosPerSecond" : "",
-                   # "HardwareClockDiscontinuityCount" : "",
                    "Svid" : "sv_id",
-                   # "TimeOffsetNanos" : "",
-                   # "State" : "",
-                   # "ReceivedSvTimeNanos" : "",
-                   # "ReceivedSvTimeUncertaintyNanos" : "",
                    "Cn0DbHz" : "cn0_dbhz",
-                   # "PseudorangeRateMetersPerSecond" : "",
-                   # "PseudorangeRateUncertaintyMetersPerSecond" : "",
-                   # "AccumulatedDeltaRangeState" : "",
-                   # "AccumulatedDeltaRangeMeters" : "",
-                   # "AccumulatedDeltaRangeUncertaintyMeters" : "",
-                   # "CarrierFrequencyHz" : "",
-                   # "CarrierCycles" : "",
-                   # "CarrierPhase" : "",
-                   # "CarrierPhaseUncertainty" : "",
-                   # "MultipathIndicator" : "",
-                   # "SnrInDb" : "",
+                   "AccumulatedDeltaRangeMeters" : "accumulated_delta_range_m",
+                   "AccumulatedDeltaRangeUncertaintyMeters" : "accumulated_delta_range_sigma_m",
                    "ConstellationType" : "gnss_id",
-                   # "AgcDb" : "",
-                   # "BasebandCn0DbHz" : "",
-                   # "FullInterSignalBiasNanos" : "",
-                   # "FullInterSignalBiasUncertaintyNanos" : "",
-                   # "SatelliteInterSignalBiasNanos" : "",
-                   # "SatelliteInterSignalBiasUncertaintyNanos" : "",
-                   # "CodeType" : "signal_type",
-                   # "ChipsetElapsedRealtimeNanos" : "",
                   }
 
         return row_map
@@ -478,14 +450,35 @@ class AndroidRawFixes(NavData):
                              skiprows = skip_rows,
                              )
 
-        fix_df.to_csv("fix.csv")
-
         return fix_df
+
+
+    def postprocess(self):
+        """Postprocess loaded NMEA.
+
+        """
+
+        # rename provider
+        self["fix_provider"] = np.array([self._provider_map().get(i,"")\
+                                         for i in self["fix_provider"]])
+
+        self["heading_rx_rad"] = np.deg2rad(self["heading_rx_deg"])
 
     @staticmethod
     def _row_map():
-        row_map = {'LatitudeDegrees' : 'lat_rx_deg',
-                   'LongitudeDegrees' : 'lon_rx_deg',
-                   'AltitudeMeters' : 'alt_rx_m',
+        row_map = {"LatitudeDegrees" : "lat_rx_deg",
+                   "LongitudeDegrees" : "lon_rx_deg",
+                   "AltitudeMeters" : "alt_rx_m",
+                   "Provider" : "fix_provider",
+                   "BearingDegrees" : "heading_rx_deg",
+                   "UnixTimeMillis" : "unix_millis",
                    }
         return row_map
+
+    @staticmethod
+    def _provider_map():
+        provider_map = {"FLP" : "fused",
+                        "GPS" : "gnss",
+                        "NLP" : "network",
+                        }
+        return provider_map
