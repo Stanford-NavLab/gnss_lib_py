@@ -104,6 +104,31 @@ CONSTELLATION_ANDROID = {1 :'gps',
                          }
 """dict : Satellite System identifier from GNSSStatus specification [3]_."""
 
+CODE_TYPE_ANDROID = {
+                     'gps' : {
+                              'C' : "l1",
+                              'Q' : "l5",
+                              'X' : "l5",
+                             },
+                     'glonass' : {
+                              'C' : "l1",
+                             },
+                     'qzss' : {
+                              'C' : "l1",
+                              'X' : "l5",
+                             },
+                     'galileo' : {
+                              'C' : "e1",
+                              'X' : "e5a",
+                              'Q' : "e5a",
+                             },
+                     'beidou' : {
+                              'I' : "b1",
+                              'X' : "l5",
+                             },
+                    }
+"""dict : GNSS code type identifier from GnssMeasurement specification [4]_."""
+
 QZSS_PRN_SVN = {193 : 1,
                 194 : 2,
                 199 : 3,

@@ -72,7 +72,7 @@ class AndroidRawGnss(NavData):
 
         """
 
-        with open(input_path) as csvfile:
+        with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
             row_idx = 0
             skip_rows = []
@@ -119,6 +119,11 @@ class AndroidRawGnss(NavData):
         if "qzss" in np.unique(self["gnss_id"]):
             qzss_idxs = self.argwhere("gnss_id","qzss")
             self["sv_id",qzss_idxs] = [consts.QZSS_PRN_SVN[i] for i in self.where("gnss_id","qzss")["sv_id"]]
+
+        # add singal type information where available
+        self["signal_type"] = np.array([consts.CODE_TYPE_ANDROID[x].get(y,"") \
+                                        for x,y in zip(self["gnss_id"],
+                                                       self["CodeType"])])
 
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
