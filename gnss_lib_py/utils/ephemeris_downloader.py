@@ -1001,7 +1001,9 @@ def _get_rinex_extension(timestamp):
     """Get file extension of rinex file based on timestamp.
 
     GPS and Glonass Rinex files switched from .Z to .gz on
-    December 1, 2020 [15]_.
+    December 1, 2020 [5]_.
+
+    But brdc actually switched on November 30, 2020.
 
     Parameters
     ----------
@@ -1015,11 +1017,11 @@ def _get_rinex_extension(timestamp):
 
     References
     ----------
-    .. [15] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
+    .. [5] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 
     """
     # switched from .Z to .gz compression format on December 1st, 2020
-    if timestamp >= datetime(2020, 12, 1, tzinfo=timezone.utc).date():
+    if timestamp >= datetime(2020, 11, 30, tzinfo=timezone.utc).date():
         extension = '.gz'
     else:
         extension = '.Z'

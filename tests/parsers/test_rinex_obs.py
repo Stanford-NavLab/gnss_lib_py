@@ -49,10 +49,8 @@ def fixture_rinex_mixed_values(root_path):
         Instance of RinexObs class with mixed values.
     """
     rinex_mixed_path = os.path.join(root_path, 'rinex_obs_mixed_types.20o')
-    with pytest.warns(RuntimeWarning):
-        rinex_mixed = RinexObs(rinex_mixed_path)
+    rinex_mixed = RinexObs(rinex_mixed_path)
     return rinex_mixed
-
 
 @pytest.fixture(name="rinex_single_values")
 def fixture_rinex_single_values(root_path):
@@ -74,8 +72,7 @@ def fixture_rinex_single_values(root_path):
     """
     rinex_single_path = os.path.join(root_path,
                                 'rinex_obs_single_type_only.22o')
-    with pytest.warns(RuntimeWarning):
-        rinex_single = RinexObs(rinex_single_path)
+    rinex_single = RinexObs(rinex_single_path)
     return rinex_single
 
 
@@ -127,7 +124,7 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
     single_exp_values : list
         List of lists containing time instance, gnss_sv_id, and expected
         value for different Rinex use cases.
-    
+
     """
     count = 0
     for _, _, rinex_frame in rinex_single_values.loop_time('gps_millis'):
@@ -241,3 +238,19 @@ def test_rinex_obs_3_fails(rinex_mixed_values):
         if count == 1:
             sv_not_pseudo = rinex_frame.where('gnss_sv_id', 'G29', 'eq')
             assert len(sv_not_pseudo) == 0
+
+def test_z_tracking(root_path):
+    """Test z-tracking support.
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing all Rinex 3 .o files for unit tests.
+
+    """
+    rinex_path = os.path.join(root_path,
+                              'z_tracking.rnx')
+    rinex_navdata = RinexObs(rinex_path)
+
+    assert len(rinex_navdata) == 210
+    assert rinex_navdata.shape == (10,210)
