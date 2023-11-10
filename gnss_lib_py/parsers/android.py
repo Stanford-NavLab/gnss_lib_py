@@ -134,7 +134,7 @@ class AndroidRawGnss(NavData):
         # repository: https://github.com/google/gps-measurement-tools. Compare
         # with opensource/ProcessGnssMeas.m
         gps_week_nanos = np.floor(-self["FullBiasNanos"]*1e-9/consts.WEEKSEC)*consts.WEEKSEC*1E9
-        tx_rx_gnss_ns = self["TimeNanos"] - self["FullBiasNanos",0] - self["TimeOffsetNanos"] - self["BiasNanos"]
+        tx_rx_gnss_ns = self["TimeNanos"] - self["FullBiasNanos",0] + self["TimeOffsetNanos"] - self["BiasNanos",0]
 
         t_rx_secs = np.zeros(len(self))
 
@@ -323,19 +323,20 @@ class AndroidRawGnss(NavData):
 
         return row_map
 
-class AndroidRawImu(NavData):
-    """Class handling IMU measurements from raw Android dataset.
+class AndroidRawAccel(NavData):
+    """Class handling Accelerometer measurements from Android.
 
     Inherits from NavData().
     """
-    def __init__(self, input_path, group_time=10):
-        self.group_time = group_time
+    def __init__(self, input_path,
+                 sensor_fields=("UncalAccel","Accel")):
+
+        self.sensor_fields = sensor_fields
         pd_df = self.preprocess(input_path)
         super().__init__(pandas_df=pd_df)
 
-
     def preprocess(self, input_path):
-        """Read Android raw file and produce IMU dataframe objects
+        """Read Android raw file and produce Accel dataframe objects.
 
         Parameters
         ----------
@@ -345,8 +346,7 @@ class AndroidRawImu(NavData):
         Returns
         -------
         measurements : pd.DataFrame
-            Dataframe that contains the accel and gyro measurements from
-            the log.
+            Dataframe that contains the accel measurements from the log.
 
         """
 
@@ -355,45 +355,96 @@ class AndroidRawImu(NavData):
         if not os.path.exists(input_path):
             raise FileNotFoundError(input_path,"file not found")
 
+        sensor_data = {}
+
         with open(input_path, encoding="utf8") as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
+                if len(row) == 0 or len(row[0]) == 0:
+                    continue
                 if row[0][0] == '#':
-                    if 'Accel' in row[0]:
-                        accel = [row[1:]]
-                    elif 'Gyro' in row[0]:
-                        gyro = [row[1:]]
+                    sensor_field = row[0][2:]
+                    if sensor_field in self.sensor_fields:
+                        sensor_data[sensor_field] = row[1:]
                 else:
-                    if row[0] == 'Accel':
-                        accel.append(row[1:])
-                    elif row[0] == 'Gyro':
-                        gyro.append(row[1:])
+                    if row[0] in self.sensor_fields:
+                        sensor_data[row[0]].append(row[1:])
 
-        accel = pd.DataFrame(accel[1:], columns = accel[0],
-                             dtype=np.float64)
-        gyro = pd.DataFrame(gyro[1:], columns = gyro[0],
-                            dtype=np.float64)
+        sensor_dfs = [pd.DataFrame(data[1:], columns = data[0],
+                                   dtype=np.float64) for data in sensor_data]
 
-        #Drop common columns from gyro and keep values from accel
-        gyro.drop(columns=['utcTimeMillis', 'elapsedRealtimeNanos'],
-                  inplace=True)
-        measurements = pd.concat([accel, gyro], axis=1)
-        #NOTE: Assuming pandas index corresponds to measurements order
-        #NOTE: Override times of gyro measurements with corresponding
-        # accel times
+        measurements = pd.concat([sensor_dfs], axis=1)
         return measurements
+
+    def postprocess(self):
+        """Postprocess loaded data."""
+
+        # add gps milliseconds
+        self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
 
     @staticmethod
     def _row_map():
-        row_map = {'AccelXMps2' : 'acc_x_mps2',
+        row_map = {
+                   'utcTimeMillis' : 'unix_millis',
+                   'AccelXMps2' : 'acc_x_mps2',
                    'AccelYMps2' : 'acc_y_mps2',
                    'AccelZMps2' : 'acc_z_mps2',
-                   'GyroXRadPerSec' : 'ang_vel_x_radps',
-                   'GyroYRadPerSec' : 'ang_vel_y_radps',
-                   'GyroZRadPerSec' : 'ang_vel_z_radps',
+                   'UncalAccelXMps2' : 'acc_x_uncal_mps2',
+                   'UncalAccelYMps2' : 'acc_y_uncal_mps2',
+                   'UncalAccelZMps2' : 'acc_z_uncal_mps2',
+                   'BiasXMps2' : 'acc_bias_x_mps2',
+                   'BiasYMps2' : 'acc_bias_y_mps2',
+                   'BiasZMps2' : 'acc_bias_z_mps2',
                    }
         return row_map
 
+class AndroidRawGyro(AndroidRawAccel):
+    """Class handling Gyro measurements from Android.
+
+    """
+    def __init__(self, input_path):
+        sensor_fields = ("UncalGyro","Gyro")
+        super().__init__(input_path, sensor_fields=sensor_fields)
+
+    @staticmethod
+    def _row_map():
+        row_map = {
+                   'utcTimeMillis' : 'unix_millis',
+                   'GyroXRadPerSec' : 'ang_vel_x_radps',
+                   'GyroYRadPerSec' : 'ang_vel_y_radps',
+                   'GyroZRadPerSec' : 'ang_vel_z_radps',
+                   'UncalGyroXRadPerSec' : 'ang_vel_x_uncal_radps',
+                   'UncalGyroYRadPerSec' : 'ang_vel_y_uncal_radps',
+                   'UncalGyroZRadPerSec' : 'ang_vel_z_uncal_radps',
+                   'DriftXMps2' : 'ang_vel_drift_x_radps',
+                   'DriftYMps2' : 'ang_vel_drift_y_radps',
+                   'DriftZMps2' : 'ang_vel_drift_z_radps',
+                   }
+        return row_map
+
+class AndroidRawMag(AndroidRawAccel):
+    """Class handling Magnetometer measurements from Android.
+
+    """
+    def __init__(self, input_path):
+        sensor_fields = ("UncalMag","Mag")
+        super().__init__(input_path, sensor_fields=sensor_fields)
+
+    @staticmethod
+    def _row_map():
+        row_map = {
+                   'utcTimeMillis' : 'unix_millis',
+                   'MagXMicroT' : 'mag_x_microt',
+                   'MagYMicroT' : 'mag_y_microt',
+                   'MagZMicroT' : 'mag_z_microt',
+                   'UncalMagXMicroT' : 'mag_x_uncal_microt',
+                   'UncalMagYMicroT' : 'mag_y_uncal_microt',
+                   'UncalMagZMicroT' : 'mag_z_uncal_microt',
+                   'BiasXMicroT' : 'mag_bias_x_microt',
+                   'BiasYMicroT' : 'mag_bias_y_microt',
+                   'BiasZMicroT' : 'mag_bias_z_microt',
+                   }
+        return row_map
 
 class AndroidRawFixes(NavData):
     """Class handling location fix measurements from raw Android dataset.
@@ -454,14 +505,18 @@ class AndroidRawFixes(NavData):
 
 
     def postprocess(self):
-        """Postprocess loaded NMEA.
+        """Postprocess loaded data.
 
         """
+
+        # add gps milliseconds
+        self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
 
         # rename provider
         self["fix_provider"] = np.array([self._provider_map().get(i,"")\
                                          for i in self["fix_provider"]])
 
+        # add heading in radians
         self["heading_rx_rad"] = np.deg2rad(self["heading_rx_deg"])
 
     @staticmethod
