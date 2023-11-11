@@ -277,6 +277,7 @@ class AndroidDerived2022(NavData):
                    }
         return row_map
 
+
 class AndroidGroundTruth2021(NavData):
     """Class handling ground truth from Android dataset.
 
@@ -385,6 +386,7 @@ class AndroidGroundTruth2022(AndroidGroundTruth2021):
                 }
         return row_map
 
+
 class AndroidDerived2023(AndroidDerived2022):
     """Class handling derived measurements from 2023 Android dataset.
 
@@ -409,6 +411,14 @@ class AndroidDerived2023(AndroidDerived2022):
 
         super().__init__(input_path=input_path,
                          dtype={'AccumulatedDeltaRangeUncertaintyMeters':np.float64})
+
+
+class AndroidGroundTruth2023(AndroidGroundTruth2022):
+    """Class handling ground truth from Android dataset.
+
+    Inherits from AndroidGroundTruth2022().
+    """
+
 
 def solve_kaggle_baseline(navdata):
     """Convert Decimeter challenge baseline into state_estimate.

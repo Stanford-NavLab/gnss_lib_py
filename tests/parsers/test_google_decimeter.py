@@ -688,3 +688,116 @@ def test_solve_kaggle_dataset(root_path):
                                  1619735729999,1619735730999])
             np.testing.assert_array_equal(solution["UnixTimeMillis"],
                                           expected)
+
+
+######################################################################
+#### Android 2023 Dataset tests
+######################################################################
+
+@pytest.fixture(name="root_path_2023")
+def fixture_root_path_2023():
+    """Location of measurements for unit test
+
+    Test data is a subset of the Android Raw Measurement Dataset [6]_,
+    from the 2023 Decimeter Challenge.
+
+    References
+    ----------
+    .. [6] https://www.kaggle.com/competitions/smartphone-decimeter-2023
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2023')
+    return root_path
+
+@pytest.fixture(name="derived_2023")
+def fixture_derived_2023(root_path_2023):
+    """Testing that Android Derived 2023 is created without errors.
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
+    Returns
+    -------
+    derived_2023 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2023
+        Android Derived 2023 Navdata object for testing.
+
+    """
+
+    derived_2023_path= os.path.join(root_path_2023,
+                                    '2023-09-07-18-59-us-ca',
+                                    'pixel7pro',
+                                    'device_gnss.csv')
+    derived_2023 = google_decimeter.AndroidDerived2023(derived_2023_path)
+    assert isinstance(derived_2023, NavData)
+    return derived_2023
+
+@pytest.fixture(name="ground_truth_2023")
+def fixture_ground_truth_2023(root_path_2023):
+    """Testing that Ground Truth 2023 is created without errors.
+
+    Parameters
+    ----------
+    root_path : string
+        Folder location containing measurements
+
+    Returns
+    -------
+    ground_truth_2023 : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2023
+        Ground Truth 2023 Navdata object for testing.
+
+    """
+
+    ground_truth_2023_path= os.path.join(root_path_2023,
+                                    '2023-09-07-18-59-us-ca',
+                                    'pixel7pro',
+                                    'ground_truth.csv')
+    ground_truth_2023 = google_decimeter.AndroidGroundTruth2023(ground_truth_2023_path)
+    assert isinstance(ground_truth_2023, NavData)
+    return ground_truth_2023
+
+def test_derived_2023(derived_2023):
+    """Check how the 2023 derived data was parsed.
+
+    Parameters
+    ----------
+    derived_2023 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2023
+        Android Derived 2023 Navdata object for testing.
+
+    """
+
+    assert derived_2023.shape == (58+2,180)
+
+    assert "gps_millis" in derived_2023.rows
+    assert "corr_pr_m" in derived_2023.rows
+
+    assert derived_2023["accumulated_delta_range_sigma_m"].dtype == np.float64
+    assert derived_2023["accumulated_delta_range_sigma_m",14] == 3.40282346638529E+038
+
+def test_ground_truth_2023(ground_truth_2023):
+    """Check how the 2023 ground truth data was parsed.
+
+    Parameters
+    ----------
+    ground_truth_2023 : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2023
+        Ground Truth 2023 Navdata object for testing.
+
+    """
+
+    assert ground_truth_2023.shape == (17,5)
+
+    np.testing.assert_array_equal(ground_truth_2023[["SpeedAccuracyMps",
+                                                     "BearingAccuracyDegrees",
+                                                     "elapsedRealtimeNanos",
+                                                     "VerticalAccuracyMeters"]],
+                                                     np.ones((4,5))*np.nan,
+                                                     )
