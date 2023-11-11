@@ -18,6 +18,7 @@ from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.time_conversions import unix_to_gps_millis
 from gnss_lib_py.utils.time_conversions import gps_to_unix_millis
+from gnss_lib_py.utils.constants import CONSTELLATION_ANDROID, QZSS_PRN_SVN
 
 class AndroidDerived2021(NavData):
     """Class handling derived measurements from Android dataset.
@@ -86,16 +87,7 @@ class AndroidDerived2021(NavData):
                      - self['iono_delay_m']
         self['corr_pr_m'] = pr_corrected
         # rename gnss_id column to constellation type
-        constellation_map = {0.:"unknown",
-                             1.:"gps",
-                             2.:"sbas",
-                             3.:"glonass",
-                             4.:"qzss",
-                             5.:"beidou",
-                             6.:"galileo",
-                             7.:"irnss",
-                            }
-        self.replace(constellation_map, rows="gnss_id", inplace=True)
+        self.replace(CONSTELLATION_ANDROID, rows="gnss_id", inplace=True)
 
         # rename signal_type column to conform to standard convention
         signal_map = {"GPS_L1" : "l1",
@@ -178,16 +170,7 @@ class AndroidDerived2022(NavData):
         self['corr_pr_m'] = pr_corrected
 
         # rename gnss_id column to constellation type
-        constellation_map = {0.:"unknown",
-                             1.:"gps",
-                             2.:"sbas",
-                             3.:"glonass",
-                             4.:"qzss",
-                             5.:"beidou",
-                             6.:"galileo",
-                             7.:"irnss",
-                            }
-        self.replace(constellation_map, rows="gnss_id", inplace=True)
+        self.replace(CONSTELLATION_ANDROID, rows="gnss_id", inplace=True)
 
         # rename signal_type column to conform to standard convention
         signal_map = {"GPS_L1" : "l1",
@@ -205,6 +188,13 @@ class AndroidDerived2022(NavData):
 
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
+
+        # update svn for QZSS constellation
+        if "qzss" in np.unique(self["gnss_id"]):
+            qzss_idxs = self.argwhere("gnss_id","qzss")
+            self["sv_id",qzss_idxs] = [QZSS_PRN_SVN[i] \
+                        for i in self.where("gnss_id","qzss")["sv_id"]]
+
 
     def get_state_estimate(self):
         """Extract relevant rows in a separate NavData for state estimate.

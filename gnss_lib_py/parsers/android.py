@@ -1,5 +1,7 @@
 """Functions to process Android measurements.
 
+Tested on Google Android's GNSSLogger App v3.0.6.4
+
 """
 
 __authors__ = "Ashwin Kanhere, Derek Knowles, Shubh Gupta, Adam Dai"
