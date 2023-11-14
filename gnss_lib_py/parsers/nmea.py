@@ -150,7 +150,7 @@ class Nmea(NavData):
                                              .fillna(method='bfill')\
                                              .fillna(method='ffill')\
                                              .astype(float)
-        pd_df["num_sats"] = pd_df["num_sats"].astype('int64')
+        pd_df["num_sats"] = pd_df["num_sats"].fillna(value=0).astype('int64')
         super().__init__(pandas_df=pd_df)
         if include_ecef:
             self.include_ecef()
@@ -161,7 +161,7 @@ class Nmea(NavData):
         """
 
         # remove data with zero satellite observations
-        self.remove(cols=self.argwhere("num_sats",0),inplace=True)
+        self.remove(cols=np.atleast_1d(self.argwhere("num_sats",0)),inplace=True)
 
     @staticmethod
     def _row_map():
