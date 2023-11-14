@@ -57,7 +57,7 @@ class RinexObs(NavData):
         obs_file.dropna(how='all', inplace=True)
         obs_file.reset_index(inplace=True)
         # Convert time to gps_millis
-        datetime_series = [d.to_pydatetime().astimezone(timezone.utc)
+        datetime_series = [d.to_pydatetime().replace(tzinfo=timezone.utc)
                            for d in obs_file["time"]]
         obs_file['gps_millis'] = datetime_to_gps_millis(datetime_series)
         obs_file = obs_file.drop(columns=['time'])
