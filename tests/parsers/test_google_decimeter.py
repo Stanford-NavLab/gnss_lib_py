@@ -83,14 +83,14 @@ def fixture_derived_path_xl(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset [6]_,
+    Test data is a subset of the Android Raw Measurement Dataset [2]_,
     particularly the train/2020-05-14-US-MTV-1/Pixel4XL trace. The
     dataset was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -116,14 +116,14 @@ def fixture_raw_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset [2]_,
+    Test data is a subset of the Android Raw Measurement Dataset [3]_,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
     was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -393,14 +393,14 @@ def fixture_gtruth_path(root_path):
 
     Notes
     -----
-    Test data is a subset of the Android Ground Truth Dataset [3]_,
+    Test data is a subset of the Android Ground Truth Dataset [4]_,
     particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
     was retrieved from
     https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
 
     References
     ----------
-    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -475,7 +475,7 @@ def fixture_derived_2022_path(root_path_2022):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset [4]_,
+    Test data is a subset of the Android Raw Measurement Dataset [5]_,
     from the 2022 Decimeter Challenge. Particularly, the
     train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
     was retrieved from
@@ -483,7 +483,7 @@ def fixture_derived_2022_path(root_path_2022):
 
     References
     ----------
-    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [5] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -504,7 +504,7 @@ def fixture_gt_2022_path(root_path_2022):
 
     Notes
     -----
-    Test data is a subset of the Android Raw Measurement Dataset [5]_,
+    Test data is a subset of the Android Raw Measurement Dataset [6]_,
     from the 2022 Decimeter Challenge. Particularly, the
     train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
     was retrieved from
@@ -512,7 +512,7 @@ def fixture_gt_2022_path(root_path_2022):
 
     References
     ----------
-    .. [5] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
         "Android Raw GNSS Measurement Datasets for Precise Positioning."
         Proceedings of the 33rd International Technical Meeting of the
         Satellite Division of The Institute of Navigation (ION GNSS+
@@ -698,12 +698,12 @@ def test_solve_kaggle_dataset(root_path):
 def fixture_root_path_2023():
     """Location of measurements for unit test
 
-    Test data is a subset of the Android Raw Measurement Dataset [6]_,
+    Test data is a subset of the Android Raw Measurement Dataset [7]_,
     from the 2023 Decimeter Challenge.
 
     References
     ----------
-    .. [6] https://www.kaggle.com/competitions/smartphone-decimeter-2023
+    .. [7] https://www.kaggle.com/competitions/smartphone-decimeter-2023
 
     Returns
     -------

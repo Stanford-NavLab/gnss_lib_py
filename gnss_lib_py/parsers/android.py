@@ -109,11 +109,11 @@ class AndroidRawGnss(NavData):
     def postprocess(self):
         """Postprocess loaded NavData.
 
-        Arrival time taken from [5]_.
+        Arrival time taken from [2]_.
 
         References
         ----------
-        .. [5] https://www.euspa.europa.eu/system/files/reports/gnss_raw_measurement_web_0.pdf
+        .. [2] https://www.euspa.europa.eu/system/files/reports/gnss_raw_measurement_web_0.pdf
 
         """
 
@@ -220,17 +220,17 @@ class AndroidRawGnss(NavData):
     def filter_raw_measurements(self,t_rx_secs):
         """Filter noisy measurements.
 
-
-        The State variable options are shown on [4]_.
+        Filters are taken from: [3]_ [4]_ [5]_ [6]_. 
+        The State variable options are shown on [5]_.
 
         References
         ----------
-        .. [1] Michael Fu, Mohammed Khider, Frank van Diggelen, Dave
+        .. [3] Michael Fu, Mohammed Khider, Frank van Diggelen, Dave
                Orendorff. "Workshop for Google Smartphone Decimeter
                Challenge (SDC) 2023-2024." ION GNSS+ 2023.
-        .. [2] https://github.com/google/gps-measurement-tools/blob/master/opensource/ProcessGnssMeas.m
-        .. [3] https://github.com/google/gps-measurement-tools/blob/master/opensource/SetDataFilter.m
-        .. [4] https://developer.android.com/reference/android/location/GnssMeasurement#STATE_TOW_DECODED
+        .. [4] https://github.com/google/gps-measurement-tools/blob/master/opensource/ProcessGnssMeas.m
+        .. [5] https://github.com/google/gps-measurement-tools/blob/master/opensource/SetDataFilter.m
+        .. [6] https://developer.android.com/reference/android/location/GnssMeasurement#STATE_TOW_DECODED
         """
 
         filter_idxs = set()
