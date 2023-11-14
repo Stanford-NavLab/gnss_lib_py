@@ -45,6 +45,7 @@ class AndroidRawGnss(NavData):
                                         "adr_valid" : True,
                                         "adr_uncertainty" : 15.
                                         },
+                 remove_rx_b_from_pr = True,
                  verbose=False):
         """Android GNSSStatus file parser.
 
@@ -58,6 +59,9 @@ class AndroidRawGnss(NavData):
             Conditions under which measurements should be filtered. An
             emptry dictionary passed into measurement_filters is
             equivalent to setting filter_measurements to False.
+        remove_rx_b_from_pr : bool
+            If true, removes the estimated initial receiver clock bias
+            from the pseudorange values.
         verbose : bool
             If true, prints extra debugging statements.
 
@@ -65,6 +69,7 @@ class AndroidRawGnss(NavData):
         self.verbose = verbose
         self.filter_measurements = filter_measurements
         self.measurement_filters = measurement_filters
+        self.remove_rx_b_from_pr = remove_rx_b_from_pr
         pd_df = self.preprocess(input_path)
         super().__init__(pandas_df=pd_df)
 
@@ -99,7 +104,6 @@ class AndroidRawGnss(NavData):
                                     skiprows = skip_rows,
                                     dtype={'AccumulatedDeltaRangeUncertaintyMeters':np.float64},
                                     )
-
         return measurements
 
     def postprocess(self):
@@ -124,7 +128,7 @@ class AndroidRawGnss(NavData):
                         for i in self.where("gnss_id","qzss")["sv_id"]]
 
         # add singal type information where available
-        self["signal_type"] = np.array([consts.CODE_TYPE_ANDROID[x].get(y,"") \
+        self["signal_type"] = np.array([consts.CODE_TYPE_ANDROID.get(x,{}).get(y,"") \
                                         for x,y in zip(self["gnss_id"],
                                                        self["CodeType"])])
 
@@ -175,17 +179,37 @@ class AndroidRawGnss(NavData):
                              tx_rx_qzss_secs,
                              t_rx_secs)
 
+        # sbas constellation
+        tx_rx_sbas_secs = (tx_rx_gnss_ns - gps_week_nanos)*1E-9
+        t_rx_secs = np.where(self["gnss_id"]=="sbas",
+                             tx_rx_sbas_secs,
+                             t_rx_secs)
+
+        # irnss constellation
+        tx_rx_irnss_secs = (tx_rx_gnss_ns - gps_week_nanos)*1E-9
+        t_rx_secs = np.where(self["gnss_id"]=="irnss",
+                             tx_rx_irnss_secs,
+                             t_rx_secs)
+        # unknown constellation
+        tx_rx_unknown_secs = (tx_rx_gnss_ns - gps_week_nanos)*1E-9
+        t_rx_secs = np.where(self["gnss_id"]=="unknown",
+                             tx_rx_unknown_secs,
+                             t_rx_secs)
+
         t_tx_secs = self["ReceivedSvTimeNanos"]*1E-9
         self["raw_pr_m"] = (t_rx_secs - t_tx_secs)*consts.C
 
-        # remove the receiver's clock bias at the first timestamp
-        for _, _, subset in self.loop_time("gps_millis", delta_t_decimals=-2):
-            subset = add_sv_states(subset.where("gnss_id",("gps","galileo")),source="precise")
-            subset["corr_pr_m"] = subset["raw_pr_m"] + subset["b_sv_m"]
-            first_timestamp = solve_wls(subset)
-            if not np.isnan(first_timestamp["b_rx_wls_m"]):
-                break
-        self["raw_pr_m"] += first_timestamp["b_rx_wls_m"]
+        if self.remove_rx_b_from_pr:
+            # remove the receiver's clock bias at the first timestamp
+            for _, _, subset in self.loop_time("gps_millis", delta_t_decimals=-2):
+                subset = add_sv_states(subset.where("gnss_id",("gps","galileo")),
+                                       source="precise",
+                                       verbose=self.verbose)
+                subset["corr_pr_m"] = subset["raw_pr_m"] + subset["b_sv_m"]
+                first_timestamp = solve_wls(subset)
+                if not np.isnan(first_timestamp["b_rx_wls_m"]):
+                    break
+            self["raw_pr_m"] += first_timestamp["b_rx_wls_m"]
 
         # add pseudorange uncertainty
         self["raw_pr_sigma_m"] = consts.C * 1E-9 * self["ReceivedSvTimeUncertaintyNanos"]
@@ -209,18 +233,20 @@ class AndroidRawGnss(NavData):
         .. [4] https://developer.android.com/reference/android/location/GnssMeasurement#STATE_TOW_DECODED
         """
 
+        filter_idxs = set()
+
         # FullBiasNanos is zero or invalid
         if "bias_valid" in self.measurement_filters \
             and self.measurement_filters["bias_valid"]:
-            full_bias_filter = set(self.argwhere("FullBiasNanos",0,"geq"))
-            filter_idxs = full_bias_filter
+            full_bias_filter = set(np.atleast_1d(self.argwhere("FullBiasNanos",0,"geq")))
+            filter_idxs.update(full_bias_filter)
             if self.verbose:
                 print("bias_valid removed",len(full_bias_filter))
 
         # BiasUncertaintyNanos is too large
         if "bias_uncertainty" in self.measurement_filters:
-            bias_uncertainty_filter = set(self.argwhere("BiasUncertaintyNanos",
-                                          self.measurement_filters["bias_uncertainty"],"geq"))
+            bias_uncertainty_filter = set(np.atleast_1d(self.argwhere("BiasUncertaintyNanos",
+                                          self.measurement_filters["bias_uncertainty"],"geq")))
             filter_idxs.update(bias_uncertainty_filter)
             if self.verbose:
                 print("bias_uncertainty_filter removed",
@@ -229,8 +255,8 @@ class AndroidRawGnss(NavData):
         # arrival time is negative or unrealistically large
         if "arrival_time" in self.measurement_filters \
             and self.measurement_filters["arrival_time"]:
-            arrival_time_filter = set(np.argwhere(t_rx_secs>=1e7)[:,0])
-            arrival_time_filter.update(set(np.argwhere(t_rx_secs<0)[:,0]))
+            arrival_time_filter = set(np.atleast_1d(np.argwhere(t_rx_secs>=1e7)[:,0]))
+            arrival_time_filter.update(list(set(np.argwhere(t_rx_secs<0)[:,0])))
             filter_idxs.update(arrival_time_filter)
             if self.verbose:
                 print("arrival_time_filter removed",
@@ -239,7 +265,7 @@ class AndroidRawGnss(NavData):
         # unknown constellations
         if "unknown_constellations" in self.measurement_filters \
             and self.measurement_filters["unknown_constellations"]:
-            constellation_filter = set(self.argwhere("gnss_id","unknown"))
+            constellation_filter = set(np.atleast_1d(self.argwhere("gnss_id","unknown")))
             filter_idxs.update(constellation_filter)
             if self.verbose:
                 print("constellation_filter removed",
@@ -248,7 +274,7 @@ class AndroidRawGnss(NavData):
         # TimeNanos is empty
         if "time_valid" in self.measurement_filters \
             and self.measurement_filters["time_valid"]:
-            time_nanos_filter = set(self.argwhere("TimeNanos",np.nan))
+            time_nanos_filter = set(np.atleast_1d(self.argwhere("TimeNanos",np.nan)))
             filter_idxs.update(time_nanos_filter)
             if self.verbose:
                 print("time_nanos_filter removed",
@@ -258,16 +284,16 @@ class AndroidRawGnss(NavData):
         if "state_decoded" in self.measurement_filters \
             and self.measurement_filters["state_decoded"]:
             state_tow_decoded = 0x8
-            state_filter = set(np.argwhere(~np.logical_and(self["State"],
-                                                              state_tow_decoded))[:,0])
+            state_filter = set(np.atleast_1d(np.argwhere(~np.logical_and(self["State"],
+                                                              state_tow_decoded))[:,0]))
             filter_idxs.update(state_filter)
             if self.verbose:
                 print("state_filter removed",len(state_filter))
 
         # ReceivedSvTimeUncertaintyNanos is too large
         if "sv_time_uncertainty" in self.measurement_filters:
-            received_uncertainty_filter = set(self.argwhere("ReceivedSvTimeUncertaintyNanos",
-                                            self.measurement_filters["sv_time_uncertainty"],"geq"))
+            received_uncertainty_filter = set(np.atleast_1d(self.argwhere("ReceivedSvTimeUncertaintyNanos",
+                                            self.measurement_filters["sv_time_uncertainty"],"geq")))
             filter_idxs.update(received_uncertainty_filter)
             if self.verbose:
                 print("received_uncertainty_filter removed",
@@ -284,16 +310,16 @@ class AndroidRawGnss(NavData):
             adr_reset = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_RESET).astype(bool)
             ADR_STATE_CYCLE_SLIP = 0x4
             adr_slip = ~(self["AccumulatedDeltaRangeState"] & ADR_STATE_CYCLE_SLIP).astype(bool)
-            adr_state_filter = set(np.argwhere(~np.logical_and(np.logical_and(adr_valid,
-                                    adr_reset),adr_slip))[:,0])
+            adr_state_filter = set(np.atleast_1d(np.argwhere(~np.logical_and(np.logical_and(adr_valid,
+                                    adr_reset),adr_slip))[:,0]))
             filter_idxs.update(adr_state_filter)
             if self.verbose:
                 print("adr_state_filter removed",len(adr_state_filter))
 
         # adr_uncertainty is too large
         if "adr_uncertainty" in self.measurement_filters:
-            adr_uncertainty_filter = set(self.argwhere("accumulated_delta_range_sigma_m",
-                                    self.measurement_filters["adr_uncertainty"],"geq"))
+            adr_uncertainty_filter = set(np.atleast_1d(self.argwhere("accumulated_delta_range_sigma_m",
+                                    self.measurement_filters["adr_uncertainty"],"geq")))
             filter_idxs.update(adr_uncertainty_filter)
             if self.verbose:
                 print("adr_uncertainty_filter removed",

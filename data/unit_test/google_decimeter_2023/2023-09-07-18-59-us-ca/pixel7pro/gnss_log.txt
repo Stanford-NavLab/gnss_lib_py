@@ -3,6 +3,7 @@
 #
 # Version: Not Available Platform:  Manufacturer: null Model: null
 #
+#,
 # Raw,utcTimeMillis,TimeNanos,LeapSecond,TimeUncertaintyNanos,FullBiasNanos,BiasNanos,BiasUncertaintyNanos,DriftNanosPerSecond,DriftUncertaintyNanosPerSecond,HardwareClockDiscontinuityCount,Svid,TimeOffsetNanos,State,ReceivedSvTimeNanos,ReceivedSvTimeUncertaintyNanos,Cn0DbHz,PseudorangeRateMetersPerSecond,PseudorangeRateUncertaintyMetersPerSecond,AccumulatedDeltaRangeState,AccumulatedDeltaRangeMeters,AccumulatedDeltaRangeUncertaintyMeters,CarrierFrequencyHz,CarrierCycles,CarrierPhase,CarrierPhaseUncertainty,MultipathIndicator,SnrInDb,ConstellationType,AgcDb,BasebandCn0DbHz,FullInterSignalBiasNanos,FullInterSignalBiasUncertaintyNanos,SatelliteInterSignalBiasNanos,SatelliteInterSignalBiasUncertaintyNanos,CodeType,ChipsetElapsedRealtimeNanos
 #
 # UncalAccel,utcTimeMillis,elapsedRealtimeNanos,UncalAccelXMps2,UncalAccelYMps2,UncalAccelZMps2,BiasXMps2,BiasYMps2,BiasZMps2
@@ -28,6 +29,7 @@
 # Agc,utcTimeMillis,TimeNanos,LeapSecond,TimeUncertaintyNanos,FullBiasNanos,BiasNanos,BiasUncertaintyNanos,DriftNanosPerSecond,DriftUncertaintyNanosPerSecond,HardwareClockDiscontinuityCount,AgcDb,CarrierFrequencyHz,ConstellationType
 #
 Raw,1694113198000,67624000000,,,-1378148348376188193,0.0,5.44390033395133,63.0,1.0,10,2,0.0,16431,414015918240093,16,40.2702751159668,-557.1907692911655,0.15,25,-37377.162398177315,0.0013815033016726375,1575420000,,,,0,,1,,,,,,,,5825501164000
+Mag,1694113198000,67624000000,0.,0.,0.
 Raw,1694113198000,67624000000,,,-1378148348376188193,0.0,5.44390033395133,63.0,1.0,10,8,0.0,16431,414015925479708,12,43.5152473449707,-40.7563383086669,0.15,25,-2943.4550616970387,0.000950830930378288,1575420000,,,,0,,1,,,,,,,,5825501164000
 Raw,1694113198000,67624000000,,,-1378148348376188193,0.0,5.44390033395133,63.0,1.0,10,10,0.0,16431,414015930592098,14,42.11104965209961,124.6249476919117,0.15,25,8359.58776441443,0.0011176689295098186,1575420000,,,,0,,1,,,,,,,,5825501164000
 Raw,1694113198000,67624000000,,,-1378148348376188193,0.0,5.44390033395133,63.0,1.0,10,18,0.0,16431,414015921892640,21,36.961143493652344,595.3232441225814,0.15,25,40015.875042872125,0.002022127853706479,1575420000,,,,0,,1,,,,,,,,5825501164000

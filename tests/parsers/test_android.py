@@ -378,3 +378,166 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
     for row, max_value in almost_equal_rows:
         not_nan_idxs = ~np.isnan(derived[row])
         assert np.max(np.abs(derived[row,not_nan_idxs] - raw[row,not_nan_idxs])) < max_value
+
+def test_raw_filters(root_path):
+    """Test basic loading of android raw file.
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    """
+
+    filter_test_path = os.path.join(root_path, 'android','measurements',
+                            'filter_test.txt')
+
+    # load raw data with none removed
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 filter_measurements=False,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    orig_len = len(raw)
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+
+    # bias_valid filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_valid" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_valid" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +2  == orig_len
+
+    # BiasUncertaintyNanos filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_uncertainty" : np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_uncertainty" : -np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == 0
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_uncertainty" : 40.},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +1  == orig_len
+
+    # arrival_time filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"arrival_time" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"arrival_time" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 4  == orig_len
+
+    # time_valid filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"time_valid" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"time_valid" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 1  == orig_len
+
+    # state_decoded filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"state_decoded" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"state_decoded" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 1  == orig_len
+
+    # sv_time_uncertainty filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"sv_time_uncertainty" : np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"sv_time_uncertainty" : -np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == 0
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"sv_time_uncertainty" : 500.},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +1  == orig_len
+
+    # adr_valid filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_valid" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_valid" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 1  == orig_len
+
+    # sv_time_uncertainty filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_uncertainty" : np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_uncertainty" : -np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == 0
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_uncertainty" : 15.},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +1  == orig_len
+
+    # load data with all removed
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 11 == orig_len
