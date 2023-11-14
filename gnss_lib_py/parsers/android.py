@@ -364,18 +364,29 @@ class AndroidRawAccel(NavData):
             for row in reader:
                 if len(row) == 0 or len(row[0]) == 0:
                     continue
-                if row[0][0] == '#':
+                if row[0][0] == '#':    # header row
+                    if len(row) == 1:
+                        continue
                     sensor_field = row[0][2:]
                     if sensor_field in self.sensor_fields:
-                        sensor_data[sensor_field] = row[1:]
+                        sensor_data[sensor_field] = [row[1:]]
                 else:
                     if row[0] in self.sensor_fields:
                         sensor_data[row[0]].append(row[1:])
 
         sensor_dfs = [pd.DataFrame(data[1:], columns = data[0],
-                                   dtype=np.float64) for data in sensor_data]
+                                   dtype=np.float64) for _,data in sensor_data.items()]
 
-        measurements = pd.concat([sensor_dfs], axis=1)
+        # remove empty dataframes
+        sensor_dfs = [df for df in sensor_dfs if len(df) > 0]
+
+        if len(sensor_dfs) == 0:
+            measurements = pd.DataFrame()
+        elif len(sensor_dfs) > 1:
+            measurements = pd.concat(sensor_dfs, axis=1)
+        else:
+            measurements = sensor_dfs[0]
+
         return measurements
 
     def postprocess(self):
@@ -384,8 +395,7 @@ class AndroidRawAccel(NavData):
         # add gps milliseconds
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
 
-    @staticmethod
-    def _row_map():
+    def _row_map(self):
         row_map = {
                    'utcTimeMillis' : 'unix_millis',
                    'AccelXMps2' : 'acc_x_mps2',
@@ -398,6 +408,7 @@ class AndroidRawAccel(NavData):
                    'BiasYMps2' : 'acc_bias_y_mps2',
                    'BiasZMps2' : 'acc_bias_z_mps2',
                    }
+        row_map = {k:v for k,v in row_map.items() if k in self.rows}
         return row_map
 
 class AndroidRawGyro(AndroidRawAccel):
@@ -408,8 +419,7 @@ class AndroidRawGyro(AndroidRawAccel):
         sensor_fields = ("UncalGyro","Gyro")
         super().__init__(input_path, sensor_fields=sensor_fields)
 
-    @staticmethod
-    def _row_map():
+    def _row_map(self):
         row_map = {
                    'utcTimeMillis' : 'unix_millis',
                    'GyroXRadPerSec' : 'ang_vel_x_radps',
@@ -422,6 +432,7 @@ class AndroidRawGyro(AndroidRawAccel):
                    'DriftYMps2' : 'ang_vel_drift_y_radps',
                    'DriftZMps2' : 'ang_vel_drift_z_radps',
                    }
+        row_map = {k:v for k,v in row_map.items() if k in self.rows}
         return row_map
 
 class AndroidRawMag(AndroidRawAccel):
@@ -432,8 +443,7 @@ class AndroidRawMag(AndroidRawAccel):
         sensor_fields = ("UncalMag","Mag")
         super().__init__(input_path, sensor_fields=sensor_fields)
 
-    @staticmethod
-    def _row_map():
+    def _row_map(self):
         row_map = {
                    'utcTimeMillis' : 'unix_millis',
                    'MagXMicroT' : 'mag_x_microt',
@@ -446,6 +456,25 @@ class AndroidRawMag(AndroidRawAccel):
                    'BiasYMicroT' : 'mag_bias_y_microt',
                    'BiasZMicroT' : 'mag_bias_z_microt',
                    }
+        row_map = {k:v for k,v in row_map.items() if k in self.rows}
+        return row_map
+
+class AndroidRawOrientation(AndroidRawAccel):
+    """Class handling Orientation measurements from Android.
+
+    """
+    def __init__(self, input_path):
+        sensor_fields = ("OrientationDeg")
+        super().__init__(input_path, sensor_fields=sensor_fields)
+
+    def _row_map(self):
+        row_map = {
+                   'utcTimeMillis' : 'unix_millis',
+                   'yawDeg' : 'yaw_rx_deg',
+                   'rollDeg' : 'roll_rx_deg',
+                   'pitchDeg' : 'pitch_rx_deg',
+                   }
+        row_map = {k:v for k,v in row_map.items() if k in self.rows}
         return row_map
 
 class AndroidRawFixes(NavData):

@@ -81,9 +81,9 @@ class NavData():
         else:
             self._build_navdata()
 
-        self.rename(self._row_map(), inplace=True)
-
-        self.postprocess()
+        if len(self) > 0:
+            self.rename(self._row_map(), inplace=True)
+            self.postprocess()
 
     def postprocess(self):
         """Postprocess loaded data. Optional in subclass

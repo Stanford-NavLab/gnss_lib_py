@@ -1,0 +1,37 @@
+#
+# Header Description:
+#
+# Version: v3.0.6.4 Platform: 14 Manufacturer: Google Model: Pixel 7
+#
+
+# Raw,utcTimeMillis,TimeNanos,LeapSecond,TimeUncertaintyNanos,FullBiasNanos,BiasNanos,BiasUncertaintyNanos,DriftNanosPerSecond,DriftUncertaintyNanosPerSecond,HardwareClockDiscontinuityCount,Svid,TimeOffsetNanos,State,ReceivedSvTimeNanos,ReceivedSvTimeUncertaintyNanos,Cn0DbHz,PseudorangeRateMetersPerSecond,PseudorangeRateUncertaintyMetersPerSecond,AccumulatedDeltaRangeState,AccumulatedDeltaRangeMeters,AccumulatedDeltaRangeUncertaintyMeters,CarrierFrequencyHz,CarrierCycles,CarrierPhase,CarrierPhaseUncertainty,MultipathIndicator,SnrInDb,ConstellationType,AgcDb,BasebandCn0DbHz,FullInterSignalBiasNanos,FullInterSignalBiasUncertaintyNanos,SatelliteInterSignalBiasNanos,SatelliteInterSignalBiasUncertaintyNanos,CodeType,ChipsetElapsedRealtimeNanos
+#
+# UncalAccel,utcTimeMillis,elapsedRealtimeNanos,UncalAccelXMps2,UncalAccelYMps2,UncalAccelZMps2,BiasXMps2,BiasYMps2,BiasZMps2
+#
+# Accel,utcTimeMillis,elapsedRealtimeNanos,AccelXMps2,AccelYMps2,AccelZMps2
+#
+# UncalGyro,utcTimeMillis,elapsedRealtimeNanos,UncalGyroXRadPerSec,UncalGyroYRadPerSec,UncalGyroZRadPerSec,DriftXRadPerSec,DriftYRadPerSec,DriftZRadPerSec
+#
+# Gyro,utcTimeMillis,elapsedRealtimeNanos,GyroXRadPerSec,GyroYRadPerSec,GyroZRadPerSec
+#
+# UncalMag,utcTimeMillis,elapsedRealtimeNanos,UncalMagXMicroT,UncalMagYMicroT,UncalMagZMicroT,BiasXMicroT,BiasYMicroT,BiasZMicroT
+#
+# Mag,utcTimeMillis,elapsedRealtimeNanos,MagXMicroT,MagYMicroT,MagZMicroT
+#
+# OrientationDeg,utcTimeMillis,elapsedRealtimeNanos,yawDeg,rollDeg,pitchDeg
+#
+# Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis,SpeedAccuracyMps,BearingAccuracyDegrees,elapsedRealtimeNanos,VerticalAccuracyMeters,MockLocation,NumberOfUsedSignals,VerticalSpeedAccuracyMps,SolutionType
+#
+# Nav,Svid,Type,Status,MessageId,Sub-messageId,Data(Bytes)
+#
+# Status,UnixTimeMillis,SignalCount,SignalIndex,ConstellationType,Svid,CarrierFrequencyHz,Cn0DbHz,AzimuthDegrees,ElevationDegrees,UsedInFix,HasAlmanacData,HasEphemerisData,BasebandCn0DbHz
+#
+# Agc,utcTimeMillis,TimeNanos,LeapSecond,TimeUncertaintyNanos,FullBiasNanos,BiasNanos,BiasUncertaintyNanos,DriftNanosPerSecond,DriftUncertaintyNanosPerSecond,HardwareClockDiscontinuityCount,AgcDb,CarrierFrequencyHz,ConstellationType
+#
+UncalMag,1699400576748,16118834125931,-54.1436,-88.937996,-147.3638,-79.950134,-76.57953,-113.967804
+UncalGyro,1699400576750,16118836475732,-0.06261369,-0.09315695,0.036651913,-0.0020643917,-0.0038384064,-0.0013324362
+UncalAccel,1699400576750,16118836475732,0.17288144,0.44925246,9.886545,0.065623306,0.002461203,-0.031848617
+Mag,1699400576748,16118834125931,-54.1436,-88.937996,-147.3638
+Gyro,1699400576750,16118836475732,-0.06261369,-0.09315695,0.036651913
+Accel,1699400576750,16118836475732,0.17288144,0.44925246,9.886545
+OrientationDeg,1699400576750,16118836475732,245.0,0.0,-2.0

@@ -9,7 +9,7 @@
 # 
 # Gyro,utcTimeMillis,elapsedRealtimeNanos,GyroXRadPerSec,GyroYRadPerSec,GyroZRadPerSec
 # 
-# Mag,utcTimeMillis,elapsedRealtimeNanos,MagXmicroT,MagYmicroT,MagYmicroT
+# Mag,utcTimeMillis,elapsedRealtimeNanos,MagXmicroT,MagYmicroT,MagZmicroT
 # 
 # Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis,SpeedAccuracyMps,BearingAccuracyDegrees
 # 

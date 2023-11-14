@@ -12,6 +12,7 @@ import pathlib
 import pytest
 import numpy as np
 import pandas as pd
+from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers import android
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2023
@@ -66,6 +67,44 @@ def fixture_raw_path(root_path):
     """
     raw_path = os.path.join(root_path, 'google_decimeter_2021',
                             'Pixel4_GnssLog.txt')
+    return raw_path
+
+@pytest.fixture(name="pixel6_raw_path")
+def fixture_pixel6_raw_path(root_path):
+    """Filepath of Android Raw measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    raw_path : string
+        Location for text log file with Android Raw measurements
+
+    """
+    raw_path = os.path.join(root_path, 'android','measurements',
+                            'pixel6.txt')
+    return raw_path
+
+@pytest.fixture(name="sensors_raw_path")
+def fixture_sensors_raw_path(root_path):
+    """Filepath of Android Raw measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    raw_path : string
+        Location for text log file with Android Raw measurements
+
+    """
+    raw_path = os.path.join(root_path, 'android','measurements',
+                            'all_sensors.txt')
     return raw_path
 
 @pytest.fixture(name="android_raw_2023_path")
@@ -126,29 +165,44 @@ def fixture_derived_2023_path(root_path):
                             'device_gnss.csv')
     return raw_path
 
-def test_imu_raw(android_raw_path):
-    """Test that AndroidRawImu initialization
+@pytest.mark.parametrize('sensor_type',
+                        [android.AndroidRawMag,
+                         android.AndroidRawGyro,
+                         android.AndroidRawAccel,
+                         android.AndroidRawOrientation,
+                        ])
+@pytest.mark.parametrize('raw_path',
+                        [lazy_fixture("android_raw_path"),
+                         lazy_fixture("pixel6_raw_path"),
+                         lazy_fixture("sensors_raw_path"),
+                        ])
+def test_sensor_loaders(raw_path, sensor_type):
+    """Test that sensor loaders initialize correctly.
 
     Parameters
     ----------
-    android_raw_path : pytest.fixture
+    raw_path : pytest.fixture
         Path to Android Raw measurements text log file
-    """
-    test_imu = android.AndroidRawImu(android_raw_path)
-    isinstance(test_imu, NavData)
+    sensor_type : NavData
+        Type of NavData object
 
-    test_imu = android.AndroidRawImu(pathlib.Path(android_raw_path))
-    isinstance(test_imu, NavData)
+    """
+
+    test_navdata = sensor_type(input_path = raw_path)
+    isinstance(test_navdata, NavData)
+
+    test_navdata = sensor_type(pathlib.Path(raw_path))
+    isinstance(test_navdata, NavData)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):
-        android.AndroidRawImu("not_a_file.txt")
+        sensor_type("not_a_file.txt")
     with pytest.raises(FileNotFoundError):
-        android.AndroidRawImu(pathlib.Path("not_a_file.txt"))
+        sensor_type(pathlib.Path("not_a_file.txt"))
 
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
-        android.AndroidRawImu([])
+        sensor_type([])
 
 def test_fix_raw(android_raw_path):
     """Test that AndroidRawFixes initialization
@@ -252,15 +306,16 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
     #NOTE: Times for gyroscope measurements are overridden by accel times
     # and are not checked in this test for any measurement
     no_check = ['utcTimeMillis', 'elapsedRealtimeNanos']
-    if file_type in ('Accel','Gyro'):
-        test_measure = android.AndroidRawImu(android_raw_path)
+    if file_type == 'Accel':
+        test_measure = android.AndroidRawAccel(android_raw_path)
+    elif file_type == 'Gyro':
+        test_measure = android.AndroidRawGyro(android_raw_path)
     elif file_type=='Fix':
         test_measure = android.AndroidRawFixes(android_raw_path)
     output_directory = os.path.join(root_path, 'csv_test')
     csv_loc = make_csv(android_raw_path, output_directory,
                                file_type)
     test_df = pd.read_csv(csv_loc)
-    test_measure = android.AndroidRawImu(android_raw_path)
     row_map = test_measure._row_map()
     for col_name in test_df.columns:
         if col_name in row_map:
@@ -272,10 +327,6 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         measure_slice = test_measure[row_idx, :]
         df_slice = test_df[col_name].values
         np.testing.assert_almost_equal(measure_slice, df_slice)
-    os.remove(csv_loc)
-    for file in os.listdir(output_directory):
-        os.remove(os.path.join(output_directory, file))
-    os.rmdir(output_directory)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):
@@ -284,6 +335,11 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
         make_csv([], output_directory, file_type)
+
+    os.remove(csv_loc)
+    for file in os.listdir(output_directory):
+        os.remove(os.path.join(output_directory, file))
+    os.rmdir(output_directory)
 
 def test_raw_load(android_raw_2023_path, android_derived_2023_path):
     """Test basic loading of android raw file.
@@ -312,7 +368,6 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
                  "sv_id",
                  ]
     for row in equal_rows:
-        print(row)
         np.testing.assert_array_equal(raw[row],derived[row])
 
     almost_equal_rows = [
