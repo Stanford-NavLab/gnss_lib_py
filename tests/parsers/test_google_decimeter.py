@@ -344,6 +344,11 @@ def test_navdata_type(derived):
 def test_timestep_parsing(derived_path_xl):
     """Test that the timesteps contain the same satellites.
 
+    Parameters
+    ----------
+    derived_path_xl : string
+        Location for the unit_test Android derived measurements
+
     """
 
     pd_df_xl = pd.read_csv(derived_path_xl)
@@ -454,7 +459,7 @@ def fixture_root_path_2022():
     Returns
     -------
     root_path : string
-        Folder location containing measurements
+        Folder location containing 2022 measurements
     """
     root_path = os.path.dirname(
                 os.path.dirname(
@@ -467,6 +472,11 @@ def fixture_root_path_2022():
 @pytest.fixture(name="derived_2022_path")
 def fixture_derived_2022_path(root_path_2022):
     """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path_2022 : string
+        Folder location containing 2022 measurements
 
     Returns
     -------
@@ -496,6 +506,11 @@ def fixture_derived_2022_path(root_path_2022):
 @pytest.fixture(name="gt_2022_path")
 def fixture_gt_2022_path(root_path_2022):
     """Filepath of Android ground truth estimates
+
+    Parameters
+    ----------
+    root_path_2022 : string
+        Folder location containing 2022 measurements
 
     Returns
     -------
@@ -546,9 +561,9 @@ def test_derived_state_estimate_ext(derived_2022):
 
     Parameters
     ----------
-
     derived_2022 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
         Android Derived 2022 Navdata object for testing.
+
     """
     # Test state estimate extraction when velocity and bias terms are
     # unavailable. In this case, an warnings are expected for the velocity
@@ -604,7 +619,7 @@ def test_remove_all_data(derived_path_xl):
 
     Parameters
     ----------
-    derived_path : string
+    derived_path_xl : string
         Location for the unit_test Android 2021 derived measurements.
 
     """
@@ -667,6 +682,11 @@ def test_prepare_kaggle_submission(state_estimate):
 def test_solve_kaggle_dataset(root_path):
     """Test kaggle solver.
 
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
     """
 
     folder_path = os.path.join(root_path,"..","..")
@@ -708,7 +728,7 @@ def fixture_root_path_2023():
     Returns
     -------
     root_path : string
-        Folder location containing measurements
+        Folder location containing 2023 measurements
     """
     root_path = os.path.dirname(
                 os.path.dirname(
@@ -723,8 +743,8 @@ def fixture_derived_2023(root_path_2023):
 
     Parameters
     ----------
-    root_path : string
-        Folder location containing measurements
+    root_path_2023 : string
+        Folder location containing 2023 measurements
 
     Returns
     -------
@@ -747,8 +767,8 @@ def fixture_ground_truth_2023(root_path_2023):
 
     Parameters
     ----------
-    root_path : string
-        Folder location containing measurements
+    root_path_2023 : string
+        Folder location containing 2023 measurements
 
     Returns
     -------

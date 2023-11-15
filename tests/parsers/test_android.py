@@ -237,9 +237,11 @@ def make_csv(input_path, output_directory, field, show_path=False):
         File location of data file to read.
     output_directory : string
         Directory where new csv file should be created
-    fields : list of strings
+    field : list of strings
         Type of data to extract. Valid options are either "Raw",
         "Accel", "Gyro", "Mag", or "Fix".
+    show_path : bool
+        If true, prints output path.
 
     Returns
     -------
@@ -295,10 +297,8 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
     ----------
     android_raw_path : pytest.fixture
         Path to Android Raw measurements text log file
-
     root_path : pytest.fixture
         Path to location of all data for Android unit testing
-
     file_type : string
         Type of measurement to be extracted into csv files
 
@@ -380,7 +380,7 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
         assert np.max(np.abs(derived[row,not_nan_idxs] - raw[row,not_nan_idxs])) < max_value
 
 def test_raw_filters(root_path):
-    """Test basic loading of android raw file.
+    """Test all the different measurement filter varieties.
 
     Parameters
     ----------

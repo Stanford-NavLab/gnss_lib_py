@@ -24,26 +24,24 @@ class AndroidDerived2021(NavData):
     """Class handling derived measurements from Android dataset.
 
     Inherits from NavData().
+
+    Parameters
+    ----------
+    input_path : string or path-like
+        Path to measurement csv file
+    remove_timing_outliers : bool
+        Flag for whether to remove measures that are too close or
+        too far away in time. Code from the competition hosts used
+        to implement changes. See note.
+
+    Notes
+    -----
+    Removes duplicate rows using correction 5 from competition hosts
+    implemented from https://www.kaggle.com/code/gymf123/tips-notes-from-the-competition-hosts/notebook
+    retrieved on 10 August, 2022
+
     """
     def __init__(self, input_path, remove_timing_outliers=True):
-        """Android specific loading and preprocessing
-
-        Parameters
-        ----------
-        input_path : string or path-like
-            Path to measurement csv file
-        remove_timing_outliers : bool
-            Flag for whether to remove measures that are too close or
-            too far away in time. Code from the competition hosts used
-            to implement changes. See note.
-
-        Notes
-        -----
-        Removes duplicate rows using correction 5 from competition hosts
-        implemented from https://www.kaggle.com/code/gymf123/tips-notes-from-the-competition-hosts/notebook
-        retrieved on 10 August, 2022
-
-        """
         pd_df = pd.read_csv(input_path)
         # Correction 1: Mapping _derived timestamps to previous timestamp
         # for correspondance with ground truth and Raw data
@@ -141,26 +139,25 @@ class AndroidDerived2022(NavData):
     Inherits from NavData().
     The row nomenclature for the new derived dataset has changed.
     We reflect this changed nomenclature in the _row_map() method.
+
+    Parameters
+    ----------
+    input_path : string or path-like
+        Path to measurement csv file
+
     """
 
     def __init__(self, input_path, **kwargs):
-        """Android specific loading and preprocessing
-
-        Parameters
-        ----------
-        input_path : string or path-like
-            Path to measurement csv file
-        """
         super().__init__(csv_path=input_path, **kwargs)
 
     def postprocess(self):
-        """Android derived specific postprocessing
+        """Android derived specific postprocessing.
 
         Notes
         -----
         Adds corrected pseudoranges to measurements. Time step corrections
         implemented from https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-        retrieved on 10 August, 2022
+        retrieved on 10 August, 2022.
         """
         pr_corrected = self['raw_pr_m'] \
                      + self['b_sv_m'] \
@@ -272,16 +269,14 @@ class AndroidGroundTruth2021(NavData):
     """Class handling ground truth from Android dataset.
 
     Inherits from NavData().
+
+    Parameters
+    ----------
+    input_path : string or path-like
+        Path to measurement csv file
+
     """
     def __init__(self, input_path):
-        """Android specific loading and preprocessing for NavData()
-
-        Parameters
-        ----------
-        input_path : string or path-like
-            Path to measurement csv file
-        """
-
         super().__init__(csv_path=input_path)
 
         self.postprocess()
@@ -384,6 +379,11 @@ class AndroidDerived2023(AndroidDerived2022):
 
     Inherits from AndroidDerived2022().
 
+    Parameters
+    ----------
+    input_path : string or path-like
+        Path to measurement csv file
+
     References
     ----------
     .. [2] https://www.kaggle.com/competitions/smartphone-decimeter-2023/overview
@@ -391,14 +391,6 @@ class AndroidDerived2023(AndroidDerived2022):
     """
 
     def __init__(self, input_path):
-        """Android specific loading and preprocessing
-
-        Parameters
-        ----------
-        input_path : string or path-like
-            Path to measurement csv file
-        """
-
         super().__init__(input_path=input_path,
                          dtype={'AccumulatedDeltaRangeUncertaintyMeters':np.float64})
 
@@ -502,11 +494,11 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
         function.
     verbose : bool
         If verbose, will print each trace trajectory name and phone name
-	pair when it is solving the state estimate for that pair.
+	    pair when it is solving the state estimate for that pair.
 
     Returns
     -------
-    submission : gnss_lib_py.parsers.navdata.NavData
+    solution : gnss_lib_py.parsers.navdata.NavData
         Full solution submission across all traces. Can then be saved
         using submission.to_csv().
 

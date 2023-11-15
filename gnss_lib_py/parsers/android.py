@@ -2,6 +2,14 @@
 
 Tested on Google Android's GNSSLogger App v3.0.6.4
 
+Includes functionality for:
+  * Fix Measurements
+  * Raw Measurements
+  * Accel Measurements
+  * Gyro Measurements
+  * Mag Measurements
+  * Bearing Measurements
+
 """
 
 __authors__ = "Ashwin Kanhere, Derek Knowles, Shubh Gupta, Adam Dai"
@@ -27,6 +35,23 @@ class AndroidRawGnss(NavData):
     Data types in the Android's GNSSStatus messages are documented on
     their website [1]_.
 
+    Parameters
+    ----------
+    input_path : string or path-like
+        Path to measurement csv or txt file.
+    filter_measurements : bool
+        Filter noisy measurements based on known conditions.
+    measurement_filters : dict
+        Conditions under which measurements should be filtered. An
+        emptry dictionary passed into measurement_filters is
+        equivalent to setting filter_measurements to False. See the
+        docstring for ``filter_raw_measurements`` for details.
+    remove_rx_b_from_pr : bool
+        If true, removes the estimated initial receiver clock bias
+        from the pseudorange values.
+    verbose : bool
+        If true, prints extra debugging statements.
+
     References
     ----------
     .. [1] https://developer.android.com/reference/android/location/GnssStatus
@@ -49,22 +74,7 @@ class AndroidRawGnss(NavData):
                  verbose=False):
         """Android GNSSStatus file parser.
 
-        Parameters
-        ----------
-        input_path : string or path-like
-            Path to measurement csv or txt file.
-        filter_measurements : bool
-            Filter noisy measurements based on known conditions.
-        measurement_filters : dict
-            Conditions under which measurements should be filtered. An
-            emptry dictionary passed into measurement_filters is
-            equivalent to setting filter_measurements to False. See the
-            docstring for ``filter_raw_measurements`` for details.
-        remove_rx_b_from_pr : bool
-            If true, removes the estimated initial receiver clock bias
-            from the pseudorange values.
-        verbose : bool
-            If true, prints extra debugging statements.
+
 
         """
         self.verbose = verbose
@@ -83,6 +93,11 @@ class AndroidRawGnss(NavData):
         ----------
         input_path : string or path-like
             Path to measurement csv or txt file.
+
+        Returns
+        -------
+        measurements : pd.DataFrame
+            Subset of "Raw" measurements.
 
         """
 
@@ -235,7 +250,7 @@ class AndroidRawGnss(NavData):
 
         The possible keys to include in the ``measurement_filters``
         dictionary variable include:
-        
+
           * ``bias_valid`` : If true, measurements where FullBiasNanos is
             greater or equal to zero will be removed.
           * ``bias_uncertainty`` :  Any measurements will be
@@ -264,6 +279,11 @@ class AndroidRawGnss(NavData):
         ````measurement_filters = {``bias_valid`` : True}, then only
         measurements will invalid FullBiasNanos will be filtered and no
         other measurements will be filtered.
+
+        Parameters
+        ----------
+        t_rx_secs : np.ndarray
+            arrival time computed in ``AndroidRawGnss.postprocess()``.
 
         References
         ----------
@@ -393,10 +413,131 @@ class AndroidRawGnss(NavData):
 
         return row_map
 
+class AndroidRawFixes(NavData):
+    """Class handling location fix measurements from an Android log.
+
+    Inherits from NavData().
+
+    Parameters
+    ----------
+    input_path : string or path-like
+        Path to measurement csv or txt file.
+
+    """
+    def __init__(self, input_path):
+        pd_df = self.preprocess(input_path)
+        super().__init__(pandas_df=pd_df)
+
+
+    def preprocess(self, input_path):
+        """Read Android raw file and produce location fix dataframe objects
+
+        Parameters
+        ----------
+        input_path : string or path-like
+            File location of data file to read.
+
+        Returns
+        -------
+        fix_df : pd.DataFrame
+            Dataframe that contains the location fixes from the log.
+
+        """
+
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(input_path,"file not found")
+
+        with open(input_path, encoding="utf8") as csvfile:
+            reader = csv.reader(csvfile)
+            row_idx = 0
+            skip_rows = []
+            header_row = None
+            for row in reader:
+                if len(row) == 0:
+                    skip_rows.append(row_idx)
+                elif len(row[0]) == 0:
+                    skip_rows.append(row_idx)
+                elif row[0][0] == '#':
+                    if 'Fix' in row[0]:
+                        header_row = row_idx
+                    elif header_row is not None:
+                        skip_rows.append(row_idx)
+                elif row[0] != 'Fix':
+                    skip_rows.append(row_idx)
+                row_idx += 1
+
+        fix_df = pd.read_csv(input_path,
+                             skip_blank_lines = False,
+                             header = header_row,
+                             skiprows = skip_rows,
+                             )
+
+        return fix_df
+
+    def postprocess(self):
+        """Postprocess loaded data.
+
+        """
+
+        # add gps milliseconds
+        self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
+
+        # rename provider
+        self["fix_provider"] = np.array([self._provider_map().get(i,"")\
+                                         for i in self["fix_provider"]])
+
+        # add heading in radians
+        self["heading_rx_rad"] = np.deg2rad(self["heading_rx_deg"])
+
+    @staticmethod
+    def _row_map():
+        """Map of column names from loaded to gnss_lib_py standard
+
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+
+        """
+        row_map = {"LatitudeDegrees" : "lat_rx_deg",
+                   "LongitudeDegrees" : "lon_rx_deg",
+                   "AltitudeMeters" : "alt_rx_m",
+                   "Provider" : "fix_provider",
+                   "BearingDegrees" : "heading_rx_deg",
+                   "UnixTimeMillis" : "unix_millis",
+                   }
+        return row_map
+
+    @staticmethod
+    def _provider_map():
+        """Map to more intuitive names for fix provider.
+
+        Returns
+        -------
+        provider_map : Dict
+            Dictionary of the form {old_name : new_name}
+
+        """
+        provider_map = {"FLP" : "fused",
+                        "GPS" : "gnss",
+                        "NLP" : "network",
+                        }
+        return provider_map
+
 class AndroidRawAccel(NavData):
     """Class handling Accelerometer measurements from Android.
 
     Inherits from NavData().
+
+    Parameters
+    ----------
+    input_path : string or path-like
+        File location of data file to read.
+    sensor_fields : tuple
+        Names for the sensors to extract from the full log file.
+
     """
     def __init__(self, input_path,
                  sensor_fields=("UncalAccel","Accel")):
@@ -464,6 +605,14 @@ class AndroidRawAccel(NavData):
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
 
     def _row_map(self):
+        """Map of column names from loaded to gnss_lib_py standard
+
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+
+        """
         row_map = {
                    'utcTimeMillis' : 'unix_millis',
                    'AccelXMps2' : 'acc_x_mps2',
@@ -482,12 +631,25 @@ class AndroidRawAccel(NavData):
 class AndroidRawGyro(AndroidRawAccel):
     """Class handling Gyro measurements from Android.
 
+    Parameters
+    ----------
+    input_path : string or path-like
+        File location of data file to read.
+
     """
     def __init__(self, input_path):
         sensor_fields = ("UncalGyro","Gyro")
         super().__init__(input_path, sensor_fields=sensor_fields)
 
     def _row_map(self):
+        """Map of column names from loaded to gnss_lib_py standard
+
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+
+        """
         row_map = {
                    'utcTimeMillis' : 'unix_millis',
                    'GyroXRadPerSec' : 'ang_vel_x_radps',
@@ -506,12 +668,25 @@ class AndroidRawGyro(AndroidRawAccel):
 class AndroidRawMag(AndroidRawAccel):
     """Class handling Magnetometer measurements from Android.
 
+    Parameters
+    ----------
+    input_path : string or path-like
+        File location of data file to read.
+
     """
     def __init__(self, input_path):
         sensor_fields = ("UncalMag","Mag")
         super().__init__(input_path, sensor_fields=sensor_fields)
 
     def _row_map(self):
+        """Map of column names from loaded to gnss_lib_py standard
+
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+
+        """
         row_map = {
                    'utcTimeMillis' : 'unix_millis',
                    'MagXMicroT' : 'mag_x_microt',
@@ -530,12 +705,25 @@ class AndroidRawMag(AndroidRawAccel):
 class AndroidRawOrientation(AndroidRawAccel):
     """Class handling Orientation measurements from Android.
 
+    Parameters
+    ----------
+    input_path : string or path-like
+        File location of data file to read.
+
     """
     def __init__(self, input_path):
         sensor_fields = ("OrientationDeg")
         super().__init__(input_path, sensor_fields=sensor_fields)
 
     def _row_map(self):
+        """Map of column names from loaded to gnss_lib_py standard
+
+        Returns
+        -------
+        row_map : Dict
+            Dictionary of the form {old_name : new_name}
+
+        """
         row_map = {
                    'utcTimeMillis' : 'unix_millis',
                    'yawDeg' : 'yaw_rx_deg',
@@ -544,95 +732,3 @@ class AndroidRawOrientation(AndroidRawAccel):
                    }
         row_map = {k:v for k,v in row_map.items() if k in self.rows}
         return row_map
-
-class AndroidRawFixes(NavData):
-    """Class handling location fix measurements from raw Android dataset.
-
-    Inherits from NavData().
-    """
-    def __init__(self, input_path):
-        pd_df = self.preprocess(input_path)
-        super().__init__(pandas_df=pd_df)
-
-
-    def preprocess(self, input_path):
-        """Read Android raw file and produce location fix dataframe objects
-
-        Parameters
-        ----------
-        input_path : string or path-like
-            File location of data file to read.
-
-        Returns
-        -------
-        fix_df : pd.DataFrame
-            Dataframe that contains the location fixes from the log.
-
-        """
-
-        if not isinstance(input_path, (str, os.PathLike)):
-            raise TypeError("input_path must be string or path-like")
-        if not os.path.exists(input_path):
-            raise FileNotFoundError(input_path,"file not found")
-
-        with open(input_path, encoding="utf8") as csvfile:
-            reader = csv.reader(csvfile)
-            row_idx = 0
-            skip_rows = []
-            header_row = None
-            for row in reader:
-                if len(row) == 0:
-                    skip_rows.append(row_idx)
-                elif len(row[0]) == 0:
-                    skip_rows.append(row_idx)
-                elif row[0][0] == '#':
-                    if 'Fix' in row[0]:
-                        header_row = row_idx
-                    elif header_row is not None:
-                        skip_rows.append(row_idx)
-                elif row[0] != 'Fix':
-                    skip_rows.append(row_idx)
-                row_idx += 1
-
-        fix_df = pd.read_csv(input_path,
-                             skip_blank_lines = False,
-                             header = header_row,
-                             skiprows = skip_rows,
-                             )
-
-        return fix_df
-
-
-    def postprocess(self):
-        """Postprocess loaded data.
-
-        """
-
-        # add gps milliseconds
-        self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
-
-        # rename provider
-        self["fix_provider"] = np.array([self._provider_map().get(i,"")\
-                                         for i in self["fix_provider"]])
-
-        # add heading in radians
-        self["heading_rx_rad"] = np.deg2rad(self["heading_rx_deg"])
-
-    @staticmethod
-    def _row_map():
-        row_map = {"LatitudeDegrees" : "lat_rx_deg",
-                   "LongitudeDegrees" : "lon_rx_deg",
-                   "AltitudeMeters" : "alt_rx_m",
-                   "Provider" : "fix_provider",
-                   "BearingDegrees" : "heading_rx_deg",
-                   "UnixTimeMillis" : "unix_millis",
-                   }
-        return row_map
-
-    @staticmethod
-    def _provider_map():
-        provider_map = {"FLP" : "fused",
-                        "GPS" : "gnss",
-                        "NLP" : "network",
-                        }
-        return provider_map
