@@ -52,13 +52,14 @@ class AndroidRawGnss(NavData):
         Parameters
         ----------
         input_path : string or path-like
-            Path to measurement csv file.
+            Path to measurement csv or txt file.
         filter_measurements : bool
             Filter noisy measurements based on known conditions.
         measurement_filters : dict
             Conditions under which measurements should be filtered. An
             emptry dictionary passed into measurement_filters is
-            equivalent to setting filter_measurements to False.
+            equivalent to setting filter_measurements to False. See the
+            docstring for ``filter_raw_measurements`` for details.
         remove_rx_b_from_pr : bool
             If true, removes the estimated initial receiver clock bias
             from the pseudorange values.
@@ -73,9 +74,15 @@ class AndroidRawGnss(NavData):
         pd_df = self.preprocess(input_path)
         super().__init__(pandas_df=pd_df)
 
-
     def preprocess(self, input_path):
-        """Built on the first parts of make_gnss_dataframe and correct_log
+        """Extract Raw measurements.
+
+        Built on the first parts of make_gnss_dataframe and correct_log
+
+        Parameters
+        ----------
+        input_path : string or path-like
+            Path to measurement csv or txt file.
 
         """
 
@@ -109,12 +116,14 @@ class AndroidRawGnss(NavData):
     def postprocess(self):
         """Postprocess loaded NavData.
 
-        Arrival time taken from [2]_.
+        Strategy for computing the arrival time was taken from an
+        EUSPA white paper [2]_ and Google's source code
+        Arrival time taken from [3]_.
 
         References
         ----------
         .. [2] https://www.euspa.europa.eu/system/files/reports/gnss_raw_measurement_web_0.pdf
-
+        .. [3] https://github.com/google/gps-measurement-tools/blob/master/opensource/ProcessGnssMeas.m
         """
 
         # rename gnss_id
@@ -136,9 +145,6 @@ class AndroidRawGnss(NavData):
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
 
         # calculate pseudorange
-        # Based off of MATLAB code from Google's gps-measurement-tools
-        # repository: https://github.com/google/gps-measurement-tools. Compare
-        # with opensource/ProcessGnssMeas.m
         gps_week_nanos = np.floor(-self["FullBiasNanos"]*1e-9/consts.WEEKSEC)*consts.WEEKSEC*1E9
         tx_rx_gnss_ns = self["TimeNanos"] - self["FullBiasNanos",0] + self["TimeOffsetNanos"] - self["BiasNanos",0]
 
@@ -220,17 +226,53 @@ class AndroidRawGnss(NavData):
     def filter_raw_measurements(self,t_rx_secs):
         """Filter noisy measurements.
 
-        Filters are taken from: [3]_ [4]_ [5]_ [6]_. 
-        The State variable options are shown on [5]_.
+        Filter conditions are set in the ``AndroidRawGnss()``
+        initialization with the ``measurement_filters`` variable. The
+        general framework for measurement filters is taken from Google's
+        ION GNSS+ 2023 workshop presentation [4]_. Google's
+        gps-measurement-tools opensource software shows a couple of
+        their implementations with example values [5]_ [6]_.
+
+        The possible keys to include in the ``measurement_filters``
+        dictionary variable include:
+        
+          * ``bias_valid`` : If true, measurements where FullBiasNanos is
+            greater or equal to zero will be removed.
+          * ``bias_uncertainty`` :  Any measurements will be
+            re where BiasUncertaintyNanos is greater than
+            the set value.
+          * ``arrival_time`` : If true, measurements where the arrival time
+            (``t_rx_secs``) is negative or unrealistically large will be
+            removed.
+          * ``unknown_constellations`` : If true, measurements with an
+            unknown_constellation will be removed.
+          * ``time_valid`` : If true, measurements with where TimeNanos is
+            empty will be removed.
+          * ``state_decoded`` : If true, will filter measurements that don't
+            have the time-of-week decoded [7]_.
+          * ``sv_time_uncertainty`` : Any measurements will be
+            removed where ReceivedSvTimeUncertaintyNanos is greater than
+            the set value.
+          * ``adr_valid`` : If true, measurements where
+            ``AccumulatedDeltaRangeState`` is not valid will be removed.
+          * ``adr_uncertainty`` : Any measurements will be
+            removed where ReceivedSvTimeUncertaintyNanos is greater than
+            the set value.
+
+        Only keys present in the ``measurement_filters`` dictionary
+        will be used for the filter. For example if
+        ````measurement_filters = {``bias_valid`` : True}, then only
+        measurements will invalid FullBiasNanos will be filtered and no
+        other measurements will be filtered.
 
         References
         ----------
-        .. [3] Michael Fu, Mohammed Khider, Frank van Diggelen, Dave
+        .. [4] Michael Fu, Mohammed Khider, Frank van Diggelen, Dave
                Orendorff. "Workshop for Google Smartphone Decimeter
                Challenge (SDC) 2023-2024." ION GNSS+ 2023.
-        .. [4] https://github.com/google/gps-measurement-tools/blob/master/opensource/ProcessGnssMeas.m
-        .. [5] https://github.com/google/gps-measurement-tools/blob/master/opensource/SetDataFilter.m
-        .. [6] https://developer.android.com/reference/android/location/GnssMeasurement#STATE_TOW_DECODED
+        .. [5] https://github.com/google/gps-measurement-tools/blob/master/opensource/ProcessGnssMeas.m
+        .. [6] https://github.com/google/gps-measurement-tools/blob/master/opensource/SetDataFilter.m
+        .. [7] https://developer.android.com/reference/android/location/GnssMeasurement#STATE_TOW_DECODED
         """
 
         filter_idxs = set()
