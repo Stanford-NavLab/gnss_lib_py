@@ -26,7 +26,12 @@ results/*
 !data/unit_test/google_decimeter_2023/2023-09-07-18-59-us-ca/pixel7pro/ground_truth.csv
 
 # ignore txt files in notebook tutorials
-notebooks/tutorials/*.txt
+*.txt
+!docs/source/requirements.txt
+!requirements.txt
+!data/unit_test/android/measurements/*.txt
+!data/unit_test/google_decimeter_2021/*.txt
+!data/unit_test/google_decimeter_2023/2023-09-07-18-59-us-ca/pixel7pro/*.txt
 
 # Ignore downloaded precise ephimerides files by default
 *.sp3
