@@ -151,6 +151,17 @@ class Nmea(NavData):
                                              .fillna(method='ffill')\
                                              .astype(float)
         pd_df["num_sats"] = pd_df["num_sats"].fillna(value=0).astype('int64')
+        pd_df = pd_df.fillna(value=np.nan).replace("",np.nan)
+        convert_dict={
+               'num_sats' : np.int64,
+               'gps_qual' : np.int64,
+               'gps_millis' : np.float64,
+               'geo_sep' : np.float64,
+               'horizontal_dil' : np.float64,
+               'spd_over_grnd' : np.float64,
+               'true_course' : np.float64,
+              }
+        pd_df = pd_df.astype(convert_dict)
         super().__init__(pandas_df=pd_df)
         if include_ecef:
             self.include_ecef()

@@ -357,7 +357,9 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
 
     # load raw data
     raw = android.AndroidRawGnss(input_path=android_raw_2023_path,
-                                 filter_measurements=False)
+                                 filter_measurements=False,
+                                 remove_rx_b_from_pr=True,
+                                 )
 
     # make sure the same data is contained in both
     assert len(derived) == len(raw)
