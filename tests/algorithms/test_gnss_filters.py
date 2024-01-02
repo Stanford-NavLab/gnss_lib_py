@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 from numpy.random import default_rng
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
 from gnss_lib_py.algorithms.gnss_filters import GNSSEKF, solve_gnss_ekf
 

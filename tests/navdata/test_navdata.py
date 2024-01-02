@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from pytest_lazyfixture import lazy_fixture
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 
 def fixture_csv_path(csv_filepath):
     """Location of measurements for unit test
@@ -928,7 +928,7 @@ def test_get_item(data, index, exp_value):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         Data to test getting values from
     index : slice/str/int/tuple
         Index to query data at
@@ -1059,7 +1059,7 @@ def test_set_get_item(data, index, new_value, exp_value):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         NavData instance for testing
     index : slice/str/int/tuple
         Index to query data at
@@ -1076,7 +1076,7 @@ def test_multi_set(data,new_string):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         NavData instance for testing
     new_string : np.ndarray
         String of length 6 to test string assignment
@@ -1129,7 +1129,7 @@ def test_set_changing_type(data,new_string):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         NavData instance for testing
     new_string : np.ndarray
         String of length 6 to test string assignment
@@ -1178,7 +1178,7 @@ def test_multi_set_changing_type(data,new_string):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         NavData instance for testing
     new_string : np.ndarray
         String of length 6 to test string assignment
@@ -1477,7 +1477,7 @@ def test_copy_navdata(data, df_simple, rows, cols):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData
     df_simple : pd.DataFrame
         Dataframe that is sliced to compare copies against
@@ -1525,7 +1525,7 @@ def test_remove_navdata(data, df_simple, rows, cols):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData
     df_simple : pd.DataFrame
         Dataframe that is sliced to compare copies against
@@ -1610,7 +1610,7 @@ def test_remove_inplace(data, df_simple, rows, cols):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData
     df_simple : pd.DataFrame
         Dataframe that is sliced to compare copies against
@@ -1919,7 +1919,7 @@ def test_in_rows_single(data):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData
 
     """
@@ -1987,7 +1987,7 @@ def test_in_rows_multi(data):
 
     Parameters
     ----------
-    data : gnss_lib_py.parsers.navdata.NavData
+    data : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData
 
     """

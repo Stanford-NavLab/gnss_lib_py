@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
@@ -23,7 +23,7 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class
     init_dict : dict
         Initialization dict with initial states and covariances.
@@ -32,7 +32,7 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of
         the NavData class with shape (4 x # unique timesteps) and

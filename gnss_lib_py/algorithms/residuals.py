@@ -7,16 +7,16 @@ __date__ = "25 Jan 2022"
 
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 
 def solve_residuals(measurements, receiver_state, inplace=True):
     """Calculates residuals given pseudoranges and receiver position.
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters and the estimated or ground truth receiver clock bias
         also in meters as an instance of the NavData class with the
@@ -28,7 +28,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
 
     Returns
     -------
-    new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+    new_navdata : gnss_lib_py.navdata.navdata.NavData or None
         If inplace is False, returns new NavData instance containing
         "gps_millis" and residual rows. If inplace is True, returns
         None.

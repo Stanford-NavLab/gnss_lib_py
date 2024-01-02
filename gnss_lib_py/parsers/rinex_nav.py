@@ -22,7 +22,7 @@ import pandas as pd
 import georinex as gr
 
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis, gps_millis_to_tow
 from gnss_lib_py.utils.ephemeris_downloader import load_ephemeris, DEFAULT_EPHEM_PATH
 
@@ -359,7 +359,7 @@ def _compute_eccentric_anomaly(gps_week, gps_tow, ephem, tol=1e-5, max_iter=10):
         Week of GPS calendar corresponding to time of clock.
     gps_tow : np.ndarray
         GPS time of the week at which positions are required [s].
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing ephemeris parameters of satellites
         for which states are required.
     tol : float
@@ -410,7 +410,7 @@ def _estimate_sv_clock_corr(gps_millis, ephem):
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         Satellite ephemeris parameters for measurement SVs.
 
     Returns
@@ -502,7 +502,7 @@ def get_time_cropped_rinex(gps_millis, satellites=None,
 
     Returns
     -------
-    rinex_data : gnss_lib_py.parsers.navdata.NavData
+    rinex_data : gnss_lib_py.navdata.navdata.NavData
         ephemeris entries corresponding to timestamp
 
     Notes

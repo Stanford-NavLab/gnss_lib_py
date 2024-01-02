@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
@@ -198,7 +198,7 @@ class AndroidDerived2022(NavData):
 
         Returns
         -------
-        state_estimate : gnss_lib_py.parsers.navdata.NavData
+        state_estimate : gnss_lib_py.navdata.navdata.NavData
             Instance of `NavData` containing state estimate rows present
             in the instance of `AndroidDerived2022`.
         """
@@ -414,7 +414,7 @@ def solve_kaggle_baseline(navdata):
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
 
     """
@@ -446,7 +446,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
 
     Parameters
     ----------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Estimated receiver position in latitude and longitude as an
         instance of the NavData class with the following
         rows: ``gps_millis``, ``lat_rx*_deg``, ``lon_rx*_deg``.
@@ -456,7 +456,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
 
     Returns
     -------
-    output : gnss_lib_py.parsers.navdata.NavData
+    output : gnss_lib_py.navdata.navdata.NavData
         NavData structure ready for Kaggle submission.
 
     """
@@ -498,7 +498,7 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
 
     Returns
     -------
-    solution : gnss_lib_py.parsers.navdata.NavData
+    solution : gnss_lib_py.navdata.navdata.NavData
         Full solution submission across all traces. Can then be saved
         using submission.to_csv().
 

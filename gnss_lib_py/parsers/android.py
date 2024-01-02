@@ -22,7 +22,7 @@ import csv
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.sv_models import add_sv_states

@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers import google_decimeter
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.algorithms.gnss_filters import solve_gnss_ekf
 
@@ -641,7 +641,7 @@ def test_solve_kaggle_baseline(derived_2022):
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
     """
 
@@ -663,7 +663,7 @@ def test_prepare_kaggle_submission(state_estimate):
 
     Parameters
     ----------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
 
     """

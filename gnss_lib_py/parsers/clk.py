@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 import numpy as np
 from scipy import interpolate
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS, C
 from gnss_lib_py.utils.time_conversions import gps_datetime_to_gps_millis
 
@@ -99,7 +99,7 @@ class Clk(NavData):
 
         Parameters
         ----------
-        navdata : gnss_lib_py.parsers.navdata.NavData
+        navdata : gnss_lib_py.navdata.navdata.NavData
             Instance of the NavData class that must include rows for
             ``gps_millis`` and ``gnss_sv_id``
         window : int

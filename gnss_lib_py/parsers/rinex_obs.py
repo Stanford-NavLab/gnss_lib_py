@@ -8,7 +8,7 @@ from datetime import timezone
 import numpy as np
 import georinex as gr
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 

@@ -11,7 +11,7 @@ import pytest
 
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.time_conversions as tc
 from gnss_lib_py.utils.constants import GPS_EPOCH_0
 

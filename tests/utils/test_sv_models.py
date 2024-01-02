@@ -15,7 +15,7 @@ from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers.clk import Clk
 from gnss_lib_py.parsers.sp3 import Sp3
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
 import gnss_lib_py.utils.time_conversions as tc
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
@@ -53,7 +53,7 @@ def fixture_dummy_pos_vel(scaling_value):
 
     Returns
     -------
-    dummy_posvel = gnss_lib_py.parsers.navdata.NavData
+    dummy_posvel = gnss_lib_py.navdata.navdata.NavData
         NavData example containing position and velocity.
     """
     dummy_posvel = NavData()
@@ -94,7 +94,7 @@ def test_posvel_extract(dummy_pos_vel, scaling_value):
 
     Parameters
     ----------
-    dummy_pos_vel : gnss_lib_py.parsers.navdata.NavData
+    dummy_pos_vel : gnss_lib_py.navdata.navdata.NavData
         NavData example containing position and velocity.
     scaling_value : np.ndarray
         Linear range for 6 instances of positions and velocities.
@@ -115,7 +115,7 @@ def test_del_xyz_range(dummy_pos_vel, scaling_value):
 
     Parameters
     ----------
-    dummy_pos_vel : gnss_lib_py.parsers.navdata.NavData
+    dummy_pos_vel : gnss_lib_py.navdata.navdata.NavData
         NavData example containing position and velocity.
     scaling_value : np.ndarray
         Linear range for 6 instances of positions and velocities.
@@ -145,7 +145,7 @@ def test_sv_state_model(gps_measurement_frames, android_gt):
         Dictionary containing NavData instances of ephemeris parameters
         for received satellites, received Android measurements and SV
         states, all corresponding to the same received time frame.
-    android_gt : gnss_lib_py.parsers.navdata.NavData
+    android_gt : gnss_lib_py.navdata.navdata.NavData
         Ground truth for received measurements.
     """
     android_frames = gps_measurement_frames['android_frames']
@@ -178,14 +178,14 @@ def test_visible_ephem(all_gps_ephem, gps_measurement_frames, android_gt):
     Parameters
     ----------
 
-    all_gps_ephem : gnss_lib_py.parsers.navdata.NavData
+    all_gps_ephem : gnss_lib_py.navdata.navdata.NavData
         Ephemeris parameters for all satellites at the time when measurements
         were received.
     gps_measurement_frames : Dict
         Dictionary containing NavData instances of ephemeris parameters
         for received satellites, received Android measurements and SV
         states, all corresponding to the same received time frame.
-    android_gt : gnss_lib_py.parsers.navdata.NavData
+    android_gt : gnss_lib_py.navdata.navdata.NavData
         Ground truth for received measurements.
     """
     android_frames = gps_measurement_frames['android_frames']
@@ -214,7 +214,7 @@ def test_visible_sv_posvel(gps_measurement_frames, android_gt):
         Dictionary containing NavData instances of ephemeris parameters
         for received satellites, received Android measurements and SV
         states, all corresponding to the same received time frame.
-    android_gt : gnss_lib_py.parsers.navdata.NavData
+    android_gt : gnss_lib_py.navdata.navdata.NavData
         Ground truth for received measurements.
     """
     android_frames = gps_measurement_frames['android_frames']
@@ -238,7 +238,7 @@ def test_add_sv_state_wrapper(android_measurements, ephemeris_path, error_tol_de
 
     Parameters
     ----------
-    android_measurements : gnss_lib_py.parsers.navdata.NavData
+    android_measurements : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing L1 measurements for received GPS
         measurements.
     ephemeris_path : string
@@ -292,7 +292,7 @@ def test_filter_ephemeris_none(android_gps_l1, ephemeris_path):
 
     Parameters
     ----------
-    android_gps_l1 : gnss_lib_py.parsers.navdata.NavData
+    android_gps_l1 : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing L1 measurements for received GPS
         measurements.
     ephemeris_path : string
@@ -312,7 +312,7 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
 
     Parameters
     ----------
-    android_gps_l1 : gnss_lib_py.parsers.navdata.NavData
+    android_gps_l1 : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing L1 measurements for received GPS
         measurements.
     ephemeris_path : string

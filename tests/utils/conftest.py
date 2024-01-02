@@ -12,7 +12,7 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022, AndroidGroundTruth2022
 from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
 
@@ -241,7 +241,7 @@ def fixture_android_state(android_derived):
 
     Returns
     -------
-    android_state_estimate : gnss_lib_py.parsers.navdata.NavData
+    android_state_estimate : gnss_lib_py.navdata.navdata.NavData
         Instance of `NavData` containing `gps_millis` and Rx position
         estimates from Android Derived.
     """
@@ -317,7 +317,7 @@ def fixture_all_gps_ephem(ephemeris_path, start_time, all_gps_sats):
 
     Returns
     -------
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing ephemeris parameters for all GPS
         satellites at the start time for measurement reception.
     """
@@ -334,7 +334,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
 
     Parameters
     ----------
-    all_gps_ephem : gnss_lib_py.parsers.navdata.NavData
+    all_gps_ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing ephemeris parameters for all GPS
         satellites at the start time for measurement reception.
     android_gps_l1 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022

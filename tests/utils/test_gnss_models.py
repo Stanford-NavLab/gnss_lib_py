@@ -13,7 +13,7 @@ from numpy.random import default_rng
 from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.algorithms.snapshot import solve_wls
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.gnss_models as gnss_models
 from gnss_lib_py.utils.sv_models import _extract_pos_vel_arr
 from gnss_lib_py.utils.coordinates import LocalCoord
@@ -51,7 +51,7 @@ def calculate_state(android_gt, idx):
 
     Returns
     -------
-    state : gnss_lib_py.parsers.navdata.NavData
+    state : gnss_lib_py.navdata.navdata.NavData
         NavData containing state information for one time instance.
     """
 
@@ -234,10 +234,10 @@ def test_add_measures_wrapper(android_measurements, android_state,
 
     Parameters
     ----------
-    android_measurements : gnss_lib_py.parsers.navdata.NavData
+    android_measurements : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing L1 measurements for received GPS
         measurements.
-    android_state : gnss_lib_py.parsers.navdata.NavData
+    android_state : gnss_lib_py.navdata.navdata.NavData
         Instance of `NavData` containing `gps_millis` and Rx position
         estimates from Android Derived.
     ephemeris_path : string

@@ -8,8 +8,9 @@ __date__ = "11 Jul 2023"
 import time
 import numpy as np
 
-from gnss_lib_py.algorithms.residuals import solve_residuals
+from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.algorithms.snapshot import solve_wls
+from gnss_lib_py.algorithms.residuals import solve_residuals
 
 
 def solve_fde(navdata, method="residual", remove_outliers=False,
@@ -22,7 +23,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         NavData of GNSS measurements which must include the satellite
         positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
         well as the time row ``gps_millis`` and the corrected
@@ -44,7 +45,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
 
     Returns
     -------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Result includes a new row of ``fault_<method>`` where a
         value of 1 indicates a detected fault, 0 indicates that
         no fault was detected, and 2 indicates an unknown fault status
@@ -77,7 +78,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, time_fde=False,
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         NavData of GNSS measurements which must include the satellite
         positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
         well as the time row ``gps_millis`` and the corrected
@@ -94,7 +95,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, time_fde=False,
 
     Returns
     -------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Result includes a new row of ``fault_edm`` where a
         value of 1 indicates a detected fault and 0 indicates that
         no fault was detected, and 2 indicates an unknown fault status
@@ -261,7 +262,7 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         NavData of GNSS measurements which must include the satellite
         positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
         well as the time row ``gps_millis`` and the corrected
@@ -278,7 +279,7 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
 
     Returns
     -------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Result includes a new row of ``fault_residual`` where a
         value of 1 indicates a detected fault and 0 indicates that
         no fault was detected, and 2 indicates an unknown fault status
@@ -415,7 +416,7 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         NavData of GNSS measurements which must include the satellite
         positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
         well as the time row ``gps_millis`` and the corrected
@@ -438,7 +439,7 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     -------
     metrics : dict
         Combined metrics that were computed.
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Resulting NavData from ``solve_fde()``.
 
     """
@@ -701,11 +702,11 @@ def _residual_chi_square(navdata, receiver_state):
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         NavData of GNSS measurements which must include the satellite
         positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m`` and residuals
         ``residuals_m``.
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
         Reciever state that must include the receiver's state of:
         ``x_rx_wls_m``, ``y_rx_wls_m``, and ``z_rx_wls_m``.
 
@@ -749,11 +750,11 @@ def _residual_exclude(navdata, receiver_state):
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         NavData of GNSS measurements which must include the satellite
         positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m`` and residuals
         ``residuals_m``.
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
         Reciever state that must include the receiver's state of:
         ``x_rx_wls_m``, ``y_rx_wls_m``, and ``z_rx_wls_m``.
 

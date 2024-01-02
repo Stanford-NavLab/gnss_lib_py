@@ -13,7 +13,7 @@ import warnings
 
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils import constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
@@ -34,7 +34,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class which must include at least
         ``gps_millis``, ``x_sv_m``, ``y_sv_m``, and ``z_sv_m``
     weight_type : string
@@ -42,7 +42,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     only_bias : bool
         If True, then only the receiver clock bias is estimated.
         Otherwise, both position and clock bias are estimated.
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
         Only used if only_bias is set to True, see description above.
         Receiver position in ECEF frame in meters as an instance of the
         NavData class with at least the following rows: ``x_rx*_m``,
@@ -65,7 +65,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of
         the NavData class with shape (4 x # unique timesteps) and
