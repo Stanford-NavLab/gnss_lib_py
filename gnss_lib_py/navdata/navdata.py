@@ -614,7 +614,19 @@ class NavData():
 
         df_list = []
         for row in self.rows:
-            df_list.append(np.atleast_1d(
+            dtype = self.orig_dtypes[row]
+            if np.issubdtype(dtype, np.integer):
+                row_data = self[row]
+                row_data = row_data.astype(np.float64)
+                if np.any(np.isnan(row_data)):
+                    nan_indexes = np.isnan(row_data)
+                    row_data[~nan_indexes] = row_data[~nan_indexes].astype(dtype)
+                    df_list.append(np.atleast_1d(row_data))
+                else:
+                    df_list.append(np.atleast_1d(
+                               self[row].astype(self.orig_dtypes[row])))
+            else:
+                df_list.append(np.atleast_1d(
                            self[row].astype(self.orig_dtypes[row])))
 
         # transpose list to conform to Pandas input
@@ -739,7 +751,16 @@ class NavData():
 
         if isinstance(rows,list) and len(rows) == 1 \
         and self.inv_map[rows[0]] in self.orig_dtypes:
-            arr_slice = arr_slice.astype(self.orig_dtypes[self.inv_map[rows[0]]])
+            dtype = self.orig_dtypes[self.inv_map[rows[0]]]
+            if np.issubdtype(dtype, np.integer):
+                arr_slice = arr_slice.astype(np.float64)
+                if np.any(np.isnan(arr_slice)):
+                    nan_indexes = np.isnan(arr_slice)
+                    arr_slice[~nan_indexes] = arr_slice[~nan_indexes].astype(dtype)
+                else:
+                    arr_slice = arr_slice.astype(dtype)
+            else:
+                arr_slice = arr_slice.astype(dtype)
 
         # remove all dimensions of length one
         arr_slice = np.squeeze(arr_slice)
