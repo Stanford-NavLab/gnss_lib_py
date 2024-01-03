@@ -10,7 +10,7 @@ import random
 import pytest
 import numpy as np
 
-import gnss_lib_py.visualizations.style as style
+from gnss_lib_py.visualizations import style
 
 # pylint: disable=protected-access
 

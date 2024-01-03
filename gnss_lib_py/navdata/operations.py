@@ -105,12 +105,14 @@ def concat(*navdatas, axis=1):
 
     return concat_navdata
 
-def sort(order=None, ind=None, ascending=True,
+def sort(navdata, order=None, ind=None, ascending=True,
          inplace=False):
     """Sort values along given row or using given index
 
     Parameters
     ----------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        Navdata instance.
     order : string/int
         Key or index of the row on which NavData will be sorted
     ind : list/np.ndarray
@@ -131,22 +133,22 @@ def sort(order=None, ind=None, ascending=True,
 
     """
     # check if there is only one column - no sorting needed
-    if self.shape[1] == 1:
-        return self
+    if navdata.shape[1] == 1:
+        return navdata
 
     if ind is None:
         assert order is not None, \
         "Provide 'order' arg as row on which NavData is sorted"
         if ascending:
-            ind = np.argsort(self[order])
+            ind = np.argsort(navdata[order])
         else:
-            ind = np.argsort(-self[order])
+            ind = np.argsort(-navdata[order])
 
     if not inplace:
-        new_navdata = self.copy()   # create copy to return
-    for row_idx in range(self.shape[0]):
+        new_navdata = navdata.copy()   # create copy to return
+    for row_idx in range(navdata.shape[0]):
         if inplace:
-            self.array[row_idx,:] = self.array[row_idx,ind]
+            navdata.array[row_idx,:] = navdata.array[row_idx,ind]
         else:
             new_navdata.array[row_idx,:] = new_navdata.array[row_idx,ind]
 
@@ -154,11 +156,13 @@ def sort(order=None, ind=None, ascending=True,
         return None
     return new_navdata
 
-def loop_time(time_row, delta_t_decimals=2):
+def loop_time(navdata, time_row, delta_t_decimals=2):
     """Generator object to loop over columns from same times.
 
     Parameters
     ----------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        Navdata instance.
     time_row : string/int
         Key or index of the row in which times are stored.
     delta_t_decimals : int
@@ -175,7 +179,7 @@ def loop_time(time_row, delta_t_decimals=2):
 
     """
 
-    times = self[time_row]
+    times = navdata[time_row]
     times_unique = np.sort(np.unique(np.around(times,
                                      decimals=delta_t_decimals)))
     for time_idx, time in enumerate(times_unique):
@@ -183,7 +187,7 @@ def loop_time(time_row, delta_t_decimals=2):
             delta_t = 0
         else:
             delta_t = time-times_unique[time_idx-1]
-        new_navdata = self.where(time_row, [time-10**(-delta_t_decimals),
+        new_navdata = navdata.where(time_row, [time-10**(-delta_t_decimals),
                                             time+10**(-delta_t_decimals)],
                                             condition="between")
         if len(np.unique(new_navdata[time_row]))==1:
@@ -192,7 +196,7 @@ def loop_time(time_row, delta_t_decimals=2):
             frame_time = time
         yield frame_time, delta_t, new_navdata
 
-def interpolate(x_row, y_rows, inplace=False, *args):
+def interpolate(navdata, x_row, y_rows, inplace=False, *args):
     """Interpolate NaN values based on row data.
 
     Additional ``*args`` arguments are passed into the ``np.interp``
@@ -200,6 +204,8 @@ def interpolate(x_row, y_rows, inplace=False, *args):
 
     Parameters
     ----------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        Navdata instance.
     x_row : string
         Row name for x-coordinate of all values (e.g. gps_millis).
         Row must not contain any nan values.
@@ -227,21 +233,21 @@ def interpolate(x_row, y_rows, inplace=False, *args):
     if not isinstance(y_rows, list):
         raise TypeError("'y_rows' must be single or list of " \
                       + "row names as a string.")
-    self.in_rows([x_row] + y_rows)
+    navdata.in_rows([x_row] + y_rows)
 
     if not inplace:
-        new_navdata = self.copy()
+        new_navdata = navdata.copy()
     for y_row in y_rows:
-        nan_idxs = self.argwhere(y_row,np.nan)
+        nan_idxs = navdata.argwhere(y_row,np.nan)
         if nan_idxs.size == 0:
             continue
-        not_nan_idxs = self.argwhere(y_row,np.nan,"neq")
-        x_vals = self[x_row,nan_idxs]
-        xp_vals = self[x_row,not_nan_idxs]
-        yp_vals = self[y_row,not_nan_idxs]
+        not_nan_idxs = navdata.argwhere(y_row,np.nan,"neq")
+        x_vals = navdata[x_row,nan_idxs]
+        xp_vals = navdata[x_row,not_nan_idxs]
+        yp_vals = navdata[y_row,not_nan_idxs]
 
         if inplace:
-            self[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
+            navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
                                              yp_vals, *args)
         else:
             new_navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
@@ -250,8 +256,7 @@ def interpolate(x_row, y_rows, inplace=False, *args):
         return None
     return new_navdata
 
-
-def find_wildcard_indexes(wildcards, max_allow = None,
+def find_wildcard_indexes(navdata, wildcards, max_allow = None,
                           excludes = None):
     """Searches for indexes matching wildcard search input.
 
@@ -274,6 +279,8 @@ def find_wildcard_indexes(wildcards, max_allow = None,
 
     Parameters
     ----------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        Navdata instance.
     wildcards : array-like or str
         List/tuple/np.ndarray/set of indexes for which to search.
     max_allow : int or None
@@ -327,7 +334,7 @@ def find_wildcard_indexes(wildcards, max_allow = None,
         if wildcard.count("*") != 1:
             raise RuntimeError("One wildcard '*' and only one "\
                       + "wildcard must be present in search string")
-        indexes = [row for row in self.rows
+        indexes = [row for row in navdata.rows
                if row.startswith(wildcard.split("*",maxsplit=1)[0])
                 and row.endswith(wildcard.split("*",maxsplit=1)[1])]
         if excludes[wild_idx] is not None:

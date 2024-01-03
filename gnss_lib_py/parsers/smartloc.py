@@ -8,6 +8,7 @@ __date__ = "02 Apr 2023"
 import numpy as np
 
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.utils.coordinates import LocalCoord, geodetic_to_ecef, wrap_0_to_2pi
 from gnss_lib_py.utils.time_conversions import tow_to_gps_millis
 
@@ -199,7 +200,7 @@ def calculate_gt_vel(smartloc_raw):
                 'ax_rx_gt_mps2' : [],
                 'ay_rx_gt_mps2' : [],
                 'az_rx_gt_mps2' : []}
-    for _, _, measure_frame in smartloc_raw.loop_time('gps_millis', \
+    for _, _, measure_frame in loop_time(smartloc_raw,'gps_millis', \
                                                         delta_t_decimals = -2):
         yaw = measure_frame['heading_rx_gt_rad', 0]
         vel_gt = measure_frame['v_rx_gt_mps', 0]

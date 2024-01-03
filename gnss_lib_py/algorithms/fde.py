@@ -126,7 +126,7 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, time_fde=False,
         compute_times = []
         navdata_timing = []
 
-    for _, _, navdata_subset in navdata.loop_time('gps_millis'):
+    for _, _, navdata_subset in loop_time(navdata,'gps_millis'):
         if time_fde:
             time_start = time.time()
 
@@ -306,7 +306,7 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
         compute_times = []
         navdata_timing = []
 
-    for _, _, navdata_subset in navdata.loop_time('gps_millis'):
+    for _, _, navdata_subset in loop_time(navdata,'gps_millis'):
 
         if time_fde:
             time_start = time.time()
@@ -447,7 +447,7 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
     measurement_counts = []
     fault_percentages = []
     timesteps = 0
-    for _, _, navdata_subset in navdata.loop_time("gps_millis"):
+    for _, _, navdata_subset in loop_time(navdata,"gps_millis"):
         measurement_count = len(navdata_subset)
         truth_fault_count = len(np.argwhere(navdata_subset[fault_truth_row]==1))
         measurement_counts.append(measurement_count)

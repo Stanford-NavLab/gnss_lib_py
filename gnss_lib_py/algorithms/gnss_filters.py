@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
@@ -50,7 +51,7 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
     if "state_0" not in init_dict:
         pos_0 = None
-        for _, _, measurement_subset in measurements.loop_time("gps_millis",
+        for _, _, measurement_subset in loop_time(measurements,"gps_millis",
                                         delta_t_decimals=delta_t_decimals):
             pos_0 = solve_wls(measurement_subset)
             if pos_0 is not None:
@@ -90,7 +91,7 @@ def solve_gnss_ekf(measurements, init_dict = None,
 
     states = []
 
-    for timestamp, delta_t, measurement_subset in measurements.loop_time("gps_millis"):
+    for timestamp, delta_t, measurement_subset in loop_time(measurements,"gps_millis"):
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)
 

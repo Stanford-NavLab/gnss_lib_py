@@ -8,6 +8,7 @@ __date__ = "25 Jan 2022"
 import numpy as np
 
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time, find_wildcard_indexes
 
 def solve_residuals(measurements, receiver_state, inplace=True):
     """Calculates residuals given pseudoranges and receiver position.
@@ -40,14 +41,14 @@ def solve_residuals(measurements, receiver_state, inplace=True):
     receiver_state.in_rows(["gps_millis"])
 
 
-    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx*_m",
+    rx_idxs = find_wildcard_indexes(receiver_state,["x_rx*_m",
                                                     "y_rx*_m",
                                                     "z_rx*_m",
                                                     "b_rx*_m"],
                                                     max_allow=1)
 
     residuals = []
-    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
+    for timestamp, _, measurement_subset in loop_time(measurements,"gps_millis"):
 
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)

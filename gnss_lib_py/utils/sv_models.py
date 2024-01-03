@@ -20,7 +20,7 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH, load_ephemeris
-
+from gnss_lib_py.navdata.operations import loop_time, sort
 
 def add_sv_states(navdata, source = 'precise', file_paths = None,
                   download_directory = DEFAULT_EPHEM_PATH,
@@ -153,9 +153,8 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
     sv_states_all_time = NavData()
     # Loop through the measurement file per time step
-    for _, _, measure_frame in measurements_subset.loop_time('gps_millis', \
+    for _, _, measure_frame in loop_time(measurements_subset,'gps_millis', \
                                                              delta_t_decimals=delta_t_dec):
-        # measure_frame = measure_frame.sort('sv_id', order="descending")
         # Sort the satellites
         rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
         if rx_ephem.shape[1] != measure_frame.shape[1]: #pragma: no cover
@@ -163,7 +162,7 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         try:
             # The following statement raises a KeyError if rows don't exist
             rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-            rx_idxs = measure_frame.find_wildcard_indexes(
+            rx_idxs = find_wildcard_indexes(measure_frame,
                                                    rx_rows_to_find,
                                                    max_allow=1)
             rx_ecef = measure_frame[[rx_idxs["x_rx*_m"][0],
@@ -174,7 +173,7 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         except KeyError:
             sv_states = find_sv_states(measure_frame['gps_millis'], rx_ephem)
         # Reverse the sorting
-        sv_states = sv_states.sort(ind=inv_sort_order)
+        sort(sv_states,ind=inv_sort_order,inplace=True)
         # Add them to new rows
         for row in sv_states.rows:
             if row not in ('gps_millis','gnss_id','sv_id'):
@@ -242,7 +241,7 @@ def add_visible_svs_for_trajectory(rx_states,
 
     # Find rows that correspond to receiver positions
     rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-    rx_idxs = rx_states.find_wildcard_indexes(rx_rows_to_find,
+    rx_idxs = find_wildcard_indexes(rx_states,rx_rows_to_find,
                                               max_allow=1)
 
     # Loop through all times and positions, estimated SV states and adding

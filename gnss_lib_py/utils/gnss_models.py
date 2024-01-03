@@ -22,7 +22,7 @@ from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
-
+from gnss_lib_py.navdata.operations import loop_time, sort
 
 def add_measures(measurements, state_estimate,
                  ephemeris_path = DEFAULT_EPHEM_PATH, iono_params=None,
@@ -108,7 +108,7 @@ def add_measures(measurements, state_estimate,
                      'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps',
                      'b_sv_m']
     rx_pos_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-    rx_pos_rows_idxs = state_estimate.find_wildcard_indexes(
+    rx_pos_rows_idxs = find_wildcard_indexes(state_estimate,
                                             rx_pos_rows_to_find,
                                             max_allow=1)
     rx_pos_rows = [rx_pos_rows_idxs['x_rx*_m'][0],
@@ -121,7 +121,7 @@ def add_measures(measurements, state_estimate,
 
     est_measurements = NavData()
     # Loop through the measurement file per time step
-    for gps_millis, _, measure_frame in measurements.loop_time('gps_millis',
+    for gps_millis, _, measure_frame in loop_time(measurements,'gps_millis',
                                                         delta_t_decimals=delta_t_dec):
         # Sort the satellites
         rx_ephem, sorted_sats_ind, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
@@ -135,8 +135,7 @@ def add_measures(measurements, state_estimate,
                 sv_posvel[row] = measure_frame[row]
             for row in info_rows:
                 sv_posvel[row] = measure_frame[row]
-            # sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
-            sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
+            sort(sv_posvel,ind=sorted_sats_ind,inplace=True)
         except KeyError:
             sv_posvel = None
             use_posvel = True
@@ -152,7 +151,7 @@ def add_measures(measurements, state_estimate,
         vel_clk_rows = rx_vel_rows_to_find + rx_clk_rows_to_find
         for row in vel_clk_rows:
             try:
-                row_idx = state_estimate.find_wildcard_indexes(row,max_allow=1)
+                row_idx = find_wildcard_indexes(state_estimate,row,max_allow=1)
                 state[row_idx[row][0]] = state_estimate[row_idx[row][0], state_col]
             except KeyError:
                 warnings.warn("Assuming 0 "+ row + " for Rx", RuntimeWarning)
@@ -164,7 +163,7 @@ def add_measures(measurements, state_estimate,
                                                     ephem=rx_ephem,
                                                     sv_posvel=sv_posvel)
             # Reverse the sorting to match the input measurements
-            est_meas = est_meas.sort(ind=inv_sort_order)
+            sort(est_meas, ind=inv_sort_order, inplace=True)
         else:
             est_meas = None
         if corrections:
@@ -180,7 +179,7 @@ def add_measures(measurements, state_estimate,
         # Add required values to new rows
         if sv_posvel is not None:
             # Reverse the sorting to match the input measurements
-            sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
+            sort(sv_posvel,ind=sorted_sats_ind,inplace=True)
         est_frame = NavData()
         if pseudorange:
             est_frame['est_pr_m'] = est_meas['est_pr_m']
@@ -196,7 +195,7 @@ def add_measures(measurements, state_estimate,
         if len(est_measurements)==0:
             est_measurements = est_frame
         else:
-            est_measurements.concat(est_frame, inplace=True)
+            est_measurements = concat(est_measurements,est_frame)
     est_measurements = measurements.concat(est_measurements, axis=0, inplace=False)
     return est_measurements
 
@@ -362,7 +361,7 @@ def _extract_state_variables(state):
     """
     assert len(state)==1, "Only single state accepted for GNSS simulation"
 
-    rx_idxs = state.find_wildcard_indexes(['x_rx*_m',
+    rx_idxs = find_wildcard_indexes(state,['x_rx*_m',
                                            'y_rx*_m',
                                            'z_rx*_m',
                                            'vx_rx*_mps',

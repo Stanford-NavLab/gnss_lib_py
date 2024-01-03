@@ -15,6 +15,7 @@ from gnss_lib_py.parsers import google_decimeter
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.algorithms.gnss_filters import solve_gnss_ekf
+from gnss_lib_py.navdata.operations import loop_time
 
 # pylint: disable=protected-access
 
@@ -361,7 +362,7 @@ def test_timestep_parsing(derived_path_xl):
     pd_svid_groups.pop(0)
 
     navdata_svid_groups = []
-    for _, _, group in derived_xl.loop_time("gps_millis"):
+    for _, _, group in loop_time(derived_xl,"gps_millis"):
         navdata_svid_groups.append(group["sv_id"].astype(int).tolist())
 
     assert len(pd_svid_groups) == len(navdata_svid_groups)

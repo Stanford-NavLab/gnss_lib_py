@@ -19,6 +19,7 @@ from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
 import gnss_lib_py.utils.time_conversions as tc
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
+from gnss_lib_py.navdata.operations import loop_time
 # pylint: disable=protected-access
 
 # Number of time to run meausurement simulation code
@@ -339,7 +340,7 @@ def test_add_visible_svs_for_trajectory(android_gps_l1, ephemeris_path,
     # subset of those considered visible
     true_rows = ['x_sv_m', 'y_sv_m', 'z_sv_m', 'vx_sv_mps', 'vy_sv_mps',
                  'vz_sv_mps']
-    for milli, _, measure_frame in android_gps_l1.loop_time("gps_millis",
+    for milli, _, measure_frame in loop_time(android_gps_l1,"gps_millis",
                                                                  delta_t_decimals=-2):
         se_frame = sv_posvel_traj.where("gps_millis", milli)
         se_svs = set(np.unique(se_frame['sv_id']))

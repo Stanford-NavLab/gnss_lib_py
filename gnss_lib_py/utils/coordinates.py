@@ -34,6 +34,7 @@ import numpy as np
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time, find_wildcard_indexes
 
 EPSILON = 1e-7
 
@@ -504,12 +505,12 @@ def add_el_az(navdata, receiver_state, inplace=False):
     receiver_state.in_rows(["gps_millis"])
 
     # check for receiver_state indexes
-    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx*_m",
+    rx_idxs = find_wildcard_indexes(receiver_state,["x_rx*_m",
                                                     "y_rx*_m",
                                                     "z_rx*_m"],max_allow=1)
 
     sv_el_az = None
-    for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
+    for timestamp, _, navdata_subset in loop_time(navdata,"gps_millis"):
 
         pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
         # handle scenario with only a single SV returned as 1D array

@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time, concat, find_wildcard_indexes
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
@@ -209,7 +210,7 @@ class AndroidDerived2022(NavData):
         rx_rows_in_measure = ['gps_millis']
         for row_wildcard in rx_rows_to_find:
             try:
-                row_map = self.find_wildcard_indexes(row_wildcard, max_allow=1)
+                row_map = find_wildcard_indexes(self,row_wildcard, max_allow=1)
                 row = row_map[row_wildcard][0]
                 rx_rows_in_measure.append(row)
             except KeyError:
@@ -217,14 +218,14 @@ class AndroidDerived2022(NavData):
                 continue
 
         state_estimate = NavData()
-        for _, _, measure_frame in self.loop_time('gps_millis', delta_t_decimals=-2):
+        for _, _, measure_frame in loop_time(self,'gps_millis', delta_t_decimals=-2):
             temp_est = NavData()
             for row_wildcard in rx_rows_in_measure:
                 temp_est[row_wildcard] = measure_frame[row_wildcard, 0]
             if len(state_estimate)==0:
                 state_estimate = temp_est
             else:
-                state_estimate.concat(temp_est, inplace=True)
+                state_estimate = concat(state_estimate,temp_est, inplace=True)
         return state_estimate
 
     @staticmethod
@@ -462,7 +463,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
     """
 
     state_estimate.in_rows("gps_millis")
-    wildcards = state_estimate.find_wildcard_indexes(["lat_rx*_deg",
+    wildcards = find_wildcard_indexes(state_estimate,["lat_rx*_deg",
                             "lon_rx*_deg"],max_allow = 1)
 
     output = NavData()

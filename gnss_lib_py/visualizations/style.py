@@ -7,11 +7,10 @@ __date__ = "27 Jan 2022"
 
 import os
 import pathlib
-from math import floor
 
 import numpy as np
-import matplotlib as mpl
 from cycler import cycler
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 

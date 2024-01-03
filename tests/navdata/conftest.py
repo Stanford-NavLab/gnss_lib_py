@@ -11,6 +11,8 @@ import pytest
 import numpy as np
 import pandas as pd
 
+from gnss_lib_py.navdata.navdata import NavData
+
 def fixture_csv_path(csv_filepath):
     """Location of measurements for unit test
 

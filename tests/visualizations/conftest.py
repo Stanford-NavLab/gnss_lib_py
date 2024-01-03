@@ -9,7 +9,6 @@ import os
 
 import pytest
 
-from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022

@@ -7,6 +7,7 @@ __date__ = "27 Jan 2022"
 
 import os
 import pathlib
+from math import floor
 from multiprocessing import Process
 
 import numpy as np
@@ -14,9 +15,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from gnss_lib_py.visualizations.style import *
+from gnss_lib_py.visualizations import style
 import gnss_lib_py.utils.file_operations as fo
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import find_wildcard_indexes
 
 def plot_map(*args, sections=0, save=False, prefix="",
              fname=None, width=730, height=520, **kwargs):
@@ -73,11 +75,11 @@ def plot_map(*args, sections=0, save=False, prefix="",
                           + "NavData.")
 
         # check for lat/lon indexes
-        traj_idxs = traj_data.find_wildcard_indexes(
+        traj_idxs = find_wildcard_indexes(traj_data,
                     wildcards=["lat_*_deg","lon_*_deg"], max_allow=1,
                     excludes=[["lat_sigma_*_deg"],["lon_sigma_*_deg"]])
 
-        label_name = get_label({"":"_".join((traj_idxs["lat_*_deg"][0].split("_"))[1:-1])})
+        label_name = style.get_label({"":"_".join((traj_idxs["lat_*_deg"][0].split("_"))[1:-1])})
 
         data = {"latitude" : traj_data[traj_idxs["lat_*_deg"][0]],
                 "longitude" : traj_data[traj_idxs["lon_*_deg"][0]],
@@ -88,7 +90,7 @@ def plot_map(*args, sections=0, save=False, prefix="",
             data["gps_millis"] = traj_data["gps_millis"]
         traj_df = pd.DataFrame.from_dict(data)
         color_discrete_map[label_name] = \
-                            STANFORD_COLORS[idx % len(STANFORD_COLORS)]
+                            style.STANFORD_COLORS[idx % len(style.STANFORD_COLORS)]
         if figure_df is None:
             figure_df = traj_df
         else:

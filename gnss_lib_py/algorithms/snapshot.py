@@ -15,6 +15,7 @@ import numpy as np
 
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils import constants as consts
+from gnss_lib_py.navdata.operations import loop_time, find_wildcard_indexes
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
 def solve_wls(measurements, weight_type = None, only_bias = False,
@@ -84,14 +85,15 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
                     + "for only_bias.")
 
         rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-        rx_idxs = receiver_state.find_wildcard_indexes(
+        rx_idxs = find_wildcard_indexes(receiver_state,
                                                rx_rows_to_find,
                                                max_allow=1)
     states = []
     runtime_error_idxs = {}
 
     position = np.zeros((4,1))
-    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis", delta_t_decimals=delta_t_decimals):
+    for timestamp, _, measurement_subset in loop_time(measurements,"gps_millis",
+                                                      delta_t_decimals=delta_t_decimals):
 
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)

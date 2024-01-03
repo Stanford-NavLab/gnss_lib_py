@@ -112,7 +112,7 @@ class RinexObs(NavData):
                 self.concat(band_navdata, inplace=True)
             else:
                 self.concat(band_navdata, inplace=True)
-        self.sort('gps_millis', inplace=True)
+        sort(self,'gps_millis', inplace=True)
 
     @staticmethod
     def _measure_type_dict():

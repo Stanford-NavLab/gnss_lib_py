@@ -8,7 +8,7 @@ __date__ = "22 Jun 2022"
 import pytest
 import matplotlib.pyplot as plt
 
-import gnss_lib_py.visualizations.style as style
+from gnss_lib_py.visualizations import style
 import gnss_lib_py.visualizations.plot_metric as metric
 
 def test_plot_metrics(derived):
