@@ -502,3 +502,79 @@ def test_find_wildcard_excludes(data):
         op.find_wildcard_indexes(multi,["x_*_m","y_*_deg"],
                                     excludes=[None,{"a":"dictionary"}])
     assert "array-like" in str(excinfo.value)
+
+def test_interpolate():
+    """Test inerpolate nan function.
+
+    """
+
+    data = NavData()
+    data["ints"] = [1,2]
+    data["floats"] = [1.,2.]
+    new_data = op.interpolate(data,"ints","floats")
+    new_data["ints"] = np.array([1,2])
+    new_data["floats"] = np.array([1.,2.])
+
+    data = NavData()
+    data["UnixTimeMillis"] = [0,1,2,3,4,5,6,7,8,9,10]
+    data["LatitudeDegrees"] = [0., np.nan, np.nan, np.nan, np.nan, 50.,
+                               np.nan, np.nan, np.nan, np.nan, 55.]
+    data["LongitudeDegrees"] = [-10., np.nan, np.nan, np.nan, np.nan,
+                               np.nan, np.nan, np.nan, np.nan, np.nan, 0.]
+
+    new_data = op.interpolate(data,"UnixTimeMillis",["LatitudeDegrees",
+                                                  "LongitudeDegrees"])
+
+    np.testing.assert_array_equal(new_data["UnixTimeMillis"],
+                                  np.array([0,1,2,3,4,5,6,7,8,9,10]))
+    np.testing.assert_array_equal(new_data["LatitudeDegrees"],
+                                  np.array([0.,10.,20.,30.,40.,50.,
+                                            51.,52.,53.,54.,55.]))
+    np.testing.assert_array_equal(new_data["LongitudeDegrees"],
+                                  np.array([-10.,-9.,-8.,-7.,-6.,-5.,
+                                            -4.,-3.,-2.,-1.,0.]))
+
+    data = NavData()
+    data["UnixTimeMillis"] = [1,4,5,7,10]
+    data["LatitudeDegrees"] = [1., np.nan, np.nan, np.nan, 10.]
+    data["LongitudeDegrees"] = [-11., np.nan, np.nan, np.nan, -20.]
+
+    new_data = op.interpolate(data,"UnixTimeMillis",["LatitudeDegrees",
+                                                  "LongitudeDegrees"])
+
+    np.testing.assert_array_equal(new_data["UnixTimeMillis"],
+                                  np.array([1,4,5,7,10]))
+    np.testing.assert_array_equal(new_data["LatitudeDegrees"],
+                                  np.array([1.,4.,5.,7.,10.]))
+    np.testing.assert_array_equal(new_data["LongitudeDegrees"],
+                                  np.array([-11.,-14.,-15.,-17.,-20.]))
+
+    new_data = data.copy()
+
+    op.interpolate(new_data,"UnixTimeMillis",["LatitudeDegrees",
+                                           "LongitudeDegrees"],
+                                           inplace=True)
+
+    np.testing.assert_array_equal(new_data["UnixTimeMillis"],
+                                  np.array([1,4,5,7,10]))
+    np.testing.assert_array_equal(new_data["LatitudeDegrees"],
+                                  np.array([1.,4.,5.,7.,10.]))
+    np.testing.assert_array_equal(new_data["LongitudeDegrees"],
+                                  np.array([-11.,-14.,-15.,-17.,-20.]))
+
+def test_interpolate_fails():
+    """Test when inerpolate nan function should fail.
+
+    """
+
+    data = NavData()
+    data["ints"] = [0,1,2,3,4]
+    data["floats"] = [0.,1.,2.,np.nan,4.]
+
+    with pytest.raises(TypeError) as excinfo:
+        op.interpolate(data,1,"floats")
+    assert "x_row" in str(excinfo.value)
+
+    with pytest.raises(TypeError) as excinfo:
+        op.interpolate(data,"ints",1)
+    assert "y_rows" in str(excinfo.value)
