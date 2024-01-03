@@ -47,16 +47,20 @@ Code Organization
    ├── docs/                          # Documentation files
    ├── gnss_lib_py/                   # gnss_lib_py source files
         ├── algorithms/               # Navigation algorithms
+        ├── navdata/                  # NavData data structure
         ├── parsers/                  # Data parsers
         ├── utils/                    # GNSS and common utilities
+        ├── visualizations/           # plotting functions
         └── __init__.py
    ├── notebooks/                     # Interactive Jupyter notebooks
         ├── tutorials/                # Notebooks with tutorial code
    ├── results/                       # Location for result images/files
    ├── tests/                         # Tests for source files
       ├── algorithms/                 # Tests for files in algorithms
+      ├── navdata/                    # Tests for files in navdata
       ├── parsers/                    # Tests for files in parsers
       ├── utils/                      # Tests for files in utils
+      ├── visualizations/             # Tests for files in visualizations
       └── test_gnss_lib_py.py         # High level checks for repository
    ├── CONTRIBUTORS.md                # List of contributors
    ├── build_docs.sh                  # Bash script to build docs
