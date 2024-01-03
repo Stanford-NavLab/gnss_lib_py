@@ -14,7 +14,7 @@ import numpy as np
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022, AndroidGroundTruth2022
 from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
-from gnss_lib_py.navdata.operations import loop_time
+from gnss_lib_py.navdata.operations import loop_time, concat
 
 def pytest_collection_modifyitems(items):
     """Run ephemeris download tests after all other tests.
@@ -225,7 +225,7 @@ def fixture_derived_gps_l1_reversed(android_gps_l1):
         if len(android_gps_l1_reversed)==0:
             android_gps_l1_reversed = measure_frame
         else:
-            android_gps_l1_reversed.concat(measure_frame, inplace=True)
+            android_gps_l1_reversed = concat(android_gps_l1_reversed,measure_frame)
     return android_gps_l1_reversed
 
 

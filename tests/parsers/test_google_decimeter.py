@@ -15,7 +15,7 @@ from gnss_lib_py.parsers import google_decimeter
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.algorithms.gnss_filters import solve_gnss_ekf
-from gnss_lib_py.navdata.operations import loop_time
+from gnss_lib_py.navdata.operations import loop_time, concat
 
 # pylint: disable=protected-access
 
@@ -311,8 +311,8 @@ def test_android_concat(derived, pd_df):
     # extract and combine gps and glonass data
     gps_data = derived.where("gnss_id","gps")
     glonass_data = derived.where("gnss_id","glonass")
-    gps_glonass_navdata = gps_data.concat(glonass_data)
-    glonass_gps_navdata = glonass_data.concat(gps_data)
+    gps_glonass_navdata = concat(gps_data,glonass_data)
+    glonass_gps_navdata = concat(glonass_data,gps_data)
 
     # combine using pandas
     gps_df = pd_df[pd_df["constellationType"]==1]

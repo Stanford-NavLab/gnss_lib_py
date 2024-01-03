@@ -22,7 +22,7 @@ from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
-from gnss_lib_py.navdata.operations import loop_time, sort
+from gnss_lib_py.navdata.operations import loop_time, sort, concat, find_wildcard_indexes
 
 def add_measures(measurements, state_estimate,
                  ephemeris_path = DEFAULT_EPHEM_PATH, iono_params=None,
@@ -196,7 +196,7 @@ def add_measures(measurements, state_estimate,
             est_measurements = est_frame
         else:
             est_measurements = concat(est_measurements,est_frame)
-    est_measurements = measurements.concat(est_measurements, axis=0, inplace=False)
+    est_measurements = concat(measurements, est_measurements, axis=0)
     return est_measurements
 
 

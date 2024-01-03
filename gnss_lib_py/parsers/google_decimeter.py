@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.navdata.navdata import NavData
-from gnss_lib_py.navdata.operations import loop_time, concat, find_wildcard_indexes
+from gnss_lib_py.navdata.operations import loop_time, concat, find_wildcard_indexes, interpolate
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
@@ -225,7 +225,7 @@ class AndroidDerived2022(NavData):
             if len(state_estimate)==0:
                 state_estimate = temp_est
             else:
-                state_estimate = concat(state_estimate,temp_est, inplace=True)
+                state_estimate = concat(state_estimate,temp_est)
         return state_estimate
 
     @staticmethod
@@ -473,7 +473,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
     output["LatitudeDegrees"] = state_estimate[wildcards["lat_rx*_deg"]]
     output["LongitudeDegrees"] = state_estimate[wildcards["lon_rx*_deg"]]
 
-    output.interpolate("UnixTimeMillis",["LatitudeDegrees",
+    interpolate(output,"UnixTimeMillis",["LatitudeDegrees",
                                          "LongitudeDegrees"],inplace=True)
     return output
 
@@ -532,7 +532,7 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
                                                    trip_id)
 
                 # concatenate solution to previous solutions
-                solution.concat(navdata=output, inplace=True)
+                solution = concat(solution, output)
 
             except FileNotFoundError:
                 continue

@@ -11,7 +11,7 @@ import georinex as gr
 from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
-
+from gnss_lib_py.navdata.operations import sort, concat
 
 class RinexObs(NavData):
     """Class handling Rinex observation files [1]_.
@@ -109,9 +109,15 @@ class RinexObs(NavData):
             band_navdata['signal_type'] = signal_types
             band_navdata['observation_code'] = observation_codes
             if len(self) == 0:
-                self.concat(band_navdata, inplace=True)
+                concat_navdata = concat(self, band_navdata)
             else:
-                self.concat(band_navdata, inplace=True)
+                concat_navdata = concat(self, band_navdata)
+
+            self.array = concat_navdata.array
+            self.map = concat_navdata.map
+            self.str_map = concat_navdata.str_map
+            self.orig_dtypes = concat_navdata.orig_dtypes.copy()
+            
         sort(self,'gps_millis', inplace=True)
 
     @staticmethod

@@ -20,7 +20,7 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH, load_ephemeris
-from gnss_lib_py.navdata.operations import loop_time, sort
+from gnss_lib_py.navdata.operations import loop_time, sort, concat, find_wildcard_indexes
 
 def add_sv_states(navdata, source = 'precise', file_paths = None,
                   download_directory = DEFAULT_EPHEM_PATH,
@@ -181,7 +181,7 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         if len(sv_states_all_time)==0:
             sv_states_all_time = measure_frame
         else:
-            sv_states_all_time.concat(measure_frame, inplace=True)
+            sv_states_all_time = concat(sv_states_all_time, measure_frame)
     return sv_states_all_time
 
 
@@ -258,7 +258,7 @@ def add_visible_svs_for_trajectory(rx_states,
         if len(sv_posvel_trajectory) == 0:
             sv_posvel_trajectory = sv_posvel
         else:
-            sv_posvel_trajectory.concat(sv_posvel, inplace=True)
+            sv_posvel_trajectory = concat(sv_posvel_trajectory,sv_posvel)
 
     return sv_posvel_trajectory
 
