@@ -227,7 +227,7 @@ def plot_metric_by_constellation(navdata, *args, save=False, prefix="",
         if "signal_type" in const_subset.rows:
             for signal in np.unique(const_subset["signal_type"]):
                 title = _get_label({"gnss_id":constellation,"signal_type":signal})
-                signal_subset = navdata.where("signal_type",signal)
+                signal_subset = const_subset.where("signal_type",signal)
                 if "sv_id" in signal_subset.rows:
                     # group by sv_id
                     fig = plot_metric(signal_subset,x_metric,y_metric,
