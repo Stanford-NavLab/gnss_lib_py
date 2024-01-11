@@ -588,7 +588,7 @@ class AndroidRawAccel(NavData):
         if len(sensor_dfs) == 0:
             measurements = pd.DataFrame()
         elif len(sensor_dfs) > 1:
-            measurements = pd.concat(sensor_dfs, axis=1)
+            measurements = pd.concat(sensor_dfs, axis=0)
         else:
             measurements = sensor_dfs[0]
 
