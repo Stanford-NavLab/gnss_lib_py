@@ -255,3 +255,12 @@ def test_z_tracking(root_path):
 
     assert len(rinex_navdata) == 210
     assert rinex_navdata.shape == (10,210)
+
+    # expected observation codes come from z_tracking.rnx header
+    # header also lists the 3Q measurements for glonass but none exist
+    # in this shortened version of the file
+    expected_observation_codes = ['1C','1W','2W','2L','5Q','7Q','2P',
+                                  '2C','2I','7I']
+
+    parsed_observation_codes = np.unique(rinex_navdata["observation_code"])
+    assert sorted(expected_observation_codes) == sorted(parsed_observation_codes)

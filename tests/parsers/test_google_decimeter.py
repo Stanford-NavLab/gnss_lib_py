@@ -339,8 +339,8 @@ def test_navdata_type(derived):
     derived : pytest.fixture
         Instance of AndroidDerived2021 for testing
     """
-    isinstance(derived, NavData)
-    isinstance(derived, google_decimeter.AndroidDerived2021)
+    assert isinstance(derived, NavData)
+    assert isinstance(derived, google_decimeter.AndroidDerived2021)
 
 def test_timestep_parsing(derived_path_xl):
     """Test that the timesteps contain the same satellites.
@@ -443,8 +443,8 @@ def test_android_gtruth(gtruth):
 
     """
 
-    isinstance(gtruth, NavData)
-    isinstance(gtruth, google_decimeter.AndroidGroundTruth2021)
+    assert isinstance(gtruth, NavData)
+    assert isinstance(gtruth, google_decimeter.AndroidGroundTruth2021)
 
     assert int(gtruth["gps_millis",3]) == 1273529466442
 

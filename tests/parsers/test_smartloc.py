@@ -193,8 +193,8 @@ def test_navdata_type(smartloc_raw):
     smartloc_raw : pytest.fixture
         Instance of SmartLocRaw for testing
     """
-    isinstance(smartloc_raw, NavData)
-    isinstance(smartloc_raw, SmartLocRaw)
+    assert isinstance(smartloc_raw, NavData)
+    assert isinstance(smartloc_raw, SmartLocRaw)
 
 
 def test_shape_update(smartloc_raw):

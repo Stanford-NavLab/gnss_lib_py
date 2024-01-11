@@ -390,7 +390,7 @@ class AndroidRawGnss(NavData):
 
     @staticmethod
     def _row_map():
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------
@@ -490,7 +490,7 @@ class AndroidRawFixes(NavData):
 
     @staticmethod
     def _row_map():
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------
@@ -589,7 +589,7 @@ class AndroidRawAccel(NavData):
         if len(sensor_dfs) == 0:
             measurements = pd.DataFrame()
         elif len(sensor_dfs) > 1:
-            measurements = pd.concat(sensor_dfs, axis=1)
+            measurements = pd.concat(sensor_dfs, axis=0)
         else:
             measurements = sensor_dfs[0]
 
@@ -602,7 +602,7 @@ class AndroidRawAccel(NavData):
         self["gps_millis"] = unix_to_gps_millis(self["unix_millis"])
 
     def _row_map(self):
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------
@@ -639,7 +639,7 @@ class AndroidRawGyro(AndroidRawAccel):
         super().__init__(input_path, sensor_fields=sensor_fields)
 
     def _row_map(self):
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------
@@ -676,7 +676,7 @@ class AndroidRawMag(AndroidRawAccel):
         super().__init__(input_path, sensor_fields=sensor_fields)
 
     def _row_map(self):
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------
@@ -713,7 +713,7 @@ class AndroidRawOrientation(AndroidRawAccel):
         super().__init__(input_path, sensor_fields=sensor_fields)
 
     def _row_map(self):
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------

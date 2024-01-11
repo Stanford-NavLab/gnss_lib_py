@@ -664,7 +664,7 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
                 if os.path.split(path)[1][3:] == str(gps_week).zfill(4) + str((timetuple.tm_wday+1)%7) + ".sp3":
                     return True, path
 
-        # sp3 before Aug 13, 2017 and May 25, 2012 or later
+        # sp3 between May 25, 2012 and Aug 12, 2017 inclusive
         elif possible_type == "sp3_short_CODE":
             gps_week, _ = tc.datetime_to_tow(datetime.combine(date,
                                          time(tzinfo=timezone.utc)))
@@ -1020,7 +1020,7 @@ def _get_rinex_extension(timestamp):
     .. [15] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 
     """
-    # switched from .Z to .gz compression format on December 1st, 2020
+
     if timestamp >= datetime(2020, 11, 30, tzinfo=timezone.utc).date():
         extension = '.gz'
     else:

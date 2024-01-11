@@ -189,10 +189,10 @@ def test_sensor_loaders(raw_path, sensor_type):
     """
 
     test_navdata = sensor_type(input_path = raw_path)
-    isinstance(test_navdata, NavData)
+    assert isinstance(test_navdata, NavData)
 
     test_navdata = sensor_type(pathlib.Path(raw_path))
-    isinstance(test_navdata, NavData)
+    assert isinstance(test_navdata, NavData)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):
@@ -204,6 +204,79 @@ def test_sensor_loaders(raw_path, sensor_type):
     with pytest.raises(TypeError):
         sensor_type([])
 
+@pytest.mark.parametrize('sensor_type',
+                        [android.AndroidRawMag,
+                         android.AndroidRawGyro,
+                         android.AndroidRawAccel,
+                         android.AndroidRawOrientation,
+                        ])
+@pytest.mark.parametrize('raw_path',
+                        [
+                         lazy_fixture("sensors_raw_path"),
+                        ])
+def test_sensor_content(raw_path, sensor_type):
+    """Test that sensor loaders contain data.
+
+    Parameters
+    ----------
+    raw_path : pytest.fixture
+        Path to Android Raw measurements text log file
+    sensor_type : NavData
+        Type of NavData object
+
+    """
+
+    test_navdata = sensor_type(input_path = raw_path)
+
+    if sensor_type == android.AndroidRawMag:
+        uncalmag = test_navdata[["unix_millis","mag_x_uncal_microt",
+                                 "mag_y_uncal_microt","mag_z_uncal_microt",
+                                 "mag_bias_x_microt","mag_bias_y_microt",
+                                 "mag_bias_z_microt"],0]
+        uncalmag_expected = np.array([1699400576748,-54.1436,-88.937996,
+                                     -147.3638,-79.950134,-76.57953,
+                                     -113.967804])
+        np.testing.assert_array_equal(uncalmag,uncalmag_expected)
+        mag = test_navdata[["unix_millis","mag_x_microt",
+                                 "mag_y_microt","mag_z_microt"],1]
+        mag_expected = np.array([1699400576748,-54.1436,-88.937996,
+                                -147.3638])
+        np.testing.assert_array_equal(mag,mag_expected)
+    if sensor_type == android.AndroidRawGyro:
+        uncalgyro = test_navdata[["unix_millis","ang_vel_x_uncal_radps",
+                                 "ang_vel_y_uncal_radps","ang_vel_z_uncal_radps",
+                                 "DriftXRadPerSec","DriftYRadPerSec",
+                                 "DriftZRadPerSec"],0]
+        uncalgyro_expected = np.array([1699400576750,-0.06261369,
+                                      -0.09315695,0.036651913,
+                                      -0.0020643917,-0.0038384064,
+                                      -0.0013324362])
+        np.testing.assert_array_equal(uncalgyro,uncalgyro_expected)
+        gyro = test_navdata[["unix_millis","ang_vel_x_radps",
+                             "ang_vel_y_radps",
+                             "ang_vel_z_radps"],1]
+        gyro_expected = np.array([1699400576750,-0.06261369,-0.09315695,0.036651913])
+        np.testing.assert_array_equal(gyro,gyro_expected)
+    if sensor_type == android.AndroidRawAccel:
+        uncalaccel = test_navdata[["unix_millis","acc_x_uncal_mps2",
+                                 "acc_y_uncal_mps2","acc_z_uncal_mps2",
+                                 "acc_bias_x_mps2","acc_bias_y_mps2",
+                                 "acc_bias_z_mps2"],0]
+        uncalaccel_expected = np.array([1699400576750,0.17288144,
+                                        0.44925246,9.886545,0.065623306,
+                                        0.002461203,-0.031848617])
+        np.testing.assert_array_equal(uncalaccel,uncalaccel_expected)
+        accel = test_navdata[["unix_millis","acc_x_mps2",
+                                 "acc_y_mps2","acc_z_mps2"],1]
+        accel_expected = np.array([1699400576750,
+                                   0.17288144,0.44925246,9.886545])
+        np.testing.assert_array_equal(accel,accel_expected)
+    if sensor_type == android.AndroidRawOrientation:
+        deg = test_navdata[["unix_millis","yaw_rx_deg",
+                                 "roll_rx_deg","pitch_rx_deg"]]
+        deg_expected = np.array([1699400576750,245.0,0.0,-2.0])
+        np.testing.assert_array_equal(deg,deg_expected)
+
 def test_fix_raw(android_raw_path):
     """Test that AndroidRawFixes initialization
 
@@ -213,10 +286,10 @@ def test_fix_raw(android_raw_path):
         Path to Android Raw measurements text log file
     """
     test_fix = android.AndroidRawFixes(android_raw_path)
-    isinstance(test_fix, NavData)
+    assert isinstance(test_fix, NavData)
 
     test_fix = android.AndroidRawFixes(pathlib.Path(android_raw_path))
-    isinstance(test_fix, NavData)
+    assert isinstance(test_fix, NavData)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):

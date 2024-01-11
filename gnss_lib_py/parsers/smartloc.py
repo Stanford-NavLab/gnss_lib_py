@@ -78,7 +78,7 @@ class SmartLocRaw(NavData):
 
     @staticmethod
     def _row_map():
-        """Map of column names from loaded to gnss_lib_py standard
+        """Map of row names from loaded to gnss_lib_py standard
 
         Returns
         -------

@@ -615,9 +615,9 @@ def _filter_ephemeris_measurements(measurements, constellations,
     """
     measurements.in_rows(['gnss_id', 'sv_id', 'gps_millis'])
     # Check whether the rows are in the right format as needed.
-    isinstance(measurements['gnss_id'].dtype, object)
-    isinstance(measurements['sv_id'].dtype, int)
-    isinstance(measurements['gps_millis'].dtype, np.int64)
+    assert isinstance(measurements['gnss_id'].dtype, object)
+    assert np.issubdtype(measurements['sv_id'].dtype, np.integer)
+    assert np.issubdtype(measurements['gps_millis'].dtype, float)
     rx_const= np.unique(measurements['gnss_id'])
     # Check if required constellations are available, keep only required
     # constellations
