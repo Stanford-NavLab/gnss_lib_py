@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.android import AndroidDerived2022
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
 from gnss_lib_py.algorithms.fde import solve_fde, evaluate_fde
 
 @pytest.fixture(name="root_path_2022")
@@ -28,7 +28,7 @@ def fixture_root_path_2022():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path_2022 = os.path.join(root_path, 'data','unit_test','android_2022')
+    root_path_2022 = os.path.join(root_path, 'data','unit_test','google_decimeter_2022')
     return root_path_2022
 
 @pytest.fixture(name="derived_2022_path")

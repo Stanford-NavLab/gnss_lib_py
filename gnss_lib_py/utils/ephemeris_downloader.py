@@ -112,6 +112,8 @@ References
 
 """
 
+# CLK: 2020, 7, 2
+
 __authors__ = "Shubh Gupta, Ashwin Kanhere, Derek Knowles"
 __date__ = "13 July 2021"
 
@@ -999,7 +1001,7 @@ def _get_rinex_extension(timestamp):
     """Get file extension of rinex file based on timestamp.
 
     GPS and Glonass Rinex files switched from .Z to .gz on
-    December 1, 2020 [5]_.
+    December 1, 2020 [15]_.
 
     But brdc actually switched on November 30, 2020.
 
@@ -1015,7 +1017,7 @@ def _get_rinex_extension(timestamp):
 
     References
     ----------
-    .. [5] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
+    .. [15] https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/daily_30second_data.html
 
     """
 

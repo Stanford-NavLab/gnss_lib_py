@@ -99,7 +99,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
         corr_pr_m = measurement_subset["corr_pr_m"].reshape(-1,1)
 
         # remove NaN indexes
-        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=1)
+        not_nan_indexes = ~np.isnan(pos_sv_m).any(axis=1) & ~np.isnan(corr_pr_m).any(axis=1)
         pos_sv_m = pos_sv_m[not_nan_indexes]
         corr_pr_m = corr_pr_m[not_nan_indexes]
 

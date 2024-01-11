@@ -3,13 +3,14 @@
 # 
 # Version: v2.0.4.2 Platform: 10 Manufacturer: Google Model: Pixel 4
 # 
+#,
 # Raw,utcTimeMillis,TimeNanos,LeapSecond,TimeUncertaintyNanos,FullBiasNanos,BiasNanos,BiasUncertaintyNanos,DriftNanosPerSecond,DriftUncertaintyNanosPerSecond,HardwareClockDiscontinuityCount,Svid,TimeOffsetNanos,State,ReceivedSvTimeNanos,ReceivedSvTimeUncertaintyNanos,Cn0DbHz,PseudorangeRateMetersPerSecond,PseudorangeRateUncertaintyMetersPerSecond,AccumulatedDeltaRangeState,AccumulatedDeltaRangeMeters,AccumulatedDeltaRangeUncertaintyMeters,CarrierFrequencyHz,CarrierCycles,CarrierPhase,CarrierPhaseUncertainty,MultipathIndicator,SnrInDb,ConstellationType,AgcDb
 # 
 # Accel,utcTimeMillis,elapsedRealtimeNanos,AccelXMps2,AccelYMps2,AccelZMps2
 # 
 # Gyro,utcTimeMillis,elapsedRealtimeNanos,GyroXRadPerSec,GyroYRadPerSec,GyroZRadPerSec
 # 
-# Mag,utcTimeMillis,elapsedRealtimeNanos,MagXmicroT,MagYmicroT,MagYmicroT
+# Mag,utcTimeMillis,elapsedRealtimeNanos,MagXmicroT,MagYmicroT,MagZmicroT
 # 
 # Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis,SpeedAccuracyMps,BearingAccuracyDegrees
 # 
@@ -27,6 +28,8 @@ Accel,1589494244850,19637945289491,-0.11413784,10.099208,0.7519483
 Gyro,1589494244852,19637947202199,-0.008254008,0.017697258,-0.065580204
 Accel,1589494244853,19637947732199,-0.08903305,9.789539,0.82180893
 Accel,1589494244856,19637950174907,-0.123532884,9.58648,0.9968571
+
+,
 Gyro,1589494244855,19637949644907,-0.008271557,0.010407215,-0.058197275
 Gyro,1589494244857,19637952087616,-0.011739819,0.011784462,-0.048396837
 Mag,1589494244860,19637954245636,25.011307,-48.403454,-17.473583

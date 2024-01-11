@@ -1,21 +1,22 @@
-"""Tests for Android data loaders.
+"""Tests for Android raw data loaders.
 
 """
 
-__authors__ = "Ashwin Kanhere, Derek Knowles"
-__date__ = "10 Nov 2021"
+__authors__ = "Derek Knowles"
+__date__ = "30 Oct 2023"
 
 import os
+import csv
 import pathlib
 
 import pytest
 import numpy as np
 import pandas as pd
+from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers import android
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2023
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.algorithms.snapshot import solve_wls
-from gnss_lib_py.algorithms.gnss_filters import solve_gnss_ekf
 
 # pylint: disable=protected-access
 
@@ -32,74 +33,8 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2021')
+    root_path = os.path.join(root_path, 'data/unit_test')
     return root_path
-
-
-@pytest.fixture(name="derived_path")
-def fixture_derived_path(root_path):
-    """Filepath of Android Derived measurements
-
-    Parameters
-    ----------
-    root_path : string
-        Path of testing dataset root path
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [1]_,
-    particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-
-    References
-    ----------
-    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
-    return derived_path
-
-@pytest.fixture(name="derived_path_xl")
-def fixture_derived_path_xl(root_path):
-    """Filepath of Android Derived measurements
-
-    Parameters
-    ----------
-    root_path : string
-        Path of testing dataset root path
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [6]_,
-    particularly the train/2020-05-14-US-MTV-1/Pixel4XL trace. The
-    dataset was retrieved from
-    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-
-    References
-    ----------
-    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path, 'Pixel4XL_derived.csv')
-    return derived_path
-
 
 @pytest.fixture(name="android_raw_path")
 def fixture_raw_path(root_path):
@@ -130,231 +65,217 @@ def fixture_raw_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    raw_path = os.path.join(root_path, 'Pixel4_GnssLog.txt')
+    raw_path = os.path.join(root_path, 'google_decimeter_2021',
+                            'Pixel4_GnssLog.txt')
     return raw_path
 
-
-@pytest.fixture(name="pd_df")
-def fixture_pd_df(derived_path):
-    """Load Android derived measurements into dataframe
+@pytest.fixture(name="pixel6_raw_path")
+def fixture_pixel6_raw_path(root_path):
+    """Filepath of Android Raw measurements
 
     Parameters
     ----------
-    derived_path : pytest.fixture
-        String with filepath to derived measurement file
+    root_path : string
+        Path of testing dataset root path
 
     Returns
     -------
-    derived_df : pd.DataFrame
-        Dataframe with Android Derived measurements
+    raw_path : string
+        Location for text log file with Android Raw measurements
+
     """
-    derived_df = pd.read_csv(derived_path)
-    return derived_df
+    raw_path = os.path.join(root_path, 'android','measurements',
+                            'pixel6.txt')
+    return raw_path
 
+@pytest.fixture(name="sensors_raw_path")
+def fixture_sensors_raw_path(root_path):
+    """Filepath of Android Raw measurements
 
-@pytest.fixture(name="derived_row_map")
-def fixture_inverse_row_map():
-    """Map from standard names to derived column names
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
 
     Returns
     -------
-    inverse_row_map : Dict
-        Column names for inverse map of form
-        {standard_name : derived_name}
+    raw_path : string
+        Location for text log file with Android Raw measurements
+
     """
-    inverse_row_map = {v : k for k,v in android.AndroidDerived2021._row_map().items()}
-    return inverse_row_map
+    raw_path = os.path.join(root_path, 'android','measurements',
+                            'all_sensors.txt')
+    return raw_path
 
-
-@pytest.fixture(name="derived")
-def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived2021
+@pytest.fixture(name="android_raw_2023_path")
+def fixture_raw_2023_path(root_path):
+    """Filepath of Android Raw measurements
 
     Parameters
     ----------
-    derived_path : pytest.fixture
-        String with location of Android derived measurement file
+    root_path : string
+        Path of testing dataset root path
 
     Returns
     -------
-    derived : AndroidDerived2021
-        Instance of AndroidDerived2021 for testing
-    """
-    derived = android.AndroidDerived2021(derived_path)
-    return derived
+    raw_path : string
+        Location for text log file with Android Raw measurements
 
-def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
-    """Test if naive dataframe and AndroidDerived2021 contain same data.
+    Notes
+    -----
+    Test data is a subset of the 2023 Google Challenge [3]_.
+
+    References
+    ----------
+    .. [3] https://www.kaggle.com/competitions/smartphone-decimeter-2023/overview
+
+    """
+    raw_path = os.path.join(root_path, 'google_decimeter_2023',
+                            '2023-09-07-18-59-us-ca',
+                            'pixel7pro',
+                            'gnss_log.txt')
+    return raw_path
+
+@pytest.fixture(name="android_derived_2023_path")
+def fixture_derived_2023_path(root_path):
+    """Filepath of Android derived measurements
 
     Parameters
     ----------
-    derived_path : string
-        Location for the unit_test Android 2021 derived measurements.
-    pd_df : pytest.fixture
-        pd.DataFrame for testing measurements
-    derived_row_map : pytest.fixture
-        Column map to convert standard to original derived column names.
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    raw_path : string
+        Location for text log file with Android Raw measurements
+
+    Notes
+    -----
+    Test data is a subset of the 2023 Google Challenge [4]_.
+
+    References
+    ----------
+    .. [4] https://www.kaggle.com/competitions/smartphone-decimeter-2023/overview
 
     """
-    # Also tests if strings are being converted back correctly
-    derived = android.AndroidDerived2021(derived_path,
-                               remove_timing_outliers=False)
-    measure_df = derived.pandas_df()
-    measure_df.replace({'gnss_id',"gps"},1,inplace=True)
-    measure_df.replace({'gnss_id',"glonass"},3,inplace=True)
-    measure_df.replace({'gnss_id',"galileo"},6,inplace=True)
-    signal_map = {"GPS_L1" : "l1",
-                  "GPS_L5" : "l5",
-                  "GAL_E1" : "e1",
-                  "GAL_E5A" : "e5a",
-                  "GLO_G1" : "g1",
-                  "QZS_J1" : "j1",
-                  "QZS_J5" : "j5",
-                  "BDS_B1I" : "b1i",
-                  "BDS_B1C" : "b1c",
-                  "BDS_B2A" : "b2a",
-                 }
-    for s_key, s_value in signal_map.items():
-        measure_df.replace({'signal_type',s_value},s_key,inplace=True)
-    measure_df.rename(columns=derived_row_map, inplace=True)
-    measure_df = measure_df.drop(columns='corr_pr_m')
-    pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
-    pd_df.reset_index(drop=True, inplace=True)
-    pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
-                                  measure_df.sort_index(axis=1),
-                                  check_dtype=False, check_names=True)
+    raw_path = os.path.join(root_path, 'google_decimeter_2023',
+                            '2023-09-07-18-59-us-ca',
+                            'pixel7pro',
+                            'device_gnss.csv')
+    return raw_path
 
-
-@pytest.mark.parametrize('row_name, index, value',
-                        [('trace_name', 0,
-                          np.asarray([['2020-05-14-US-MTV-1']],
-                          dtype=object)),
-                         ('rx_name', 1,
-                          np.asarray([['Pixel4']], dtype=object)),
-                         ('vz_sv_mps', 0, 3559.812),
-                         ('b_dot_sv_mps', 0, 0.001),
-                         ('signal_type', 0,
-                          np.asarray([['g1']], dtype=object))]
-                        )
-def test_derived_value_check(derived, row_name, index, value):
-    """Check AndroidDerived2021 entries against known values.
+@pytest.mark.parametrize('sensor_type',
+                        [android.AndroidRawMag,
+                         android.AndroidRawGyro,
+                         android.AndroidRawAccel,
+                         android.AndroidRawOrientation,
+                        ])
+@pytest.mark.parametrize('raw_path',
+                        [lazy_fixture("android_raw_path"),
+                         lazy_fixture("pixel6_raw_path"),
+                         lazy_fixture("sensors_raw_path"),
+                        ])
+def test_sensor_loaders(raw_path, sensor_type):
+    """Test that sensor loaders initialize correctly.
 
     Parameters
     ----------
-    derived : pytest.fixture
-        Instance of AndroidDerived2021 for testing
-    row_name : string
-        Row key for test example
-    index : int
-        Column number for test example
-    value : float or string
-        Known value to be checked against
-
-    """
-    # Testing stored values vs their known counterparts
-    # After filtering for good values, Row 28 is the first row of the
-    # dataset because the first time frame is removed.
-    # Hardcoded values have been taken from the corresponding row in the
-    # csv file
-    np.testing.assert_equal(derived[row_name, index], value)
-
-
-def test_get_and_set_num(derived):
-    """Testing __getitem__ and __setitem__ methods for numerical values
-
-    Parameters
-    ----------
-    derived : pytest.fixture
-        Instance of AndroidDerived2021 for testing
-    """
-    key = 'testing123'
-    value = np.zeros(len(derived))
-    derived[key] = value
-    np.testing.assert_equal(derived[key, :], value)
-
-
-def test_get_and_set_str(derived):
-    """Testing __getitem__ and __setitem__ methods for string values
-
-    Parameters
-    ----------
-    derived : pytest.fixture
-        Instance of AndroidDerived2021 for testing
-    """
-    key = 'testing123_string'
-    value = ['word']*len(derived)
-    derived_size = len(derived)
-    size1 = int(derived_size/2)
-    size2 = (derived_size-int(derived_size/2))
-    value1 = ['ashwin']*size1
-    value2 = ['derek']*size2
-    value = np.concatenate((np.asarray(value1, dtype=object),
-                            np.asarray(value2, dtype=object)))
-    derived[key] = value
-
-    np.testing.assert_equal(derived[key, :], value)
-
-def test_android_concat(derived, pd_df):
-    """Test concat on Android data.
-
-    Parameters
-    ----------
-    derived : AndroidDerived2021
-        Instance of AndroidDerived2021 for testing
-    pd_df : pytest.fixture
-        pd.DataFrame for testing measurements
-    """
-
-    # remove first timestamp to match
-    pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
-
-    # extract and combine gps and glonass data
-    gps_data = derived.where("gnss_id","gps")
-    glonass_data = derived.where("gnss_id","glonass")
-    gps_glonass_navdata = gps_data.concat(glonass_data)
-    glonass_gps_navdata = glonass_data.concat(gps_data)
-
-    # combine using pandas
-    gps_df = pd_df[pd_df["constellationType"]==1]
-    glonass_df = pd_df[pd_df["constellationType"]==3]
-    gps_glonass_df = pd.concat((gps_df,glonass_df))
-    glonass_gps_df = pd.concat((glonass_df,gps_df))
-
-    for combined_navdata, combined_df in [(gps_glonass_navdata, gps_glonass_df),
-                                          (glonass_gps_navdata, glonass_gps_df)]:
-
-        # check a few rows to make sure they're equal
-        np.testing.assert_array_equal(combined_navdata["raw_pr_m"],
-                                      combined_df["rawPrM"])
-        np.testing.assert_array_equal(combined_navdata["raw_pr_sigma_m"],
-                                      combined_df["rawPrUncM"])
-        np.testing.assert_array_equal(combined_navdata["intersignal_bias_m"],
-                                      combined_df["isrbM"])
-
-def test_imu_raw(android_raw_path):
-    """Test that AndroidRawImu initialization
-
-    Parameters
-    ----------
-    android_raw_path : pytest.fixture
+    raw_path : pytest.fixture
         Path to Android Raw measurements text log file
-    """
-    test_imu = android.AndroidRawImu(android_raw_path)
-    isinstance(test_imu, NavData)
+    sensor_type : NavData
+        Type of NavData object
 
-    test_imu = android.AndroidRawImu(pathlib.Path(android_raw_path))
-    isinstance(test_imu, NavData)
+    """
+
+    test_navdata = sensor_type(input_path = raw_path)
+    assert isinstance(test_navdata, NavData)
+
+    test_navdata = sensor_type(pathlib.Path(raw_path))
+    assert isinstance(test_navdata, NavData)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):
-        android.AndroidRawImu("not_a_file.txt")
+        sensor_type("not_a_file.txt")
     with pytest.raises(FileNotFoundError):
-        android.AndroidRawImu(pathlib.Path("not_a_file.txt"))
+        sensor_type(pathlib.Path("not_a_file.txt"))
 
     # raises exception if input not string or path-like
     with pytest.raises(TypeError):
-        android.AndroidRawImu([])
+        sensor_type([])
 
+@pytest.mark.parametrize('sensor_type',
+                        [android.AndroidRawMag,
+                         android.AndroidRawGyro,
+                         android.AndroidRawAccel,
+                         android.AndroidRawOrientation,
+                        ])
+@pytest.mark.parametrize('raw_path',
+                        [
+                         lazy_fixture("sensors_raw_path"),
+                        ])
+def test_sensor_content(raw_path, sensor_type):
+    """Test that sensor loaders contain data.
+
+    Parameters
+    ----------
+    raw_path : pytest.fixture
+        Path to Android Raw measurements text log file
+    sensor_type : NavData
+        Type of NavData object
+
+    """
+
+    test_navdata = sensor_type(input_path = raw_path)
+
+    if sensor_type == android.AndroidRawMag:
+        uncalmag = test_navdata[["unix_millis","mag_x_uncal_microt",
+                                 "mag_y_uncal_microt","mag_z_uncal_microt",
+                                 "mag_bias_x_microt","mag_bias_y_microt",
+                                 "mag_bias_z_microt"],0]
+        uncalmag_expected = np.array([1699400576748,-54.1436,-88.937996,
+                                     -147.3638,-79.950134,-76.57953,
+                                     -113.967804])
+        np.testing.assert_array_equal(uncalmag,uncalmag_expected)
+        mag = test_navdata[["unix_millis","mag_x_microt",
+                                 "mag_y_microt","mag_z_microt"],1]
+        mag_expected = np.array([1699400576748,-54.1436,-88.937996,
+                                -147.3638])
+        np.testing.assert_array_equal(mag,mag_expected)
+    if sensor_type == android.AndroidRawGyro:
+        uncalgyro = test_navdata[["unix_millis","ang_vel_x_uncal_radps",
+                                 "ang_vel_y_uncal_radps","ang_vel_z_uncal_radps",
+                                 "DriftXRadPerSec","DriftYRadPerSec",
+                                 "DriftZRadPerSec"],0]
+        uncalgyro_expected = np.array([1699400576750,-0.06261369,
+                                      -0.09315695,0.036651913,
+                                      -0.0020643917,-0.0038384064,
+                                      -0.0013324362])
+        np.testing.assert_array_equal(uncalgyro,uncalgyro_expected)
+        gyro = test_navdata[["unix_millis","ang_vel_x_radps",
+                             "ang_vel_y_radps",
+                             "ang_vel_z_radps"],1]
+        gyro_expected = np.array([1699400576750,-0.06261369,-0.09315695,0.036651913])
+        np.testing.assert_array_equal(gyro,gyro_expected)
+    if sensor_type == android.AndroidRawAccel:
+        uncalaccel = test_navdata[["unix_millis","acc_x_uncal_mps2",
+                                 "acc_y_uncal_mps2","acc_z_uncal_mps2",
+                                 "acc_bias_x_mps2","acc_bias_y_mps2",
+                                 "acc_bias_z_mps2"],0]
+        uncalaccel_expected = np.array([1699400576750,0.17288144,
+                                        0.44925246,9.886545,0.065623306,
+                                        0.002461203,-0.031848617])
+        np.testing.assert_array_equal(uncalaccel,uncalaccel_expected)
+        accel = test_navdata[["unix_millis","acc_x_mps2",
+                                 "acc_y_mps2","acc_z_mps2"],1]
+        accel_expected = np.array([1699400576750,
+                                   0.17288144,0.44925246,9.886545])
+        np.testing.assert_array_equal(accel,accel_expected)
+    if sensor_type == android.AndroidRawOrientation:
+        deg = test_navdata[["unix_millis","yaw_rx_deg",
+                                 "roll_rx_deg","pitch_rx_deg"]]
+        deg_expected = np.array([1699400576750,245.0,0.0,-2.0])
+        np.testing.assert_array_equal(deg,deg_expected)
 
 def test_fix_raw(android_raw_path):
     """Test that AndroidRawFixes initialization
@@ -365,10 +286,10 @@ def test_fix_raw(android_raw_path):
         Path to Android Raw measurements text log file
     """
     test_fix = android.AndroidRawFixes(android_raw_path)
-    isinstance(test_fix, NavData)
+    assert isinstance(test_fix, NavData)
 
     test_fix = android.AndroidRawFixes(pathlib.Path(android_raw_path))
-    isinstance(test_fix, NavData)
+    assert isinstance(test_fix, NavData)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):
@@ -380,58 +301,63 @@ def test_fix_raw(android_raw_path):
     with pytest.raises(TypeError):
         android.AndroidRawFixes([])
 
-
-def test_navdata_type(derived):
-    """Test that all subclasses inherit from NavData
-
-    Parameters
-    ----------
-    derived : pytest.fixture
-        Instance of AndroidDerived2021 for testing
-    """
-    isinstance(derived, NavData)
-    isinstance(derived, android.AndroidDerived2021)
-
-def test_timestep_parsing(derived_path_xl):
-    """Test that the timesteps contain the same satellites.
-
-    """
-
-    pd_df_xl = pd.read_csv(derived_path_xl)
-    derived_xl = android.AndroidDerived2021(derived_path_xl,
-                               remove_timing_outliers=False)
-
-    pd_svid_groups = []
-    for _, group in pd_df_xl.groupby("millisSinceGpsEpoch"):
-        pd_svid_groups.append(group["svid"].tolist())
-    pd_svid_groups.pop(0)
-
-    navdata_svid_groups = []
-    for _, _, group in derived_xl.loop_time("gps_millis"):
-        navdata_svid_groups.append(group["sv_id"].astype(int).tolist())
-
-    assert len(pd_svid_groups) == len(navdata_svid_groups)
-
-    for pd_ids, navdata_ids in zip(pd_svid_groups,navdata_svid_groups):
-        assert pd_ids == navdata_ids
-
-
-def test_shape_update(derived):
-    """Test that shape gets updated after adding a row.
+def make_csv(input_path, output_directory, field, show_path=False):
+    """Write specific data types from a GNSS android log to a CSV.
 
     Parameters
     ----------
-    derived : pytest.fixture
-        Instance of AndroidDerived2021 for testing
-    """
-    old_shape = derived.shape
-    derived["new_row"] = np.ones((old_shape[1]))
-    new_shape = derived.shape
+    input_path : string or path-like
+        File location of data file to read.
+    output_directory : string
+        Directory where new csv file should be created
+    field : list of strings
+        Type of data to extract. Valid options are either "Raw",
+        "Accel", "Gyro", "Mag", or "Fix".
+    show_path : bool
+        If true, prints output path.
 
-    # should still have the same number of columns (timesteps)
-    np.testing.assert_equal(old_shape[1], new_shape[1])
-    # should have added one new row
-    np.testing.assert_equal(old_shape[0] + 1, new_shape[0])
+    Returns
+    -------
+    output_path : string
+        New file location of the exported CSV.
+
+    Notes
+    -----
+    Based off of MATLAB code from Google's gps-measurement-tools
+    repository: https://github.com/google/gps-measurement-tools. Compare
+    with MakeCsv() in opensource/ReadGnssLogger.m
+
+    """
+    if not os.path.isdir(output_directory): #pragma: no cover
+        os.makedirs(output_directory)
+    output_path = os.path.join(output_directory, field + ".csv")
+    with open(output_path, 'w', encoding="utf8") as out_csv:
+        writer = csv.writer(out_csv)
+
+        if not isinstance(input_path, (str, os.PathLike)):
+            raise TypeError("input_path must be string or path-like")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(input_path,"file not found")
+
+        with open(input_path, 'r', encoding="utf8") as in_txt:
+            for line in in_txt:
+                # Comments in the log file
+                if line[0] == '#':
+                    # Remove initial '#', spaces, trailing newline
+                    # and split using commas as delimiter
+                    line_data = line[2:].rstrip('\n').replace(" ","").split(",")
+                    if line_data[0] == field:
+                        writer.writerow(line_data[1:])
+                # Data in file
+                else:
+                    # Remove spaces, trailing newline and split using commas as delimiter
+                    line_data = line.rstrip('\n').replace(" ","").split(",")
+                    if line_data[0] == field:
+                        writer.writerow(line_data[1:])
+    if show_path: #pragma: no cover
+        print(output_path)
+
+    return output_path
 
 @pytest.mark.parametrize('file_type',
                         ['Accel',
@@ -444,10 +370,8 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
     ----------
     android_raw_path : pytest.fixture
         Path to Android Raw measurements text log file
-
     root_path : pytest.fixture
         Path to location of all data for Android unit testing
-
     file_type : string
         Type of measurement to be extracted into csv files
 
@@ -455,15 +379,16 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
     #NOTE: Times for gyroscope measurements are overridden by accel times
     # and are not checked in this test for any measurement
     no_check = ['utcTimeMillis', 'elapsedRealtimeNanos']
-    if file_type=='Accel' or file_type=='Gyro':
-        test_measure = android.AndroidRawImu(android_raw_path)
+    if file_type == 'Accel':
+        test_measure = android.AndroidRawAccel(android_raw_path)
+    elif file_type == 'Gyro':
+        test_measure = android.AndroidRawGyro(android_raw_path)
     elif file_type=='Fix':
         test_measure = android.AndroidRawFixes(android_raw_path)
     output_directory = os.path.join(root_path, 'csv_test')
-    csv_loc = android.make_csv(android_raw_path, output_directory,
+    csv_loc = make_csv(android_raw_path, output_directory,
                                file_type)
     test_df = pd.read_csv(csv_loc)
-    test_measure = android.AndroidRawImu(android_raw_path)
     row_map = test_measure._row_map()
     for col_name in test_df.columns:
         if col_name in row_map:
@@ -475,322 +400,219 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         measure_slice = test_measure[row_idx, :]
         df_slice = test_df[col_name].values
         np.testing.assert_almost_equal(measure_slice, df_slice)
+
+    # raises exception if not a file path
+    with pytest.raises(FileNotFoundError):
+        make_csv("", output_directory, file_type)
+
+    # raises exception if input not string or path-like
+    with pytest.raises(TypeError):
+        make_csv([], output_directory, file_type)
+
     os.remove(csv_loc)
     for file in os.listdir(output_directory):
         os.remove(os.path.join(output_directory, file))
     os.rmdir(output_directory)
 
-    # raises exception if not a file path
-    with pytest.raises(FileNotFoundError):
-        android.make_csv("", output_directory, file_type)
-
-    # raises exception if input not string or path-like
-    with pytest.raises(TypeError):
-        android.make_csv([], output_directory, file_type)
-
-@pytest.fixture(name="android_gtruth_path")
-def fixture_gtruth_path(root_path):
-    """Filepath of Android Ground Truth data
-
-    Returns
-    -------
-    gtruth_path : string
-        Location for text log file with Android Ground Truth measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Ground Truth Dataset [3]_,
-    particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-
-    References
-    ----------
-    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    gtruth_path = os.path.join(root_path, 'Pixel4_ground_truth.csv')
-    return gtruth_path
-
-@pytest.fixture(name="gtruth")
-def fixture_load_gtruth(android_gtruth_path):
-    """Load instance of AndroidGroundTruth2021
+def test_raw_load(android_raw_2023_path, android_derived_2023_path):
+    """Test basic loading of android raw file.
 
     Parameters
     ----------
-    gtruth_path : pytest.fixture
-        String with location of Android ground truth file
+    android_raw_2023_path : string
+        Location for text log file with Android Raw measurements.
+    android_derived_2023_path : string
+        Location for text log file with Android derived measurements.
 
-    Returns
-    -------
-    gtruth : AndroidGroundTruth2021
-        Instance of AndroidGroundTruth2021 for testing
     """
-    gtruth = android.AndroidGroundTruth2021(android_gtruth_path)
+    # load derived data
+    derived = AndroidDerived2023(input_path=android_derived_2023_path)
 
-    return gtruth
+    # load raw data
+    raw = android.AndroidRawGnss(input_path=android_raw_2023_path,
+                                 filter_measurements=False,
+                                 remove_rx_b_from_pr=True,
+                                 )
 
-def test_android_gtruth(gtruth):
-    """Test AndroidGroundTruth initialization
+    # make sure the same data is contained in both
+    assert len(derived) == len(raw)
+
+    equal_rows = ["unix_millis",
+                 "gps_millis",
+                 "gnss_id",
+                 "sv_id",
+                 ]
+    for row in equal_rows:
+        np.testing.assert_array_equal(raw[row],derived[row])
+
+    almost_equal_rows = [
+                         ("cn0_dbhz",1E-13),
+                         ("raw_pr_sigma_m",1E-13),
+                         ("raw_pr_m",29.9),
+                        ]
+    for row, max_value in almost_equal_rows:
+        not_nan_idxs = ~np.isnan(derived[row])
+        assert np.max(np.abs(derived[row,not_nan_idxs] - raw[row,not_nan_idxs])) < max_value
+
+def test_raw_filters(root_path):
+    """Test all the different measurement filter varieties.
 
     Parameters
     ----------
-    gtruth : AndroidGroundTruth2021
-        Instance of AndroidGroundTruth2021 for testing
-
-    """
-
-    isinstance(gtruth, NavData)
-    isinstance(gtruth, android.AndroidGroundTruth2021)
-
-    assert int(gtruth["gps_millis",3]) == 1273529466442
-
-
-######################################################################
-#### Android Derived 2022 Dataset tests
-######################################################################
-
-@pytest.fixture(name="root_path_2022")
-def fixture_root_path_2022():
-    """Location of measurements for unit test
-
-    Returns
-    -------
     root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2022')
-    return root_path
-
-
-@pytest.fixture(name="derived_2022_path")
-def fixture_derived_2022_path(root_path_2022):
-    """Filepath of Android Derived measurements
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived 2022 measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [4]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
-    return derived_path
-
-
-@pytest.fixture(name="gt_2022_path")
-def fixture_gt_2022_path(root_path_2022):
-    """Filepath of Android ground truth estimates
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android ground truth estimates
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [5]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [5] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    gt_path = os.path.join(root_path_2022, 'ground_truth.csv')
-    return gt_path
-
-@pytest.fixture(name="derived_2022")
-def fixture_derived_2022(derived_2022_path):
-    """Testing that Android Derived 2022 is created without errors.
-
-    Parameters
-    ----------
-    derived_2022_path : string
-        Location for the unit_test Android derived 2022 measurements
-
-    Returns
-    -------
-    derived_2022 : gnss_lib_py.parsers.android.AndroidDerived2022
-        Android Derived 2022 Navdata object for testing.
-
-    """
-    derived_2022 = android.AndroidDerived2022(derived_2022_path)
-    assert isinstance(derived_2022, NavData)
-    return derived_2022
-
-
-def test_derived_state_estimate_ext(derived_2022):
-    """Tests the state_estimate extracted as a separate NavData.
-
-    Parameters
-    ----------
-
-    derived_2022 : gnss_lib_py.parsers.android.AndroidDerived2022
-        Android Derived 2022 Navdata object for testing.
-    """
-    # Test state estimate extraction when velocity and bias terms are
-    # unavailable. In this case, an warnings are expected for the velocity
-    # and clock rows
-    with pytest.warns(RuntimeWarning):
-        state_estimate = derived_2022.get_state_estimate()
-    assert len(state_estimate)==6, "There should be only 6 unique times"
-    time_pos_rows = ['gps_millis', 'x_rx_m', 'y_rx_m', 'z_rx_m']
-    state_estimate.in_rows(time_pos_rows)
-
-    # Test extraction of state when velocity and clock rows are available
-    vel_clk_rows = ['vx_rx_mps', 'vy_rx_mps', 'vz_rx_mps', 'b_rx_m', 'b_dot_rx_mps']
-    for row in vel_clk_rows:
-        derived_2022[row] = 0
-    state_estimate_vel_clk = derived_2022.get_state_estimate()
-    state_estimate_vel_clk.in_rows(time_pos_rows+vel_clk_rows)
-
-    # Test that the first and last extracted values are correct
-    for row in time_pos_rows:
-        np.testing.assert_almost_equal(derived_2022[row, 0], state_estimate_vel_clk[row, 0])
-        np.testing.assert_almost_equal(derived_2022[row, -1], state_estimate_vel_clk[row, -1])
-
-
-def test_gt_2022(gt_2022_path):
-    """Testing that Android ground truth 2022 is created without errors.
-
-    Parameters
-    ----------
-    gt_2022_path : string
-        Location for the unit_test Android ground truth 2022 measurements
-    """
-    gt_2022 = android.AndroidGroundTruth2022(gt_2022_path)
-    assert isinstance(gt_2022, NavData)
-
-
-def test_gt_alt_nan(root_path_2022):
-    """Test Android Ground Truth Loader sets blank altitudes to zero.
-
-    Parameters
-    ----------
-    root_path_2022 : string
-        Location for the files with missing altitude, including the file
-        with missing altitude
-    """
-    gt_2022_nan = os.path.join(root_path_2022, 'alt_nan_ground_truth.csv')
-    with pytest.warns(RuntimeWarning):
-        gt_2022 = android.AndroidGroundTruth2022(gt_2022_nan)
-        np.testing.assert_almost_equal(gt_2022['alt_rx_gt_m'],
-                                       np.zeros(len(gt_2022)))
-
-def test_remove_all_data(derived_path_xl):
-    """Test what happens when remove_timing_outliers removes all data.
-
-    Parameters
-    ----------
-    derived_path : string
-        Location for the unit_test Android 2021 derived measurements.
-
-    """
-    # Also tests if strings are being converted back correctly
-    with pytest.warns(RuntimeWarning):
-        derived = android.AndroidDerived2021(derived_path_xl,
-                                   remove_timing_outliers=True)
-
-    assert derived.shape[1] == 0
-
-@pytest.fixture(name="state_estimate")
-def test_solve_kaggle_baseline(derived_2022):
-    """Testing Kaggle baseline solution.
-
-    Parameters
-    ----------
-    derived_2022 : gnss_lib_py.parsers.android.AndroidDerived2022
-        Android derived 2022 measurements
-
-    Returns
-    -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        Baseline state estimate.
-    """
-
-    state_estimate = android.solve_kaggle_baseline(derived_2022)
-
-    state_estimate.in_rows(["gps_millis","lat_rx_deg",
-                            "lon_rx_deg","alt_rx_m"])
-
-    assert state_estimate.shape[1] == 6
-
-    expected = np.array([1303770943999,1303770944999,1303770945999,
-                         1303770946999,1303770947999,1303770948999])
-    np.testing.assert_array_equal(state_estimate["gps_millis"],expected)
-
-    return state_estimate
-
-def test_prepare_kaggle_submission(state_estimate):
-    """Prepare Kaggle baseline solution.
-
-    Parameters
-    ----------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
-        Baseline state estimate.
+        Path of testing dataset root path
 
     """
 
-    output = android.prepare_kaggle_submission(state_estimate,"test")
+    filter_test_path = os.path.join(root_path, 'android','measurements',
+                            'filter_test.txt')
 
-    output.in_rows(["tripId","UnixTimeMillis",
-                    "LatitudeDegrees","LongitudeDegrees"])
+    # load raw data with none removed
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 filter_measurements=False,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    orig_len = len(raw)
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
 
-    assert output.shape[1] == 6
+    # bias_valid filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_valid" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_valid" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +2  == orig_len
 
-    expected = np.array([1619735725999,1619735726999,1619735727999,
-                         1619735728999,1619735729999,1619735730999])
-    np.testing.assert_array_equal(output["UnixTimeMillis"], expected)
+    # BiasUncertaintyNanos filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_uncertainty" : np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_uncertainty" : -np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == 0
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"bias_uncertainty" : 40.},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +1  == orig_len
 
-def test_solve_kaggle_dataset(root_path):
-    """Test kaggle solver.
+    # arrival_time filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"arrival_time" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"arrival_time" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 4  == orig_len
 
-    """
+    # time_valid filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"time_valid" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"time_valid" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 1  == orig_len
 
-    folder_path = os.path.join(root_path,"..","..")
-    for solver in [android.solve_kaggle_baseline,
-                   solve_wls,
-                   solve_gnss_ekf,
-                  ]:
-        for verbose in [True, False]:
-            solution = android.solve_kaggle_dataset(folder_path, solver,
-                                                    verbose)
+    # state_decoded filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"state_decoded" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"state_decoded" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 1  == orig_len
 
-            solution.in_rows(["tripId","UnixTimeMillis",
-                            "LatitudeDegrees","LongitudeDegrees"])
+    # sv_time_uncertainty filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"sv_time_uncertainty" : np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"sv_time_uncertainty" : -np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == 0
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"sv_time_uncertainty" : 500.},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +1  == orig_len
 
-            assert solution.shape[1] == 6
+    # adr_valid filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_valid" : False},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_valid" : True},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 1  == orig_len
 
-            expected = np.array([1619735725999,1619735726999,
-                                 1619735727999,1619735728999,
-                                 1619735729999,1619735730999])
-            np.testing.assert_array_equal(solution["UnixTimeMillis"],
-                                          expected)
+    # sv_time_uncertainty filter
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_uncertainty" : np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == orig_len
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_uncertainty" : -np.inf},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) == 0
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 measurement_filters = {"adr_uncertainty" : 15.},
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) +1  == orig_len
+
+    # load data with all removed
+    raw = android.AndroidRawGnss(input_path=filter_test_path,
+                                 filter_measurements=True,
+                                 remove_rx_b_from_pr=False,
+                                 verbose=True)
+    assert len(raw) + 11 == orig_len

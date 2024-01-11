@@ -10,6 +10,7 @@ from gnss_lib_py.algorithms.snapshot import *
 
 from gnss_lib_py.parsers.android import *
 from gnss_lib_py.parsers.clk import *
+from gnss_lib_py.parsers.google_decimeter import *
 from gnss_lib_py.parsers.navdata import *
 from gnss_lib_py.parsers.nmea import *
 from gnss_lib_py.parsers.rinex_nav import *
