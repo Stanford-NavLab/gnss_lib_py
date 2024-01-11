@@ -18,9 +18,9 @@ import matplotlib.pyplot as plt
 import gnss_lib_py.utils.visualizations as viz
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.android import AndroidDerived2021
-from gnss_lib_py.parsers.android import AndroidDerived2022
-from gnss_lib_py.parsers.android import AndroidGroundTruth2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
+from gnss_lib_py.parsers.google_decimeter import AndroidGroundTruth2021
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 
 # pylint: disable=protected-access
@@ -65,7 +65,7 @@ def fixture_derived_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    derived_path = os.path.join(root_path, 'android_2021',
+    derived_path = os.path.join(root_path, 'google_decimeter_2021',
                                 'Pixel4_derived.csv')
     return derived_path
 
@@ -98,7 +98,7 @@ def fixture_derived_path_xl(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    derived_path = os.path.join(root_path, 'android_2021',
+    derived_path = os.path.join(root_path, 'google_decimeter_2021',
                                 'Pixel4XL_derived.csv')
     return derived_path
 
@@ -115,7 +115,7 @@ def fixture_root_path_2022():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2022')
+    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2022')
     return root_path
 
 
@@ -215,7 +215,7 @@ def fixture_load_gtruth(root_path):
         Instance of AndroidGroundTruth2021 for testing
     """
     gtruth = AndroidGroundTruth2021(os.path.join(root_path,
-                                 'android_2021',
+                                 'google_decimeter_2021',
                                  'Pixel4_ground_truth.csv'))
     return gtruth
 

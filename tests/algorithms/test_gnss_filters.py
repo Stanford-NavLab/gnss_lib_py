@@ -12,7 +12,7 @@ import numpy as np
 from numpy.random import default_rng
 
 from gnss_lib_py.parsers.navdata import NavData
-from gnss_lib_py.parsers.android import AndroidDerived2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
 from gnss_lib_py.algorithms.gnss_filters import GNSSEKF, solve_gnss_ekf
 
 @pytest.fixture(name='init_dict')
@@ -110,7 +110,7 @@ def fixture_root_path():
                 os.path.dirname(
                 os.path.dirname(
                 os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/android_2021/')
+    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2021/')
     return root_path
 
 

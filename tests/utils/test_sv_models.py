@@ -18,7 +18,7 @@ from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.navdata import NavData
 import gnss_lib_py.utils.sv_models as sv_models
 import gnss_lib_py.utils.time_conversions as tc
-from gnss_lib_py.parsers.android import AndroidDerived2021
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
 # pylint: disable=protected-access
 
 # Number of time to run meausurement simulation code
@@ -424,7 +424,7 @@ def fixture_navdata_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    navdata_path = os.path.join(root_path, "android_2021/Pixel4_derived_clkdiscnt.csv")
+    navdata_path = os.path.join(root_path, "google_decimeter_2021/Pixel4_derived_clkdiscnt.csv")
     return navdata_path
 
 @pytest.fixture(name="navdata")

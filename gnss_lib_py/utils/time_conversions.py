@@ -65,7 +65,7 @@ def get_leap_seconds(gps_time):
     if isinstance(gps_time, datetime):
         curr_time = gps_time
     else:
-        curr_time = GPS_EPOCH_0 + timedelta(milliseconds=gps_time)
+        curr_time = GPS_EPOCH_0 + timedelta(milliseconds=float(gps_time))
         curr_time = curr_time.replace(tzinfo=timezone.utc)
     curr_time = tzinfo_to_utc(curr_time)
     if curr_time < GPS_EPOCH_0:

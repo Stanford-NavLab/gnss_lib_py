@@ -44,7 +44,7 @@ def calculate_state(android_gt, idx):
 
     Parameters
     ----------
-    android_gt : gnss_lib_py.parsers.android.AndroidGroundTruth2022
+    android_gt : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2022
         NavData containing ground truth for Android measurements.
     idx : int
         Index of ground truth for which states are required.
@@ -105,7 +105,7 @@ def test_pseudorange_corrections(gps_measurement_frames, android_gt, iono_params
         Dictionary containing lists of visible ephemeris parameters,
         received Android measurements and SV states. The lists are
         indexed by discrete time indices.
-    android_gt : gnss_lib_py.parsers.android.AndroidGroundTruth2022
+    android_gt : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2022
         NavData containing ground truth for Android measurements.
     iono_params : np.ndarray
         2x4 (first row, alpha and second row, beta) of ionospheric delay
@@ -166,7 +166,7 @@ def test_measure_generation(gps_measurement_frames, android_gt):
         Dictionary containing lists of visible ephemeris parameters,
         received Android measurements and SV states. The lists are
         indexed by discrete time indices.
-    android_gt : gnss_lib_py.parsers.android.AndroidGroundTruth2022
+    android_gt : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2022
         NavData containing ground truth for Android measurements.
     """
     android_frames = gps_measurement_frames['android_frames']

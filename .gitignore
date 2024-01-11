@@ -20,8 +20,14 @@ results/*
 
 # ignore downloaded csv files in notebook tutorials
 *.csv
-!data/unit_test/*/*.csv
+!data/unit_test/**/*.csv
 !notebooks/tutorials/myreceiver.csv
+
+# ignore txt files in notebook tutorials
+*.txt
+!docs/source/requirements.txt
+!requirements.txt
+!data/unit_test/**/*.txt
 
 # Ignore downloaded precise ephimerides files by default
 *.sp3
@@ -38,7 +44,7 @@ results/*
 # Ignore NMEA files by default
 *.nmea
 # Include unit test NMEA files
-!data/unit_test/*/*.nmea
+!data/unit_test/**/*.nmea
 
 # Ignore downloaded broadcast ephimerides files by default
 *.*n
@@ -46,10 +52,10 @@ results/*
 *.*g
 *.rnx
 # Include unit test files for broadcast ephemerides
-!data/unit_test/*/*/*.*n
-!data/unit_test/*/*/*.*o
-!data/unit_test/*/*/*.*g
-!data/unit_test/*/*/*.rnx
+!data/unit_test/**/*.*n
+!data/unit_test/**/*.*o
+!data/unit_test/**/*.*g
+!data/unit_test/**/*.rnx
 
 ########################################
 ##### Common Python and IDE files ######
@@ -133,7 +139,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/build/
 
 # PyBuilder
 target/

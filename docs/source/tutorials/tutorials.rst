@@ -31,6 +31,7 @@ a new parser if necessary.
 .. toctree::
    :maxdepth: 1
 
+   tutorials_android_notebook
    tutorials_parsers_notebook
 
 Algorithm Tutorials
