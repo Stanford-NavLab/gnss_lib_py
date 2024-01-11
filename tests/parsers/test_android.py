@@ -189,10 +189,10 @@ def test_sensor_loaders(raw_path, sensor_type):
     """
 
     test_navdata = sensor_type(input_path = raw_path)
-    isinstance(test_navdata, NavData)
+    assert isinstance(test_navdata, NavData)
 
     test_navdata = sensor_type(pathlib.Path(raw_path))
-    isinstance(test_navdata, NavData)
+    assert isinstance(test_navdata, NavData)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):
@@ -286,10 +286,10 @@ def test_fix_raw(android_raw_path):
         Path to Android Raw measurements text log file
     """
     test_fix = android.AndroidRawFixes(android_raw_path)
-    isinstance(test_fix, NavData)
+    assert isinstance(test_fix, NavData)
 
     test_fix = android.AndroidRawFixes(pathlib.Path(android_raw_path))
-    isinstance(test_fix, NavData)
+    assert isinstance(test_fix, NavData)
 
     # raises exception if not a file path
     with pytest.raises(FileNotFoundError):
