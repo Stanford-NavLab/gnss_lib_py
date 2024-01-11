@@ -83,23 +83,23 @@ TROPO_DELAY_C2 = 0.0121
 TROPO_DELAY_C3 = 1.33e-4
 """float : Third coefficient of simplified tropospheric delay model developed in [1]_."""
 
-CONSTELLATION_CHARS = {'G':'gps',
-                       'R':'glonass',
-                       'S':'sbas',
-                       'C':'beidou',
-                       'E':'galileo',
-                       'J':'qzss',
-                       'I':'irnss',
+CONSTELLATION_CHARS = {'G' : 'gps',
+                       'R' : 'glonass',
+                       'S' : 'sbas',
+                       'C' : 'beidou',
+                       'E' : 'galileo',
+                       'J' : 'qzss',
+                       'I' : 'irnss',
                        }
 """dict : Satellite System identifier from Rinex specification p13 in [2]_."""
 
-CONSTELLATION_ANDROID = {1 :'gps',
-                         3 :'glonass',
-                         2 :'sbas',
-                         5 :'beidou',
-                         6 :'galileo',
-                         4 :'qzss',
-                         7 :'irnss',
+CONSTELLATION_ANDROID = {1 : 'gps',
+                         3 : 'glonass',
+                         2 : 'sbas',
+                         5 : 'beidou',
+                         6 : 'galileo',
+                         4 : 'qzss',
+                         7 : 'irnss',
                          0 : 'unknown',
                          }
 """dict : Satellite System identifier from GNSSStatus specification [3]_."""
