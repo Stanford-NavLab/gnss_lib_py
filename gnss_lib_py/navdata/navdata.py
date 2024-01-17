@@ -875,7 +875,7 @@ class NavData():
 
         Returns
         -------
-        self: gnss_lib_py.navdata.navdata
+        self: gnss_lib_py.navdata.navdata.NavData
             Instantiation of NavData class with iteration initialized
         """
         self.curr_col = 0
@@ -887,7 +887,7 @@ class NavData():
 
         Returns
         -------
-        x_curr : gnss_lib_py.navdata.navdata
+        x_curr : gnss_lib_py.navdata.navdata.NavData
             Current column (based on iteration count)
         """
         if self.curr_col >= self.num_cols:
