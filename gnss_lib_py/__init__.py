@@ -20,8 +20,10 @@ from gnss_lib_py.parsers.rinex_obs import *
 from gnss_lib_py.parsers.smartloc import *
 from gnss_lib_py.parsers.sp3 import *
 
+from gnss_lib_py.utils.constants import *
 from gnss_lib_py.utils.coordinates import *
 from gnss_lib_py.utils.ephemeris_downloader import *
+from gnss_lib_py.utils.file_operations import *
 from gnss_lib_py.utils.filters import *
 from gnss_lib_py.utils.gnss_models import *
 from gnss_lib_py.utils.sv_models import *
