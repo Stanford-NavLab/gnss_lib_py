@@ -7,7 +7,8 @@ __date__ = "02 Apr 2023"
 
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.utils.coordinates import LocalCoord, geodetic_to_ecef, wrap_0_to_2pi
 from gnss_lib_py.utils.time_conversions import tow_to_gps_millis
 
@@ -133,12 +134,12 @@ def remove_nlos(smartloc_raw):
 
     Parameters
     ----------
-    smartloc_raw : gnss_lib_py.parsers.navdata.NavData
+    smartloc_raw : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData containing SmartLoc data
 
     Returns
     -------
-    smartloc_los : gnss_lib_py.parsers.navdata.NavData
+    smartloc_los : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData containing only LOS labeled measurements
 
     References
@@ -159,12 +160,12 @@ def calculate_gt_ecef(smartloc_raw):
 
     Parameters
     ----------
-    smartloc_raw : gnss_lib_py.parsers.navdata.NavData
+    smartloc_raw : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData containing SmartLoc data
 
     Returns
     -------
-    smartloc_los : gnss_lib_py.parsers.navdata.NavData
+    smartloc_los : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData containing GT ECEF positions in meters.
 
     """
@@ -181,12 +182,12 @@ def calculate_gt_vel(smartloc_raw):
 
     Parameters
     ----------
-    smartloc_raw : gnss_lib_py.parsers.navdata.NavData
+    smartloc_raw : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData containing SmartLoc data
 
     Returns
     -------
-    smartloc_los : gnss_lib_py.parsers.navdata.NavData
+    smartloc_los : gnss_lib_py.navdata.navdata.NavData
         Instance of NavData containing GT ECEF velocity and acceleration
         in meters per second and meters per second^2.
 
@@ -199,7 +200,7 @@ def calculate_gt_vel(smartloc_raw):
                 'ax_rx_gt_mps2' : [],
                 'ay_rx_gt_mps2' : [],
                 'az_rx_gt_mps2' : []}
-    for _, _, measure_frame in smartloc_raw.loop_time('gps_millis', \
+    for _, _, measure_frame in loop_time(smartloc_raw,'gps_millis', \
                                                         delta_t_decimals = -2):
         yaw = measure_frame['heading_rx_gt_rad', 0]
         vel_gt = measure_frame['v_rx_gt_mps', 0]

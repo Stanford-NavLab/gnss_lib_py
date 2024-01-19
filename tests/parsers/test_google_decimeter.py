@@ -12,9 +12,10 @@ import numpy as np
 import pandas as pd
 
 from gnss_lib_py.parsers import google_decimeter
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.algorithms.gnss_filters import solve_gnss_ekf
+from gnss_lib_py.navdata.operations import loop_time, concat
 
 # pylint: disable=protected-access
 
@@ -310,8 +311,8 @@ def test_android_concat(derived, pd_df):
     # extract and combine gps and glonass data
     gps_data = derived.where("gnss_id","gps")
     glonass_data = derived.where("gnss_id","glonass")
-    gps_glonass_navdata = gps_data.concat(glonass_data)
-    glonass_gps_navdata = glonass_data.concat(gps_data)
+    gps_glonass_navdata = concat(gps_data,glonass_data)
+    glonass_gps_navdata = concat(glonass_data,gps_data)
 
     # combine using pandas
     gps_df = pd_df[pd_df["constellationType"]==1]
@@ -361,7 +362,7 @@ def test_timestep_parsing(derived_path_xl):
     pd_svid_groups.pop(0)
 
     navdata_svid_groups = []
-    for _, _, group in derived_xl.loop_time("gps_millis"):
+    for _, _, group in loop_time(derived_xl,"gps_millis"):
         navdata_svid_groups.append(group["sv_id"].astype(int).tolist())
 
     assert len(pd_svid_groups) == len(navdata_svid_groups)
@@ -641,7 +642,7 @@ def test_solve_kaggle_baseline(derived_2022):
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
     """
 
@@ -663,7 +664,7 @@ def test_prepare_kaggle_submission(state_estimate):
 
     Parameters
     ----------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
 
     """

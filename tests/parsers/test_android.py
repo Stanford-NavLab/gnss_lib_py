@@ -16,7 +16,7 @@ from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers import android
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2023
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 
 # pylint: disable=protected-access
 

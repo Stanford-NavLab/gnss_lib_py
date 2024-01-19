@@ -12,6 +12,7 @@ import numpy as np
 from pytest_lazyfixture import lazy_fixture
 
 from gnss_lib_py.parsers.rinex_obs import RinexObs
+from gnss_lib_py.navdata.operations import loop_time
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
@@ -127,7 +128,7 @@ def test_rinex_obs_3_load_single(rinex_single_values, single_exp_values):
 
     """
     count = 0
-    for _, _, rinex_frame in rinex_single_values.loop_time('gps_millis'):
+    for _, _, rinex_frame in loop_time(rinex_single_values,'gps_millis'):
 
         #For each time case, check that the expected values are correct
         for case in single_exp_values:
@@ -151,7 +152,7 @@ def test_rinex_obs_3_load_mixed(rinex_mixed_values, mixed_exp_values):
         List of indices and values to compare against.
     """
     count = 0
-    for _, _, rinex_frame in rinex_mixed_values.loop_time('gps_millis'):
+    for _, _, rinex_frame in loop_time(rinex_mixed_values,'gps_millis'):
         #For each time case, check that the expected values are correct
         for case in mixed_exp_values:
             if case[0] == count:
@@ -212,7 +213,7 @@ def test_rinex_obs_3_complete_load(rinex_navdata, time_steps, sats_per_time):
     assert len(np.unique(rinex_navdata['gps_millis'])) == time_steps, \
         "Measurements for all times were not loaded."
     count = 0
-    for _, _, rinex_frame in rinex_navdata.loop_time('gps_millis'):
+    for _, _, rinex_frame in loop_time(rinex_navdata,'gps_millis'):
         assert len(rinex_frame) == sats_per_time[count], \
         "Measurements for all recorded satellites were not loaded."
         count += 1
@@ -231,7 +232,7 @@ def test_rinex_obs_3_fails(rinex_mixed_values):
         Instance of RinexObs class with data loaded from file with
         measurements received in both, single and double bands.
     """
-    for count , (_, _, rinex_frame) in enumerate(rinex_mixed_values.loop_time('gps_millis')):
+    for count , (_, _, rinex_frame) in enumerate(loop_time(rinex_mixed_values,'gps_millis')):
             # SV wasn't received
         sv_not_rx = rinex_frame.where('gnss_sv_id', 'G01', 'eq')
         assert len(sv_not_rx) == 0

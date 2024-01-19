@@ -12,4 +12,3 @@ utils
    test_gnss_models
    test_sv_models
    test_time_conversions
-   test_visualizations

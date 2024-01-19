@@ -13,8 +13,9 @@ import warnings
 
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils import constants as consts
+from gnss_lib_py.navdata.operations import loop_time, find_wildcard_indexes
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
 
 def solve_wls(measurements, weight_type = None, only_bias = False,
@@ -34,7 +35,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class which must include at least
         ``gps_millis``, ``x_sv_m``, ``y_sv_m``, and ``z_sv_m``
     weight_type : string
@@ -42,7 +43,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     only_bias : bool
         If True, then only the receiver clock bias is estimated.
         Otherwise, both position and clock bias are estimated.
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
         Only used if only_bias is set to True, see description above.
         Receiver position in ECEF frame in meters as an instance of the
         NavData class with at least the following rows: ``x_rx*_m``,
@@ -65,7 +66,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Estimated receiver position in ECEF frame in meters and the
         estimated receiver clock bias also in meters as an instance of
         the NavData class with shape (4 x # unique timesteps) and
@@ -84,14 +85,15 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
                     + "for only_bias.")
 
         rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-        rx_idxs = receiver_state.find_wildcard_indexes(
+        rx_idxs = find_wildcard_indexes(receiver_state,
                                                rx_rows_to_find,
                                                max_allow=1)
     states = []
     runtime_error_idxs = {}
 
     position = np.zeros((4,1))
-    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis", delta_t_decimals=delta_t_decimals):
+    for timestamp, _, measurement_subset in loop_time(measurements,"gps_millis",
+                                                      delta_t_decimals=delta_t_decimals):
 
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)

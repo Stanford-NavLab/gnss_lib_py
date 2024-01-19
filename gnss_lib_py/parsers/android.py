@@ -22,8 +22,9 @@ import csv
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import solve_wls
+from gnss_lib_py.navdata.operations import loop_time
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.sv_models import add_sv_states
 from gnss_lib_py.utils.time_conversions import get_leap_seconds
@@ -218,7 +219,7 @@ class AndroidRawGnss(NavData):
 
         if self.remove_rx_b_from_pr:
             # remove the receiver's clock bias at the first timestamp
-            for _, _, subset in self.loop_time("gps_millis", delta_t_decimals=-2):
+            for _, _, subset in loop_time(self,"gps_millis", delta_t_decimals=-2):
                 subset = add_sv_states(subset.where("gnss_id",("gps","galileo")),
                                        source="precise",
                                        verbose=self.verbose)

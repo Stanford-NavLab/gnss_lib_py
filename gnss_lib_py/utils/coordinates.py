@@ -33,7 +33,8 @@ __date__ = "20 July 2021"
 import numpy as np
 
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time, find_wildcard_indexes
 
 EPSILON = 1e-7
 
@@ -473,11 +474,11 @@ def add_el_az(navdata, receiver_state, inplace=False):
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class. Must include ``gps_millis`` as
         well as satellite ECEF positions as ``x_sv_m``, ``y_sv_m``,
         ``z_sv_m``, ``gnss_id`` and ``sv_id``.
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters as an instance of the NavData class with the
         following rows: ``x_rx*_m``, ``y_rx*_m``, ``z_rx*_m``,
@@ -489,7 +490,7 @@ def add_el_az(navdata, receiver_state, inplace=False):
 
     Returns
     -------
-    data_el_az : gnss_lib_py.parsers.navdata.NavData
+    data_el_az : gnss_lib_py.navdata.navdata.NavData
         If inplace is True, adds ``el_sv_deg`` and ``az_sv_deg`` to
         the input navdata and returns the same object.
         If inplace is False, returns ``el_sv_deg`` and ``az_sv_deg``
@@ -504,12 +505,12 @@ def add_el_az(navdata, receiver_state, inplace=False):
     receiver_state.in_rows(["gps_millis"])
 
     # check for receiver_state indexes
-    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx*_m",
+    rx_idxs = find_wildcard_indexes(receiver_state,["x_rx*_m",
                                                     "y_rx*_m",
                                                     "z_rx*_m"],max_allow=1)
 
     sv_el_az = None
-    for timestamp, _, navdata_subset in navdata.loop_time("gps_millis"):
+    for timestamp, _, navdata_subset in loop_time(navdata,"gps_millis"):
 
         pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
         # handle scenario with only a single SV returned as 1D array

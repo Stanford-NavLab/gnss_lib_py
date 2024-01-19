@@ -59,7 +59,7 @@ following:
       single axis arrays should be rows and time should be across
       the columns
     * :code:`pd.DataFrame`
-    * :code:`gnss_lib_py.parsers.NavData`
+    * :code:`gnss_lib_py.navdata.navdata.NavData`
 
 PEP 8 Style Guide
 -----------------

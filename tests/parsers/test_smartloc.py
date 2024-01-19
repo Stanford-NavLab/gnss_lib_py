@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.parsers.smartloc import SmartLocRaw, remove_nlos, \
                                         calculate_gt_ecef, calculate_gt_vel

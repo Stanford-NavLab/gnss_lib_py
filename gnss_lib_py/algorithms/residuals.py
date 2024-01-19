@@ -7,16 +7,17 @@ __date__ = "25 Jan 2022"
 
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time, find_wildcard_indexes
 
 def solve_residuals(measurements, receiver_state, inplace=True):
     """Calculates residuals given pseudoranges and receiver position.
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class
-    receiver_state : gnss_lib_py.parsers.navdata.NavData
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters and the estimated or ground truth receiver clock bias
         also in meters as an instance of the NavData class with the
@@ -28,7 +29,7 @@ def solve_residuals(measurements, receiver_state, inplace=True):
 
     Returns
     -------
-    new_navdata : gnss_lib_py.parsers.navdata.NavData or None
+    new_navdata : gnss_lib_py.navdata.navdata.NavData or None
         If inplace is False, returns new NavData instance containing
         "gps_millis" and residual rows. If inplace is True, returns
         None.
@@ -40,14 +41,14 @@ def solve_residuals(measurements, receiver_state, inplace=True):
     receiver_state.in_rows(["gps_millis"])
 
 
-    rx_idxs = receiver_state.find_wildcard_indexes(["x_rx*_m",
+    rx_idxs = find_wildcard_indexes(receiver_state,["x_rx*_m",
                                                     "y_rx*_m",
                                                     "z_rx*_m",
                                                     "b_rx*_m"],
                                                     max_allow=1)
 
     residuals = []
-    for timestamp, _, measurement_subset in measurements.loop_time("gps_millis"):
+    for timestamp, _, measurement_subset in loop_time(measurements,"gps_millis"):
 
         pos_sv_m = measurement_subset[["x_sv_m","y_sv_m","z_sv_m"]].T
         pos_sv_m = np.atleast_2d(pos_sv_m)
