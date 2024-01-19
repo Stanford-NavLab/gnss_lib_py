@@ -13,8 +13,8 @@ from gnss_lib_py.navdata.navdata import NavData
 def concat(*navdatas, axis=1):
     """Concatenates NavData instances by row or column.
 
-    Concatenates a second NavData instance to the existing NavData
-    instance by either row or column.
+    Concatenates given NavData instances together by either row or
+    column.
 
     Each type of data is included in a row, so adding new rows with
     ``axis=0``, means adding new types of data. Concat requires that
@@ -39,9 +39,7 @@ def concat(*navdatas, axis=1):
     Returns
     -------
     new_navdata : gnss_lib_py.navdata.navdata.NavData or None
-        If inplace is False, returns NavData instance after
-        concatenating specified data. If inplace is True, returns
-        None.
+        NavData instance after concatenating specified data.
 
     """
 
