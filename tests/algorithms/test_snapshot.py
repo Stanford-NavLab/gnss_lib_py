@@ -12,9 +12,9 @@ import pytest
 import numpy as np
 
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021, AndroidDerived2022
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.algorithms.snapshot import wls, solve_wls
-
+from gnss_lib_py.navdata.operations import loop_time
 
 # Defining test fixtures
 TEST_REPEAT_COUNT = 10
@@ -381,7 +381,7 @@ def test_solve_wls(derived):
     assert "alt_rx_wls_m" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
-    assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
+    assert len(state_estimate) == sum(1 for _ in loop_time(derived,"gps_millis"))
 
     # len(np.unique(derived["gps_millis",:]))
 
@@ -521,12 +521,12 @@ def test_solve_wls_bias_only(derived_2022):
     # Solve with receiver positions given
     ecef_rows = ['x_rx_m', 'y_rx_m', 'z_rx_m']
     wls_rows = ['x_rx_wls_m','y_rx_wls_m','z_rx_wls_m']
-    time_length = sum(1 for _ in derived_2022.loop_time("gps_millis"))
+    time_length = sum(1 for _ in loop_time(derived_2022,"gps_millis"))
     input_position = NavData()
     for row in ecef_rows:
         input_position[row] = np.zeros(time_length)
     col = 0
-    for _, _, measure_frame in derived_2022.loop_time('gps_millis'):
+    for _, _, measure_frame in loop_time(derived_2022,'gps_millis'):
         for row in ecef_rows:
             input_position[row, col] = measure_frame[row, 0]
         col += 1
@@ -628,7 +628,7 @@ def test_rotation_of_earth_fix(derived_2022):
     """
     google_wls = derived_2022[['x_rx_m', 'y_rx_m', 'z_rx_m']]
     google_wls = np.empty([3, len(np.unique(np.round(derived_2022['gps_millis'], decimals=-2)))])
-    for idx, (_, _, frame) in enumerate(derived_2022.loop_time('gps_millis')):
+    for idx, (_, _, frame) in enumerate(loop_time(derived_2022,'gps_millis')):
         google_wls[:, idx] = frame[['x_rx_m', 'y_rx_m', 'z_rx_m'], 0]
     derived_2022['wls_weights'] = 1/derived_2022['raw_pr_sigma_m']
     state_with_rotn = solve_wls(derived_2022, weight_type='wls_weights',

@@ -12,7 +12,7 @@ import numpy as np
 
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.parsers.clk import Clk
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex, RinexNav
 from gnss_lib_py.parsers.rinex_nav import _compute_eccentric_anomaly
 from gnss_lib_py.parsers.rinex_nav import _estimate_sv_clock_corr
@@ -20,7 +20,7 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_el_az
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH, load_ephemeris
-
+from gnss_lib_py.navdata.operations import loop_time, sort, concat, find_wildcard_indexes
 
 def add_sv_states(navdata, source = 'precise', file_paths = None,
                   download_directory = DEFAULT_EPHEM_PATH,
@@ -31,7 +31,7 @@ def add_sv_states(navdata, source = 'precise', file_paths = None,
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class that must include rows for
         ``gps_millis``, ``gnss_id``, ``sv_id``, and ``raw_pr_m``.
     source : string
@@ -46,7 +46,7 @@ def add_sv_states(navdata, source = 'precise', file_paths = None,
 
     Returns
     -------
-    navdata_w_sv_states : gnss_lib_py.parsers.navdata.NavData
+    navdata_w_sv_states : gnss_lib_py.navdata.navdata.NavData
         Updated NavData class with satellite information computed.
 
     """
@@ -67,7 +67,7 @@ def add_sv_states_precise(navdata, file_paths = None,
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class that must include rows for
         ``gps_millis``, ``gnss_id``, ``sv_id``, and ``raw_pr_m``.
     file_paths : list, string or path-like
@@ -79,7 +79,7 @@ def add_sv_states_precise(navdata, file_paths = None,
 
     Returns
     -------
-    navdata_w_sv_states : gnss_lib_py.parsers.navdata.NavData
+    navdata_w_sv_states : gnss_lib_py.navdata.navdata.NavData
         Updated NavData class with satellite information computed.
 
     """
@@ -130,7 +130,7 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Recorded measurements with time of recpetion, GNSS ID and SV ID,
         corresponding to which SV states are calculated
     ephemeris_path : string or path-like
@@ -146,16 +146,15 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
 
     Returns
     -------
-    sv_states_all_time : gnss_lib_py.parsers.navdata.NavData
+    sv_states_all_time : gnss_lib_py.navdata.navdata.NavData
         Input measurements with rows containing SV states appended.
     """
     measurements_subset, ephem, _ = \
         _filter_ephemeris_measurements(measurements, constellations, ephemeris_path)
     sv_states_all_time = NavData()
     # Loop through the measurement file per time step
-    for _, _, measure_frame in measurements_subset.loop_time('gps_millis', \
+    for _, _, measure_frame in loop_time(measurements_subset,'gps_millis', \
                                                              delta_t_decimals=delta_t_dec):
-        # measure_frame = measure_frame.sort('sv_id', order="descending")
         # Sort the satellites
         rx_ephem, _, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
         if rx_ephem.shape[1] != measure_frame.shape[1]: #pragma: no cover
@@ -163,7 +162,7 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         try:
             # The following statement raises a KeyError if rows don't exist
             rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-            rx_idxs = measure_frame.find_wildcard_indexes(
+            rx_idxs = find_wildcard_indexes(measure_frame,
                                                    rx_rows_to_find,
                                                    max_allow=1)
             rx_ecef = measure_frame[[rx_idxs["x_rx*_m"][0],
@@ -174,7 +173,7 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         except KeyError:
             sv_states = find_sv_states(measure_frame['gps_millis'], rx_ephem)
         # Reverse the sorting
-        sv_states = sv_states.sort(ind=inv_sort_order)
+        sort(sv_states,ind=inv_sort_order,inplace=True)
         # Add them to new rows
         for row in sv_states.rows:
             if row not in ('gps_millis','gnss_id','sv_id'):
@@ -182,7 +181,7 @@ def add_sv_states_rinex(measurements, ephemeris_path= DEFAULT_EPHEM_PATH,
         if len(sv_states_all_time)==0:
             sv_states_all_time = measure_frame
         else:
-            sv_states_all_time.concat(measure_frame, inplace=True)
+            sv_states_all_time = concat(sv_states_all_time, measure_frame)
     return sv_states_all_time
 
 
@@ -203,7 +202,7 @@ def add_visible_svs_for_trajectory(rx_states,
 
     Parameters
     ----------
-    rx_states : gnss_lib_py.parsers.navdata.NavData
+    rx_states : gnss_lib_py.navdata.navdata.NavData
         NavData containing position states of receiver at which SV states
         are needed.
     ephemeris_path : string
@@ -218,7 +217,7 @@ def add_visible_svs_for_trajectory(rx_states,
 
     Returns
     -------
-    sv_posvel_trajectory : gnss_lib_py.parsers.navdata.Navdata
+    sv_posvel_trajectory : gnss_lib_py.navdata.navdata.Navdata
         NavData instance containing
 
 
@@ -242,7 +241,7 @@ def add_visible_svs_for_trajectory(rx_states,
 
     # Find rows that correspond to receiver positions
     rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-    rx_idxs = rx_states.find_wildcard_indexes(rx_rows_to_find,
+    rx_idxs = find_wildcard_indexes(rx_states,rx_rows_to_find,
                                               max_allow=1)
 
     # Loop through all times and positions, estimated SV states and adding
@@ -259,7 +258,7 @@ def add_visible_svs_for_trajectory(rx_states,
         if len(sv_posvel_trajectory) == 0:
             sv_posvel_trajectory = sv_posvel
         else:
-            sv_posvel_trajectory.concat(sv_posvel, inplace=True)
+            sv_posvel_trajectory = concat(sv_posvel_trajectory,sv_posvel)
 
     return sv_posvel_trajectory
 
@@ -324,13 +323,13 @@ def find_sv_states(gps_millis, ephem):
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing ephemeris parameters of satellites
         for which states are required.
 
     Returns
     -------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         NavData containing satellite positions, velocities, corresponding
         time with GNSS ID and SV number.
 
@@ -493,7 +492,7 @@ def find_visible_ephem(gps_millis, rx_ecef, ephem, el_mask=5.):
         since start of GPS epoch [ms].
     rx_ecef : np.ndarray
         3x1 row rx_pos ECEF position vector [m].
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing satellite ephemeris parameters
         including gps_week and gps_tow for the ephemeris
     el_mask : float
@@ -501,7 +500,7 @@ def find_visible_ephem(gps_millis, rx_ecef, ephem, el_mask=5.):
 
     Returns
     -------
-    eph : gnss_lib_py.parsers.navdata.NavData
+    eph : gnss_lib_py.navdata.navdata.NavData
         Ephemeris parameters of visible satellites
 
     """
@@ -523,7 +522,7 @@ def find_visible_sv_posvel(rx_ecef, sv_posvel, el_mask=5.):
     ----------
     rx_ecef : np.ndarray
         3x1 row rx_pos ECEF position vector [m].
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing satellite positions and velocities
         at the time at which visible satellites are needed.
     el_mask : float
@@ -531,7 +530,7 @@ def find_visible_sv_posvel(rx_ecef, sv_posvel, el_mask=5.):
 
     Returns
     -------
-    vis_posvel : gnss_lib_py.parsers.navdata.NavData
+    vis_posvel : gnss_lib_py.navdata.navdata.NavData
         SV states of satellites that are visible
 
     """
@@ -555,17 +554,17 @@ def find_sv_location(gps_millis, rx_ecef, ephem=None, sv_posvel=None, get_iono=F
         since start of GPS epoch [ms].
     rx_ecef : np.ndarray
         3x1 Receiver 3D ECEF position [m].
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         DataFrame containing all satellite ephemeris parameters ephemeris,
         as indicated in :code:`find_sv_states`. Use None if using
         precomputed satellite positions and velocities instead.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Precomputed positions of satellites, use None if using broadcast
         ephemeris parameters instead.
 
     Returns
     -------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Satellite position and velocities (same if input).
     del_pos : np.ndarray
         Difference between satellite positions and receiver position.
@@ -600,7 +599,7 @@ def _filter_ephemeris_measurements(measurements, constellations,
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Received measurements, that are filtered based on constellations.
     constellations : list
         List of strings indicating constellations required in output.
@@ -609,9 +608,9 @@ def _filter_ephemeris_measurements(measurements, constellations,
 
     Returns
     -------
-    measurements_subset : gnss_lib_py.parsers.navdata.NavData
+    measurements_subset : gnss_lib_py.navdata.navdata.NavData
         Measurements containing desired constellations
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         Ephemeris parameters for received SVs and constellations
     """
     measurements.in_rows(['gnss_id', 'sv_id', 'gps_millis'])
@@ -660,7 +659,7 @@ def _combine_gnss_sv_ids(measurement_frame):
 
     Parameters
     ----------
-    measurement_frame : gnss_lib_py.parsers.navdata.NavData
+    measurement_frame : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing measurements including `gnss_id` and
         `sv_id`.
 
@@ -688,15 +687,15 @@ def _sort_ephem_measures(measure_frame, ephem):
 
     Parameters
     ----------
-    measure_frame : gnss_lib_py.parsers.navdata.NavData
+    measure_frame : gnss_lib_py.navdata.navdata.NavData
         Measurements received for a single time instance, to be sorted.
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         Ephemeris parameters for all satellites for the closest time
         before the measurements were received.
 
     Returns
     -------
-    rx_ephem : gnss_lib_py.parsers.navdata.NavData
+    rx_ephem : gnss_lib_py.navdata.navdata.NavData
         Ephemeris parameters for satellites from which measurements were
         received. Sorted by `gnss_sv_id`.
     sorted_sats_ind : np.ndarray
@@ -719,7 +718,7 @@ def _extract_pos_vel_arr(sv_posvel):
 
     Parameters
     ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         NavData containing satellite position and velocity states.
 
     Returns
@@ -739,7 +738,7 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
 
     Parameters
     ----------
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Satellite position and velocities.
     rx_ecef : np.ndarray
         3x1 Receiver 3D ECEF position [m].
@@ -769,7 +768,7 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
 
     Parameters
     ----------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Instance of the NavData class that must include rows for
         ``gps_millis`` and ``gnss_sv_id``.
     sp3_parsed_file : gnss_lib_py.parsers.sp3.Sp3
@@ -786,7 +785,7 @@ def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
 
     Returns
     -------
-    navdata : gnss_lib_py.parsers.navdata.NavData
+    navdata : gnss_lib_py.navdata.navdata.NavData
         Updated NavData class with satellite information computed using
         precise ephemerides from .sp3 and .clk files
     """

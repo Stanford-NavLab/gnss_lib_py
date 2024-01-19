@@ -11,10 +11,10 @@ import os
 import pytest
 import numpy as np
 
-from gnss_lib_py.utils.time_conversions import gps_millis_to_datetime
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022, AndroidGroundTruth2022
 from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
+from gnss_lib_py.navdata.operations import loop_time, concat
 
 def pytest_collection_modifyitems(items):
     """Run ephemeris download tests after all other tests.
@@ -221,11 +221,11 @@ def fixture_derived_gps_l1_reversed(android_gps_l1):
         instance.
     """
     android_gps_l1_reversed = NavData()
-    for _, _, measure_frame in android_gps_l1.loop_time('gps_millis', delta_t_decimals=-2):
+    for _, _, measure_frame in loop_time(android_gps_l1,'gps_millis', delta_t_decimals=-2):
         if len(android_gps_l1_reversed)==0:
             android_gps_l1_reversed = measure_frame
         else:
-            android_gps_l1_reversed.concat(measure_frame, inplace=True)
+            android_gps_l1_reversed = concat(android_gps_l1_reversed,measure_frame)
     return android_gps_l1_reversed
 
 
@@ -241,7 +241,7 @@ def fixture_android_state(android_derived):
 
     Returns
     -------
-    android_state_estimate : gnss_lib_py.parsers.navdata.NavData
+    android_state_estimate : gnss_lib_py.navdata.navdata.NavData
         Instance of `NavData` containing `gps_millis` and Rx position
         estimates from Android Derived.
     """
@@ -317,7 +317,7 @@ def fixture_all_gps_ephem(ephemeris_path, start_time, all_gps_sats):
 
     Returns
     -------
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing ephemeris parameters for all GPS
         satellites at the start time for measurement reception.
     """
@@ -334,7 +334,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
 
     Parameters
     ----------
-    all_gps_ephem : gnss_lib_py.parsers.navdata.NavData
+    all_gps_ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing ephemeris parameters for all GPS
         satellites at the start time for measurement reception.
     android_gps_l1 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
@@ -348,7 +348,7 @@ def fixture_gps_measurement_frames(all_gps_ephem, android_gps_l1):
         received Android measurements and SV states. The lists are
         indexed by discrete time indices.
     """
-    android_frames = android_gps_l1.loop_time('gps_millis', delta_t_decimals=-2)
+    android_frames = loop_time(android_gps_l1,'gps_millis', delta_t_decimals=-2)
     ephems = []
     frames = []
     sv_states = []

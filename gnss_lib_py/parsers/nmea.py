@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from pynmea2.nmea_utils import timestamp, datestamp
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
 

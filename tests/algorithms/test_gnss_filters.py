@@ -11,7 +11,8 @@ import pytest
 import numpy as np
 from numpy.random import default_rng
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021
 from gnss_lib_py.algorithms.gnss_filters import GNSSEKF, solve_gnss_ekf
 
@@ -190,7 +191,7 @@ def test_solve_gnss_ekf(derived):
     assert "alt_rx_ekf_m" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
-    assert len(state_estimate) == sum(1 for _ in derived.loop_time("gps_millis"))
+    assert len(state_estimate) == sum(1 for _ in loop_time(derived,"gps_millis"))
 
     # len(np.unique(derived["gps_millis",:]))
 

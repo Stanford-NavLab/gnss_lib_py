@@ -49,22 +49,6 @@ their use in ``gnss_lib_py``.
     retrieved on 27th June, 2023): for determining GLOASS SV states from
     broadcast satellite positions, velocities, and accelerations.
 
-Package Architecture
---------------------
-
-The gnss_lib_py package is broadly divided into the following sections.
-Please choose the most appropriate location based on the descriptions
-below when adding new features or functionality.
-
-* :code:`algorithms` : This directory contains localization algorithms.
-* :code:`parsers` : This directory contains functions to read and process various
-  GNSS data/file types.
-* :code:`utils` : This directory contains utilities used to handle
-  GNSS measurements, time conversions, visualizations, satellite
-  simulation, file operations, etc.
-
-More information about currently available methods and the folder
-organization can be found in the :ref:`organization subsection <organization>`.
 
 Details about NavData Class
 ---------------------------

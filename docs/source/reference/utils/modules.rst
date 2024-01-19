@@ -12,4 +12,3 @@ utils
    gnss_models
    sv_models
    time_conversions
-   visualizations

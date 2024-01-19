@@ -12,7 +12,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time, concat, find_wildcard_indexes, interpolate
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic
@@ -198,7 +199,7 @@ class AndroidDerived2022(NavData):
 
         Returns
         -------
-        state_estimate : gnss_lib_py.parsers.navdata.NavData
+        state_estimate : gnss_lib_py.navdata.navdata.NavData
             Instance of `NavData` containing state estimate rows present
             in the instance of `AndroidDerived2022`.
         """
@@ -209,7 +210,7 @@ class AndroidDerived2022(NavData):
         rx_rows_in_measure = ['gps_millis']
         for row_wildcard in rx_rows_to_find:
             try:
-                row_map = self.find_wildcard_indexes(row_wildcard, max_allow=1)
+                row_map = find_wildcard_indexes(self,row_wildcard, max_allow=1)
                 row = row_map[row_wildcard][0]
                 rx_rows_in_measure.append(row)
             except KeyError:
@@ -217,14 +218,14 @@ class AndroidDerived2022(NavData):
                 continue
 
         state_estimate = NavData()
-        for _, _, measure_frame in self.loop_time('gps_millis', delta_t_decimals=-2):
+        for _, _, measure_frame in loop_time(self,'gps_millis', delta_t_decimals=-2):
             temp_est = NavData()
             for row_wildcard in rx_rows_in_measure:
                 temp_est[row_wildcard] = measure_frame[row_wildcard, 0]
             if len(state_estimate)==0:
                 state_estimate = temp_est
             else:
-                state_estimate.concat(temp_est, inplace=True)
+                state_estimate = concat(state_estimate,temp_est)
         return state_estimate
 
     @staticmethod
@@ -414,7 +415,7 @@ def solve_kaggle_baseline(navdata):
 
     Returns
     -------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
 
     """
@@ -446,7 +447,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
 
     Parameters
     ----------
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Estimated receiver position in latitude and longitude as an
         instance of the NavData class with the following
         rows: ``gps_millis``, ``lat_rx*_deg``, ``lon_rx*_deg``.
@@ -456,13 +457,13 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
 
     Returns
     -------
-    output : gnss_lib_py.parsers.navdata.NavData
+    output : gnss_lib_py.navdata.navdata.NavData
         NavData structure ready for Kaggle submission.
 
     """
 
     state_estimate.in_rows("gps_millis")
-    wildcards = state_estimate.find_wildcard_indexes(["lat_rx*_deg",
+    wildcards = find_wildcard_indexes(state_estimate,["lat_rx*_deg",
                             "lon_rx*_deg"],max_allow = 1)
 
     output = NavData()
@@ -472,7 +473,7 @@ def prepare_kaggle_submission(state_estimate, trip_id="trace/phone"):
     output["LatitudeDegrees"] = state_estimate[wildcards["lat_rx*_deg"]]
     output["LongitudeDegrees"] = state_estimate[wildcards["lon_rx*_deg"]]
 
-    output.interpolate("UnixTimeMillis",["LatitudeDegrees",
+    interpolate(output,"UnixTimeMillis",["LatitudeDegrees",
                                          "LongitudeDegrees"],inplace=True)
     return output
 
@@ -498,7 +499,7 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
 
     Returns
     -------
-    solution : gnss_lib_py.parsers.navdata.NavData
+    solution : gnss_lib_py.navdata.navdata.NavData
         Full solution submission across all traces. Can then be saved
         using submission.to_csv().
 
@@ -531,7 +532,7 @@ def solve_kaggle_dataset(folder_path, solver, verbose=False, *args, **kwargs):
                                                    trip_id)
 
                 # concatenate solution to previous solutions
-                solution.concat(navdata=output, inplace=True)
+                solution = concat(solution, output)
 
             except FileNotFoundError:
                 continue

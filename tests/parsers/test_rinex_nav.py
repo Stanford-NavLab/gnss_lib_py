@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 import pytest
 import numpy as np
 
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.rinex_nav import RinexNav, get_time_cropped_rinex
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
@@ -120,7 +120,7 @@ def test_get_time_cropped_rinex(ephem_path, ephem_time, satellites):
     ephem = get_time_cropped_rinex(ephem_time, satellites, ephem_path,
                                     verbose=True)
 
-    # Test that ephem is of type gnss_lib_py.parsers.navdata.NavData
+    # Test that ephem is of type gnss_lib_py.navdata.navdata.NavData
     assert isinstance(ephem, NavData)
 
     # check that there's one row per satellite

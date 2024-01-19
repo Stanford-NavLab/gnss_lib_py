@@ -17,7 +17,7 @@ from gnss_lib_py.utils.coordinates import ecef_to_el_az, add_el_az
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, LocalCoord
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
-
+from gnss_lib_py.navdata.operations import loop_time
 
 @pytest.fixture(name="local_ecef")
 def fixture_local_ecef():
@@ -372,7 +372,7 @@ def test_android_ecef_to_el_az(navdata):
 
     """
 
-    for _, _, navdata_subset in navdata.loop_time("gps_millis"):
+    for _, _, navdata_subset in loop_time(navdata,"gps_millis"):
 
         pos_sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
         pos_rx_m = navdata_subset[["x_rx_m","y_rx_m","z_rx_m"],0].reshape(-1,1)

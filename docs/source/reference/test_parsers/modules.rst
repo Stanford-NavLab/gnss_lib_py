@@ -7,7 +7,6 @@ parsers
    test_android
    test_clk
    test_google_decimeter
-   test_navdata
    test_nmea
    test_rinex_nav
    test_rinex_obs

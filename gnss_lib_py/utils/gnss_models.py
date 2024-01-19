@@ -15,14 +15,14 @@ from numpy.random import default_rng
 
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, ecef_to_el_az
-from gnss_lib_py.parsers.navdata import NavData
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.time_conversions import gps_millis_to_tow
 from gnss_lib_py.utils.sv_models import find_visible_ephem, _extract_pos_vel_arr, \
                         find_sv_location, find_sv_states, \
                         find_visible_sv_posvel, _sort_ephem_measures, \
                         _filter_ephemeris_measurements
 from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
-
+from gnss_lib_py.navdata.operations import loop_time, sort, concat, find_wildcard_indexes
 
 def add_measures(measurements, state_estimate,
                  ephemeris_path = DEFAULT_EPHEM_PATH, iono_params=None,
@@ -64,10 +64,10 @@ def add_measures(measurements, state_estimate,
 
     Parameters
     ----------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Received measurements for which SV states are required. Must
         contain `gps_millis`, `gnss_id`, and `sv_id` fields.
-    state_estimate : gnss_lib_py.parsers.navdata.NavData
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
         Estimate for receiver states --- ECEF x, y, and z positions in meters,
         ECEF x, y, and z velocities in meters, clock bias in meters, and
         the clock drift in meters per second --- stored in a NavData instance.
@@ -108,7 +108,7 @@ def add_measures(measurements, state_estimate,
                      'vx_sv_mps', 'vy_sv_mps', 'vz_sv_mps',
                      'b_sv_m']
     rx_pos_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-    rx_pos_rows_idxs = state_estimate.find_wildcard_indexes(
+    rx_pos_rows_idxs = find_wildcard_indexes(state_estimate,
                                             rx_pos_rows_to_find,
                                             max_allow=1)
     rx_pos_rows = [rx_pos_rows_idxs['x_rx*_m'][0],
@@ -121,7 +121,7 @@ def add_measures(measurements, state_estimate,
 
     est_measurements = NavData()
     # Loop through the measurement file per time step
-    for gps_millis, _, measure_frame in measurements.loop_time('gps_millis',
+    for gps_millis, _, measure_frame in loop_time(measurements,'gps_millis',
                                                         delta_t_decimals=delta_t_dec):
         # Sort the satellites
         rx_ephem, sorted_sats_ind, inv_sort_order = _sort_ephem_measures(measure_frame, ephem)
@@ -135,8 +135,7 @@ def add_measures(measurements, state_estimate,
                 sv_posvel[row] = measure_frame[row]
             for row in info_rows:
                 sv_posvel[row] = measure_frame[row]
-            # sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
-            sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
+            sort(sv_posvel,ind=sorted_sats_ind,inplace=True)
         except KeyError:
             sv_posvel = None
             use_posvel = True
@@ -152,7 +151,7 @@ def add_measures(measurements, state_estimate,
         vel_clk_rows = rx_vel_rows_to_find + rx_clk_rows_to_find
         for row in vel_clk_rows:
             try:
-                row_idx = state_estimate.find_wildcard_indexes(row,max_allow=1)
+                row_idx = find_wildcard_indexes(state_estimate,row,max_allow=1)
                 state[row_idx[row][0]] = state_estimate[row_idx[row][0], state_col]
             except KeyError:
                 warnings.warn("Assuming 0 "+ row + " for Rx", RuntimeWarning)
@@ -164,7 +163,7 @@ def add_measures(measurements, state_estimate,
                                                     ephem=rx_ephem,
                                                     sv_posvel=sv_posvel)
             # Reverse the sorting to match the input measurements
-            est_meas = est_meas.sort(ind=inv_sort_order)
+            sort(est_meas, ind=inv_sort_order, inplace=True)
         else:
             est_meas = None
         if corrections:
@@ -180,7 +179,7 @@ def add_measures(measurements, state_estimate,
         # Add required values to new rows
         if sv_posvel is not None:
             # Reverse the sorting to match the input measurements
-            sv_posvel = sv_posvel.sort(ind=sorted_sats_ind)
+            sort(sv_posvel,ind=sorted_sats_ind,inplace=True)
         est_frame = NavData()
         if pseudorange:
             est_frame['est_pr_m'] = est_meas['est_pr_m']
@@ -196,8 +195,8 @@ def add_measures(measurements, state_estimate,
         if len(est_measurements)==0:
             est_measurements = est_frame
         else:
-            est_measurements.concat(est_frame, inplace=True)
-    est_measurements = measurements.concat(est_measurements, axis=0, inplace=False)
+            est_measurements = concat(est_measurements,est_frame)
+    est_measurements = concat(measurements, est_measurements, axis=0)
     return est_measurements
 
 
@@ -215,7 +214,7 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
-    state : gnss_lib_py.parsers.navdata.NavData
+    state : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing state i.e. 3D position, 3D velocity,
         receiver clock bias and receiver clock drift rate at which
         measurements have to be simulated.
@@ -225,11 +224,11 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
         ('doppler_sigma') standard deviation values in [m] and [m/s].
         If None, uses default values `prange_sigma=6` and
         `doppler_sigma=1`.
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing satellite ephemeris parameters for a
         particular time of ephemeris. Use None if not available and using
         SV positions directly instead.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Precomputed positions of satellites, set to None if not available.
     rng : np.random.Generator
         A random number generator for sampling random noise values.
@@ -239,11 +238,11 @@ def simulate_measures(gps_millis, state, noise_dict=None, ephem=None,
 
     Returns
     -------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Pseudorange (label: `prange`) and doppler (label: `doppler`)
         measurements with satellite SV. Gaussian noise is added to
         expected measurements to simulate stochasticity.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Satellite positions and velocities (same as input if provided).
 
     """
@@ -293,25 +292,25 @@ def expected_measures(gps_millis, state, ephem=None, sv_posvel=None):
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
-    state : gnss_lib_py.parsers.navdata.NavData
+    state : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing state i.e. 3D position, 3D velocity,
         receiver clock bias and receiver clock drift rate at which
         measurements have to be simulated.
         Must be a single state (single column)
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing satellite ephemeris parameters for a
         particular time of ephemeris, use None if not available and
         using position directly.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Precomputed positions of satellites (if available).
 
     Returns
     -------
-    measurements : gnss_lib_py.parsers.navdata.NavData
+    measurements : gnss_lib_py.navdata.navdata.NavData
         Pseudorange (label: `prange`) and doppler (label: `doppler`)
         measurements with satellite SV. Also contains SVs and gps_tow at
         which the measurements are simulated.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Satellite positions and velocities (same as input if provided).
     """
     # and satellite positions in sv_posvel
@@ -343,7 +342,7 @@ def _extract_state_variables(state):
 
     Parameters
     ----------
-    state : gnss_lib_py.parsers.navdata.NavData
+    state : gnss_lib_py.navdata.navdata.NavData
         NavData containing state values i.e. 3D position, 3D velocity,
         receiver clock bias and receiver clock drift rate at which
         measurements will be simulated.
@@ -362,7 +361,7 @@ def _extract_state_variables(state):
     """
     assert len(state)==1, "Only single state accepted for GNSS simulation"
 
-    rx_idxs = state.find_wildcard_indexes(['x_rx*_m',
+    rx_idxs = find_wildcard_indexes(state,['x_rx*_m',
                                            'y_rx*_m',
                                            'z_rx*_m',
                                            'vx_rx*_mps',
@@ -396,14 +395,14 @@ def calculate_pseudorange_corr(gps_millis, state=None, ephem=None, sv_posvel=Non
     gps_millis : int
         Time at which measurements are needed, measured in milliseconds
         since start of GPS epoch [ms].
-    state : gnss_lib_py.parsers.navdata.NavData
+    state : gnss_lib_py.navdata.navdata.NavData
         NavData containing state values i.e. 3D position, 3D velocity,
         receiver clock bias and receiver clock drift rate at which
         measurements will be simulated.
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         Satellite ephemeris parameters for measurement SVs, use None if
         using satellite positions instead.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Precomputed positions of satellites corresponding to the input
         `gps_millis`, set to None if not available.
     iono_params : np.ndarray
@@ -469,9 +468,9 @@ def _calculate_tropo_delay(gps_millis, rx_ecef, ephem=None, sv_posvel=None):
         since start of GPS epoch [ms].
     rx_ecef : np.ndarray
         3x1 array of ECEF rx_pos position [m].
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         Satellite ephemeris parameters for measurement SVs.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Precomputed positions of satellites, set to None if not available.
 
     Returns
@@ -535,10 +534,10 @@ def _calculate_iono_delay(gps_millis, iono_params, rx_ecef, ephem=None,
     rx_ecef : np.ndarray
         3x1 receiver position in ECEF frame of reference [m], use None
         if not available.
-    ephem : gnss_lib_py.parsers.navdata.NavData
+    ephem : gnss_lib_py.navdata.navdata.NavData
         Satellite ephemeris parameters for measurement SVs, use None if
         using satellite positions instead.
-    sv_posvel : gnss_lib_py.parsers.navdata.NavData
+    sv_posvel : gnss_lib_py.navdata.navdata.NavData
         Precomputed positions of satellites corresponding to the input
         `gps_millis`, set to None if not available.
     constellation : string
