@@ -31,16 +31,16 @@ def calculate_dop(derived):
                                    np.atleast_2d(np.cos(sv_el_az_rad[0,:]) * np.cos(sv_el_az_rad[1,:])),
                                    np.atleast_2d(np.sin(sv_el_az_rad[0,:])),
                                    np.ones((1, sv_el_az_rad.shape[1])))).T
-    gram_matrix = np.matmul(unit_dir_mat.T, unit_dir_mat)
+    dop_matrix = np.linalg.inv(np.matmul(unit_dir_mat.T, unit_dir_mat))
 
 
     # Calculate the DOP
     dop = {}
-    dop["gram_matrix"] = gram_matrix
-    dop["GDOP"] = np.sqrt(np.trace(gram_matrix))
-    dop["HDOP"] = np.sqrt(gram_matrix[0, 0] + gram_matrix[1, 1])
-    dop["VDOP"] = np.sqrt(gram_matrix[2, 2])
-    dop["PDOP"] = np.sqrt(gram_matrix[0, 0] + gram_matrix[1, 1] + gram_matrix[2, 2])
-    dop["TDOP"] = np.sqrt(gram_matrix[3, 3])
+    dop["dop_matrix"] = dop_matrix
+    dop["GDOP"] = np.sqrt(np.trace(dop_matrix))
+    dop["HDOP"] = np.sqrt(dop_matrix[0, 0] + dop_matrix[1, 1])
+    dop["VDOP"] = np.sqrt(dop_matrix[2, 2])
+    dop["PDOP"] = np.sqrt(dop_matrix[0, 0] + dop_matrix[1, 1] + dop_matrix[2, 2])
+    dop["TDOP"] = np.sqrt(dop_matrix[3, 3])
 
     return dop
