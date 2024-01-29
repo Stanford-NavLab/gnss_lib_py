@@ -50,9 +50,6 @@ class NavData():
     str_map : Dict
         Map of the form {pandas column name : {array value : string}}.
         Map is of the form {pandas column name : {}} for non string rows.
-    num_cols : int
-        Number of columns in array containing data, set to 0 by default
-        for empty NavData
     curr_cols : int
         Current number of column for iterator, set to 0 by default
 
@@ -70,7 +67,6 @@ class NavData():
         # Attributes for looping over all columns
 
         self.curr_col = 0
-        self.num_cols = 0
 
         if csv_path is not None:
             self.from_csv_path(csv_path, **kwargs)
@@ -80,6 +76,7 @@ class NavData():
             self.from_numpy_array(numpy_array)
         else:
             self._build_navdata()
+
 
         if len(self) > 0:
             self.rename(self._row_map(), inplace=True)
@@ -695,6 +692,18 @@ class NavData():
         return shp
 
     @property
+    def num_cols(self):
+        """Return the number of columns in the NavData instance.
+
+        Returns
+        -------
+        num_cols : int
+            Number of columns in the NavData instance.
+        """
+        num_cols = self.shape[1]
+        return num_cols
+
+    @property
     def rows(self):
         """Return all row names in instance as a list
 
@@ -879,7 +888,6 @@ class NavData():
             Instantiation of NavData class with iteration initialized
         """
         self.curr_col = 0
-        self.num_cols = np.shape(self.array)[1]
         return self
 
     def __next__(self):
