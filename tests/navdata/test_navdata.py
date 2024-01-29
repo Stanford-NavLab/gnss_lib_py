@@ -176,10 +176,26 @@ def test_init_np(numpy_array):
         data = NavData(numpy_array=pd.DataFrame([0]))
 
 
-def test_len_num_cols_rows(data):
+def test_len_rows(data):
+    """Test that `len()` and `rows` return correct output.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.navdata.navdata.NavData
+        Simple version of NavData to use for test.
+    """
     assert len(data) == 6
-    assert data.num_cols == len(data)
     assert data.rows == ['names', 'integers', 'floats', 'strings']
+
+
+def test_num_cols(data):
+    """Test that `num_cols` returns correct output.
+
+    Parameters
+    ----------
+    data : gnss_lib_py.navdata.navdata.NavData
+        Simple version of NavData to use for test."""
+    assert data.num_cols == 6
 
 
 

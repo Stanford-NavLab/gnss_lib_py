@@ -898,7 +898,7 @@ class NavData():
         x_curr : gnss_lib_py.navdata.navdata.NavData
             Current column (based on iteration count)
         """
-        if self.curr_col >= self.num_cols:
+        if self.curr_col >= len(self):
             raise StopIteration
         x_curr = self.copy(rows=None, cols=self.curr_col)
         self.curr_col += 1
