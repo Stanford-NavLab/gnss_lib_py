@@ -175,6 +175,14 @@ def test_init_np(numpy_array):
     with pytest.raises(TypeError):
         data = NavData(numpy_array=pd.DataFrame([0]))
 
+
+def test_len_num_cols_rows(data):
+    assert len(data) == 6
+    assert data.num_cols == len(data)
+    assert data.rows == ['names', 'integers', 'floats', 'strings']
+
+
+
 @pytest.mark.parametrize('pandas_df',
                         [
                          lazy_fixture("df_simple"),
