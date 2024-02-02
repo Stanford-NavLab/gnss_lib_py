@@ -34,9 +34,9 @@ def calculate_dop(derived):
     # Get the elevation and azimuth angles
     sv_el_az_rad = np.deg2rad(derived['el_sv_deg', 'az_sv_deg'])
     unit_dir_mat = np.vstack((np.atleast_2d(np.cos(sv_el_az_rad[0,:]) * np.sin(sv_el_az_rad[1,:])),
-                                   np.atleast_2d(np.cos(sv_el_az_rad[0,:]) * np.cos(sv_el_az_rad[1,:])),
-                                   np.atleast_2d(np.sin(sv_el_az_rad[0,:])),
-                                   np.ones((1, sv_el_az_rad.shape[1])))).T
+                            np.atleast_2d(np.cos(sv_el_az_rad[0,:]) * np.cos(sv_el_az_rad[1,:])),
+                            np.atleast_2d(np.sin(sv_el_az_rad[0,:])),
+                            np.ones((1, sv_el_az_rad.shape[1])))).T
     dop_matrix = np.linalg.inv(np.matmul(unit_dir_mat.T, unit_dir_mat))
 
 
@@ -52,7 +52,8 @@ def calculate_dop(derived):
 
 
 def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
-                        statistic="mean", direction=None):
+                        statistic="mean", direction=None, percentile=None,
+                        ecef_origin=None):
     """Calculate required statistic for accuracy of state estimate.
 
     Parameters
@@ -67,11 +68,14 @@ def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
         "time" or "acc".
     statistic : str, optional
         Statistic to calculate, by default "mean". Can be "mean",
-        "median", "max_min", "quantiles", "mean_absolute" or "max_absolute".
+        "median", "max_min", "percentile", "quantiles", "mean_absolute" or "max_absolute".
     direction : str, optional
-        Direction of the statistic. If none, is calculated in the ECEF
+        Direction of the statistic. If None, is calculated in the ECEF
         frame of reference. Other options can be "ned", "enu", "3d_norm",
         "horizontal", or "along_cross_track".
+    percentile : float, optional
+        Percentile to calculate, if calculating percentiles. Default is
+        None, in which case 95th percentile will be calculated
     """
     if est_type == "pos":
         row_wildcards = ["x_rx*_m", "y_rx*_m", "z_rx*_m"]
@@ -87,10 +91,10 @@ def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
     # Extract subsets of the state_estimate and ground_truth NavData
     se_row_dict = find_wildcard_indexes(state_estimate, row_wildcards, max_allow=1)
     gt_row_dict = find_wildcard_indexes(ground_truth, row_wildcards, max_allow=1)
-    se_rows = ['gps_millis'] + se_row_dict.values()
-    gt_rows = ['gps_millis'] + gt_row_dict.values()
-    state_estimate_subset = state_estimate[se_rows]
-    ground_truth_subset = ground_truth[gt_rows]
+    se_rows = ['gps_millis'] + [row_name[0] for row_name in se_row_dict.values()]
+    gt_rows = ['gps_millis'] + [row_name[0] for row_name in gt_row_dict.values()]
+    state_estimate_subset = state_estimate.copy(rows=se_rows)
+    ground_truth_subset = ground_truth.copy(rows=gt_rows)
 
     # Calculate the error values for the given rows
     if direction is None:
@@ -99,32 +103,39 @@ def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
                                     se_row_dict, gt_row_dict)
         error_row_dict = find_wildcard_indexes(error_values, row_wildcards)
     elif direction == "ned":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc"\
+        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
             "NED errors only for position, velocities, and acc"
         error_values, error_row_dict = _get_ned_err(state_estimate_subset,
                                                     ground_truth_subset,
-                                                    se_row_dict, gt_row_dict)
+                                                    se_row_dict,
+                                                    gt_row_dict,
+                                                    ecef_origin,
+                                                    est_type)
     elif direction == "enu":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc"\
+        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
             "ENU errors only for position, velocities, and acc"
         error_values, error_row_dict = _get_enu_err(state_estimate_subset,
                                                     ground_truth_subset,
                                                     se_row_dict,
-                                                    gt_row_dict)
+                                                    gt_row_dict,
+                                                    ecef_origin,
+                                                    est_type)
     elif direction == "3d_norm":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc"\
+        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
             "3D estimate errors only for position, velocities, and acc"
         error_values = _get_single_err_sample(state_estimate_subset,
                                     ground_truth_subset,
-                                    se_row_dict, gt_row_dict)
+                                    se_row_dict, gt_row_dict, err_type="3d")
         error_row_dict = {'pos_rx*_3d_m': 'pos_rx_err_3d_m'}
     elif direction == "horizontal":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc"\
+        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
             "Horizontal estimate errors only for position, velocities, and acc"
         error_values = _get_horiz_err(state_estimate_subset,
-                                      ground_truth_subset)
+                                      ground_truth_subset, est_type)
         error_row_dict = {'pos_rx*_horiz_m': 'pos_rx_err_horiz_m'}
     elif direction == "along_cross_track":
+        assert est_type == "pos", \
+            "Along and cross track errors only implemented for position estimates"
         raise NotImplementedError("Along/cross track errors not implemented")
     else:
         raise ValueError("Input direction of error not implemented")
@@ -146,6 +157,11 @@ def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
             stat[stat_row_name] = np.max(error_values[error_row])
             stat_row_name = _new_row_name(wc, 'min')
             stat[stat_row_name] = np.min(error_values[error_row])
+        elif statistic == "percentile":
+            if percentile is None:
+                percentile = 95
+            stat_row_name = _new_row_name(wc, 'percentile_' + str(percentile))
+            stat[stat_row_name] = np.percentile(error_values[error_row], percentile)
         elif statistic == "quantiles":
             est_quantiles = np.quantile(error_values[error_row], [0.25, 0.5, 0.75])
             for q_idx, quantile in enumerate(est_quantiles):
@@ -210,16 +226,27 @@ def _get_vec_err(state_estimate, ground_truth, se_row_dict=None,
     return error_values
 
 
-def _get_single_err_sample(state_estimate, ground_truth, se_row_dict, gt_row_dict):
+def _get_single_err_sample(state_estimate, ground_truth, se_row_dict,
+                           gt_row_dict, err_type, est_type="pos"):
     error_values = NavData()
+    se_rows = [row_name[0] for row_name in se_row_dict.values()]
+    gt_rows = [row_name[0] for row_name in gt_row_dict.values()]
+
+    if est_type =="pos":
+        row_pf = err_type+"_m"
+    elif est_type == "vel":
+        row_pf = err_type+"_mps"
+    elif est_type == "acc":
+        row_pf = err_type+"_mps2"
+
     if len(state_estimate) == len(ground_truth):
         # assume one-to-one correspondance
         error_values['gps_millis'] = state_estimate['gps_millis']
-        state_estimate_xyz = state_estimate[se_row_dict.values()]
-        ground_truth_xyz = ground_truth[gt_row_dict.values()]
-        error_values['pos_err_3d_m'] = np.linalg.norm(state_estimate_xyz
+        state_estimate_xyz = state_estimate[se_rows]
+        ground_truth_xyz = ground_truth[gt_rows]
+        error_values['pos_rx_err_'+row_pf] = np.linalg.norm(state_estimate_xyz
                                                     - ground_truth_xyz,
-                                                    axis=1)
+                                                    axis=0)
     else:
         # Correspondance needs to be found using time
         for milli, _, se_frame in loop_time(state_estimate, "gps_millis"):
@@ -228,9 +255,10 @@ def _get_single_err_sample(state_estimate, ground_truth, se_row_dict, gt_row_dic
             # find time index for ground_truth NavData instance
             gt_t_idx = np.argmin(np.abs(ground_truth["gps_millis"] - milli))
             # Compute error samples
-            temp_err_frame['pos_err_3d_m'] = np.linalg.norm(se_frame[se_row_dict.values()] \
-                                            - ground_truth[gt_row_dict.values(),
-                                                            gt_t_idx])
+            temp_err_frame['pos_rx_err_'+row_pf] = np.linalg.norm(
+                                                    se_frame[se_rows] \
+                                                    - ground_truth[gt_rows,
+                                                                gt_t_idx])
             if len(error_values) == 0:
                 error_values = temp_err_frame
             else:
@@ -251,41 +279,48 @@ def _get_horiz_err(state_estimate, ground_truth, est_type = "pos"):
     se_row_dict = find_wildcard_indexes(state_estimate, row_wildcards, max_allow=1)
     gt_row_dict = find_wildcard_indexes(ground_truth, row_wildcards, max_allow=1)
     error_values = _get_single_err_sample(state_estimate, ground_truth,
-                                          se_row_dict, gt_row_dict)
+                                          se_row_dict, gt_row_dict,
+                                          err_type="horiz")
     return error_values
 
 
 def _get_ned_err(state_estimate, ground_truth, se_row_dict,
                  gt_row_dict, ecef_origin = None, est_type = "pos"):
+
+
+    se_rows = [row_name[0] for row_name in se_row_dict.values()]
+    gt_rows = [row_name[0] for row_name in gt_row_dict.values()]
+
     if ecef_origin is None:
-        assert est_type == "pos", "Need origin of NED frame of reference"
-        ecef_origin = ground_truth[gt_row_dict.values(), 0]
+        assert est_type == "pos", \
+            "Need origin of NED frame of reference for vel and acc"
+        ecef_origin = ground_truth[gt_rows, 0]
         ned_frame = LocalCoord.from_ecef(ecef_origin)
     else:
         ned_frame = LocalCoord.from_ecef(ecef_origin)
     if est_type == "pos":
-        state_estimate_xyz = state_estimate[se_row_dict.values()]
-        gt_xyz = ground_truth[gt_row_dict.values()]
+        state_estimate_xyz = state_estimate[se_rows]
+        gt_xyz = ground_truth[gt_rows]
 
         state_estimate_ned = ned_frame.ecef_to_ned(state_estimate_xyz)
         gt_ned = ned_frame.ecef_to_ned(gt_xyz)
-        error_row_dict = {'n_rx*_m': 'n_rx_err_m',
-                          'e_rx*_m': 'e_rx_err_m',
-                          'd_rx*_m': 'd_rx_err_m'}
+        error_row_dict = {'n_rx*_m': ['n_rx_err_m'],
+                          'e_rx*_m': ['e_rx_err_m'],
+                          'd_rx*_m': ['d_rx_err_m']}
     else:
-        state_estimate_xyz = state_estimate[se_row_dict.values()]
-        gt_xyz = ground_truth[gt_row_dict.values()]
+        state_estimate_xyz = state_estimate[se_rows]
+        gt_xyz = ground_truth[gt_rows]
 
         state_estimate_ned = ned_frame.ecef_to_nedv(state_estimate_xyz)
         gt_ned = ned_frame.ecef_to_nedv(gt_xyz)
         if est_type == "vel":
-            error_row_dict = {'vn_rx*_mps': 'vn_rx_err_mps',
-                              've_rx*_mps': 've_rx_err_mps',
-                              'vd_rx*_mps': 'vd_rx_err_mps'}
+            error_row_dict = {'vn_rx*_mps': ['vn_rx_err_mps'],
+                              've_rx*_mps': ['ve_rx_err_mps'],
+                              'vd_rx*_mps': ['vd_rx_err_mps']}
         if est_type == "acc":
-            error_row_dict = {'acc_n_rx*_mps2': 'acc_n_rx_err_mps2',
-                              'acc_e_rx*_mps2': 'acc_e_rx_err_mps2',
-                              'acc_d_rx*_mps2': 'acc_d_rx_err_mps2'}
+            error_row_dict = {'an_rx*_mps2': ['an_rx_err_mps2'],
+                              'ae_rx*_mps2': ['ae_rx_err_mps2'],
+                              'ad_rx*_mps2': ['ad_rx_err_mps2']}
 
     error_values= NavData()
     error_values['gps_millis'] = state_estimate['gps_millis']
@@ -293,8 +328,8 @@ def _get_ned_err(state_estimate, ground_truth, se_row_dict,
         # Assume one-to-one correspondance between state estimate and
         # ground truth
         for row_num, error_row in enumerate(error_row_dict.values()):
-            error_values[error_row] = state_estimate_ned[row_num, :] \
-                                    - gt_ned[row_num, :]
+            error_values[error_row[0]] = state_estimate_ned[row_num, :] \
+                                        - gt_ned[row_num, :]
     else:
         # Correspondance needs to be found using time
         for milli, _, _ in loop_time(state_estimate, "gps_millis"):
@@ -304,7 +339,7 @@ def _get_ned_err(state_estimate, ground_truth, se_row_dict,
             gt_t_idx = np.argmin(np.abs(ground_truth["gps_millis"] - milli))
             # Compute error samples
             for row_num, error_row in enumerate(error_row_dict.values()):
-                temp_err_frame[error_row] = state_estimate_ned[row_num, :] \
+                temp_err_frame[error_row[0]] = state_estimate_ned[row_num, :] \
                                             - gt_ned[row_num, gt_t_idx]
             if len(error_values) == 0:
                 error_values = temp_err_frame
@@ -316,17 +351,17 @@ def _get_ned_err(state_estimate, ground_truth, se_row_dict,
 def _get_enu_err(state_estimate, ground_truth, se_row_dict,
                  gt_row_dict, ecef_origin = None, est_type = "pos"):
     if est_type == "pos":
-        enu_err_row_dict = {'e_rx*_m': 'e_rx_err_m',
-                          'n_rx*_m': 'n_rx_err_m',
-                          'u_rx*_m': 'u_rx_err_m'}
+        enu_err_row_dict = {'e_rx*_m': ['e_rx_err_m'],
+                          'n_rx*_m': ['n_rx_err_m'],
+                          'u_rx*_m': ['u_rx_err_m']}
     if est_type == "vel":
-        enu_err_row_dict = {'ve_rx*_mps': 've_rx_err_mps',
-                          'vn_rx*_mps': 'vn_rx_err_mps',
-                          'vu_rx*_mps': 'vu_rx_err_mps'}
+        enu_err_row_dict = {'ve_rx*_mps': ['ve_rx_err_mps'],
+                          'vn_rx*_mps': ['vn_rx_err_mps'],
+                          'vu_rx*_mps': ['vu_rx_err_mps']}
     if est_type == "acc":
-        enu_err_row_dict = {'acc_e_rx*_mps2': 'acc_e_rx_err_mps2',
-                          'acc_n_rx*_mps2': 'acc_n_rx_err_mps2',
-                          'acc_u_rx*_mps2': 'acc_u_rx_err_mps2'}
+        enu_err_row_dict = {'ae_rx*_mps2': ['ae_rx_err_mps2'],
+                          'an_rx*_mps2': ['an_rx_err_mps2'],
+                          'au_rx*_mps2': ['au_rx_err_mps2']}
 
     ned_errors, ned_error_dict = _get_ned_err(state_estimate, ground_truth,
                                               se_row_dict,
@@ -337,12 +372,10 @@ def _get_enu_err(state_estimate, ground_truth, se_row_dict,
                                    [0, 0, -1]])
     enu_errors = NavData()
     enu_errors['gps_millis'] = ned_errors['gps_millis']
-    ned_err_array = ned_errors[ned_error_dict.values()]
-    enu_err_array = np.matmul(ned_to_enu_rot_mat, ned_err_array.T).T
-    #TODO: Check the above line for dimensionality
+    ned_error_rows = [row_name[0] for row_name in ned_error_dict.values()]
+    ned_err_array = ned_errors[ned_error_rows]
+    enu_err_array = np.matmul(ned_to_enu_rot_mat, ned_err_array)
     for row_num, row in enumerate(enu_err_row_dict.values()):
-        enu_errors[row] = enu_err_array[:, row_num]
+        enu_errors[row[0]] = enu_err_array[row_num, :]
 
-    return enu_errors, enu_error_row_dict
-
-
+    return enu_errors, enu_err_row_dict
