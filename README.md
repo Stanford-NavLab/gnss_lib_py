@@ -70,7 +70,7 @@ Code Organization
 ```
 In the directory organization above:
 
-  * The `algorithms` directory contains localization algorithms that
+  * The `algorithms` directory contains algorithms that
     work by passing in a `NavData` class. Currently, the following
     algorithms are implemented in the `algorithms`:
 

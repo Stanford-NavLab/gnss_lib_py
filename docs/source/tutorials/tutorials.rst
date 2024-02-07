@@ -14,7 +14,7 @@ few lines of code.
 NavData Tutorials
 -----------------
 
-Sections of this tutorial show how to interact with our standard :code:`NavData`
+These tutorials show how to interact with our standard :code:`NavData`
 class and its corresponding operations.
 
 .. toctree::
@@ -27,7 +27,7 @@ class and its corresponding operations.
 Parser Tutorials
 ----------------
 
-This tutorial explains details about existing parsers and how to create
+These tutorials explain details about existing parsers and how to create
 a new parser if necessary.
 
 .. toctree::
@@ -46,8 +46,7 @@ a new parser if necessary.
 Algorithm Tutorials
 -------------------
 
-This tutorial walks through the existing algorithms that you can use
-for baseline position solutions.
+These tutorials demonstrate existing algorithms implemented in ``gnss_lib_py``.
 
 .. toctree::
    :maxdepth: 2
@@ -61,7 +60,7 @@ for baseline position solutions.
 Utility Tutorials
 -----------------
 
-This tutorial illustrates a few of the most common utility functions
+These tutorials illustrate a few of the most common utility functions
 available in the :code:`utils` directory.
 
 .. toctree::
@@ -79,7 +78,7 @@ available in the :code:`utils` directory.
 Visualization Tutorials
 -----------------------
 
-This tutorial illustrates a few of the most common plotting functions
+These tutorials illustrate a few of the most common plotting functions
 available in the :code:`visualizations` directory.
 
 .. toctree::

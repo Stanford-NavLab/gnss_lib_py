@@ -80,7 +80,7 @@ Code Organization
 
 In the directory organization above:
 
-  * The :code:`algorithms` directory contains localization algorithms that
+  * The :code:`algorithms` directory contains algorithms that
     work by passing in a :code:`NavData` class. Currently, the following
     algorithms are implemented in the :code:`algorithms`:
 
