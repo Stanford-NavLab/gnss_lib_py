@@ -93,10 +93,10 @@ def get_dop(navdata, **which_dop):
     if which_dop['dop_matrix']:
         dop_matrix_splat = []
 
-        dop_labels = ['EE', 'EN', 'EU', 'ET', 
-                            'NN', 'NU', 'NT', 
-                                  'UU', 'UT', 
-                                        'TT']
+        dop_labels = ['ee', 'en', 'eu', 'et', 
+                            'nn', 'nu', 'nt', 
+                                  'uu', 'ut', 
+                                        'tt']
         
         for dop_matrix in dop_out['dop_matrix']:
             dop_matrix_splat.append(dop_matrix[(0, 0, 0, 0, 1, 1, 1, 2, 2, 3), 
@@ -109,7 +109,7 @@ def get_dop(navdata, **which_dop):
 
         # Add to the NavData instance
         for dop_ind, dop_label in enumerate(dop_labels):
-            dop_navdata[f'DOP_{dop_label}'] = dop_matrix_splat[:, dop_ind]
+            dop_navdata[f'dop_{dop_label}'] = dop_matrix_splat[:, dop_ind]
 
     return dop_navdata
 
