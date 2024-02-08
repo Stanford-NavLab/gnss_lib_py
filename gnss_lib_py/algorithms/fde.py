@@ -301,7 +301,6 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
     if threshold is None:
         threshold = 3000
 
-
     if time_fde:
         compute_times = []
         navdata_timing = []
@@ -374,6 +373,138 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
     navdata["fault_residual"] = fault_residual
     if verbose:
         print(navdata["fault_residual"])
+
+    timing_info = {}
+    if time_fde:
+        navdata["compute_time_s"] = navdata_timing
+        timing_info["compute_times"] = compute_times
+        return navdata, timing_info
+    return navdata
+
+
+def fde_solution_separation(navdata, max_faults, threshold,
+                            time_fde=False, verbose=False):
+    """Solution separation fault detection and exclusion.
+
+    Implemented based on papers [8]_ [9]_.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
+        well as the time row ``gps_millis`` and the corrected
+        pseudorange ``corr_pr_m``.
+    max_faults : int
+        Maximum number of faults to detect and/or exclude.
+    threshold : float
+        Detection threshold.
+    time_fde : bool
+        If true, will time the fault detection and exclusion steps and
+        return that info.
+    verbose : bool
+        Prints extra debugging print statements if true.
+
+    Returns
+    -------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        Result includes a new row of ``fault_ss`` where a
+        value of 1 indicates a detected fault and 0 indicates that
+        no fault was detected, and 2 indicates an unknown fault status
+        usually due to lack of necessary columns or information.
+    timing_info : dict
+        If time_fde is true, also returns a dictionary of the compute
+        times in seconds for each iteration.
+
+    References
+    ----------
+    .. [8] Brown, R. Grover, and Paul W. McBurney. "Self‐Contained GPS
+           Integrity Check Using Maximum Solution Separation."
+           Navigation 35.1 (1988): 41-53.
+    .. [9] Pullen, Sam, and Mathieu Joerger. "GNSS integrity and
+           receiver autonomous integrity monitoring (RAIM)." Position,
+           navigation, and timing technologies in the 21st century:
+           integrated satellite navigation, sensor systems, and civil
+           applications 1 (2020): 591-617.
+
+    """
+
+    fault_ss = []
+    if threshold is None:
+        threshold = 3000
+
+    if time_fde:
+        compute_times = []
+        navdata_timing = []
+
+    for _, _, navdata_subset in loop_time(navdata,'gps_millis'):
+
+        if time_fde:
+            time_start = time.time()
+
+        subset_length = len(navdata_subset)
+
+        sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        corr_pr_m = navdata_subset["corr_pr_m"]
+
+        # remove NaN indexes
+        nan_idxs = sorted(list(set(np.arange(subset_length)[np.isnan(sv_m).any(axis=0)]).union( \
+                                  set(np.arange(subset_length)[np.isnan(corr_pr_m)]).union( \
+                                  ))))[::-1]
+
+        original_indexes = np.arange(subset_length)
+        # remove NaN indexes
+        navdata_subset.remove(cols=nan_idxs,inplace=True)
+        original_indexes = np.delete(original_indexes, nan_idxs)
+
+        fault_idxs = []
+        if len(navdata_subset) > 5:
+
+            # test statistic
+            receiver_state = solve_wls(navdata_subset)
+            sigma_squared = _ss_normalizer(navdata_subset, receiver_state)
+
+            receiver_state_subsets = np.zeros((3,navlab_subset))
+            sigma_squared_subsets = np.zeros(navlab_subset)
+            for idx in len(navdata_subset):
+
+
+            # greedy removal if chi_square above detection threshold
+            while chi_square > threshold:
+            # stop removing indexes either b/c you need at least four
+            # satellites or if maximum number of faults has been reached
+                if len(navdata_subset) < 5 or (max_faults is not None \
+                                           and len(fault_idxs) >= max_faults):
+                    break
+
+                normalized_residual = _residual_exclude(navdata_subset,receiver_state)
+                fault_idx = np.argsort(normalized_residual)[-1]
+
+                navdata_subset.remove(cols=[fault_idx], inplace=True)
+                fault_idxs.append(original_indexes[fault_idx])
+                original_indexes = np.delete(original_indexes, fault_idx)
+
+                # test statistic
+                receiver_state = solve_wls(navdata_subset)
+                solve_residuals(navdata_subset, receiver_state, inplace=True)
+                chi_square = _residual_chi_square(navdata_subset, receiver_state)
+
+                if verbose:
+                    print("chi squared:",chi_square,"after removing index:",fault_idxs)
+
+        fault_ss_subset = np.array([0] * subset_length)
+        fault_ss_subset[fault_idxs] = 1
+        fault_ss_subset[nan_idxs] = 2
+        fault_ss += list(fault_ss_subset)
+
+        if time_fde:
+            time_end = time.time()
+            compute_times.append(time_end-time_start)
+            navdata_timing += list([time_end-time_start] * subset_length)
+
+    navdata["fault_ss"] = fault_ss
+    if verbose:
+        print(navdata["fault_ss"])
 
     timing_info = {}
     if time_fde:
@@ -795,3 +926,33 @@ def _residual_exclude(navdata, receiver_state):
     normalized_residual = normalized_residual[:,0]
 
     return normalized_residual
+
+def _ss_normalizer(navdata, receiver_state):
+    """Normalizer for solution separation.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m`` and residuals
+        ``residuals_m``.
+    receiver_state : gnss_lib_py.navdata.navdata.NavData
+        Reciever state that must include the receiver's state of:
+        ``x_rx_wls_m``, ``y_rx_wls_m``, and ``z_rx_wls_m``.
+
+    Returns
+    -------
+    sigma_squared : float
+        Variance calculated from the geometry matrix.
+
+
+    """
+
+    # geometry matrix
+    geo_matrix = (receiver_state[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]].reshape(-1,1) \
+               -  navdata[["x_sv_m","y_sv_m","z_sv_m"]]).T
+    geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
+
+    sigma_squared = np.trace(np.linalg.inv(geo_matrix.T @ geo_matrix))
+
+    return sigma_squared
