@@ -187,11 +187,19 @@ def test_simple_get_dop_default(navdata, expected_dop):
                             (lazy_fixture('simple_sat_scenario'),
                              lazy_fixture('simple_sat_expected_dop'),
                              {'GDOP': True, 'HDOP': True, 'VDOP': True, 
-                              'PDOP': True, 'TDOP': True, 'dop_matrix': True}),
+                              'PDOP': True, 'TDOP': True, 'dop_matrix': True}),                              
                             (lazy_fixture('simple_sat_scenario'),
                              lazy_fixture('simple_sat_expected_dop'),
                              {'GDOP': False, 'HDOP': False, 'VDOP': False, 
-                              'PDOP': False, 'TDOP': False, 'dop_matrix': True})
+                              'PDOP': False, 'TDOP': True, 'dop_matrix': False}),
+                            (lazy_fixture('simple_sat_scenario'),
+                             lazy_fixture('simple_sat_expected_dop'),
+                             {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                              'PDOP': False, 'TDOP': False, 'dop_matrix': True}),
+                            (lazy_fixture('simple_sat_scenario'),
+                             lazy_fixture('simple_sat_expected_dop'),
+                             {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                              'PDOP': False, 'TDOP': False, 'dop_matrix': False})
                         ])
 def test_simple_get_dop(navdata, expected_dop, which_dop):
     """
@@ -204,17 +212,19 @@ def test_simple_get_dop(navdata, expected_dop, which_dop):
     dop_navdata = get_dop(navdata, **which_dop)
 
     # Assert that the which_dop deep copy is the same as the original
-    
+    assert which_dop_deep_copy == which_dop, \
+        "The `which_dop` dictionaries was editted by the get_dop function."
 
     assert 'gps_millis' in dop_navdata.rows        
     assert dop_navdata['gps_millis'] == navdata['gps_millis'][0]
 
-    base_rows = which_dop
+    base_rows = which_dop.keys() - {'dop_matrix'}
 
     for base_row in base_rows:
-        assert base_row in dop_navdata.rows
-        np.testing.assert_array_almost_equal(dop_navdata[base_row],
-                                            expected_dop[base_row])
+        if which_dop[base_row]:
+            assert base_row in dop_navdata.rows
+            np.testing.assert_array_almost_equal(dop_navdata[base_row],
+                                                expected_dop[base_row])
     
     if 'dop_matrix' in dop_navdata:
         # Handle the splatting of the DOP matrix
