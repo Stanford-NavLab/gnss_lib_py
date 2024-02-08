@@ -38,17 +38,20 @@ def test_simple_dop():
          [-5 + sqrt2,       -5 + sqrt2,       -5 - 2*sqrt2,  5]])
     
     # Assert symmetry
-    assert np.allclose(expected_dop_matrix.T, expected_dop_matrix)
-    assert np.allclose(dop['dop_matrix'].T, dop['dop_matrix'])
+    np.testing.assert_array_almost_equal(
+        expected_dop_matrix.T, expected_dop_matrix)
+    np.testing.assert_array_almost_equal(
+        dop['dop_matrix'].T, dop['dop_matrix'])
     # Assert matching values
-    assert np.allclose(dop['dop_matrix'], expected_dop_matrix)
+    np.testing.assert_array_almost_equal(
+        dop['dop_matrix'], expected_dop_matrix)
 
     # Check the DOP values
-    assert np.allclose(dop['GDOP'], np.sqrt(23/3))
-    assert np.allclose(dop['HDOP'], np.sqrt((25/6) - sqrt2))
-    assert np.allclose(dop['VDOP'], np.sqrt((9/4) + sqrt2))
-    assert np.allclose(dop['PDOP'], 0.5 * np.sqrt(77/3))
-    assert np.allclose(dop['TDOP'], 0.5 * np.sqrt(5))
+    np.testing.assert_array_almost_equal(dop['GDOP'], np.sqrt(23/3))
+    np.testing.assert_array_almost_equal(dop['HDOP'], np.sqrt((25/6) - sqrt2))
+    np.testing.assert_array_almost_equal(dop['VDOP'], np.sqrt((9/4) + sqrt2))
+    np.testing.assert_array_almost_equal(dop['PDOP'], 0.5 * np.sqrt(77/3))
+    np.testing.assert_array_almost_equal(dop['TDOP'], 0.5 * np.sqrt(5))
 
     
 
