@@ -21,52 +21,68 @@ from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
 
 
 
-# # FROM test_coordinates.py
-# @pytest.fixture(name="derived_2022_path")
-# def fixture_derived_2022_path(root_path_2022):
-#     """Filepath of Android Derived measurements
+# FROM test_coordinates.py
+@pytest.fixture(name="root_path_2022")
+def fixture_root_path_2022():
+    """Location of measurements for unit test
 
-#     Returns
-#     -------
-#     derived_path : string
-#         Location for the unit_test Android derived 2022 measurements
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__))))
+    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2022')
+    return root_path
 
-#     Notes
-#     -----
-#     Test data is a subset of the Android Raw Measurement Dataset [4]_,
-#     from the 2022 Decimeter Challenge. Particularly, the
-#     train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-#     was retrieved from
-#     https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+@pytest.fixture(name="derived_2022_path")
+def fixture_derived_2022_path(root_path_2022):
+    """Filepath of Android Derived measurements
 
-#     References
-#     ----------
-#     .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-#         "Android Raw GNSS Measurement Datasets for Precise Positioning."
-#         Proceedings of the 33rd International Technical Meeting of the
-#         Satellite Division of The Institute of Navigation (ION GNSS+
-#         2020). 2020.
-#     """
-#     derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
-#     return derived_path
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived 2022 measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [4]_,
+    from the 2022 Decimeter Challenge. Particularly, the
+    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+
+    References
+    ----------
+    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
+    return derived_path
 
 
-# @pytest.fixture(name="derived_2022")
-# def fixture_load_derived_2022(derived_2022_path):
-#     """Load instance of AndroidDerived2021
+@pytest.fixture(name="derived_2022")
+def fixture_load_derived_2022(derived_2022_path):
+    """Load instance of AndroidDerived2021
 
-#     Parameters
-#     ----------
-#     derived_path : pytest.fixture
-#     String with location of Android derived measurement file
+    Parameters
+    ----------
+    derived_path : pytest.fixture
+    String with location of Android derived measurement file
 
-#     Returns
-#     -------
-#     derived : AndroidDerived2022
-#     Instance of AndroidDerived2022 for testing
-#     """
-#     derived = AndroidDerived2022(derived_2022_path)
-#     return derived
+    Returns
+    -------
+    derived : AndroidDerived2022
+    Instance of AndroidDerived2022 for testing
+    """
+    derived = AndroidDerived2022(derived_2022_path)
+    return derived
 
 
 #####################################################################
@@ -180,26 +196,26 @@ def test_simple_get_dop_default(navdata, expected_dop):
 
 @pytest.mark.parametrize('navdata, expected_dop, which_dop',
                         [
-                            (lazy_fixture('simple_sat_scenario'),
-                             lazy_fixture('simple_sat_expected_dop'),
-                             {'GDOP': True, 'HDOP': True, 'VDOP': True, 
-                              'PDOP': True, 'TDOP': True, 'dop_matrix': False}), 
-                            (lazy_fixture('simple_sat_scenario'),
-                             lazy_fixture('simple_sat_expected_dop'),
-                             {'GDOP': True, 'HDOP': True, 'VDOP': True, 
-                              'PDOP': True, 'TDOP': True, 'dop_matrix': True}),                              
-                            (lazy_fixture('simple_sat_scenario'),
-                             lazy_fixture('simple_sat_expected_dop'),
-                             {'GDOP': False, 'HDOP': False, 'VDOP': False, 
-                              'PDOP': False, 'TDOP': True, 'dop_matrix': False}),
-                            (lazy_fixture('simple_sat_scenario'),
-                             lazy_fixture('simple_sat_expected_dop'),
-                             {'GDOP': False, 'HDOP': False, 'VDOP': False, 
-                              'PDOP': False, 'TDOP': False, 'dop_matrix': True}),
-                            (lazy_fixture('simple_sat_scenario'),
-                             lazy_fixture('simple_sat_expected_dop'),
-                             {'GDOP': False, 'HDOP': False, 'VDOP': False, 
-                              'PDOP': False, 'TDOP': False, 'dop_matrix': False})
+                        (lazy_fixture('simple_sat_scenario'),
+                            lazy_fixture('simple_sat_expected_dop'),
+                            {'GDOP': True, 'HDOP': True, 'VDOP': True, 
+                            'PDOP': True, 'TDOP': True, 'dop_matrix': False}), 
+                        (lazy_fixture('simple_sat_scenario'),
+                            lazy_fixture('simple_sat_expected_dop'),
+                            {'GDOP': True, 'HDOP': True, 'VDOP': True, 
+                            'PDOP': True, 'TDOP': True, 'dop_matrix': True}),                              
+                        (lazy_fixture('simple_sat_scenario'),
+                            lazy_fixture('simple_sat_expected_dop'),
+                            {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                            'PDOP': False, 'TDOP': True, 'dop_matrix': False}),
+                        (lazy_fixture('simple_sat_scenario'),
+                            lazy_fixture('simple_sat_expected_dop'),
+                            {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                            'PDOP': False, 'TDOP': False, 'dop_matrix': True}),
+                        (lazy_fixture('simple_sat_scenario'),
+                            lazy_fixture('simple_sat_expected_dop'),
+                            {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                            'PDOP': False, 'TDOP': False, 'dop_matrix': False})
                         ])
 def test_simple_get_dop(navdata, expected_dop, which_dop):
     """
@@ -247,19 +263,99 @@ def test_simple_get_dop(navdata, expected_dop, which_dop):
             ind += 1
             
 
+@pytest.mark.parametrize('navdata',[
+                                    lazy_fixture('derived_2022')
+                                    ])
+def test_dop_across_time(navdata):
+    """
+    Test DOP calculation across time is properly added to NAV data.
+    """
+
+    dop_navdata = get_dop(navdata)
+
+    # Check that the DOP NavData instance has the expected keys
+    assert dop_navdata.rows == ['gps_millis', 'HDOP', 'VDOP']
+
+    # Check that the DOP NavData is the expected length
+    unique_gps_millis = np.unique(navdata['gps_millis'])
+    assert len(dop_navdata['gps_millis']) == len(unique_gps_millis)
 
 
+@pytest.mark.parametrize('navdata, which_dop',
+                         [
+                (lazy_fixture('derived_2022'), 
+                 {'GDOP': True, 'HDOP': True, 'VDOP': True, 
+                  'PDOP': True, 'TDOP': True, 'dop_matrix': False}),
+                (lazy_fixture('derived_2022'), 
+                 {'GDOP': True, 'HDOP': True, 'VDOP': True, 
+                  'PDOP': True, 'TDOP': True, 'dop_matrix': True}),
+                (lazy_fixture('derived_2022'), 
+                 {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                  'PDOP': False, 'TDOP': True, 'dop_matrix': True}),
+                (lazy_fixture('derived_2022'), 
+                 {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                  'PDOP': False, 'TDOP': False, 'dop_matrix': True})
+                         ])
+def test_dop_across_time_with_selection(navdata, which_dop):
+    """
+    Test DOP calculation across time is properly added to NAV data.
+    """
 
-# @pytest.mark.parametrize('navdata',[
-#                                     lazy_fixture('derived_2022'),
-#                                     ])
-# def test_dop_across_time(navdata):
-#     """
-#     Test DOP calculation across time is properly added to NAV data.
-#     """
+    # Make a deep copy of which_dop to ensure it was not editted
+    which_dop_deep_copy = copy.deepcopy(which_dop)
 
-#     dop_navdata = get_dop(navdata)
+    # Perform the function under test
+    dop_navdata = get_dop(navdata, **which_dop)
 
-#     # Check that the DOP NavData instance has the expected keys
-#     assert all(dop_navdata.rows == ('gps_millis', 'HDOP', 'VDOP'))
+    # Assert that the which_dop deep copy is the same as the original
+    assert which_dop_deep_copy == which_dop, \
+        "The `which_dop` dictionaries was editted by the get_dop function."
+
+    # Check that the DOP NavData instance has the expected keys
+    base_rows = which_dop.keys() - {'dop_matrix'}
+
+    for base_row in base_rows:
+        if which_dop[base_row]:
+            assert base_row in dop_navdata.rows
+
+    # Check that the DOP NavData is the expected length
+    unique_gps_millis = np.unique(navdata['gps_millis'])
+    assert len(dop_navdata['gps_millis']) == len(unique_gps_millis)
+
+    if 'dop_matrix' in dop_navdata:
+        # Handle the splatting of the DOP matrix
+        dop_labels = ['ee', 'en', 'eu', 'et', 
+                            'nn', 'nu', 'nt', 
+                                  'uu', 'ut', 
+                                        'tt']
+        
+        for label in dop_labels:
+            assert f"dop_{label}" in dop_navdata.rows
+
+        if 'GDOP' in dop_navdata.rows:
+            np.testing.assert_array_almost_equal(
+                dop_navdata['GDOP'], 
+                np.sqrt(dop_navdata['dop_ee'] + dop_navdata['dop_nn'] +
+                        dop_navdata['dop_uu'] + dop_navdata['dop_tt']))
+            
+        if 'HDOP' in dop_navdata.rows:
+            np.testing.assert_array_almost_equal(
+                dop_navdata['HDOP'], 
+                np.sqrt(dop_navdata['dop_ee'] + dop_navdata['dop_nn']))
+        
+        if 'VDOP' in dop_navdata.rows:
+            np.testing.assert_array_almost_equal(
+                dop_navdata['VDOP'], 
+                np.sqrt(dop_navdata['dop_uu']))
+            
+        if 'PDOP' in dop_navdata.rows:
+            np.testing.assert_array_almost_equal(
+                dop_navdata['PDOP'], 
+                np.sqrt(dop_navdata['dop_ee'] + dop_navdata['dop_nn'] +
+                        dop_navdata['dop_uu']))
+        
+        if 'TDOP' in dop_navdata.rows:
+            np.testing.assert_array_almost_equal(
+                dop_navdata['TDOP'], 
+                np.sqrt(dop_navdata['dop_tt']))
 
