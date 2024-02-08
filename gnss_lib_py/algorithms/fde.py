@@ -464,10 +464,13 @@ def fde_solution_separation(navdata, max_faults, threshold,
             receiver_state = solve_wls(navdata_subset)
             sigma_squared = _ss_normalizer(navdata_subset, receiver_state)
 
-            receiver_state_subsets = np.zeros((3,navlab_subset))
+            receiver_state_subsets = np.zeros((navlab_subset,3))
             sigma_squared_subsets = np.zeros(navlab_subset)
             for idx in len(navdata_subset):
-
+                idx_subset = navdata_subset.remove(cols=[idx])
+                receiver_state_subsets[idx,:] = solve_wls(idx_subset)
+                sigma_squared_subsets[idx] = _ss_normalizer(idx_subset,
+                                          receiver_state_subsets[idx,:])
 
             # greedy removal if chi_square above detection threshold
             while chi_square > threshold:
