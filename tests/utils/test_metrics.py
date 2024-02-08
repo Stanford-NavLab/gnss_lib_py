@@ -17,9 +17,7 @@ import copy
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.metrics import \
     get_dop, calculate_dop, calculate_enu_unit_vectors, calculate_enut_matrix
-# from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
-
 
 
 #####################################################################

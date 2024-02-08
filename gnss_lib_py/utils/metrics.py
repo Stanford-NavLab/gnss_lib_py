@@ -52,10 +52,6 @@ def get_dop(navdata, **which_dop):
                          'dop_matrix': False}
     # This syntax allows for the user to override the default values.
     which_dop = {**default_which_dop, **which_dop}
-    print("HERE #############################################")
-    print(f"which_dop = {which_dop}")
-    print("THERE #############################################")
-
 
     # Initialize the gps_millis to output
     times = []
