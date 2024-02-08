@@ -117,8 +117,8 @@ def fixture_simple_sat_expected_dop():
 
 @pytest.mark.parametrize('navdata, expected_dop',
                         [
-                            lazy_fixture('simple_sat_scenario'), 
-                            lazy_fixture('simple_sat_expected_dop')
+                            (lazy_fixture('simple_sat_scenario'), 
+                             lazy_fixture('simple_sat_expected_dop'))
                         ])
 def test_simple_dop(navdata, expected_dop):
     """
@@ -150,11 +150,15 @@ def test_simple_dop(navdata, expected_dop):
 
 @pytest.mark.parametrize('navdata, expected_dop, which_dop',
                         [
-                            lazy_fixture('simple_sat_scenario'), 
-                            lazy_fixture('simple_sat_expected_dop'),
-                            (None, 
+                            (lazy_fixture('simple_sat_scenario'),
+                             lazy_fixture('simple_sat_expected_dop'),
+                             None), 
+                            (lazy_fixture('simple_sat_scenario'),
+                             lazy_fixture('simple_sat_expected_dop'),
                              {'GDOP': True, 'HDOP': True, 'VDOP': True, 
-                              'PDOP': True, 'TDOP': True, 'dop_matrix': False},
+                              'PDOP': True, 'TDOP': True, 'dop_matrix': False}), 
+                            (lazy_fixture('simple_sat_scenario'),
+                             lazy_fixture('simple_sat_expected_dop'),
                              {'GDOP': True, 'HDOP': True, 'VDOP': True, 
                               'PDOP': True, 'TDOP': True, 'dop_matrix': True})
                         ])
