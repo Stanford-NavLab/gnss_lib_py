@@ -15,8 +15,12 @@ import numpy as np
 import copy
 
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.navdata.operations import loop_time
+
 from gnss_lib_py.utils.dop import \
-    get_dop, calculate_dop, _calculate_enut_matrix
+        get_enu_dop_labels, get_dop, calculate_dop, \
+        splat_dop_matrix, unsplat_dop_matrix, \
+        _calculate_enut_matrix
 
 
 #####################################################################
@@ -218,10 +222,7 @@ def test_simple_get_dop(navdata, expected_dop, which_dop):
     
     if 'dop_matrix' in dop_navdata:
         # Handle the splatting of the DOP matrix
-        dop_labels = ['ee', 'en', 'eu', 'et', 
-                            'nn', 'nu', 'nt', 
-                                  'uu', 'ut', 
-                                        'tt']
+        dop_labels = get_enu_dop_labels()
         
         for label in dop_labels:
             assert f"dop_{label}" in dop_navdata.rows
@@ -235,7 +236,61 @@ def test_simple_get_dop(navdata, expected_dop, which_dop):
                 dop_navdata[f"dop_{dop_labels[ind]}"],
                 expected_dop['dop_matrix'][r, c])
             ind += 1
-            
+
+
+@pytest.mark.parametrize('navdata, expected_dop',
+                        [
+                            (lazy_fixture('simple_sat_scenario'),
+                             lazy_fixture('simple_sat_expected_dop'))
+                        ])
+def test_splat_dop_matrix(navdata, expected_dop):
+    """
+    Test that the splat_dop_matrix function works correctly.
+    """
+    # Perform the function under test
+    dop_matrix = calculate_dop(navdata)['dop_matrix']
+    dop_matrix_splat = splat_dop_matrix(dop_matrix)
+
+    # Check the splatting is correct
+    # edopmat is 'expected dop matrix'
+    edopmat = expected_dop['dop_matrix']
+    expected_dop_matrix_splat = np.array(
+        [
+        edopmat[0, 0], edopmat[0, 1], edopmat[0, 2], edopmat[0, 3],
+                       edopmat[1, 1], edopmat[1, 2], edopmat[1, 3], 
+                                      edopmat[2, 2], edopmat[2, 3],
+                                                     edopmat[3, 3]
+        ])
+    
+    np.testing.assert_array_almost_equal(
+        dop_matrix_splat, expected_dop_matrix_splat)
+
+
+@pytest.mark.parametrize('navdata, expected_dop',
+                        [
+                            (lazy_fixture('simple_sat_scenario'),
+                             lazy_fixture('simple_sat_expected_dop'))
+                        ])
+def test_unsplat_dop_matrix(navdata, expected_dop):
+    """
+    Test that the unsplat_dop_matrix function works correctly.
+    """
+    # Perform the function under test
+    dop_matrix = calculate_dop(navdata)['dop_matrix']
+    dop_matrix_splat = splat_dop_matrix(dop_matrix)
+    dop_matrix_unsplat = unsplat_dop_matrix(dop_matrix_splat)
+
+    # Check that the unsplatted matrix is symmetric
+    np.testing.assert_array_almost_equal(
+        dop_matrix_unsplat.T, dop_matrix_unsplat)
+
+    # Check the unsplatting values are correct
+    np.testing.assert_array_almost_equal(
+        dop_matrix_unsplat, expected_dop['dop_matrix'])
+    np.testing.assert_array_almost_equal(
+        dop_matrix_unsplat, dop_matrix)
+
+
 #############################################
 # Singularity issues and edge cases
 
@@ -371,10 +426,7 @@ def test_dop_across_time_with_selection(navdata, which_dop):
 
     if 'dop_matrix' in dop_navdata:
         # Handle the splatting of the DOP matrix
-        dop_labels = ['ee', 'en', 'eu', 'et', 
-                            'nn', 'nu', 'nt', 
-                                  'uu', 'ut', 
-                                        'tt']
+        dop_labels = get_enu_dop_labels()
         
         for label in dop_labels:
             assert f"dop_{label}" in dop_navdata.rows
@@ -405,4 +457,42 @@ def test_dop_across_time_with_selection(navdata, which_dop):
             np.testing.assert_array_almost_equal(
                 dop_navdata['TDOP'], 
                 np.sqrt(dop_navdata['dop_tt']))
+
+
+@pytest.mark.parametrize('navdata',
+                        [
+                            lazy_fixture('android_derived')
+                        ])
+def test_splat_unsplat_dop_matrix_across_time(navdata):
+    """
+    Test that we can splat and unsplat the DOP matrix across time.
+    """
+
+    # Run through the data, calculate the DOP, and store as navdata
+    dop_navdata = get_dop(navdata, dop_matrix=True)
+
+    # Check we have the dop_matrix entries
+    dop_labels = get_enu_dop_labels()
+        
+    for label in dop_labels:
+        assert f"dop_{label}" in dop_navdata.rows
+
+    for _, _, dop_navdata_subset in loop_time(dop_navdata, 'gps_millis'):
+        # Extract the dop matrix
+        dop_matrix_splat = np.array([dop_navdata_subset[f"dop_{label}"] 
+                                    for label in dop_labels])
+
+        # Unsplat the DOP matrix
+        dop_matrix_unsplat = unsplat_dop_matrix(dop_matrix_splat)
+
+        # Check that the unsplatted matrix is symmetric
+        np.testing.assert_array_almost_equal(
+            dop_matrix_unsplat.T, dop_matrix_unsplat)
+
+        # Resplat the DOP matrix
+        dop_matrix_resplat = splat_dop_matrix(dop_matrix_unsplat)
+
+        # Check the unsplatting is correct
+        np.testing.assert_array_almost_equal(
+            dop_matrix_splat, dop_matrix_resplat)
 

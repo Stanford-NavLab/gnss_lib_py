@@ -12,6 +12,23 @@ from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.utils.coordinates import el_az_to_enu_unit_vector
 
 
+def get_enu_dop_labels():
+    """
+    Helper function to get the DOP labels.
+
+    Returns
+    -------
+    dop_labels : list
+        List of strings for the DOP labels.
+    """
+
+    dop_labels = ['ee', 'en', 'eu', 'et', 
+                        'nn', 'nu', 'nt', 
+                              'uu', 'ut', 
+                                    'tt']
+    return dop_labels
+
+
 def get_dop(navdata, **which_dop):
     """Get DOP from navdata.
 
@@ -92,18 +109,15 @@ def get_dop(navdata, **which_dop):
     
     # Special handling for splatting the dop_matrix
     if which_dop['dop_matrix']:
+
+        dop_labels = get_enu_dop_labels()
+        
         dop_matrix_splat = []
 
-        dop_labels = ['ee', 'en', 'eu', 'et', 
-                            'nn', 'nu', 'nt', 
-                                  'uu', 'ut', 
-                                        'tt']
-        
         for dop_matrix in dop_out['dop_matrix']:
-            dop_matrix_splat.append(dop_matrix[(0, 0, 0, 0, 1, 1, 1, 2, 2, 3), 
-                                               (0, 1, 2, 3, 1, 2, 3, 2, 3, 3)])
+            dop_matrix_splat.append(splat_dop_matrix(dop_matrix))
         
-        # Convert to numpy array
+        # Convert entire array across time to numpy array
         dop_matrix_splat = np.array(dop_matrix_splat)
         assert dop_matrix_splat.shape == (len(times), len(dop_labels)), \
             f"DOP matrix splatted to {dop_matrix_splat.shape}."
@@ -113,6 +127,81 @@ def get_dop(navdata, **which_dop):
             dop_navdata[f'dop_{dop_label}'] = dop_matrix_splat[:, dop_ind]
 
     return dop_navdata
+
+
+def splat_dop_matrix(dop_matrix):
+    """
+    Splat the DOP matrix into a 1D array. Note that the dop matrix output 
+    is splatted across entries following 
+    the behavior below:
+        [[EE, EN, EU, ET],
+         [NE, NN, NU, NT],
+         [UE, UN, UU, UT],
+         [TE, TN, TU, TT]]  (16 values in 2D array)
+    is stored as
+         [EE, EN, EU, ET, 
+              NN, NU, NT, 
+                  UU, UT, 
+                      TT] (10 values in 1D array), 
+    recognizing that the dop matrix is symmetric.
+
+    Parameters
+    ----------
+    dop_matrix : np.ndarray (4, 4)
+        DOP matrix in ENU coordinates.
+
+    Returns
+    -------
+    dop_splat : np.ndarray (10,)
+        DOP matrix splatted into a 1D array.
+    """
+
+    # Splat the DOP matrix
+    dop_splat = dop_matrix[(0, 0, 0, 0, 1, 1, 1, 2, 2, 3), 
+                           (0, 1, 2, 3, 1, 2, 3, 2, 3, 3)]
+
+    return np.array(dop_splat)
+
+
+def unsplat_dop_matrix(dop_splat):
+    """
+    Un-splat the DOP matrix from a 1D array. Note that the dop matrix output
+    is unsplatted across entries following the behavior below:
+        [EE, EN, EU, ET,
+             NN, NU, NT,
+                 UU, UT,
+                     TT] (10 values in 1D array)
+    is unsplatted to
+        [[EE, EN, EU, ET],
+         [NE, NN, NU, NT],
+         [UE, UN, UU, UT],
+         [TE, TN, TU, TT]]  (16 values in 2D array)
+    recognizing that the dop matrix is symmetric.
+    
+    Parameters
+    ----------
+    dop_splat : np.ndarray (10,)
+        DOP matrix splatted into a 1D array.
+    
+    Returns
+    -------
+    dop_matrix : np.ndarray (4, 4)
+        DOP matrix in ENU coordinates.
+    """
+    
+    # Un-splat the DOP matrix
+    dop_matrix = np.zeros((4, 4))
+
+    splat_rows = (0, 0, 0, 0, 1, 1, 1, 2, 2, 3)
+    splat_cols = (0, 1, 2, 3, 1, 2, 3, 2, 3, 3)
+
+    # Fill in the upper triangle of the DOP matrix
+    dop_matrix[splat_rows, splat_cols] = dop_splat
+    # Fill in the lower triangle of the DOP matrix
+    # (Note that the diagonal is filled in again, but that's okay.)
+    dop_matrix[splat_cols, splat_rows] = dop_splat
+
+    return dop_matrix
 
 
 
