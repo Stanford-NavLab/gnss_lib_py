@@ -45,15 +45,21 @@ def get_dop(navdata, **which_dop):
 
         Note that the dop matrix output is splatted across entries following
         the behavior below:
-        [[EE, EN, EU, ET],
-         [NE, NN, NU, NT],
-         [UE, UN, UU, UT],
-         [TE, TN, TU, TT]]  (16 values in 2D array)
-        is stored as
-        [EE, EN, EU, ET,
-             NN, NU, NT,
-                 UU, UT,
-                     TT] (10 values in 1D array),
+        ::
+
+            [[EE, EN, EU, ET],
+             [NE, NN, NU, NT],
+             [UE, UN, UU, UT],
+             [TE, TN, TU, TT]]  (16 values in 2D array)
+
+        is stored as:
+        ::
+
+             [EE, EN, EU, ET,
+                  NN, NU, NT,
+                      UU, UT,
+                          TT] (10 values in 1D array)
+
         recognizing that the dop matrix is symmetric.
 
     Returns
@@ -135,26 +141,32 @@ def splat_dop_matrix(dop_matrix):
     Splat the DOP matrix into a 1D array. Note that the dop matrix output
     is splatted across entries following
     the behavior below:
+    ::
+
         [[EE, EN, EU, ET],
          [NE, NN, NU, NT],
          [UE, UN, UU, UT],
          [TE, TN, TU, TT]]  (16 values in 2D array)
-    is stored as
+
+    is stored as:
+    ::
+
          [EE, EN, EU, ET,
               NN, NU, NT,
                   UU, UT,
-                      TT] (10 values in 1D array),
+                      TT] (10 values in 1D array)
+
     recognizing that the dop matrix is symmetric.
 
     Parameters
     ----------
-    dop_matrix : np.ndarray (4, 4)
-        DOP matrix in ENU coordinates.
+    dop_matrix : np.ndarray
+        DOP matrix in ENU coordinates of size (4, 4).
 
     Returns
     -------
-    dop_splat : np.ndarray (10,)
-        DOP matrix splatted into a 1D array.
+    dop_splat : np.ndarray
+        DOP matrix splatted into a 1D array of size (10,).
     """
 
     # Splat the DOP matrix
@@ -168,26 +180,32 @@ def unsplat_dop_matrix(dop_splat):
     """
     Un-splat the DOP matrix from a 1D array. Note that the dop matrix output
     is unsplatted across entries following the behavior below:
+    ::
+
         [EE, EN, EU, ET,
              NN, NU, NT,
                  UU, UT,
                      TT] (10 values in 1D array)
+
     is unsplatted to
+    ::
+
         [[EE, EN, EU, ET],
          [NE, NN, NU, NT],
          [UE, UN, UU, UT],
          [TE, TN, TU, TT]]  (16 values in 2D array)
+
     recognizing that the dop matrix is symmetric.
 
     Parameters
     ----------
-    dop_splat : np.ndarray (10,)
-        DOP matrix splatted into a 1D array.
+    dop_splat : np.ndarray
+        DOP matrix splatted into a 1D array of size (10,).
 
     Returns
     -------
-    dop_matrix : np.ndarray (4, 4)
-        DOP matrix in ENU coordinates.
+    dop_matrix : np.ndarray
+        DOP matrix in ENU coordinates of size (4, 4).
     """
 
     # Un-splat the DOP matrix
@@ -218,8 +236,8 @@ def calculate_enu_dop_matrix(derived):
 
     Returns
     -------
-    dop_matrix : np.ndarray (4, 4)
-        DOP matrix.
+    dop_matrix : np.ndarray
+        DOP matrix of size (4, 4).
     """
 
     # Use the elevation and azimuth angles to get the ENU and Time matrix
@@ -242,8 +260,8 @@ def parse_dop(dop_matrix):
 
     Parameters
     ----------
-    dop_matrix : np.ndarray (4, 4)
-        DOP matrix in ENU coordinates.
+    dop_matrix : np.ndarray
+        DOP matrix in ENU coordinates of size (4, 4).
 
     Returns
     -------
@@ -306,8 +324,8 @@ def _calculate_enut_matrix(derived):
 
     Returns
     -------
-    enut_matrix : np.ndarray (num_satellites, 4)
-        Matrix of ENU and Time vectors.
+    enut_matrix : np.ndarray
+        Matrix of ENU and Time vectors of size (num_satellites, 4).
 
     """
     enu_unit_dir_mat = el_az_to_enu_unit_vector(derived['el_sv_deg'],
