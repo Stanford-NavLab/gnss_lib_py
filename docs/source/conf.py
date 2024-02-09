@@ -22,12 +22,16 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/algorithms/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/navdata/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/parsers/'))
 sys.path.insert(0, os.path.abspath('../../gnss_lib_py/utils/'))
+sys.path.insert(0, os.path.abspath('../../gnss_lib_py/visualizations/'))
 sys.path.insert(0, os.path.abspath('../../tests/'))
 sys.path.insert(0, os.path.abspath('../../tests/algorithms'))
+sys.path.insert(0, os.path.abspath('../../tests/navdata'))
 sys.path.insert(0, os.path.abspath('../../tests/parsers'))
 sys.path.insert(0, os.path.abspath('../../tests/utils'))
+sys.path.insert(0, os.path.abspath('../../tests/visualizations'))
 
 
 # -- Project information -----------------------------------------------------
