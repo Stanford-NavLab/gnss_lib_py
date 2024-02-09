@@ -23,9 +23,9 @@ def get_enu_dop_labels():
         List of strings for the DOP labels.
     """
 
-    dop_labels = ['ee', 'en', 'eu', 'et', 
-                        'nn', 'nu', 'nt', 
-                              'uu', 'ut', 
+    dop_labels = ['ee', 'en', 'eu', 'et',
+                        'nn', 'nu', 'nt',
+                              'uu', 'ut',
                                     'tt']
     return dop_labels
 
@@ -42,18 +42,18 @@ def get_dop(navdata, **which_dop):
 
     which_dop : dict
         Dictionary of which dop values are needed. Default is HDOP and VDOP.
-        
-        Note that the dop matrix output is splatted across entries following 
+
+        Note that the dop matrix output is splatted across entries following
         the behavior below:
         [[EE, EN, EU, ET],
          [NE, NN, NU, NT],
          [UE, UN, UU, UT],
          [TE, TN, TU, TT]]  (16 values in 2D array)
         is stored as
-        [EE, EN, EU, ET, 
-             NN, NU, NT, 
-                 UU, UT, 
-                     TT] (10 values in 1D array), 
+        [EE, EN, EU, ET,
+             NN, NU, NT,
+                 UU, UT,
+                     TT] (10 values in 1D array),
         recognizing that the dop matrix is symmetric.
 
     Returns
@@ -98,7 +98,7 @@ def get_dop(navdata, **which_dop):
         for dop_name, include_dop in which_dop.items():
             if include_dop:
                 dop_out[dop_name].append(dop[dop_name])
-        
+
     # Create a new NavData instance to store the DOP
     dop_navdata = NavData()
     dop_navdata['gps_millis'] = np.array(times)
@@ -107,17 +107,17 @@ def get_dop(navdata, **which_dop):
         # We need to handle the dop_matrix separately
         if include_dop and dop_name != 'dop_matrix':
             dop_navdata[dop_name] = np.array(dop_out[dop_name])
-    
+
     # Special handling for splatting the dop_matrix
     if which_dop['dop_matrix']:
 
         dop_labels = get_enu_dop_labels()
-        
+
         dop_matrix_splat = []
 
         for dop_matrix in dop_out['dop_matrix']:
             dop_matrix_splat.append(splat_dop_matrix(dop_matrix))
-        
+
         # Convert entire array across time to numpy array
         dop_matrix_splat = np.array(dop_matrix_splat)
         assert dop_matrix_splat.shape == (len(times), len(dop_labels)), \
@@ -132,18 +132,18 @@ def get_dop(navdata, **which_dop):
 
 def splat_dop_matrix(dop_matrix):
     """
-    Splat the DOP matrix into a 1D array. Note that the dop matrix output 
-    is splatted across entries following 
+    Splat the DOP matrix into a 1D array. Note that the dop matrix output
+    is splatted across entries following
     the behavior below:
         [[EE, EN, EU, ET],
          [NE, NN, NU, NT],
          [UE, UN, UU, UT],
          [TE, TN, TU, TT]]  (16 values in 2D array)
     is stored as
-         [EE, EN, EU, ET, 
-              NN, NU, NT, 
-                  UU, UT, 
-                      TT] (10 values in 1D array), 
+         [EE, EN, EU, ET,
+              NN, NU, NT,
+                  UU, UT,
+                      TT] (10 values in 1D array),
     recognizing that the dop matrix is symmetric.
 
     Parameters
@@ -158,7 +158,7 @@ def splat_dop_matrix(dop_matrix):
     """
 
     # Splat the DOP matrix
-    dop_splat = dop_matrix[(0, 0, 0, 0, 1, 1, 1, 2, 2, 3), 
+    dop_splat = dop_matrix[(0, 0, 0, 0, 1, 1, 1, 2, 2, 3),
                            (0, 1, 2, 3, 1, 2, 3, 2, 3, 3)]
 
     return np.array(dop_splat)
@@ -178,18 +178,18 @@ def unsplat_dop_matrix(dop_splat):
          [UE, UN, UU, UT],
          [TE, TN, TU, TT]]  (16 values in 2D array)
     recognizing that the dop matrix is symmetric.
-    
+
     Parameters
     ----------
     dop_splat : np.ndarray (10,)
         DOP matrix splatted into a 1D array.
-    
+
     Returns
     -------
     dop_matrix : np.ndarray (4, 4)
         DOP matrix in ENU coordinates.
     """
-    
+
     # Un-splat the DOP matrix
     dop_matrix = np.zeros((4, 4))
 
@@ -205,18 +205,17 @@ def unsplat_dop_matrix(dop_splat):
     return dop_matrix
 
 
-
 def calculate_enu_dop_matrix(derived):
     """
     Calculate the DOP matrix from elevation and azimuth (ENU).
-    
+
     Parameters
     ----------
     derived : gnss_lib_py.navdata.navdata.NavData
         NavData instance containing received GNSS measurements for a
         particular time instance, contains elevation and azimuth angle
         information for an estimated location.
-        
+
     Returns
     -------
     dop_matrix : np.ndarray (4, 4)
@@ -234,7 +233,7 @@ def calculate_enu_dop_matrix(derived):
     except np.linalg.LinAlgError:
         # If the matrix is singular, return NaNs for the DOP
         dop_matrix = np.nan * np.ones((4, 4))
-    
+
     return dop_matrix
 
 
@@ -311,9 +310,9 @@ def _calculate_enut_matrix(derived):
         Matrix of ENU and Time vectors.
 
     """
-    enu_unit_dir_mat = el_az_to_enu_unit_vector(derived['el_sv_deg'], 
+    enu_unit_dir_mat = el_az_to_enu_unit_vector(derived['el_sv_deg'],
                                                 derived['az_sv_deg'])
-    enut_matrix = np.hstack((enu_unit_dir_mat, 
+    enut_matrix = np.hstack((enu_unit_dir_mat,
                              np.ones((enu_unit_dir_mat.shape[0], 1))))
 
     return enut_matrix

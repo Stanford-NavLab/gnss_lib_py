@@ -6,13 +6,12 @@ Test for DOP calculations and manipulations.
 __authors__ = "Ashwin Kanhere, Daniel Neamati"
 __date__ = "7 Feb 2024"
 
-import os
+import copy
 
-import pytest 
+import pytest
 from pytest_lazyfixture import lazy_fixture
 
 import numpy as np
-import copy
 
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.navdata.operations import loop_time
@@ -29,11 +28,11 @@ from gnss_lib_py.utils.dop import \
 def fixture_simple_sat_scenario():
     """
     A simple set of satellites for DOP calculation.
-    
+
     """
     # Create a simple NavData instance
     navdata = NavData()
-    
+
     # Add a few satellites
     navdata['gps_millis'] = np.array([0, 0, 0, 0, 0], dtype=int)
     navdata['el_sv_deg'] = np.array([0, 0, 45, 45, 90], dtype=float)
@@ -46,7 +45,7 @@ def fixture_simple_sat_scenario():
 def fixture_simple_sat_expected_enu_unit_vectors():
     """
     The expected ENU unit vectors for the simple satellite scenario.
-    
+
     """
     # Expected ENU unit vectors
     divsqrt2 = 1 / np.sqrt(2)
@@ -55,7 +54,7 @@ def fixture_simple_sat_expected_enu_unit_vectors():
                                           [0, -divsqrt2, divsqrt2],
                                           [-divsqrt2, 0, divsqrt2],
                                           [0, 0, 1]])
-    
+
     return expected_enu_unit_vectors
 
 
@@ -63,7 +62,7 @@ def fixture_simple_sat_expected_enu_unit_vectors():
 def fixture_simple_sat_expected_dop():
     """
     The expected dop values for the simple satellite scenario.
-    
+
     """
     # Expected DOP matrix
     sqrt2 = np.sqrt(2)
@@ -75,7 +74,7 @@ def fixture_simple_sat_expected_dop():
     # Assert symmetry
     np.testing.assert_array_almost_equal(
         expected_dop_matrix.T, expected_dop_matrix)
-    
+
     # Get the rest of the expected DOP values
     expected_dop = {'dop_matrix': expected_dop_matrix,
                     'GDOP': np.sqrt(23/3),
@@ -83,19 +82,19 @@ def fixture_simple_sat_expected_dop():
                     'VDOP': np.sqrt((9/4) + sqrt2),
                     'PDOP': 0.5 * np.sqrt(77/3),
                     'TDOP': 0.5 * np.sqrt(5)}
-    
+
     return expected_dop
 
 
 @pytest.mark.parametrize('navdata, expected_los_vectors',
                     [
-                        (lazy_fixture('simple_sat_scenario'), 
+                        (lazy_fixture('simple_sat_scenario'),
                          lazy_fixture('simple_sat_expected_enu_unit_vectors'))
                     ])
 def test_simple_enu_unit_vectors(navdata, expected_los_vectors):
     """
     A simple set of satellites for ENU unit vector calculation.
-    
+
     """
     # Check the we get the expected ENUT matrix
     enut_matrix = _calculate_enut_matrix(navdata)
@@ -113,22 +112,22 @@ def test_simple_enu_unit_vectors(navdata, expected_los_vectors):
 
 @pytest.mark.parametrize('navdata, expected_dop',
                         [
-                            (lazy_fixture('simple_sat_scenario'), 
+                            (lazy_fixture('simple_sat_scenario'),
                              lazy_fixture('simple_sat_expected_dop'))
                         ])
 def test_simple_dop(navdata, expected_dop):
     """
     A simple set of satellites for DOP calculation.
-    
+
     """
     dop_dict = calculate_dop(navdata)
 
     # Check the DOP output has all the expected keys
-    assert dop_dict.keys() == {'dop_matrix', 
+    assert dop_dict.keys() == {'dop_matrix',
                                'GDOP', 'HDOP', 'VDOP', 'PDOP', 'TDOP'}
-    
+
     # Check the DOP output has the expected values
-    
+
     # Assert symmetry
     np.testing.assert_array_almost_equal(
         dop_dict['dop_matrix'].T, dop_dict['dop_matrix'])
@@ -151,7 +150,7 @@ def test_simple_dop(navdata, expected_dop):
                         ])
 def test_simple_get_dop_default(navdata, expected_dop):
     """
-    Test that the get_dop function works correctly forms the DOP navdata under 
+    Test that the get_dop function works correctly forms the DOP navdata under
     default selection of the dop entries (i.e., HDOP and VDOP only)
     """
 
@@ -166,7 +165,7 @@ def test_simple_get_dop_default(navdata, expected_dop):
 
     # Check the DOP NavData instance has the expected values
     assert dop_navdata['gps_millis'] == navdata['gps_millis'][0]
-    np.testing.assert_array_almost_equal(dop_navdata['HDOP'], 
+    np.testing.assert_array_almost_equal(dop_navdata['HDOP'],
                                         expected_dop['HDOP'])
     np.testing.assert_array_almost_equal(dop_navdata['VDOP'],
                                         expected_dop['VDOP'])
@@ -176,23 +175,23 @@ def test_simple_get_dop_default(navdata, expected_dop):
                         [
                         (lazy_fixture('simple_sat_scenario'),
                             lazy_fixture('simple_sat_expected_dop'),
-                            {'GDOP': True, 'HDOP': True, 'VDOP': True, 
-                            'PDOP': True, 'TDOP': True, 'dop_matrix': False}), 
+                            {'GDOP': True, 'HDOP': True, 'VDOP': True,
+                            'PDOP': True, 'TDOP': True, 'dop_matrix': False}),
                         (lazy_fixture('simple_sat_scenario'),
                             lazy_fixture('simple_sat_expected_dop'),
-                            {'GDOP': True, 'HDOP': True, 'VDOP': True, 
-                            'PDOP': True, 'TDOP': True, 'dop_matrix': True}),                              
+                            {'GDOP': True, 'HDOP': True, 'VDOP': True,
+                            'PDOP': True, 'TDOP': True, 'dop_matrix': True}),
                         (lazy_fixture('simple_sat_scenario'),
                             lazy_fixture('simple_sat_expected_dop'),
-                            {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                            {'GDOP': False, 'HDOP': False, 'VDOP': False,
                             'PDOP': False, 'TDOP': True, 'dop_matrix': False}),
                         (lazy_fixture('simple_sat_scenario'),
                             lazy_fixture('simple_sat_expected_dop'),
-                            {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                            {'GDOP': False, 'HDOP': False, 'VDOP': False,
                             'PDOP': False, 'TDOP': False, 'dop_matrix': True}),
                         (lazy_fixture('simple_sat_scenario'),
                             lazy_fixture('simple_sat_expected_dop'),
-                            {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                            {'GDOP': False, 'HDOP': False, 'VDOP': False,
                             'PDOP': False, 'TDOP': False, 'dop_matrix': False})
                         ])
 def test_simple_get_dop(navdata, expected_dop, which_dop):
@@ -209,7 +208,7 @@ def test_simple_get_dop(navdata, expected_dop, which_dop):
     assert which_dop_deep_copy == which_dop, \
         "The `which_dop` dictionaries was editted by the get_dop function."
 
-    assert 'gps_millis' in dop_navdata.rows        
+    assert 'gps_millis' in dop_navdata.rows
     assert dop_navdata['gps_millis'] == navdata['gps_millis'][0]
 
     base_rows = which_dop.keys() - {'dop_matrix'}
@@ -219,14 +218,14 @@ def test_simple_get_dop(navdata, expected_dop, which_dop):
             assert base_row in dop_navdata.rows
             np.testing.assert_array_almost_equal(dop_navdata[base_row],
                                                 expected_dop[base_row])
-    
+
     if 'dop_matrix' in dop_navdata:
         # Handle the splatting of the DOP matrix
         dop_labels = get_enu_dop_labels()
-        
+
         for label in dop_labels:
             assert f"dop_{label}" in dop_navdata.rows
-        
+
         rows = (0, 0, 0, 0, 1, 1, 1, 2, 2, 3)
         cols = (0, 1, 2, 3, 1, 2, 3, 2, 3, 3)
         ind = 0
@@ -257,11 +256,11 @@ def test_splat_dop_matrix(navdata, expected_dop):
     expected_dop_matrix_splat = np.array(
         [
         edopmat[0, 0], edopmat[0, 1], edopmat[0, 2], edopmat[0, 3],
-                       edopmat[1, 1], edopmat[1, 2], edopmat[1, 3], 
+                       edopmat[1, 1], edopmat[1, 2], edopmat[1, 3],
                                       edopmat[2, 2], edopmat[2, 3],
                                                      edopmat[3, 3]
         ])
-    
+
     np.testing.assert_array_almost_equal(
         dop_matrix_splat, expected_dop_matrix_splat)
 
@@ -298,11 +297,11 @@ def test_unsplat_dop_matrix(navdata, expected_dop):
 def fixture_singularity_sat_scenario():
     """
     A simple set of satellites that will cause a singularity in the DOP matrix.
-    
+
     """
     # Create a simple NavData instance
     navdata = NavData()
-    
+
     # Add a few satellites
     navdata['gps_millis'] = np.array([0, 0, 0, 0, 0], dtype=int)
     navdata['el_sv_deg'] = np.array([30, 30, 30, 30, 30], dtype=int)
@@ -314,13 +313,13 @@ def fixture_singularity_sat_scenario():
 @pytest.fixture(name="too_few_sat_scenario")
 def fixture_too_few_sat_scenario():
     """
-    A simple set of too few satellites that will cause a singularity in the 
+    A simple set of too few satellites that will cause a singularity in the
     DOP matrix.
-    
+
     """
     # Create a simple NavData instance
     navdata = NavData()
-    
+
     # Add a few satellites
     navdata['gps_millis'] = np.array([0, 0], dtype=int)
     navdata['el_sv_deg'] = np.array([20, 30], dtype=int)
@@ -343,18 +342,17 @@ def test_singularity_dop(navdata):
         enut_matrix = _calculate_enut_matrix(navdata)
         np.linalg.inv(enut_matrix.T @ enut_matrix)
 
-    # Now check that we get all NaNs for the DOP values when we have a 
+    # Now check that we get all NaNs for the DOP values when we have a
     # singularity
     dop_dict = calculate_dop(navdata)
-    
+
     # Check the DOP output has all the expected keys
     assert dop_dict.keys() == {'dop_matrix',
                                'GDOP', 'HDOP', 'VDOP', 'PDOP', 'TDOP'}
 
     # Check these are all NaNs
-    for key in dop_dict.keys():
-        assert np.all(np.isnan(dop_dict[key]))
-
+    for _, val in dop_dict.items():
+        assert np.all(np.isnan(val))
 
 
 #############################################
@@ -380,17 +378,17 @@ def test_dop_across_time(navdata):
 
 @pytest.mark.parametrize('navdata, which_dop',
                          [
-                (lazy_fixture('android_derived'), 
-                 {'GDOP': True, 'HDOP': True, 'VDOP': True, 
+                (lazy_fixture('android_derived'),
+                 {'GDOP': True, 'HDOP': True, 'VDOP': True,
                   'PDOP': True, 'TDOP': True, 'dop_matrix': False}),
-                (lazy_fixture('android_derived'), 
-                 {'GDOP': True, 'HDOP': True, 'VDOP': True, 
+                (lazy_fixture('android_derived'),
+                 {'GDOP': True, 'HDOP': True, 'VDOP': True,
                   'PDOP': True, 'TDOP': True, 'dop_matrix': True}),
-                (lazy_fixture('android_derived'), 
-                 {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                (lazy_fixture('android_derived'),
+                 {'GDOP': False, 'HDOP': False, 'VDOP': False,
                   'PDOP': False, 'TDOP': True, 'dop_matrix': True}),
-                (lazy_fixture('android_derived'), 
-                 {'GDOP': False, 'HDOP': False, 'VDOP': False, 
+                (lazy_fixture('android_derived'),
+                 {'GDOP': False, 'HDOP': False, 'VDOP': False,
                   'PDOP': False, 'TDOP': False, 'dop_matrix': True})
                          ])
 def test_dop_across_time_with_selection(navdata, which_dop):
@@ -427,35 +425,35 @@ def test_dop_across_time_with_selection(navdata, which_dop):
     if 'dop_matrix' in dop_navdata:
         # Handle the splatting of the DOP matrix
         dop_labels = get_enu_dop_labels()
-        
+
         for label in dop_labels:
             assert f"dop_{label}" in dop_navdata.rows
 
         if 'GDOP' in dop_navdata.rows:
             np.testing.assert_array_almost_equal(
-                dop_navdata['GDOP'], 
+                dop_navdata['GDOP'],
                 np.sqrt(dop_navdata['dop_ee'] + dop_navdata['dop_nn'] +
                         dop_navdata['dop_uu'] + dop_navdata['dop_tt']))
-            
+
         if 'HDOP' in dop_navdata.rows:
             np.testing.assert_array_almost_equal(
-                dop_navdata['HDOP'], 
+                dop_navdata['HDOP'],
                 np.sqrt(dop_navdata['dop_ee'] + dop_navdata['dop_nn']))
-        
+
         if 'VDOP' in dop_navdata.rows:
             np.testing.assert_array_almost_equal(
-                dop_navdata['VDOP'], 
+                dop_navdata['VDOP'],
                 np.sqrt(dop_navdata['dop_uu']))
-            
+
         if 'PDOP' in dop_navdata.rows:
             np.testing.assert_array_almost_equal(
-                dop_navdata['PDOP'], 
+                dop_navdata['PDOP'],
                 np.sqrt(dop_navdata['dop_ee'] + dop_navdata['dop_nn'] +
                         dop_navdata['dop_uu']))
-        
+
         if 'TDOP' in dop_navdata.rows:
             np.testing.assert_array_almost_equal(
-                dop_navdata['TDOP'], 
+                dop_navdata['TDOP'],
                 np.sqrt(dop_navdata['dop_tt']))
 
 
@@ -473,13 +471,13 @@ def test_splat_unsplat_dop_matrix_across_time(navdata):
 
     # Check we have the dop_matrix entries
     dop_labels = get_enu_dop_labels()
-        
+
     for label in dop_labels:
         assert f"dop_{label}" in dop_navdata.rows
 
     for _, _, dop_navdata_subset in loop_time(dop_navdata, 'gps_millis'):
         # Extract the dop matrix
-        dop_matrix_splat = np.array([dop_navdata_subset[f"dop_{label}"] 
+        dop_matrix_splat = np.array([dop_navdata_subset[f"dop_{label}"]
                                     for label in dop_labels])
 
         # Unsplat the DOP matrix
@@ -495,4 +493,3 @@ def test_splat_unsplat_dop_matrix_across_time(navdata):
         # Check the unsplatting is correct
         np.testing.assert_array_almost_equal(
             dop_matrix_splat, dop_matrix_resplat)
-
