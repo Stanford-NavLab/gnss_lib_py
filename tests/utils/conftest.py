@@ -38,7 +38,9 @@ def pytest_collection_modifyitems(items):
 
     module_mapping = {item: item.module.__name__ for item in items}
     download_tests = [
-                      "test_ephemeris_downloader"
+                      "test_ephemeris_downloader",
+                      "test_rinex_nav",
+                      "test_rinex_obs"
                      ]
     sorted_items = [item for item in items if module_mapping[item] not in download_tests] \
                  + [item for item in items if module_mapping[item] in download_tests]
