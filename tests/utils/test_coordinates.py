@@ -12,11 +12,13 @@ import numpy as np
 from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
 from gnss_lib_py.utils.coordinates import ecef_to_el_az, add_el_az
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, LocalCoord
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
+from gnss_lib_py.utils.coordinates import el_az_to_enu_unit_vector
 from gnss_lib_py.navdata.operations import loop_time
 
 @pytest.fixture(name="local_ecef")
@@ -457,3 +459,75 @@ def test_wrap_0_to_2pi():
     angles_out = np.concatenate((np.linspace(np.pi,7*np.pi/4.,4),
                                  np.linspace(0,3*np.pi/4.,4)))
     np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
+
+
+#######################################
+# Unit Vector Tests
+
+@pytest.fixture(name="simple_sat_scenario")
+def fixture_simple_sat_scenario():
+    """
+    A simple set of satellites for DOP calculation.
+    
+    """
+    # Create a simple NavData instance
+    navdata = NavData()
+    
+    # Add a few satellites
+    navdata['gps_millis'] = np.array([0, 0, 0, 0, 0], dtype=int)
+    navdata['el_sv_deg'] = np.array([0, 0, 45, 45, 90], dtype=float)
+    navdata['az_sv_deg'] = np.array([0, 90, 180, 270, 360], dtype=float)
+
+    return navdata
+
+
+@pytest.fixture(name="simple_sat_expected_enu_unit_vectors")
+def fixture_simple_sat_expected_enu_unit_vectors():
+    """
+    The expected ENU unit vectors for the simple satellite scenario.
+    
+    """
+    # Expected ENU unit vectors
+    divsqrt2 = 1 / np.sqrt(2)
+    expected_enu_unit_vectors = np.array([[0, 1, 0],
+                                          [1, 0, 0],
+                                          [0, -divsqrt2, divsqrt2],
+                                          [-divsqrt2, 0, divsqrt2],
+                                          [0, 0, 1]])
+    
+    return expected_enu_unit_vectors
+
+@pytest.mark.parametrize('navdata, expected_los_vectors',
+                    [
+                        (lazy_fixture('simple_sat_scenario'), 
+                         lazy_fixture('simple_sat_expected_enu_unit_vectors'))
+                    ])
+def test_el_az_to_enu_unit_vector(navdata, expected_los_vectors):
+    """
+    Test the conversion from elevation and azimuth to ENU unit vectors.
+
+    Parameters
+    ----------
+    navdata : NavData
+        The input NavData instance.
+    expected_los_vectors : np.ndarray
+        The expected ENU unit vectors.
+
+    """
+
+    # Construct the ENU unit vectors
+    enu_unit_vectors = el_az_to_enu_unit_vector(navdata['el_sv_deg'],
+                                                navdata['az_sv_deg'])
+
+    # First check the shape
+    assert enu_unit_vectors.shape == expected_los_vectors.shape
+    assert enu_unit_vectors.shape[0] > enu_unit_vectors.shape[1]
+
+    # Check the ENU unit vectors are as expected
+    np.testing.assert_array_almost_equal(enu_unit_vectors, expected_los_vectors)
+
+    # Check the ENU unit vectors are normalized
+    np.testing.assert_array_almost_equal(
+        np.linalg.norm(enu_unit_vectors, axis=1), 
+            np.ones(expected_los_vectors.shape[0]))
+

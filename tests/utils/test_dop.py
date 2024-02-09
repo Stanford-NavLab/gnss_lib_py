@@ -16,8 +16,7 @@ import copy
 
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.dop import \
-    get_dop, calculate_dop, calculate_enu_unit_vectors, _calculate_enut_matrix
-from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
+    get_dop, calculate_dop, _calculate_enut_matrix
 
 
 #####################################################################
@@ -94,21 +93,6 @@ def test_simple_enu_unit_vectors(navdata, expected_los_vectors):
     A simple set of satellites for ENU unit vector calculation.
     
     """
-    # Construct the ENU unit vectors
-    enu_unit_vectors = calculate_enu_unit_vectors(navdata)
-
-    # First check the shape
-    assert enu_unit_vectors.shape == expected_los_vectors.shape
-    assert enu_unit_vectors.shape[0] > enu_unit_vectors.shape[1]
-
-    # Check the ENU unit vectors are as expected
-    np.testing.assert_array_almost_equal(enu_unit_vectors, expected_los_vectors)
-
-    # Check the ENU unit vectors are normalized
-    np.testing.assert_array_almost_equal(
-        np.linalg.norm(enu_unit_vectors, axis=1), 
-            np.ones(expected_los_vectors.shape[0]))
-    
     # Check the we get the expected ENUT matrix
     enut_matrix = _calculate_enut_matrix(navdata)
 
@@ -375,6 +359,11 @@ def test_dop_across_time_with_selection(navdata, which_dop):
     for base_row in base_rows:
         if which_dop[base_row]:
             assert base_row in dop_navdata.rows
+
+            # Check no nans
+            assert all(np.isfinite(dop_navdata[base_row]))
+            # Check no negative values
+            assert all(dop_navdata[base_row] >= 0)
 
     # Check that the DOP NavData is the expected length
     unique_gps_millis = np.unique(navdata['gps_millis'])

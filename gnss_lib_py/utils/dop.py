@@ -9,6 +9,7 @@ import numpy as np
 
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.navdata.operations import loop_time
+from gnss_lib_py.utils.coordinates import el_az_to_enu_unit_vector
 
 
 def get_dop(navdata, **which_dop):
@@ -114,8 +115,70 @@ def get_dop(navdata, **which_dop):
     return dop_navdata
 
 
+
+def calculate_enu_dop_matrix(derived):
+    """
+    Calculate the DOP matrix from elevation and azimuth (ENU).
+    
+    Parameters
+    ----------
+    derived : gnss_lib_py.navdata.navdata.NavData
+        NavData instance containing received GNSS measurements for a
+        particular time instance, contains elevation and azimuth angle
+        information for an estimated location.
+        
+    Returns
+    -------
+    dop_matrix : np.ndarray (4, 4)
+        DOP matrix.
+    """
+
+    # Use the elevation and azimuth angles to get the ENU and Time matrix
+    # Each row is [d_e, d_n, d_u, 1] for each satellite.
+    enut_matrix = _calculate_enut_matrix(derived)
+    enut_gram_matrix = enut_matrix.T @ enut_matrix
+
+    # Calculate the DOP matrix
+    try:
+        dop_matrix = np.linalg.inv(enut_gram_matrix)
+    except np.linalg.LinAlgError:
+        # If the matrix is singular, return NaNs for the DOP
+        dop_matrix = np.nan * np.ones((4, 4))
+    
+    return dop_matrix
+
+
+def parse_dop(dop_matrix):
+    """Calculate DOP types from the DOP matrix.
+
+    Parameters
+    ----------
+    dop_matrix : np.ndarray (4, 4)
+        DOP matrix in ENU coordinates.
+
+    Returns
+    -------
+    dop : Dict
+        Dilution of precision, with DOP type as the keys: "HDOP", "VDOP",
+        "TDOP", "PDOP", "GDOP".
+    """
+
+    dop = {}
+    dop["dop_matrix"] = dop_matrix
+    dop["GDOP"] = np.sqrt(np.trace(dop_matrix))
+    dop["HDOP"] = np.sqrt(dop_matrix[0, 0] + dop_matrix[1, 1])
+    dop["VDOP"] = np.sqrt(dop_matrix[2, 2])
+    dop["PDOP"] = np.sqrt(dop_matrix[0, 0] + \
+                            dop_matrix[1, 1] + \
+                            dop_matrix[2, 2])
+    dop["TDOP"] = np.sqrt(dop_matrix[3, 3])
+
+    return dop
+
+
 def calculate_dop(derived):
-    """Calculate DOP from elevation and azimuth (ENU).
+    """
+    Calculate the DOP from elevation and azimuth (ENU).
 
     Parameters
     ----------
@@ -131,68 +194,13 @@ def calculate_dop(derived):
         "TDOP", "PDOP", "GDOP".
     """
 
-    # Use the elevation and azimuth angles to get the ENU and Time matrix
-    # Each row is [d_e, d_n, d_u, 1] for each satellite.
-    enut_matrix = _calculate_enut_matrix(derived)
-    enut_gram_matrix = enut_matrix.T @ enut_matrix
-    
-    try:
-        dop_matrix = np.linalg.inv(enut_gram_matrix)    
+    # Calculate the DOP matrix
+    dop_matrix = calculate_enu_dop_matrix(derived)
 
-        # Calculate the DOP
-        dop = {}
-        dop["dop_matrix"] = dop_matrix
-        dop["GDOP"] = np.sqrt(np.trace(dop_matrix))
-        dop["HDOP"] = np.sqrt(dop_matrix[0, 0] + dop_matrix[1, 1])
-        dop["VDOP"] = np.sqrt(dop_matrix[2, 2])
-        dop["PDOP"] = np.sqrt(dop_matrix[0, 0] + \
-                              dop_matrix[1, 1] + \
-                              dop_matrix[2, 2])
-        dop["TDOP"] = np.sqrt(dop_matrix[3, 3])
-
-    except np.linalg.LinAlgError:
-        # If the matrix is singular, return NaNs for the DOP
-        dop = {}
-        dop["dop_matrix"] = np.nan * np.ones((4, 4))
-        dop["GDOP"] = np.nan
-        dop["HDOP"] = np.nan
-        dop["VDOP"] = np.nan
-        dop["PDOP"] = np.nan
-        dop["TDOP"] = np.nan
+    # Parse the DOP matrix to get the DOP values
+    dop = parse_dop(dop_matrix)
 
     return dop
-
-
-def calculate_enu_unit_vectors(derived):
-    """
-    Calculate the ENU unit vectors from elevation and azimuth. 
-    Each row is [d_e, d_n, d_u] for each satellite, where d is a unit 
-    line-of-sight vector in the ENU frame.
-
-    Parameters
-    ----------
-    derived : gnss_lib_py.navdata.navdata.NavData
-        NavData instance containing received GNSS measurements for a
-        particular time instance, contains elevation and azimuth angle
-        information for an estimated location.
-
-    Returns
-    -------
-    unit_dir_mat : np.ndarray (num_satellites, 3)
-        Matrix of ENU unit vectors.
-    """
-
-    # Get the elevation and azimuth angles
-    sv_el_az_rad = np.deg2rad(derived['el_sv_deg', 'az_sv_deg'])
-
-    # Important: This matrix is in ENU coordinates, not NED.
-    unit_dir_mat = np.vstack(
-        (np.atleast_2d(np.cos(sv_el_az_rad[0,:]) * np.sin(sv_el_az_rad[1,:])),
-         np.atleast_2d(np.cos(sv_el_az_rad[0,:]) * np.cos(sv_el_az_rad[1,:])),
-         np.atleast_2d(np.sin(sv_el_az_rad[0,:]))
-         )).T
-
-    return unit_dir_mat
 
 
 def _calculate_enut_matrix(derived):
@@ -213,8 +221,9 @@ def _calculate_enut_matrix(derived):
         Matrix of ENU and Time vectors.
 
     """
-    unit_dir_mat = calculate_enu_unit_vectors(derived)
-    enut_matrix = np.hstack((unit_dir_mat, 
-                             np.ones((unit_dir_mat.shape[0], 1))))
+    enu_unit_dir_mat = el_az_to_enu_unit_vector(derived['el_sv_deg'], 
+                                                derived['az_sv_deg'])
+    enut_matrix = np.hstack((enu_unit_dir_mat, 
+                             np.ones((enu_unit_dir_mat.shape[0], 1))))
 
     return enut_matrix
