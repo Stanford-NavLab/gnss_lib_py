@@ -133,7 +133,7 @@ def calculate_dop(derived):
 
     # Use the elevation and azimuth angles to get the ENU and Time matrix
     # Each row is [d_e, d_n, d_u, 1] for each satellite.
-    enut_matrix = calculate_enut_matrix(derived)
+    enut_matrix = _calculate_enut_matrix(derived)
     enut_gram_matrix = enut_matrix.T @ enut_matrix
     
     try:
@@ -195,7 +195,7 @@ def calculate_enu_unit_vectors(derived):
     return unit_dir_mat
 
 
-def calculate_enut_matrix(derived):
+def _calculate_enut_matrix(derived):
     """
     Calculate the ENU and Time Matrix from elevation and azimuth.
     Each row is [d_e, d_n, d_u, 1] for each satellite.

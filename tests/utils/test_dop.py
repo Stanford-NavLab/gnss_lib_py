@@ -15,13 +15,13 @@ import numpy as np
 import copy
 
 from gnss_lib_py.navdata.navdata import NavData
-from gnss_lib_py.utils.metrics import \
-    get_dop, calculate_dop, calculate_enu_unit_vectors, calculate_enut_matrix
+from gnss_lib_py.utils.dop import \
+    get_dop, calculate_dop, calculate_enu_unit_vectors, _calculate_enut_matrix
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
 
 
 #####################################################################
-# NEW FIXTURES AND TESTS
+# Test under a simplified satellite scenario
 @pytest.fixture(name="simple_sat_scenario")
 def fixture_simple_sat_scenario():
     """
@@ -110,7 +110,7 @@ def test_simple_enu_unit_vectors(navdata, expected_los_vectors):
             np.ones(expected_los_vectors.shape[0]))
     
     # Check the we get the expected ENUT matrix
-    enut_matrix = calculate_enut_matrix(navdata)
+    enut_matrix = _calculate_enut_matrix(navdata)
 
     # First check the shape
     assert enut_matrix.shape[0] == expected_los_vectors.shape[0]
@@ -301,7 +301,7 @@ def test_singularity_dop(navdata):
 
     """
     with pytest.raises(np.linalg.LinAlgError):
-        enut_matrix = calculate_enut_matrix(navdata)
+        enut_matrix = _calculate_enut_matrix(navdata)
         np.linalg.inv(enut_matrix.T @ enut_matrix)
 
     # Now check that we get all NaNs for the DOP values when we have a 
@@ -321,74 +321,8 @@ def test_singularity_dop(navdata):
 #############################################
 # Real data tests across time
 
-# FROM test_coordinates.py
-@pytest.fixture(name="root_path_2022")
-def fixture_root_path_2022():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2022')
-    return root_path
-
-@pytest.fixture(name="derived_2022_path")
-def fixture_derived_2022_path(root_path_2022):
-    """Filepath of Android Derived measurements
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived 2022 measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [4]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
-    return derived_path
-
-
-@pytest.fixture(name="derived_2022")
-def fixture_load_derived_2022(derived_2022_path):
-    """Load instance of AndroidDerived2021
-
-    Parameters
-    ----------
-    derived_path : pytest.fixture
-    String with location of Android derived measurement file
-
-    Returns
-    -------
-    derived : AndroidDerived2022
-    Instance of AndroidDerived2022 for testing
-    """
-    derived = AndroidDerived2022(derived_2022_path)
-    return derived
-
-#############################################
-# New tests for real data
-
 @pytest.mark.parametrize('navdata',[
-                                    lazy_fixture('derived_2022')
+                                    lazy_fixture('android_derived')
                                     ])
 def test_dop_across_time(navdata):
     """
@@ -407,16 +341,16 @@ def test_dop_across_time(navdata):
 
 @pytest.mark.parametrize('navdata, which_dop',
                          [
-                (lazy_fixture('derived_2022'), 
+                (lazy_fixture('android_derived'), 
                  {'GDOP': True, 'HDOP': True, 'VDOP': True, 
                   'PDOP': True, 'TDOP': True, 'dop_matrix': False}),
-                (lazy_fixture('derived_2022'), 
+                (lazy_fixture('android_derived'), 
                  {'GDOP': True, 'HDOP': True, 'VDOP': True, 
                   'PDOP': True, 'TDOP': True, 'dop_matrix': True}),
-                (lazy_fixture('derived_2022'), 
+                (lazy_fixture('android_derived'), 
                  {'GDOP': False, 'HDOP': False, 'VDOP': False, 
                   'PDOP': False, 'TDOP': True, 'dop_matrix': True}),
-                (lazy_fixture('derived_2022'), 
+                (lazy_fixture('android_derived'), 
                  {'GDOP': False, 'HDOP': False, 'VDOP': False, 
                   'PDOP': False, 'TDOP': False, 'dop_matrix': True})
                          ])

@@ -6,6 +6,7 @@ utils
 
    constants
    coordinates
+   dop
    ephemeris_downloader
    file_operations
    filters
