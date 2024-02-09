@@ -1,4 +1,5 @@
-"""Metrics to quantify quality of state estimates or GNSS measurements.
+"""
+Dillution of Precision (DOP) calculations and interface with NavData.
 """
 
 __authors__ = "Ashwin Kanhere, Daniel Neamati"

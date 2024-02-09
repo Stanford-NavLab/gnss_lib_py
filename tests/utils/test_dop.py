@@ -1,5 +1,5 @@
 """
-Test for metrics, such as DOP calculations.
+Test for DOP calculations and manipulations.
 
 """
 
