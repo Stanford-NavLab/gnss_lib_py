@@ -95,6 +95,14 @@ def test_simple_enu_unit_vectors(navdata, expected_los_vectors):
     """
     A simple set of satellites for ENU unit vector calculation.
 
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with only one time entry of a simple satellite scenario.
+
+    expected_los_vectors : np.ndarray
+        The expected ENU unit vectors for the simple satellite scenario.
+
     """
     # Check the we get the expected ENUT matrix
     enut_matrix = _calculate_enut_matrix(navdata)
@@ -119,7 +127,16 @@ def test_simple_dop(navdata, expected_dop):
     """
     A simple set of satellites for DOP calculation.
 
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with only one time entry of a simple satellite scenario.
+
+    expected_dop : dict
+        The expected dop values for the simple satellite scenario.
+
     """
+    # Run the DOP calculation
     dop_dict = calculate_dop(navdata)
 
     # Check the DOP output has all the expected keys
@@ -151,10 +168,17 @@ def test_simple_dop(navdata, expected_dop):
 def test_simple_get_dop_default(navdata, expected_dop):
     """
     Test that the get_dop function works correctly forms the DOP navdata under
-    default selection of the dop entries (i.e., HDOP and VDOP only)
-    """
+    default selection of the dop entries (i.e., HDOP and VDOP only).
 
-    # Perform the function under test
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with only one time entry of a simple satellite scenario.
+
+    expected_dop : dict
+        The expected dop values for the simple satellite scenario.
+    """
+    # Run the DOP calculation
     dop_navdata = get_dop(navdata)
 
     # Check the DOP NavData instance has the expected keys
@@ -197,6 +221,14 @@ def test_simple_get_dop_default(navdata, expected_dop):
 def test_simple_get_dop(navdata, expected_dop, which_dop):
     """
     Test that the get_dop function works correctly forms the DOP navdata.
+
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with only one time entry of a simple satellite scenario.
+
+    expected_dop : dict
+        The expected dop values for the simple satellite scenario.
     """
     # Make a deep copy of which_dop to ensure it was not editted
     which_dop_deep_copy = copy.deepcopy(which_dop)
@@ -245,6 +277,14 @@ def test_simple_get_dop(navdata, expected_dop, which_dop):
 def test_splat_dop_matrix(navdata, expected_dop):
     """
     Test that the splat_dop_matrix function works correctly.
+
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with only one time entry of a simple satellite scenario.
+
+    expected_dop : dict
+        The expected dop values for the simple satellite scenario.
     """
     # Perform the function under test
     dop_matrix = calculate_dop(navdata)['dop_matrix']
@@ -273,6 +313,14 @@ def test_splat_dop_matrix(navdata, expected_dop):
 def test_unsplat_dop_matrix(navdata, expected_dop):
     """
     Test that the unsplat_dop_matrix function works correctly.
+
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with only one time entry of a simple satellite scenario.
+
+    expected_dop : dict
+        The expected dop values for the simple satellite scenario.
     """
     # Perform the function under test
     dop_matrix = calculate_dop(navdata)['dop_matrix']
@@ -337,6 +385,11 @@ def test_singularity_dop(navdata):
     """
     Testing that the singularity error is raised and handled correctly.
 
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with only one time entry of a *singular* satellite scenario.
+
     """
     with pytest.raises(np.linalg.LinAlgError):
         enut_matrix = _calculate_enut_matrix(navdata)
@@ -364,6 +417,11 @@ def test_singularity_dop(navdata):
 def test_dop_across_time(navdata):
     """
     Test DOP calculation across time is properly added to NAV data.
+
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with multiple timesteps (i.e., as in real data).
     """
 
     dop_navdata = get_dop(navdata)
@@ -394,6 +452,14 @@ def test_dop_across_time(navdata):
 def test_dop_across_time_with_selection(navdata, which_dop):
     """
     Test DOP calculation across time is properly added to NAV data.
+
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with multiple timesteps (i.e., as in real data).
+
+    which_dop : dict
+        A dictionary specifying which DOP values to calculate.
     """
 
     # Make a deep copy of which_dop to ensure it was not editted
@@ -464,6 +530,11 @@ def test_dop_across_time_with_selection(navdata, which_dop):
 def test_splat_unsplat_dop_matrix_across_time(navdata):
     """
     Test that we can splat and unsplat the DOP matrix across time.
+
+    Parameters
+    ----------
+    navdata : NavData
+        A NavData with multiple timesteps (i.e., as in real data).
     """
 
     # Run through the data, calculate the DOP, and store as navdata
