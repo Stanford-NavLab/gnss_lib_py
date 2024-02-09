@@ -26,6 +26,7 @@ from gnss_lib_py.utils.ephemeris_downloader import *
 from gnss_lib_py.utils.file_operations import *
 from gnss_lib_py.utils.filters import *
 from gnss_lib_py.utils.gnss_models import *
+from gnss_lib_py.utils.metrics import *
 from gnss_lib_py.utils.sv_models import *
 from gnss_lib_py.utils.time_conversions import *
 
