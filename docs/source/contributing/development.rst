@@ -79,20 +79,9 @@ Standard GitHub Workflow
    folders for PyCharm and :code:`.vscode` folders for VS Code are not
    committed by updating the :code:`.gitignore` file.
 
-10. Improve code readability by linting it. Run :code:`pylint` to preview
-    issues with the code:
+10. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__.
 
-    .. code-block:: bash
-
-       poetry run python -m pylint path-to-file-to-lint
-
-    Resolve issues that do not impact how you have implemented your functionality,
-    such as conforming to snake case naming, removing TODOs and using suggested
-    defaults.
-
-11. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__.
-
-12. Commit your changes and publish your branch to GitHub:
+11. Commit your changes and publish your branch to GitHub:
 
    .. code-block:: bash
 
@@ -100,7 +89,7 @@ Standard GitHub Workflow
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-13. Submit a pull request through GitHub. For the base branch
+12. Submit a pull request through GitHub. For the base branch
     in the pull request, select the latest version release branch :code:`vX.Y.Z`
     (with the highest number of all such branches). *Do not target the*
     :code:`main` *branch in your pull request.* In the pull request,
@@ -173,20 +162,9 @@ NAVLab GitHub Workflow
    folders for PyCharm and :code:`.vscode` folders for VS Code are not
    committed by updating the :code:`.gitignore` file.
 
-10. Improve code readability by linting it. Run :code:`pylint` to preview
-    issues with the code:
+10. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__.
 
-    .. code-block:: bash
-
-       poetry run python -m pylint path-to-file-to-lint
-
-    Resolve issues that do not impact how you have implemented your functionality,
-    such as conforming to snake case naming, removing TODOs and using suggested
-    defaults.
-
-11. Add your name to the `contributors list <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/CONTRIBUTORS.md>`__.
-
-12. When you're ready to commit changes follow the steps below to
+11. When you're ready to commit changes follow the steps below to
     minimize unnecessary merging. This is especially important if
     multiple people are working on the same branch. If you pull new
     changes, then repeat the tests above to double check that everything
@@ -201,7 +179,7 @@ NAVLab GitHub Workflow
       git commit -m "<describe changes in this commit>"
       git push origin your-name/name-of-your-bugfix-or-feature
 
-13. Submit a pull request through GitHub. For the base branch
+12. Submit a pull request through GitHub. For the base branch
     in the pull request, select the latest version release branch :code:`vX.Y.Z`
     (with the highest number of all such branches). *Do not target the*
     :code:`main` *branch in your pull request.* In the pull request,
