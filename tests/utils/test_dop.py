@@ -391,21 +391,33 @@ def test_singularity_dop(navdata):
         A NavData with only one time entry of a *singular* satellite scenario.
 
     """
-    with pytest.raises(np.linalg.LinAlgError):
-        enut_matrix = _calculate_enut_matrix(navdata)
-        np.linalg.inv(enut_matrix.T @ enut_matrix)
 
-    # Now check that we get all NaNs for the DOP values when we have a
-    # singularity
+    # Run the DOP calculation
     dop_dict = calculate_dop(navdata)
 
     # Check the DOP output has all the expected keys
     assert dop_dict.keys() == {'dop_matrix',
-                               'GDOP', 'HDOP', 'VDOP', 'PDOP', 'TDOP'}
+                            'GDOP', 'HDOP', 'VDOP', 'PDOP', 'TDOP'}
 
-    # Check these are all NaNs
-    for _, val in dop_dict.items():
-        assert np.all(np.isnan(val))
+    try:
+        enut_matrix = _calculate_enut_matrix(navdata)
+        np.linalg.inv(enut_matrix.T @ enut_matrix)
+
+        # If we get here, then we did not get a singularity error
+        # This is possible due to floating point errors, so we will check
+        # that the values are unrealistically large.
+        # Note: we use np.any() since we can get small values in the DOP matrix
+        for _, val in dop_dict.items():
+            assert np.any(np.abs(val) > 1e6)
+
+    except np.linalg.LinAlgError:
+        # We expect a singularity error. If we get the singularity error, then
+        # the values should all be NaNs
+
+        # Now check that we get all NaNs for the DOP values when we have a
+        # singularity
+        for _, val in dop_dict.items():
+            assert np.all(np.isnan(val))
 
 
 #############################################
