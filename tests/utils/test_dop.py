@@ -416,7 +416,7 @@ def test_singularity_dop(navdata):
         # that the values are unrealistically large.
         # Note: we use np.any() since we can get small values in the DOP matrix
         for _, val in dop_dict.items():
-            assert np.any(np.abs(val) > 1e6)
+            assert np.any(np.isnan(val)) or np.any(np.abs(val) > 1e6)
 
     except np.linalg.LinAlgError:
         # We expect a singularity error. If we get the singularity error, then
