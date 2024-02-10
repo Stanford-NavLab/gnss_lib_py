@@ -388,15 +388,12 @@ def test_singularity_dop(navdata):
     Parameters
     ----------
     navdata : NavData
-        A NavData with only one time entry of a *singular* satellite scenario.
+        A NavData with only one time entry of a **singular** satellite scenario.
 
     """
 
     # Run the DOP calculation
     dop_dict = calculate_dop(navdata)
-
-    print("DOP dict")
-    print(dop_dict)
 
     # Check the DOP output has all the expected keys
     assert dop_dict.keys() == {'dop_matrix',
@@ -404,17 +401,18 @@ def test_singularity_dop(navdata):
 
     try:
         enut_matrix = _calculate_enut_matrix(navdata)
-        print("ENUT matrix")
-        print(enut_matrix)
-
-        dop_manual = np.linalg.inv(enut_matrix.T @ enut_matrix)
-        print("DOP manual")
-        print(dop_manual)
+        np.linalg.inv(enut_matrix.T @ enut_matrix)
 
         # If we get here, then we did not get a singularity error
         # This is possible due to floating point errors, so we will check
         # that the values are unrealistically large.
+        #
+        # Note: When very poorly conditioned, the DOP matrix can have negative
+        # entries. Then, the square root of the DOP matrix will be nan! So,
+        # we first check for nans, and then for large values (otherwise there
+        # is an issue in comparing nan > number).
         # Note: we use np.any() since we can get small values in the DOP matrix
+        # even if singular (i.e., in the off-diagonal entries).
         for _, val in dop_dict.items():
             assert np.any(np.isnan(val)) or np.any(np.abs(val) > 1e6)
 

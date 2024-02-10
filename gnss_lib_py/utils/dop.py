@@ -39,6 +39,8 @@ def get_dop(navdata, **which_dop):
         NavData instance containing received GNSS measurements for a
         particular time instance, contains elevation and azimuth angle
         information for an estimated location.
+        Instance of the NavData class which must include at least
+        ``gps_millis``, ``el_sv_deg``, and ``az_sv_deg``
 
     which_dop : dict
         Dictionary of which dop values are needed. Default is HDOP and VDOP.
@@ -67,6 +69,9 @@ def get_dop(navdata, **which_dop):
     dop_navdata : gnss_lib_py.navdata.navdata.NavData
         Dilution of precision data along with the relevant time stamp.
     """
+
+    # Check that the navdata has the necessary elevation and azimuth data
+    navdata.in_rows(['gps_millis', 'el_sv_deg', 'az_sv_deg'])
 
     # Default which_dop values assume HDOP and VDOP are needed.
     default_which_dop = {'GDOP': False,
