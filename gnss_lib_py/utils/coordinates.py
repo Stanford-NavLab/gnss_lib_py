@@ -570,3 +570,34 @@ def wrap_0_to_2pi(angles):
     angles = np.mod(angles, 2*np.pi)
 
     return angles
+
+
+def el_az_to_enu_unit_vector(el_deg, az_deg):
+    """
+    Convert elevation and azimuth to ENU unit vectors.
+    
+    Parameters
+    ----------
+    el_deg : np.ndarray
+        Elevation angle in degrees.
+        
+    az_deg : np.ndarray
+        Azimuth angle in degrees.
+        
+    Returns
+    -------
+    unit_dir_mat : np.ndarray
+        ENU unit vectors.
+    """
+    el_rad = np.deg2rad(el_deg)
+    az_rad = np.deg2rad(az_deg)
+    
+    unit_dir_mat = np.vstack(
+        (np.atleast_2d(np.cos(el_rad) * np.sin(az_rad)),
+         np.atleast_2d(np.cos(el_rad) * np.cos(az_rad)),
+         np.atleast_2d(np.sin(el_rad))
+         )).T
+    
+    return unit_dir_mat
+
+

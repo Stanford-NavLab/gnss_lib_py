@@ -22,6 +22,7 @@ from gnss_lib_py.parsers.sp3 import *
 
 from gnss_lib_py.utils.constants import *
 from gnss_lib_py.utils.coordinates import *
+from gnss_lib_py.utils.dop import *
 from gnss_lib_py.utils.ephemeris_downloader import *
 from gnss_lib_py.utils.file_operations import *
 from gnss_lib_py.utils.filters import *
