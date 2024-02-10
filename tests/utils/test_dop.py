@@ -395,13 +395,21 @@ def test_singularity_dop(navdata):
     # Run the DOP calculation
     dop_dict = calculate_dop(navdata)
 
+    print("DOP dict")
+    print(dop_dict)
+
     # Check the DOP output has all the expected keys
     assert dop_dict.keys() == {'dop_matrix',
                             'GDOP', 'HDOP', 'VDOP', 'PDOP', 'TDOP'}
 
     try:
         enut_matrix = _calculate_enut_matrix(navdata)
-        np.linalg.inv(enut_matrix.T @ enut_matrix)
+        print("ENUT matrix")
+        print(enut_matrix)
+
+        dop_manual = np.linalg.inv(enut_matrix.T @ enut_matrix)
+        print("DOP manual")
+        print(dop_manual)
 
         # If we get here, then we did not get a singularity error
         # This is possible due to floating point errors, so we will check
