@@ -1704,3 +1704,20 @@ def test_keep_cols_where(data, df_simple):
 
     df_simple_subset = df_simple_subset.reset_index(drop=True)
     pd.testing.assert_frame_equal(data_subset.pandas_df(), df_simple_subset, check_dtype=False)
+
+def test_nan_return():
+    """Test case where NaN values in int array need to be returned.
+
+    """
+    navdata = NavData()
+    int_values = np.array([1,2,3,4,5]).astype(np.int64)
+    navdata["x"] = int_values
+    navdata.array[0,1] = np.nan
+    navdata.array[0,3] = np.nan
+
+    pd_df = navdata.pandas_df()
+    assert pd.isnull(pd_df).values.sum() == 2
+
+    x_output = navdata["x"]
+    np.testing.assert_array_equal(np.isnan(x_output),
+                                  np.array([False, True, False, True, False]))
