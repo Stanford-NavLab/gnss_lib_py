@@ -183,7 +183,7 @@ class GNSSPF(ABC):
 
     def init_state(self, state_0):
         """Initialize the state of the filter"""
-        sigma_cholesky = np.linalg.cholesky(self.sigma)
+        sigma_cholesky = self.stable_cholesky(self.sigma)
         self.particles = state_0 + sigma_cholesky @ np.random.randn(self.particles_dim, self.num_particles)
         self.log_wt = np.zeros(self.num_particles)
 
@@ -263,6 +263,8 @@ class GNSSPF(ABC):
         # effective_sample_size = self.calc_effective_sample_size()
         # if effective_sample_size < 0.5:
         #     self.resample_particles()
+
+        # Resample every time
         self.resample_particles()
 
         # Update covariance
@@ -279,9 +281,9 @@ class GNSSPF(ABC):
             Effective particle size of the filter
         """
         weights = np.exp(self.log_wt - np.max(self.log_wt))
-        effective_sample_size = np.sum(weights**2)
+        effective_sample_size = 1.0/np.sum(weights**2)
         # print('effective_sample_size ', effective_sample_size)
-        return 1.0/np.sum(np.exp(2*(self.log_wt - np.max(self.log_wt))))
+        return effective_sample_size
 
     def resample_particles(self):
         """
@@ -306,7 +308,7 @@ class GNSSPF(ABC):
 
 
     def dyn_model(self, u, predict_dict=None):
-        """Nonlinear dynamics
+        """Nonlinear dynamics (stochastic)
 
         Parameters
         ----------
@@ -343,7 +345,7 @@ class GNSSPF(ABC):
         return new_x
 
     def measure_model(self, update_dict):
-        """Measurement model
+        """Measurement model (vectorized)
 
         Pseudorange model adds true range and clock bias estimate:
         :math:`\\rho = \\sqrt{(x-x_{sv})^2 + (y-y_{sv})^2 + (z-z_{sv})^2} + b`.
@@ -374,8 +376,6 @@ class GNSSPF(ABC):
         if self.measure_type=='pseudorange':
             pos_sv_m = update_dict['pos_sv_m'] # 3 x M
             
-            dx = self.particles[0, :, None] - pos_sv_m[0, :] # N x M
-
             pseudo = np.sqrt((self.particles[0, :, None] - pos_sv_m[0, :])**2
                            + (self.particles[1, :, None] - pos_sv_m[1, :])**2
                            + (self.particles[2, :, None] - pos_sv_m[2, :])**2) \
