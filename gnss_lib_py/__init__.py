@@ -5,6 +5,7 @@ from importlib import metadata
 # import submodules into gnss_lib_py namespace
 from gnss_lib_py.algorithms.fde import *
 from gnss_lib_py.algorithms.gnss_filters import *
+from gnss_lib_py.algorithms.external_filters import *
 from gnss_lib_py.algorithms.residuals import *
 from gnss_lib_py.algorithms.snapshot import *
 
