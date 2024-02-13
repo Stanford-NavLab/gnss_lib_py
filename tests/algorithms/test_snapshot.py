@@ -243,126 +243,16 @@ def test_wls_only_bias(set_user_states, set_sv_states, tolerance):
     np.testing.assert_array_almost_equal(user_fix, truth_fix,
                                          decimal=tolerance)
 
-
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2021/')
-    return root_path
-
-
-@pytest.fixture(name="derived_path")
-def fixture_derived_path(root_path):
-    """Filepath of Android Derived measurements
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [2]_,
-    particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-
-    References
-    ----------
-    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
-    return derived_path
-
-
-@pytest.fixture(name="derived")
-def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived2021
-
-    Parameters
-    ----------
-    derived_path : pytest.fixture
-        String with location of Android derived measurement file
-
-    Returns
-    -------
-    derived : AndroidDerived2021
-        Instance of AndroidDerived2021 for testing
-    """
-    derived = AndroidDerived2021(derived_path)
-    return derived
-
-
-@pytest.fixture(name="derived_2022_path")
-def fixture_derived_2022_path(root_path):
-    """Filepath of Android Derived 2022 measurements
-
-    Returns
-    -------
-    derived_2022_path : string
-        Location for the unit_test Android 2022 derived measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [3]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [3] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_2022_path = os.path.join(root_path, '../google_decimeter_2022/device_gnss.csv')
-    return derived_2022_path
-
-
-@pytest.fixture(name="derived_2022")
-def fixture_load_derived_2022(derived_2022_path):
-    """Load instance of AndroidDerived2021
-
-    Parameters
-    ----------
-    derived_2022_path : pytest.fixture
-        String with location of Android derived 2022 measurement file
-
-    Returns
-    -------
-    derived_2022 : AndroidDerived2021
-        Instance of AndroidDerived2022 for testing
-    """
-    derived_2022 = AndroidDerived2022(derived_2022_path)
-    return derived_2022
-
-def test_solve_wls(derived):
+def test_solve_wls(derived_2021):
     """Test that solving for wls doesn't fail
 
     Parameters
     ----------
-    derived : AndroidDerived2021
+    derived_2021 : AndroidDerived2021
         Instance of AndroidDerived2021 for testing.
 
     """
-    state_estimate = solve_wls(derived, sv_rx_time=False)
+    state_estimate = solve_wls(derived_2021, sv_rx_time=False)
 
     # result should be a NavData Class instance
     assert isinstance(state_estimate,type(NavData()))
@@ -381,34 +271,32 @@ def test_solve_wls(derived):
     assert "alt_rx_wls_m" in state_estimate.rows
 
     # should have the same length as the number of unique timesteps
-    assert len(state_estimate) == sum(1 for _ in loop_time(derived,"gps_millis"))
-
-    # len(np.unique(derived["gps_millis",:]))
+    assert len(state_estimate) == sum(1 for _ in loop_time(derived_2021,"gps_millis"))
 
     # test what happens when rows down't exist
     for row_index in ["gps_millis","x_sv_m","y_sv_m","z_sv_m"]:
-        derived_no_row = derived.remove(rows=row_index)
+        derived_no_row = derived_2021.remove(rows=row_index)
         with pytest.raises(KeyError) as excinfo:
             solve_wls(derived_no_row)
         assert row_index in str(excinfo.value)
 
-def test_solve_wls_weights(derived, tolerance):
+def test_solve_wls_weights(derived_2021, tolerance):
     """Tests that weights are working for weighted least squares.
 
     Parameters
     ----------
-    derived : AndroidDerived2021
+    derived_2021 : AndroidDerived2021
         Instance of AndroidDerived2021 for testing
     tolerance : fixture
         Error threshold for test pass/fail
     """
 
-    state_estimate_1 = solve_wls(derived, sv_rx_time=False)
-    state_estimate_2 = solve_wls(derived, None, sv_rx_time=False)
+    state_estimate_1 = solve_wls(derived_2021, sv_rx_time=False)
+    state_estimate_2 = solve_wls(derived_2021, None, sv_rx_time=False)
 
     # create new column of unity weights
-    derived["unity_weights"] = 1
-    state_estimate_3 = solve_wls(derived, "unity_weights",  sv_rx_time=False)
+    derived_2021["unity_weights"] = 1
+    state_estimate_3 = solve_wls(derived_2021, "unity_weights",  sv_rx_time=False)
 
     # all of the above should be the same
     np.testing.assert_array_almost_equal(state_estimate_1.array,
@@ -418,7 +306,7 @@ def test_solve_wls_weights(derived, tolerance):
                                          state_estimate_3.array,
                                          decimal=tolerance)
 
-    state_estimate_4 = solve_wls(derived, "raw_pr_sigma_m",  sv_rx_time=False)
+    state_estimate_4 = solve_wls(derived_2021, "raw_pr_sigma_m",  sv_rx_time=False)
     with np.testing.assert_raises(AssertionError):
         np.testing.assert_array_almost_equal(state_estimate_1.array,
                                              state_estimate_4.array,
@@ -426,11 +314,11 @@ def test_solve_wls_weights(derived, tolerance):
 
     #should return error for empty string
     with pytest.raises(TypeError):
-        solve_wls(derived, "")
+        solve_wls(derived_2021, "")
 
     # should return error for row not in NavData instance
     with pytest.raises(TypeError):
-        solve_wls(derived, "special_weights")
+        solve_wls(derived_2021, "special_weights")
 
 @pytest.mark.parametrize('random_noise',
                          np.random.normal(0,20,size=(TEST_REPEAT_COUNT,4,1))
@@ -585,18 +473,18 @@ def test_wls_fails(capsys):
     captured = capsys.readouterr()
     assert captured.out == "SVD did not converge\n"
 
-def test_solve_wls_fails(derived):
+def test_solve_wls_fails(derived_2021):
     """Test expected fails
 
     Parameters
     ----------
-    derived : AndroidDerived2021
+    derived_2021 : AndroidDerived2021
         Instance of AndroidDerived2021 for testing
 
     """
 
-    navdata = derived.remove(cols=list(range(3,50)) \
-                                + list(range(53,len(derived))))
+    navdata = derived_2021.remove(cols=list(range(3,50)) \
+                                + list(range(53,len(derived_2021))))
 
     with pytest.warns(RuntimeWarning) as warns:
         solve_wls(navdata)

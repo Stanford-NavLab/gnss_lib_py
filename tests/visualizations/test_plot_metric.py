@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 from gnss_lib_py.visualizations import style
 import gnss_lib_py.visualizations.plot_metric as metric
 
-def test_plot_metrics(derived):
+def test_plot_metrics(derived_2021):
     """Test for plotting metrics.
 
     Parameters
     ----------
-    derived : AndroidDerived2021
+    derived_2021 : AndroidDerived2021
         Instance of AndroidDerived2021 for testing.
 
     """
@@ -24,40 +24,40 @@ def test_plot_metrics(derived):
                  "raw_pr_m",
                  ]
 
-    for row in derived.rows:
-        if not derived.is_str(row):
+    for row in derived_2021.rows:
+        if not derived_2021.is_str(row):
             if row in test_rows:
                 fig = plt.figure()
                 for groupby in ["gnss_id",None]:
-                    fig = metric.plot_metric(derived, row,
+                    fig = metric.plot_metric(derived_2021, row,
                                           groupby = groupby,
                                           save=False)
                     style.close_figures(fig)
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
-                fig = metric.plot_metric(derived, row, save=False)
+                fig = metric.plot_metric(derived_2021, row, save=False)
                 style.close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
-        metric.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
+        metric.plot_metric(derived_2021, "raw_pr_m", save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
-    for row in derived.rows:
-        if not derived.is_str(row):
+    for row in derived_2021.rows:
+        if not derived_2021.is_str(row):
             if row in test_rows:
                 for groupby in ["gnss_id",None]:
-                    fig = metric.plot_metric(derived, "raw_pr_m", row,
+                    fig = metric.plot_metric(derived_2021, "raw_pr_m", row,
                                           groupby=groupby, save=False)
                     style.close_figures(fig)
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
-                fig = metric.plot_metric(derived, "raw_pr_m", row, save=False)
+                fig = metric.plot_metric(derived_2021, "raw_pr_m", row, save=False)
                 style.close_figures(fig)
             with pytest.raises(KeyError) as excinfo:
-                fig = metric.plot_metric(derived, row, "raw_pr_m", save=False)
+                fig = metric.plot_metric(derived_2021, row, "raw_pr_m", save=False)
                 style.close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
@@ -65,11 +65,11 @@ def test_plot_metrics(derived):
 
     # test repeating figure and average y
     fig = plt.figure()
-    fig = metric.plot_metric(derived, "gps_millis", "raw_pr_m",
+    fig = metric.plot_metric(derived_2021, "gps_millis", "raw_pr_m",
                           fig = fig,
                           groupby = "gnss_id",
                           save=False)
-    fig = metric.plot_metric(derived, "gps_millis", "raw_pr_m",
+    fig = metric.plot_metric(derived_2021, "gps_millis", "raw_pr_m",
                             fig = fig,
                             groupby = "gnss_id",
                             avg_y = True,
@@ -79,22 +79,22 @@ def test_plot_metrics(derived):
     style.close_figures(fig)
 
     with pytest.raises(TypeError) as excinfo:
-        metric.plot_metric(derived, "raw_pr_m", save=True, prefix=1)
+        metric.plot_metric(derived_2021, "raw_pr_m", save=True, prefix=1)
     assert "Prefix" in str(excinfo.value)
 
     with pytest.raises(ValueError) as excinfo:
-        metric.plot_metric(derived, 'raw_pr_m', row, row, save=False)
+        metric.plot_metric(derived_2021, 'raw_pr_m', row, row, save=False)
 
     with pytest.raises(TypeError) as excinfo:
         metric.plot_metric("derived", 'raw_pr_m', save=False)
     assert "NavData" in str(excinfo.value)
 
-def test_plot_metrics_by_constellation(derived):
+def test_plot_metrics_by_constellation(derived_2021):
     """Test for plotting metrics by constellation.
 
     Parameters
     ----------
-    derived : AndroidDerived2021
+    derived_2021 : AndroidDerived2021
         Instance of AndroidDerived2021 for testing.
 
     """
@@ -103,23 +103,23 @@ def test_plot_metrics_by_constellation(derived):
                  "raw_pr_m",
                  ]
 
-    for row in derived.rows:
-        if not derived.is_str(row):
+    for row in derived_2021.rows:
+        if not derived_2021.is_str(row):
             if row in test_rows:
                 for prefix in ["","test"]:
-                    fig = metric.plot_metric_by_constellation(derived, row,
+                    fig = metric.plot_metric_by_constellation(derived_2021, row,
                                                prefix=prefix,save=False)
                     style.close_figures()
         else:
             # string rows should cause a KeyError
             with pytest.raises(KeyError) as excinfo:
-                fig = metric.plot_metric_by_constellation(derived, row,
+                fig = metric.plot_metric_by_constellation(derived_2021, row,
                                                         save=False)
                 style.close_figures(fig)
             assert "non-numeric row" in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
-        metric.plot_metric_by_constellation(derived, "raw_pr_m", save=True,
+        metric.plot_metric_by_constellation(derived_2021, "raw_pr_m", save=True,
                                          prefix=1)
     assert "Prefix" in str(excinfo.value)
 
@@ -127,14 +127,14 @@ def test_plot_metrics_by_constellation(derived):
         metric.plot_metric_by_constellation("derived", "raw_pr_m", save=True)
     assert "NavData" in str(excinfo.value)
 
-    derived_no_gnss_id = derived.remove(rows="gnss_id")
+    derived_no_gnss_id = derived_2021.remove(rows="gnss_id")
     with pytest.raises(KeyError) as excinfo:
         metric.plot_metric_by_constellation(derived_no_gnss_id, "raw_pr_m",
                                          save=False)
     assert "gnss_id" in str(excinfo.value)
 
     for optional_row in ["sv_id","signal_type",["sv_id","signal_type"]]:
-        derived_partial = derived.remove(rows=optional_row)
+        derived_partial = derived_2021.remove(rows=optional_row)
         figs = metric.plot_metric_by_constellation(derived_partial,
                                                 "raw_pr_m", save=False)
         style.close_figures(figs)
