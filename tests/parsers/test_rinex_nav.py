@@ -205,3 +205,18 @@ def test_no_iono_params(ephem_path):
     rinex_path = os.path.join(ephem_path,"rinex","nav",
                                    "BRDM00DLR_S_20230730000_01D_MN_no_gps_iono.rnx")
     RinexNav(rinex_path)
+
+def test_nan_removal(ephem_path):
+    """Test that NaN values are being removed appropriately.
+
+    Parameters
+    ----------
+    ephem_path : string
+        Location where ephemeris files are stored/to be downloaded to.
+
+    """
+
+    rinex_path = os.path.join(ephem_path,"rinex","nav",
+                                   "brdc0730.17n")
+    rinex_data = RinexNav(rinex_path)
+    assert rinex_data.shape == (36,4)
