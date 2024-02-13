@@ -87,6 +87,7 @@ def fixture_load_derived(derived_2022_path):
                         [
                          "residual",
                          "edm",
+                         "ss"
                         ])
 def test_solve_fde(derived, method):
     """Test residual-based FDE.
@@ -147,6 +148,7 @@ def test_fde_fails(derived):
 @pytest.mark.parametrize('method',
                         [
                          "residual",
+                         "ss",
                          "edm",
                         ])
 def test_evaluate_fde(derived, method):

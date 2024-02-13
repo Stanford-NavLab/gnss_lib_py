@@ -30,7 +30,8 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
         pseudorange ``corr_pr_m``.
     method : string
         Method for fault detection and exclusion either "residual" for
-        residual-based or "edm" for Euclidean Distance Matrix-based.
+        residual-based, "ss" for solution separation or "edm" for
+        Euclidean Distance Matrix-based.
     remove_outliers : bool
         If `True`, removes measurements with detected faults (fault status 1)
         and measurements with unknown fault status (fault status 2)
@@ -55,6 +56,10 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
 
     if method == "residual":
         navdata = fde_greedy_residual(navdata, max_faults=max_faults,
+                                        threshold=threshold,verbose=verbose,
+                                        **kwargs)
+    if method == "ss":
+        navdata = fde_solution_separation(navdata, max_faults=max_faults,
                                         threshold=threshold,verbose=verbose,
                                         **kwargs)
     elif method == "edm":
@@ -458,42 +463,27 @@ def fde_solution_separation(navdata, max_faults, threshold,
         original_indexes = np.delete(original_indexes, nan_idxs)
 
         fault_idxs = []
-        if len(navdata_subset) > 5:
+        if subset_length > 5:
 
-            # test statistic
-            receiver_state = solve_wls(navdata_subset)
-            sigma_squared = _ss_normalizer(navdata_subset, receiver_state)
+            test_statistic, fault_idx = _ss_test_statistic(navdata_subset)
 
-            receiver_state_subsets = np.zeros((navlab_subset,3))
-            sigma_squared_subsets = np.zeros(navlab_subset)
-            for idx in len(navdata_subset):
-                idx_subset = navdata_subset.remove(cols=[idx])
-                receiver_state_subsets[idx,:] = solve_wls(idx_subset)
-                sigma_squared_subsets[idx] = _ss_normalizer(idx_subset,
-                                          receiver_state_subsets[idx,:])
-
-            # greedy removal if chi_square above detection threshold
-            while chi_square > threshold:
+            # greedy removal if test_statistic above detection threshold
+            while test_statistic > threshold:
             # stop removing indexes either b/c you need at least four
             # satellites or if maximum number of faults has been reached
                 if len(navdata_subset) < 5 or (max_faults is not None \
                                            and len(fault_idxs) >= max_faults):
                     break
 
-                normalized_residual = _residual_exclude(navdata_subset,receiver_state)
-                fault_idx = np.argsort(normalized_residual)[-1]
-
                 navdata_subset.remove(cols=[fault_idx], inplace=True)
                 fault_idxs.append(original_indexes[fault_idx])
                 original_indexes = np.delete(original_indexes, fault_idx)
 
                 # test statistic
-                receiver_state = solve_wls(navdata_subset)
-                solve_residuals(navdata_subset, receiver_state, inplace=True)
-                chi_square = _residual_chi_square(navdata_subset, receiver_state)
+                test_statistic, fault_idx = _ss_test_statistic(navdata_subset)
 
                 if verbose:
-                    print("chi squared:",chi_square,"after removing index:",fault_idxs)
+                    print("test statistic:",test_statistic,"after removing index:",fault_idxs)
 
         fault_ss_subset = np.array([0] * subset_length)
         fault_ss_subset[fault_idxs] = 1
@@ -506,8 +496,6 @@ def fde_solution_separation(navdata, max_faults, threshold,
             navdata_timing += list([time_end-time_start] * subset_length)
 
     navdata["fault_ss"] = fault_ss
-    if verbose:
-        print(navdata["fault_ss"])
 
     timing_info = {}
     if time_fde:
@@ -622,6 +610,10 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
 
     estimated_faults = navdata["fault_" + method]
     truth_faults = navdata[fault_truth_row]
+
+    if verbose:
+        print("truth faults:\n",truth_faults)
+        print(method,"faults:\n",estimated_faults)
 
     total = len(estimated_faults)
     true_positive = len(np.argwhere((estimated_faults==1) & (truth_faults==1)))
@@ -956,6 +948,68 @@ def _ss_normalizer(navdata, receiver_state):
                -  navdata[["x_sv_m","y_sv_m","z_sv_m"]]).T
     geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
 
-    sigma_squared = np.trace(np.linalg.inv(geo_matrix.T @ geo_matrix))
+    sigma_squared = np.trace(np.linalg.pinv(geo_matrix.T @ geo_matrix))
 
     return sigma_squared
+
+
+def _ss_test_statistic(navdata):
+    """Compute solution separation test statistic
+
+    Paramters
+    ---------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        this
+
+    Returns
+    -------
+    test_statistic : float
+        Solution separation test statistic
+    fault_idx : int
+        Argmax of test_statistic
+
+    """
+
+    # test statistic
+
+    receiver_state = solve_wls(navdata)
+    sigma_squared = _ss_normalizer(navdata, receiver_state)
+
+    # print("receiver_state:",receiver_state)
+    # print("sigma_squared:",sigma_squared)
+
+    receiver_state_subsets = np.zeros((len(navdata),3))
+    sigma_squared_subsets = np.zeros(len(navdata))
+    for idx in range(len(navdata)):
+        idx_subset = navdata.remove(cols=[idx])
+        receiver_state_idx = solve_wls(idx_subset)
+        sigma_squared_subsets[idx] = _ss_normalizer(idx_subset,
+                                  receiver_state_idx)
+        receiver_state_subsets[idx,:] = receiver_state_idx[["x_rx_wls_m",
+                                                            "y_rx_wls_m",
+                                                            "z_rx_wls_m",
+                                                            # "b_rx_wls_m",
+                                                            ]]
+
+    delta_i = np.linalg.norm(receiver_state_subsets \
+                           - receiver_state[["x_rx_wls_m",
+                                             "y_rx_wls_m",
+                                             "z_rx_wls_m",
+                                             # "b_rx_wls_m",
+                                             ]],axis=1)
+    sigma_i = np.sqrt(sigma_squared_subsets + sigma_squared)
+    q_i = np.divide(delta_i,sigma_i)
+
+    test_statistic = np.max(q_i)
+    fault_idx = np.argmax(q_i)
+
+    # print(idx,receiver_state_subsets)
+    # print(idx,sigma_squared_subsets)
+    # print("di:",delta_i)
+    # print("sigmai:",sigma_i)
+    # # print("sigma diff:",sigma_diff)
+    # print("qi:",q_i)
+    # print("test_statistic",test_statistic)
+    # print("fault_idx:",fault_idx)
+
+    return test_statistic, fault_idx
