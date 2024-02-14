@@ -16,9 +16,9 @@ We use `numpy docstrings
 <https://numpydoc.readthedocs.io/en/latest/format.html>`__
 for all documentation within this package. You can see some example
 numpy docstrings `here <https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html#example-numpy>`__.
-In addition to class and function docstrings, any code
-whose behaviour or purpose is not obvious, should be independently
-commented.
+In addition to class and function docstrings, any line of code
+whose behaviour or purpose is not obvious, should be have a brief explanation
+near the code using comments.
 
 Additional documentation guidelines
 -----------------------------------
@@ -30,6 +30,11 @@ To reference textbooks/papers in the docstrings, create a new section
 titled References and include the reference as shown below in the
 docstring. (Remove the block comment flag when inserting in already
 written docstrings)
+
+The same reference number cannot be used across multiple methods or classes
+in the same file. If you want to use the same reference in multiple methods,
+you will have to update the reference number each time that the reference
+is added.
 
 .. code-block:: python
 
@@ -53,13 +58,21 @@ following:
     * :code:`bool`
     * :code:`int`
     * :code:`float`
-    * :code:`list` (include shape in the description)
+    * :code:`list` (include type of each list element in the description)
     * :code:`dict` (include key type and value type in description)
     * :code:`np.ndarray` (include shape in the description). Where possible,
-      single axis arrays should be rows and time should be across
-      the columns
+      single axis arrays should be rows and time/different measurements
+      should be across the columns
     * :code:`pd.DataFrame`
     * :code:`gnss_lib_py.navdata.navdata.NavData`
+
+If methods can accept/return multiple types of values, combine them in the
+parameter/return type :code:`parameter_name : list/np.ndarray` and provide
+additional details in the description.
+
+Similarly, if a method accepts/returns a particular combination of types,
+mention them in the type like :code:`parameter_name : tuple of np.ndarray`
+and provide details in the description.
 
 PEP 8 Style Guide
 -----------------
@@ -120,14 +133,25 @@ Citations should be added on a function by function basis.
 If a function is built on the implementation from another repository,
 include the license and attribution as required by the original author.
 
+Use the :code:`Notes` and :code:`References` sections in the docstring
+to ensure proper citations, links, and explanations are provided.
+
 Miscellaneous Style Notes
 -------------------------
-    * Vectors (lists, np.ndarrays, etc.) for a single time instance
+    * Vectors (lists, np.ndarrays, etc.) for a single time/measurement instance
       should be column vectors.
     * Collections of vectors should be 2D structures with each column
       representing the value of the vector for a particular time. In
       this convention, time varies across columns while physical
       quantities vary across rows.
+    * When there are multiple measurements per time instance, there should
+      be a row specifying the time of each measurement. Each measurement
+      instance should be a column vector. Different types of information
+      should be rows. Eg., for 10 measurements across 4 time instances,
+      containing 6 types of information, the shape of the data should be
+      :code:`(6, 40)`. Ideally, the first 10 columns should correspond to
+      the same time instance, the next 10 for the next time instance, and
+      so on.
     * Assert errors and tell the user what caused that particular error.
       For example, if a column vector is passed instead of a row vector,
       the assertion error message should say that a row vector was
@@ -135,7 +159,7 @@ Miscellaneous Style Notes
       useful for performing such checks. Please check if an existing
       function performs the desired task before adding new functions.
     * Write units in brackets in comments and docstrings. For example,
-      [m].
+      [m] for values of distance/position and [m/s] for velocities.
 
 
 Adding to Documentation Pages
@@ -150,6 +174,9 @@ documentation for any syntax queries.
 
 Building Documentation
 ----------------------
+
+Updating Documentation Configuration
+++++++++++++++++++++++++++++++++++++
 
 If you changed any directory names in the repository:
 
@@ -166,6 +193,9 @@ If you wish to add python dependencies:
 
 If you wish to remove python dependencies, use :code:`poetry remove package`.
 
+Building Documentation Locally
+++++++++++++++++++++++++++++++
+
 If you're using :code:`poetry`, after the above, you can run the helper
 tool from the main directory that will automatically rebuild references
 and build a local HTML copy of the documentation:
@@ -180,3 +210,11 @@ a browser to view your local copy.
 If you encounter errors while using the :code:`build_docs.sh` tool, refer
 to previously documented solutions in the
 :ref:`troubleshooting page <build_errors>`.
+
+Building Documentation on ReadTheDocs
++++++++++++++++++++++++++++++++++++++
+
+Documentation on readthedocs.com is automatically built when a new pull
+request is submitted through our GitHub Actions. Check the corresponding
+branch of the documentation after you have submitted a pull request
+`here <https://readthedocs.org/projects/gnss-lib-py/versions/>`.

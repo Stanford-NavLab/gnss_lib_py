@@ -14,6 +14,43 @@ and 3.11 in the latest Ubuntu, MacOS and Windows versions.
 :code:`gnss_lib_py` was originally developed in Python 3.8.9 in
 Ubuntu 20/22 and Ubuntu 20 for WSL2.
 
+Use on Google Colab
+-------------------
+
+|colab|
+
+.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/drive/1DYfuiM5ipz0B-lgjKYcL1Si-V4jNBEac?usp=sharing
+
+We provide support to run :code:`gnss_lib_py` on Google Colab. To run on
+Google Colab, use the following command to install :code:`gnss_lib_py`:
+
+.. code-block:: bash
+
+   %pip install gnss-lib-py --quiet --progress-bar off
+
+To include :code:`gnss_lib_py` in the Google Colab environment, use the following
+command
+
+.. code-block:: python
+
+   import gnss_lib_py as glp
+
+To use :code:`gnss_lib_py` from a specific branch, use the following code block
+to clone :code:`gnss_lib_py`, checkout the desired branch, and install:
+
+.. code-block:: bash
+
+   import os
+   os.makedirs("/content/lib", exist_ok=True)
+   %cd /content/lib
+   !pip install --upgrade pip --quiet --progress-bar off
+   !git clone https://github.com/Stanford-NavLab/gnss_lib_py.git --quiet
+   %cd gnss_lib_py
+   !git checkout desired-branch-name-here CHANGE TO DESIRED BRANCH
+   !git pull
+   !pip install -e . --quiet --progress-bar off
+
 Standard Installation
 ---------------------
 

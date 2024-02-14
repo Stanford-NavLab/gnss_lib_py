@@ -30,7 +30,7 @@ measurements into state estimates and visualization tools for measurements
 and state estimates.
 The modularity of :code:`gnss_lib_py` is made possibly by the unifying
 :code:`NavData` class, with accompanying standard nomenclature, which can be
-found in the :ref:`reference page<referece>`.
+found in the :ref:`reference page<reference>`.
 The standard nomenclature ensures cross compatibility between different
 datasets and algorithms.
 
@@ -96,7 +96,7 @@ In the directory organization above:
       * Calculating pseudorange residuals
       * Fault detection and exclusion
 
-   * The `navdata` directory defines the `NavData` class, its methods, and
+  * The `navdata` directory defines the `NavData` class, its methods, and
     functions that operate on `NavData` instances, like `sort`, `concat`,
     and others.
 
