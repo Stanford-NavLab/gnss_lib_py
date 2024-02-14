@@ -64,69 +64,6 @@ def fixture_local_reference(local_lla):
     local_frame = LocalCoord.from_geodetic(local_lla)
     return local_frame
 
-
-@pytest.fixture(name="root_path_2022")
-def fixture_root_path_2022():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2022')
-    return root_path
-
-
-@pytest.fixture(name="derived_2022_path")
-def fixture_derived_2022_path(root_path_2022):
-    """Filepath of Android Derived measurements
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived 2022 measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [4]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
-    return derived_path
-
-@pytest.fixture(name="derived_2022")
-def fixture_load_derived_2022(derived_2022_path):
-    """Load instance of AndroidDerived2021
-
-    Parameters
-    ----------
-    derived_path : pytest.fixture
-    String with location of Android derived measurement file
-
-    Returns
-    -------
-    derived : AndroidDerived2022
-    Instance of AndroidDerived2022 for testing
-    """
-    derived = AndroidDerived2022(derived_2022_path)
-    return derived
-
 @pytest.mark.parametrize("lla, exp_ecef",
                         [(np.array([[37.427112], [-122.1764146], [16]]),
                           np.array([[-2700628], [-4292443], [3855152]])),
@@ -468,11 +405,11 @@ def test_wrap_0_to_2pi():
 def fixture_simple_sat_scenario():
     """
     A simple set of satellites for DOP calculation.
-    
+
     """
     # Create a simple NavData instance
     navdata = NavData()
-    
+
     # Add a few satellites
     navdata['gps_millis'] = np.array([0, 0, 0, 0, 0], dtype=int)
     navdata['el_sv_deg'] = np.array([0, 0, 45, 45, 90], dtype=float)
@@ -485,7 +422,7 @@ def fixture_simple_sat_scenario():
 def fixture_simple_sat_expected_enu_unit_vectors():
     """
     The expected ENU unit vectors for the simple satellite scenario.
-    
+
     """
     # Expected ENU unit vectors
     divsqrt2 = 1 / np.sqrt(2)
@@ -494,12 +431,12 @@ def fixture_simple_sat_expected_enu_unit_vectors():
                                           [0, -divsqrt2, divsqrt2],
                                           [-divsqrt2, 0, divsqrt2],
                                           [0, 0, 1]])
-    
+
     return expected_enu_unit_vectors
 
 @pytest.mark.parametrize('navdata, expected_los_vectors',
                     [
-                        (lazy_fixture('simple_sat_scenario'), 
+                        (lazy_fixture('simple_sat_scenario'),
                          lazy_fixture('simple_sat_expected_enu_unit_vectors'))
                     ])
 def test_el_az_to_enu_unit_vector(navdata, expected_los_vectors):
@@ -528,6 +465,5 @@ def test_el_az_to_enu_unit_vector(navdata, expected_los_vectors):
 
     # Check the ENU unit vectors are normalized
     np.testing.assert_array_almost_equal(
-        np.linalg.norm(enu_unit_vectors, axis=1), 
+        np.linalg.norm(enu_unit_vectors, axis=1),
             np.ones(expected_los_vectors.shape[0]))
-

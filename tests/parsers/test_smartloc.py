@@ -17,23 +17,6 @@ from gnss_lib_py.parsers.smartloc import SmartLocRaw, remove_nlos, \
                                         calculate_gt_ecef, calculate_gt_vel
 
 
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
-    return root_path
-
-
 @pytest.fixture(name="raw_path")
 def fixture_raw_path(root_path):
     """Filepath of TU Chemnitz Raw measurements
