@@ -4,17 +4,33 @@ Tutorials
 =========
 
 
-This library is meant to be used to easily interact with standard
-GNSS datasets and measurement types to run standard baseline algorithms.
+The goal of this library is to easily interact with standard GNSS
+datasets and file types and run baseline algorithms on measurements
+in these datasets/data types.
 
-The tutorials below show you how to interact with our standard
-:code:`NavData` class and how to run standard baselines all with only a
-few lines of code.
+The :code:`gnss_lib_py` library is divided into submodles, as
+described :ref:`here<organization>` and the tutorials are similarly
+organized.
+
+These tutorials are in interactive Jupyter notebooks and have been rendered
+as part of the documentation.
+You can run the code yourself by running the notebooks in the 'tutorials'
+directory :ref:`here<https://github.com/Stanford-NavLab/gnss_lib_py/tree/main/notebooks/tutorials>`.
+The notebooks can also be run in Google Colab without downloading the
+repository by selecting the 'Open in Colab' option at the top of each
+notebook.
+
+The tutorials below show you how to load datasets, interact with our
+standard :Code:`NavData` class, run baseline algorithms, generate metrics
+for the resultant estimates, and visualize results and data.
+
+All of this can be accomplished with a few lines of code and modularly.
+
 
 NavData Tutorials
 -----------------
 
-These tutorials show how to interact with our standard :code:`NavData`
+These tutorials show how to initialize and use our standard :code:`NavData`
 class and its corresponding operations.
 
 .. toctree::
@@ -27,8 +43,8 @@ class and its corresponding operations.
 Parser Tutorials
 ----------------
 
-These tutorials explain details about existing parsers and how to create
-a new parser if necessary.
+These tutorials explain existing parsers and how to create a new parser
+if necessary.
 
 .. toctree::
    :maxdepth: 2
@@ -46,7 +62,8 @@ a new parser if necessary.
 Algorithm Tutorials
 -------------------
 
-These tutorials demonstrate existing algorithms implemented in ``gnss_lib_py``.
+These tutorials demonstrate existing algorithms for state estimation
+and fault detection and estimation.
 
 .. toctree::
    :maxdepth: 2
@@ -60,8 +77,8 @@ These tutorials demonstrate existing algorithms implemented in ``gnss_lib_py``.
 Utility Tutorials
 -----------------
 
-These tutorials illustrate a few of the most common utility functions
-available in the :code:`utils` directory.
+These tutorials illustrate some of the utility functions available in
+the :code:`utils` directory.
 
 .. toctree::
    :maxdepth: 2
@@ -78,7 +95,7 @@ available in the :code:`utils` directory.
 Visualization Tutorials
 -----------------------
 
-These tutorials illustrate a few of the most common plotting functions
+These tutorials illustrate most commonly used plotting functions
 available in the :code:`visualizations` directory.
 
 .. toctree::
