@@ -204,11 +204,11 @@ class RinexNav(NavData):
         else:
             data = gr.load(rinex_path,
                                  verbose=self.verbose).to_dataframe()
+        data.dropna(how='all', inplace=True)
+        data.reset_index(inplace=True)
         data_header = gr.rinexheader(rinex_path)
         leap_seconds = self.load_leapseconds(data_header)
         data['leap_seconds'] = leap_seconds
-        data.dropna(how='all', inplace=True)
-        data.reset_index(inplace=True)
         data['source'] = rinex_path
         data['t_oc'] = pd.to_numeric(data['time'] - consts.GPS_EPOCH_0.replace(tzinfo=None))
         data['t_oc']  = 1e-9 * data['t_oc'] - consts.WEEKSEC * np.floor(1e-9 * data['t_oc'] / consts.WEEKSEC)
