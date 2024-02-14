@@ -85,6 +85,7 @@ the :code:`utils` directory.
 
    utils/tutorials_constants_notebook
    utils/tutorials_coordinates_notebook
+   utils/tutorials_dop_notebook
    utils/tutorials_ephemeris_downloader_notebook
    utils/tutorials_file_operations_notebook
    utils/tutorials_filters_notebook

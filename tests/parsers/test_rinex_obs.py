@@ -14,23 +14,6 @@ from pytest_lazyfixture import lazy_fixture
 from gnss_lib_py.parsers.rinex_obs import RinexObs
 from gnss_lib_py.navdata.operations import loop_time
 
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of NMEA files for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing NMEA files
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/rinex/obs')
-    return root_path
-
-
 @pytest.fixture(name="rinex_mixed_values")
 def fixture_rinex_mixed_values(root_path):
     """Location of Rinex 3 .o file with mixed single and double columns.
@@ -49,7 +32,8 @@ def fixture_rinex_mixed_values(root_path):
     rinex_mixed : gnss_lib_py.parsers.rinex_obs.RinexObs
         Instance of RinexObs class with mixed values.
     """
-    rinex_mixed_path = os.path.join(root_path, 'rinex_obs_mixed_types.20o')
+    rinex_mixed_path = os.path.join(root_path, 'rinex', 'obs',
+                                    'rinex_obs_mixed_types.20o')
     rinex_mixed = RinexObs(rinex_mixed_path)
     return rinex_mixed
 
@@ -71,7 +55,7 @@ def fixture_rinex_single_values(root_path):
     rinex_single : gnss_lib_py.parsers.rinex_obs.RinexObs
         Instance of RinexObs class with single values.
     """
-    rinex_single_path = os.path.join(root_path,
+    rinex_single_path = os.path.join(root_path, 'rinex', 'obs',
                                 'rinex_obs_single_type_only.22o')
     rinex_single = RinexObs(rinex_single_path)
     return rinex_single
@@ -249,7 +233,7 @@ def test_z_tracking(root_path):
         Folder location containing all Rinex 3 .o files for unit tests.
 
     """
-    rinex_path = os.path.join(root_path,
+    rinex_path = os.path.join(root_path, 'rinex', 'obs',
                               'z_tracking.rnx')
     rinex_navdata = RinexObs(rinex_path)
 
