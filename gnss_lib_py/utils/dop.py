@@ -277,15 +277,33 @@ def parse_dop(dop_matrix):
 
     dop = {}
     dop["dop_matrix"] = dop_matrix
-    dop["GDOP"] = np.sqrt(np.trace(dop_matrix))
-    dop["HDOP"] = np.sqrt(dop_matrix[0, 0] + dop_matrix[1, 1])
-    dop["VDOP"] = np.sqrt(dop_matrix[2, 2])
-    dop["PDOP"] = np.sqrt(dop_matrix[0, 0] + \
-                            dop_matrix[1, 1] + \
-                            dop_matrix[2, 2])
-    dop["TDOP"] = np.sqrt(dop_matrix[3, 3])
+
+    dop["GDOP"] = _safe_sqrt(np.trace(dop_matrix))
+    dop["HDOP"] = _safe_sqrt(dop_matrix[0, 0] + dop_matrix[1, 1])
+    dop["VDOP"] = _safe_sqrt(dop_matrix[2, 2])
+    dop["PDOP"] = _safe_sqrt(dop_matrix[0, 0] + \
+                             dop_matrix[1, 1] + \
+                             dop_matrix[2, 2])
+    dop["TDOP"] = _safe_sqrt(dop_matrix[3, 3])
 
     return dop
+
+
+def _safe_sqrt(x):
+    """
+    Safe square root for DOP calculations.
+
+    Parameters
+    ----------
+    x : float
+        Value to take the square root of.
+
+    Returns
+    -------
+    y : float
+        Square root of x, or NaN if x is negative.
+    """
+    return np.sqrt(x) if x >= 0 else np.nan
 
 
 def calculate_dop(derived):
