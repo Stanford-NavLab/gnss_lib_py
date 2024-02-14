@@ -15,7 +15,7 @@ organized.
 These tutorials are in interactive Jupyter notebooks and have been rendered
 as part of the documentation.
 You can run the code yourself by running the notebooks in the 'tutorials'
-directory :ref:`here<https://github.com/Stanford-NavLab/gnss_lib_py/tree/main/notebooks/tutorials>`.
+directory `here <https://github.com/Stanford-NavLab/gnss_lib_py/tree/main/notebooks/tutorials>`.
 The notebooks can also be run in Google Colab without downloading the
 repository by selecting the 'Open in Colab' option at the top of each
 notebook.
