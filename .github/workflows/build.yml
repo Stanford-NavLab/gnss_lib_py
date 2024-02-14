@@ -66,7 +66,7 @@ jobs:
     - name: Test with pytest
       run: |
         source $VENV
-        pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+        poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/navdata --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov=gnss_lib_py/visualizations --cov-report=xml
     - name: Upload coverage report to code-cov
       uses: codecov/codecov-action@v3
       with:

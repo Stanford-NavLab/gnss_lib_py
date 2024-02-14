@@ -21,21 +21,6 @@ SV_KEYS = ['x_sv_m', 'y_sv_m', 'z_sv_m', \
            'vx_sv_mps','vy_sv_mps','vz_sv_mps', \
            'b_sv_m', 'b_dot_sv_mps']
 
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/')
-    return root_path
 
 @pytest.fixture(name="sp3_path")
 def fixture_sp3_path(root_path):
