@@ -290,8 +290,10 @@ documentation below.
      :maxdepth: 2
 
      algorithms/modules
+     navdata/modules
      parsers/modules
      utils/modules
+     visualizations/modules
 
 Testing References
 --------------------------------
@@ -302,8 +304,10 @@ documentation below.
      :maxdepth: 2
 
      test_algorithms/modules
+     test_navdata/modules
      test_parsers/modules
      test_utils/modules
+     test_visualizations/modules
 
 
 Additional Indices

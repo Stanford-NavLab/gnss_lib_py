@@ -21,7 +21,7 @@ from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
 
 @pytest.mark.parametrize('navdata',[
                                     # lazy_fixture('derived_2022'),
-                                    lazy_fixture('derived'),
+                                    lazy_fixture('derived_2021'),
                                     ])
 def test_plot_skyplot(navdata, state_estimate):
     """Test for plotting skyplot.

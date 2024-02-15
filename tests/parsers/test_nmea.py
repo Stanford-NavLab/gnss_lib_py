@@ -16,23 +16,6 @@ from gnss_lib_py.parsers.nmea import Nmea
 
 # pylint: disable=protected-access
 
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of NMEA files for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing NMEA files
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/nmea')
-    return root_path
-
-
 @pytest.fixture(name="nmea_correct_checksum")
 def fixture_nmea_file_w_correct_checksum(root_path):
     """Location of NMEA file with correct checksum values.
@@ -50,7 +33,7 @@ def fixture_nmea_file_w_correct_checksum(root_path):
     nmea_checksum : string
         Location of NMEA file with correct checksums
     """
-    nmea_checksum = os.path.join(root_path, 'nmea_w_correct_checksum.nmea')
+    nmea_checksum = os.path.join(root_path, 'nmea', 'nmea_w_correct_checksum.nmea')
     return nmea_checksum
 
 @pytest.fixture(name="nmea_wrong_checksum")
@@ -71,7 +54,7 @@ def fixture_nmea_file_w_wrong_checksum(root_path):
     nmea_wrong_checksum : string
         Location of NMEA file with wrong checksums
     """
-    nmea_wrong_checksum = os.path.join(root_path, 'nmea_w_wrong_checksum.nmea')
+    nmea_wrong_checksum = os.path.join(root_path, 'nmea', 'nmea_w_wrong_checksum.nmea')
     return nmea_wrong_checksum
 
 
@@ -92,7 +75,7 @@ def fixture_nmea_file_no_checksum(root_path):
     nmea_no_checksum : string
         Location of NMEA file with correct checksums
     """
-    nmea_no_checksum = os.path.join(root_path, 'nmea_no_checksum.nmea')
+    nmea_no_checksum = os.path.join(root_path, 'nmea', 'nmea_no_checksum.nmea')
     return nmea_no_checksum
 
 
@@ -149,7 +132,7 @@ def test_nmea_loading(nmea_file, check, row_name, exp_value, eq_decimal):
     eq_decimal : int
         Decimal passed into assert_almost_equal after which isn't
         checked for equivalency.
-    
+
     """
     # Testing base version of loading with all default parameters
     nmea_navdata = Nmea(nmea_file, check=check)

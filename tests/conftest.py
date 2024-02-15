@@ -1,17 +1,19 @@
-"""Common fixtures required to run tests for GNSS SV state calculation
-and measurement correction methods.
+"""Common fixtures for all tests.
 
 """
 
-__authors__ = "Ashwin Kanhere"
-__date__ = "18 Jan 2023"
+__authors__ = "A. Kanhere, D. Knowles"
+__date__ = "30 Apr 2022"
 
 
 import os
 import pytest
 import numpy as np
+import pandas as pd
 
 from gnss_lib_py.navdata.navdata import NavData
+from gnss_lib_py.algorithms.snapshot import solve_wls
+from gnss_lib_py.parsers.google_decimeter import AndroidDerived2021, AndroidGroundTruth2021
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022, AndroidGroundTruth2022
 from gnss_lib_py.parsers.rinex_nav import get_time_cropped_rinex
 from gnss_lib_py.navdata.operations import loop_time, concat
@@ -49,7 +51,7 @@ def pytest_collection_modifyitems(items):
 
 @pytest.fixture(name="root_path")
 def fixture_root_path():
-    """Location of Android Derived 2022 measurements for unit test
+    """Location of unit test directory.
 
     Returns
     -------
@@ -58,38 +60,18 @@ def fixture_root_path():
     """
     root_path = os.path.dirname(
                 os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
+                os.path.realpath(__file__)))
     root_path = os.path.join(root_path, 'data/unit_test')
     return root_path
 
-
-@pytest.fixture(name="android_root_path")
-def fixture_android_root_path(root_path):
-    """Location of Android Derived 2022 measurements for unit test
-
-    Parameters
-    -------
-    root_path : string
-        Folder location of unit test measurements
-
-    Returns
-    -------
-    android_root_path : string
-        Folder location containing Android Derived 2022 measurements
-    """
-    android_root_path = os.path.join(root_path, 'google_decimeter_2022')
-    return android_root_path
-
-
 @pytest.fixture(name="derived_path")
-def fixture_derived_path(android_root_path):
+def fixture_derived_path(root_path):
     """Filepath of Android Derived 2022 measurements
 
     Parameters
     ----------
     root_path : string
-        Path of testing dataset root path
+        Folder location of unit test measurements
 
     Returns
     -------
@@ -110,22 +92,23 @@ def fixture_derived_path(android_root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    derived_path = os.path.join(android_root_path, 'device_gnss.csv')
+    derived_path = os.path.join(root_path, 'google_decimeter_2022',
+                                'device_gnss.csv')
     return derived_path
 
 
-@pytest.fixture(name="gt_path")
-def fixture_gt_path(android_root_path):
+@pytest.fixture(name="gt_2022_path")
+def fixture_gt_2022_path(root_path):
     """Filepath of Android Derived 2022 ground truth measurements
 
     Parameters
     ----------
-    android_root_path : string
-        Folder location containing Android Derived 2022 measurements
+    root_path : string
+        Folder location of unit test measurements
 
     Returns
     -------
-    gt_path : string
+    gt_2022_path : string
         Location for the ground truth of the test Android derived measurements.
 
     Notes
@@ -142,8 +125,9 @@ def fixture_gt_path(android_root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    gt_path = os.path.join(android_root_path, 'ground_truth.csv')
-    return gt_path
+    gt_2022_path = os.path.join(root_path, 'google_decimeter_2022',
+                            'ground_truth.csv')
+    return gt_2022_path
 
 
 @pytest.fixture(name="ephemeris_path")
@@ -162,8 +146,6 @@ def fixture_ephemeris_path(root_path):
     """
     ephemeris_path = os.path.join(root_path)
     return ephemeris_path
-
-
 
 @pytest.fixture(name="android_derived")
 def fixture_derived(derived_path):
@@ -252,12 +234,12 @@ def fixture_android_state(android_derived):
 
 
 @pytest.fixture(name="android_gt")
-def fixture_gt(gt_path):
+def fixture_gt(gt_2022_path):
     """Path to ground truth file for Android Derived measurements.
 
     Parameters
     ----------
-    gt_path : string
+    gt_2022_path : string
         Path where ground truth file is stored.
 
     Returns
@@ -265,7 +247,7 @@ def fixture_gt(gt_path):
     android_gt : gnss_lib_py.parsers.google_decimeter.AndroidGroundTruth2022
         NavData containing ground truth for Android measurements.
     """
-    android_gt = AndroidGroundTruth2022(gt_path)
+    android_gt = AndroidGroundTruth2022(gt_2022_path)
     return android_gt
 
 
@@ -457,3 +439,364 @@ def fixture_clk_path(root_path):
     """
     clk_path = os.path.join(root_path, 'clk/grg21553.clk')
     return clk_path
+
+def fixture_csv_path(csv_filepath):
+    """Location of measurements for unit test
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+    """
+    root_path = os.path.dirname(
+                os.path.dirname(
+                os.path.realpath(__file__)))
+    root_path = os.path.join(root_path, 'data/unit_test/navdata')
+
+    csv_path = os.path.join(root_path, csv_filepath)
+
+    return csv_path
+
+@pytest.fixture(name="csv_simple")
+def fixture_csv_simple():
+    """csv with simple format.
+
+    """
+    return fixture_csv_path("navdata_test_simple.csv")
+
+@pytest.fixture(name="csv_headless")
+def fixture_csv_headless():
+    """csv without column names.
+
+    """
+    return fixture_csv_path("navdata_test_headless.csv")
+
+@pytest.fixture(name="csv_missing")
+def fixture_csv_missing():
+    """csv with missing entries.
+
+    """
+    return fixture_csv_path("navdata_test_missing.csv")
+
+@pytest.fixture(name="csv_mixed")
+def fixture_csv_mixed():
+    """csv with mixed data types.
+
+    """
+    return fixture_csv_path("navdata_test_mixed.csv")
+
+@pytest.fixture(name="csv_inf")
+def fixture_csv_inf():
+    """csv with infinity values in numeric columns.
+
+    """
+    return fixture_csv_path("navdata_test_inf.csv")
+
+@pytest.fixture(name="csv_nan")
+def fixture_csv_nan():
+    """csv with NaN values in columns.
+
+    """
+    return fixture_csv_path("navdata_test_nan.csv")
+
+@pytest.fixture(name="csv_int_first")
+def fixture_csv_int_first():
+    """csv where first column are integers.
+
+    """
+    return fixture_csv_path("navdata_test_int_first.csv")
+
+@pytest.fixture(name="csv_only_header")
+def fixture_csv_only_header():
+    """csv where there's no data, only columns.
+
+    """
+    return fixture_csv_path("navdata_only_header.csv")
+
+@pytest.fixture(name="csv_dtypes")
+def fixture_csv_dtypes():
+    """csv made up of different data types.
+
+    """
+    return fixture_csv_path("navdata_test_dtypes.csv")
+
+def load_test_dataframe(csv_filepath, header="infer"):
+    """Create dataframe test fixture.
+
+    """
+
+    data = pd.read_csv(csv_filepath, header=header)
+
+    return data
+
+@pytest.fixture(name='df_simple')
+def fixture_df_simple(csv_simple):
+    """df with simple format.
+
+    """
+    return load_test_dataframe(csv_simple)
+
+@pytest.fixture(name='df_headless')
+def fixture_df_headless(csv_headless):
+    """df without column names.
+
+    """
+    return load_test_dataframe(csv_headless,None)
+
+@pytest.fixture(name='df_missing')
+def fixture_df_missing(csv_missing):
+    """df with missing entries.
+
+    """
+    return load_test_dataframe(csv_missing)
+
+@pytest.fixture(name='df_mixed')
+def fixture_df_mixed(csv_mixed):
+    """df with mixed data types.
+
+    """
+    return load_test_dataframe(csv_mixed)
+
+@pytest.fixture(name='df_inf')
+def fixture_df_inf(csv_inf):
+    """df with infinity values in numeric columns.
+
+    """
+    return load_test_dataframe(csv_inf)
+
+@pytest.fixture(name='df_nan')
+def fixture_df_nan(csv_nan):
+    """df with NaN values in columns.
+
+    """
+    return load_test_dataframe(csv_nan)
+
+@pytest.fixture(name='df_int_first')
+def fixture_df_int_first(csv_int_first):
+    """df where first column are integers.
+
+    """
+    return load_test_dataframe(csv_int_first)
+
+@pytest.fixture(name='df_only_header')
+def fixture_df_only_header(csv_only_header):
+    """df where only headers given and no data.
+
+    """
+    return load_test_dataframe(csv_only_header)
+
+@pytest.fixture(name="data")
+def load_test_navdata(df_simple):
+    """Creates a NavData instance from df_simple.
+
+    """
+    return NavData(pandas_df=df_simple)
+
+@pytest.fixture(name="numpy_array")
+def create_numpy_array():
+    """Create np.ndarray test fixture.
+    """
+    test_array = np.array([[1,2,3,4,5,6],
+                            [0.5,0.6,0.7,0.8,-0.001,-0.3],
+                            [-3.0,-1.2,-100.,-2.7,-30.,-5],
+                            [-543,-234,-986,-123,843,1000],
+                            ])
+    return test_array
+
+@pytest.fixture(name='add_array')
+def fixture_add_array():
+    """Array added as additional timesteps to NavData from np.ndarray
+
+    Returns
+    -------
+    add_array : np.ndarray
+        Array that will be added to NavData
+    """
+    add_array = np.hstack((10*np.ones([4,1]), 11*np.ones([4,1])))
+    return add_array
+
+@pytest.fixture(name='add_df')
+def fixture_add_dataframe():
+    """Pandas DataFrame to be added as additional timesteps to NavData
+
+    Returns
+    -------
+    add_df : pd.DataFrame
+        Dataframe that will be added to NavData
+    """
+    add_data = {'names': np.asarray(['beta', 'alpha'], dtype=object),
+                'integers': np.asarray([-2, 45], dtype=np.int64),
+                'floats': np.asarray([1.4, 1.5869]),
+                'strings': np.asarray(['glonass', 'beidou'], dtype=object)}
+    add_df = pd.DataFrame(data=add_data)
+    return add_df
+
+@pytest.fixture(name="derived_2021")
+def fixture_derived_2021_path(root_path):
+    """Filepath of Android Derived measurements
+
+    Returns
+    -------
+    derived_2021 : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [1]_,
+    particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
+    References
+    ----------
+    .. [1] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'google_decimeter_2021',
+                                'Pixel4_derived.csv')
+
+    derived_2021 = AndroidDerived2021(derived_path)
+    return derived_2021
+
+@pytest.fixture(name="derived_path_xl")
+def fixture_derived_path_xl(root_path):
+    """Filepath of Android Derived measurements
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    derived_path : string
+        Location for the unit_test Android derived measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [6]_,
+    particularly the train/2020-05-14-US-MTV-1/Pixel4XL trace. The
+    dataset was retrieved from
+    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
+
+    References
+    ----------
+    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'google_decimeter_2021',
+                                'Pixel4XL_derived.csv')
+    return derived_path
+
+@pytest.fixture(name="derived_xl")
+def fixture_load_derived_xl(derived_path_xl):
+    """Load instance of AndroidDerived2021
+
+    Parameters
+    ----------
+    derived_path : pytest.fixture
+        String with location of Android derived measurement file
+
+    Returns
+    -------
+    derived_xl : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing
+    """
+    derived_xl = AndroidDerived2021(derived_path_xl,
+                                 remove_timing_outliers=False)
+    return derived_xl
+
+@pytest.fixture(name="derived_2022_path")
+def fixture_derived_2022_path(root_path):
+    """Filepath of Android Derived measurements
+
+    Returns
+    -------
+    root_path : string
+        Folder location containing measurements
+
+    Notes
+    -----
+    Test data is a subset of the Android Raw Measurement Dataset [4]_,
+    from the 2022 Decimeter Challenge. Particularly, the
+    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
+    was retrieved from
+    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
+
+    References
+    ----------
+    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
+        "Android Raw GNSS Measurement Datasets for Precise Positioning."
+        Proceedings of the 33rd International Technical Meeting of the
+        Satellite Division of The Institute of Navigation (ION GNSS+
+        2020). 2020.
+    """
+    derived_path = os.path.join(root_path, 'google_decimeter_2022',
+                                'device_gnss.csv')
+    return derived_path
+
+
+
+@pytest.fixture(name="derived_2022")
+def fixture_load_derived_2022(derived_2022_path):
+    """Load instance of AndroidDerived2022
+
+    Parameters
+    ----------
+    derived_path : pytest.fixture
+    String with location of Android derived measurement file
+
+    Returns
+    -------
+    derived : AndroidDerived2022
+    Instance of AndroidDerived2022 for testing
+    """
+    derived = AndroidDerived2022(derived_2022_path)
+    return derived
+
+
+@pytest.fixture(name="gtruth")
+def fixture_load_gtruth(root_path):
+    """Load instance of AndroidGroundTruth2021
+
+    Parameters
+    ----------
+    root_path : string
+        Path of testing dataset root path
+
+    Returns
+    -------
+    gtruth : AndroidGroundTruth2021
+        Instance of AndroidGroundTruth2021 for testing
+    """
+    gtruth = AndroidGroundTruth2021(os.path.join(root_path,
+                                 'google_decimeter_2021',
+                                 'Pixel4_ground_truth.csv'))
+    return gtruth
+
+@pytest.fixture(name="state_estimate")
+def fixture_solve_wls(derived_2021):
+    """Fixture of WLS state estimate.
+
+    Parameters
+    ----------
+    derived_2021 : AndroidDerived2021
+        Instance of AndroidDerived2021 for testing.
+
+    Returns
+    -------
+    state_estimate : gnss_lib_py.navdata.navdata.NavData
+        Estimated receiver position in ECEF frame in meters and the
+        estimated receiver clock bias also in meters as an instance of
+        the NavData class with shape (4 x # unique timesteps) and
+        the following rows: x_rx_m, y_rx_m, z_rx_m, b_rx_m.
+
+    """
+    state_estimate = solve_wls(derived_2021)
+    return state_estimate
