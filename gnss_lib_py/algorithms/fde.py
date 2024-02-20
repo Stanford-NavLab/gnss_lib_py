@@ -5,6 +5,8 @@
 __authors__ = "D. Knowles"
 __date__ = "11 Jul 2023"
 
+from itertools import combinations
+
 import time
 import numpy as np
 
@@ -259,8 +261,8 @@ def fde_edm(navdata, max_faults=None, threshold=1.0, time_fde=False,
     return navdata
 
 
-def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
-                        verbose=False):
+def fde_greedy_residual(navdata, max_faults, threshold,
+                        time_fde=False, verbose=False):
     """Residual-based fault detection and exclusion.
 
     Implemented based on paper from Blanch et al [2]_.
@@ -463,27 +465,24 @@ def fde_solution_separation(navdata, max_faults, threshold,
         original_indexes = np.delete(original_indexes, nan_idxs)
 
         fault_idxs = []
-        if subset_length > 5:
+        if subset_length > 4:
 
-            test_statistic, fault_idx = _ss_test_statistic(navdata_subset)
+            test_statistic, fault_idx = _ss_test_statistic(navdata_subset,
+                                                           max_faults,
+                                                           verbose)
 
-            # greedy removal if test_statistic above detection threshold
-            while test_statistic > threshold:
-            # stop removing indexes either b/c you need at least four
-            # satellites or if maximum number of faults has been reached
-                if len(navdata_subset) < 5 or (max_faults is not None \
-                                           and len(fault_idxs) >= max_faults):
-                    break
+            # print("ts before:",test_statistic)
+            # removal if test_statistic above detection threshold
+            if test_statistic > threshold:
 
-                navdata_subset.remove(cols=[fault_idx], inplace=True)
-                fault_idxs.append(original_indexes[fault_idx])
-                original_indexes = np.delete(original_indexes, fault_idx)
+                fault_idxs = original_indexes[fault_idx]
 
-                # test statistic
-                test_statistic, fault_idx = _ss_test_statistic(navdata_subset)
-
-                if verbose:
-                    print("test statistic:",test_statistic,"after removing index:",fault_idxs)
+                # navdata_subset.remove(cols=fault_idxs,inplace=True)
+                # test_statistic, fault_idx = _ss_test_statistic(navdata_subset,
+                #                                                max_faults,
+                #                                                verbose)
+                #
+                # print("ts after:",test_statistic)
 
         fault_ss_subset = np.array([0] * subset_length)
         fault_ss_subset[fault_idxs] = 1
@@ -949,17 +948,24 @@ def _ss_normalizer(navdata, receiver_state):
     geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
 
     sigma_squared = np.trace(np.linalg.pinv(geo_matrix.T @ geo_matrix))
-
     return sigma_squared
 
 
-def _ss_test_statistic(navdata):
+def _ss_test_statistic(navdata, max_faults=None, verbose=False,
+                       debug_plot = False):
     """Compute solution separation test statistic
 
     Paramters
     ---------
     navdata : gnss_lib_py.navdata.navdata.NavData
-        this
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
+        well as the time row ``gps_millis`` and the corrected
+        pseudorange ``corr_pr_m``.
+    max_faults : int
+        Maximum number of faults to detect and/or exclude.
+    verbose : bool
+        Prints extra debugging print statements if true.
 
     Returns
     -------
@@ -970,21 +976,58 @@ def _ss_test_statistic(navdata):
 
     """
 
-    # test statistic
+    import matplotlib.pyplot as plt
 
-    receiver_state = solve_wls(navdata)
+    receiver_state = solve_wls(navdata, max_count=20)
+
+    # print(receiver_state)
+    # print("rs:",receiver_state["lon_rx_wls_deg"],
+    #             receiver_state["lat_rx_wls_deg"],
+    #             receiver_state["alt_rx_wls_m"])
+    if debug_plot:
+        fig, ax = plt.subplots(1,1)
+        plt.plot(receiver_state["lon_rx_wls_deg"],
+                 receiver_state["lat_rx_wls_deg"],'ro',
+                 markersize=50)
+        ax.set_aspect('equal')
+
+
     sigma_squared = _ss_normalizer(navdata, receiver_state)
 
+    # print("r:",solve_residuals(navdata, receiver_state, inplace=False)["residuals_m"])
     # print("receiver_state:",receiver_state)
     # print("sigma_squared:",sigma_squared)
 
-    receiver_state_subsets = np.zeros((len(navdata),3))
-    sigma_squared_subsets = np.zeros(len(navdata))
-    for idx in range(len(navdata)):
-        idx_subset = navdata.remove(cols=[idx])
-        receiver_state_idx = solve_wls(idx_subset)
+    fault_limit = len(navdata) - 4 if max_faults is None else min(max_faults,len(navdata)-4)
+    removal_counts = list(range(1,fault_limit+1))
+
+    removal_combos = []
+    for rci in removal_counts:
+        removal_combos += list(combinations(range(len(navdata)),
+                              rci))
+
+    if verbose:
+        # print(removal_combos)
+        print("Testing",len(removal_combos),"possible combinations.")
+
+    receiver_state_subsets = np.zeros((len(removal_combos),3))
+    sigma_squared_subsets = np.zeros(len(removal_combos))
+    for idx, rci in enumerate(removal_combos):
+        idx_subset = navdata.remove(cols=rci)
+        receiver_state_idx = solve_wls(idx_subset, max_count=20)
+        # print(rci,"rs:",receiver_state_idx["lon_rx_wls_deg"],
+        #                 receiver_state_idx["lat_rx_wls_deg"],
+        #                 receiver_state_idx["alt_rx_wls_m"])
+        if debug_plot:
+            plt.plot(receiver_state_idx["lon_rx_wls_deg"],
+                     receiver_state_idx["lat_rx_wls_deg"])
+            plt.annotate(str(rci),(receiver_state_idx["lon_rx_wls_deg"],
+                     receiver_state_idx["lat_rx_wls_deg"]))
+
+        # print(rci,"ri:",solve_residuals(idx_subset, receiver_state_idx,
+                                        # inplace=False)["residuals_m"])
         sigma_squared_subsets[idx] = _ss_normalizer(idx_subset,
-                                  receiver_state_idx)
+                                        receiver_state_idx)
         receiver_state_subsets[idx,:] = receiver_state_idx[["x_rx_wls_m",
                                                             "y_rx_wls_m",
                                                             "z_rx_wls_m",
@@ -1001,15 +1044,23 @@ def _ss_test_statistic(navdata):
     q_i = np.divide(delta_i,sigma_i)
 
     test_statistic = np.max(q_i)
-    fault_idx = np.argmax(q_i)
+    fault_idx = list(removal_combos[np.argmax(q_i)])
+    # fault_idx.sort(reverse=True)
 
-    # print(idx,receiver_state_subsets)
-    # print(idx,sigma_squared_subsets)
-    # print("di:",delta_i)
-    # print("sigmai:",sigma_i)
+    # print("di:",delta_i,delta_i[np.argmax(q_i)])
+    # print("sigmai:",sigma_i,sigma_i[np.argmax(q_i)])
     # # print("sigma diff:",sigma_diff)
-    # print("qi:",q_i)
+    # print("qi:",q_i,q_i[np.argmax(q_i)])
     # print("test_statistic",test_statistic)
     # print("fault_idx:",fault_idx)
+    # print(navdata["fault_gt"])
+    #
+    # truth_idx = removal_combos.index((4,14))
+    # print(removal_combos[truth_idx])
+    # print("di:",delta_i[np.argmax(q_i)],delta_i[truth_idx])
+    # print("sigmai:",sigma_i[np.argmax(q_i)],sigma_i[truth_idx])
+    # # # print("sigma diff:",sigma_diff)
+    # print("qi:",q_i[np.argmax(q_i)],q_i[truth_idx])
+
 
     return test_statistic, fault_idx
