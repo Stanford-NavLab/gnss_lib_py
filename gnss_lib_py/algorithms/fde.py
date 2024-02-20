@@ -1040,7 +1040,7 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
                                              "z_rx_wls_m",
                                              # "b_rx_wls_m",
                                              ]],axis=1)
-    sigma_i = np.sqrt(sigma_squared_subsets + sigma_squared)
+    sigma_i = np.sqrt(sigma_squared_subsets - sigma_squared)
     q_i = np.divide(delta_i,sigma_i)
 
     test_statistic = np.max(q_i)
