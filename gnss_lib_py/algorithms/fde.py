@@ -936,9 +936,8 @@ def _ss_normalizer(navdata, receiver_state):
 
     Returns
     -------
-    sigma_squared : float
-        Variance calculated from the geometry matrix.
-
+    sigma_squared : np.ndarray
+        Variance calculated from the geometry matrix (1,3).
 
     """
 
@@ -947,8 +946,9 @@ def _ss_normalizer(navdata, receiver_state):
                -  navdata[["x_sv_m","y_sv_m","z_sv_m"]]).T
     geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
 
-    sigma_squared = np.trace(np.linalg.pinv(geo_matrix.T @ geo_matrix))
-    return sigma_squared
+    sigma_squareds = np.diag(np.linalg.pinv(geo_matrix.T @ geo_matrix))
+
+    return sigma_squareds
 
 
 def _ss_test_statistic(navdata, max_faults=None, verbose=False,
@@ -978,7 +978,7 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
 
     import matplotlib.pyplot as plt
 
-    receiver_state = solve_wls(navdata, max_count=20)
+    receiver_state = solve_wls(navdata, max_count=1)
 
     # print(receiver_state)
     # print("rs:",receiver_state["lon_rx_wls_deg"],
@@ -992,7 +992,8 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
         ax.set_aspect('equal')
 
 
-    sigma_squared = _ss_normalizer(navdata, receiver_state)
+    sigma_squareds = _ss_normalizer(navdata, receiver_state)
+
 
     # print("r:",solve_residuals(navdata, receiver_state, inplace=False)["residuals_m"])
     # print("receiver_state:",receiver_state)
@@ -1011,10 +1012,10 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
         print("Testing",len(removal_combos),"possible combinations.")
 
     receiver_state_subsets = np.zeros((len(removal_combos),3))
-    sigma_squared_subsets = np.zeros(len(removal_combos))
+    sigma_squared_subsets = np.zeros((len(removal_combos),3))
     for idx, rci in enumerate(removal_combos):
         idx_subset = navdata.remove(cols=rci)
-        receiver_state_idx = solve_wls(idx_subset, max_count=20)
+        receiver_state_idx = solve_wls(idx_subset, max_count=1)
         # print(rci,"rs:",receiver_state_idx["lon_rx_wls_deg"],
         #                 receiver_state_idx["lat_rx_wls_deg"],
         #                 receiver_state_idx["alt_rx_wls_m"])
@@ -1026,7 +1027,7 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
 
         # print(rci,"ri:",solve_residuals(idx_subset, receiver_state_idx,
                                         # inplace=False)["residuals_m"])
-        sigma_squared_subsets[idx] = _ss_normalizer(idx_subset,
+        sigma_squared_subsets[idx,:] = _ss_normalizer(idx_subset,
                                         receiver_state_idx)
         receiver_state_subsets[idx,:] = receiver_state_idx[["x_rx_wls_m",
                                                             "y_rx_wls_m",
@@ -1040,7 +1041,10 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
                                              "z_rx_wls_m",
                                              # "b_rx_wls_m",
                                              ]],axis=1)
-    sigma_i = np.sqrt(sigma_squared_subsets - sigma_squared)
+    sigma_i = np.sqrt(sigma_squared_subsets - sigma_squareds)
+    print("sigma diff:",sigma_squared_subsets - sigma_squareds)
+    print("sigmai:",sigma_i)#,sigma_i[np.argmax(q_i)])
+
     q_i = np.divide(delta_i,sigma_i)
 
     test_statistic = np.max(q_i)
@@ -1048,8 +1052,6 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
     # fault_idx.sort(reverse=True)
 
     # print("di:",delta_i,delta_i[np.argmax(q_i)])
-    # print("sigmai:",sigma_i,sigma_i[np.argmax(q_i)])
-    # # print("sigma diff:",sigma_diff)
     # print("qi:",q_i,q_i[np.argmax(q_i)])
     # print("test_statistic",test_statistic)
     # print("fault_idx:",fault_idx)
