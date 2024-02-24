@@ -79,19 +79,26 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     # check that all necessary rows exist
     measurements.in_rows(["x_sv_m","y_sv_m","z_sv_m","gps_millis"])
 
-    if only_bias:
-        if receiver_state is None:
-            raise RuntimeError("receiver_state needed in WLS " \
-                    + "for only_bias.")
+    if only_bias and receiver_state is None:
+        raise RuntimeError("receiver_state needed in WLS " \
+                + "for only_bias.")
 
-        rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m']
-        rx_idxs = find_wildcard_indexes(receiver_state,
-                                               rx_rows_to_find,
-                                               max_allow=1)
     states = []
     runtime_error_idxs = {}
 
-    position = np.zeros((4,1))
+    if receiver_state is not None:
+        rx_rows_to_find = ['x_rx*_m', 'y_rx*_m', 'z_rx*_m', 'b_rx*_m']
+        rx_idxs = find_wildcard_indexes(receiver_state,
+                                               rx_rows_to_find,
+                                               max_allow=1)
+        position = receiver_state[[rx_idxs["x_rx*_m"][0],
+                                   rx_idxs["y_rx*_m"][0],
+                                   rx_idxs["z_rx*_m"][0],
+                                   rx_idxs["b_rx*_m"][0]]
+                                   ,0].reshape(-1,1)
+    else:
+        position = np.zeros((4,1))
+
     for timestamp, _, measurement_subset in loop_time(measurements,"gps_millis",
                                                       delta_t_decimals=delta_t_decimals):
 
@@ -164,7 +171,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
     return state_estimate
 
 def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
-        only_bias = False, tol = 1e-7, max_count = 20, sv_rx_time=False):
+        only_bias = False, tol = 1e-7, max_count = 20, sv_rx_time=True):
     """Weighted least squares solver for GNSS measurements.
 
     The option for only_bias allows the user to only calculate the clock
@@ -273,7 +280,6 @@ def wls(rx_est_m, pos_sv_m, corr_pr_m, weights = None,
             geometry_matrix = np.ones((num_svs,4))
             geometry_matrix[:,:3] = np.divide(pos_rx_m - pos_sv_m,
                                               gt_r_m.reshape(-1,1))
-
         # assumes the use of corrected pseudoranges with the satellite
         # clock bias already removed
         pr_delta = corr_pr_m - gt_r_m - rx_est_m[3,0]

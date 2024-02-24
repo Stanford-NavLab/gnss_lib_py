@@ -944,9 +944,14 @@ def _ss_normalizer(navdata, receiver_state):
     # geometry matrix
     geo_matrix = (receiver_state[["x_rx_wls_m","y_rx_wls_m","z_rx_wls_m"]].reshape(-1,1) \
                -  navdata[["x_sv_m","y_sv_m","z_sv_m"]]).T
-    geo_matrix /= np.linalg.norm(geo_matrix,axis=0)
+    # print("geo_m:",np.linalg.norm(geo_matrix,axis=1).shape)
+    geo_matrix = np.divide(geo_matrix,
+                           np.linalg.norm(geo_matrix,axis=1).reshape(-1,1))
+    # print(geo_matrix)
+    geo_matrix = np.hstack((geo_matrix,np.ones((geo_matrix.shape[0],1))))
 
     sigma_squareds = np.diag(np.linalg.pinv(geo_matrix.T @ geo_matrix))
+    sigma_squareds = sigma_squareds[:3]
 
     return sigma_squareds
 
@@ -978,7 +983,10 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
 
     import matplotlib.pyplot as plt
 
-    receiver_state = solve_wls(navdata, max_count=1)
+    receiver_state_initialization = solve_wls(navdata, max_count=20)
+
+    receiver_state = solve_wls(navdata, max_count=1,
+                               receiver_state=receiver_state_initialization)
 
     # print(receiver_state)
     # print("rs:",receiver_state["lon_rx_wls_deg"],
@@ -1015,7 +1023,8 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
     sigma_squared_subsets = np.zeros((len(removal_combos),3))
     for idx, rci in enumerate(removal_combos):
         idx_subset = navdata.remove(cols=rci)
-        receiver_state_idx = solve_wls(idx_subset, max_count=1)
+        receiver_state_idx = solve_wls(idx_subset, max_count=1,
+                                        receiver_state=receiver_state_initialization)
         # print(rci,"rs:",receiver_state_idx["lon_rx_wls_deg"],
         #                 receiver_state_idx["lat_rx_wls_deg"],
         #                 receiver_state_idx["alt_rx_wls_m"])
@@ -1042,10 +1051,18 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
                                              # "b_rx_wls_m",
                                              ]],axis=1)
     sigma_i = np.sqrt(sigma_squared_subsets - sigma_squareds)
-    print("sigma diff:",sigma_squared_subsets - sigma_squareds)
-    print("sigmai:",sigma_i)#,sigma_i[np.argmax(q_i)])
+    # print("sigma diff:",sigma_squared_subsets - sigma_squareds)
+    # print("summed:\n",np.sum(sigma_squared_subsets - sigma_squareds,axis=1))
+    # print("sigmai:",sigma_i)#,sigma_i[np.argmax(q_i)])
+
+    # print(delta_i.shape,"\n",delta_i)
+    delta_i = np.tile(delta_i,(3,1)).T
+    # print(delta_i.shape,"\n",delta_i)
 
     q_i = np.divide(delta_i,sigma_i)
+    q_i = np.max(q_i,axis=1)
+    # print("q_i",q_i.shape,"\n",q_i)
+    # print("q_i",q_i.shape,"\n",q_i)
 
     test_statistic = np.max(q_i)
     fault_idx = list(removal_combos[np.argmax(q_i)])
