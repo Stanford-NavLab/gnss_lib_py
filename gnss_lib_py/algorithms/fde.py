@@ -60,7 +60,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
         navdata = fde_greedy_residual(navdata, max_faults=max_faults,
                                         threshold=threshold,verbose=verbose,
                                         **kwargs)
-    if method == "ss":
+    elif method == "ss":
         navdata = fde_solution_separation(navdata, max_faults=max_faults,
                                         threshold=threshold,verbose=verbose,
                                         **kwargs)
@@ -69,7 +69,7 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
                                    threshold=threshold,verbose=verbose,
                                    **kwargs)
     else:
-        raise ValueError("invalid method input for solve_fde()")
+        raise ValueError("invalid method input for solve_fde() of",method)
 
     if remove_outliers:
         navdata = navdata.where("fault_" + method, 0)
