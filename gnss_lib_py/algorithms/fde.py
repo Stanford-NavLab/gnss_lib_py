@@ -9,7 +9,7 @@ from itertools import combinations
 
 import time
 import numpy as np
-
+from scipy.special import erfcinv
 from gnss_lib_py.navdata.operations import loop_time
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.algorithms.residuals import solve_residuals
@@ -389,11 +389,16 @@ def fde_greedy_residual(navdata, max_faults, threshold,
     return navdata
 
 
-def fde_solution_separation(navdata, max_faults, threshold,
+def fde_solution_separation(navdata, max_faults, threshold = None,
                             time_fde=False, verbose=False):
     """Solution separation fault detection and exclusion.
 
     Implemented based on papers [8]_ [9]_.
+
+    Thresholding from [10]_. Uses a uniform distribution for C_{REQ,i}.
+
+    Needs at least six satellite measurements to perform fault detection
+    and exclusion.
 
     Parameters
     ----------
@@ -433,8 +438,25 @@ def fde_solution_separation(navdata, max_faults, threshold,
            navigation, and timing technologies in the 21st century:
            integrated satellite navigation, sensor systems, and civil
            applications 1 (2020): 591-617.
+    .. [10]Joerger, Mathieu, and Boris Pervan. "Solution separation and
+           Chi-Squared ARAIM for fault detection and exclusion." 2014
+           IEEE/ION Position, Location and Navigation Symposium-PLANS
+           2014. IEEE, 2014.
 
     """
+
+    if threshold is None:
+        threshold = {
+                     "beta":0.5,
+                     "Phi" : 0.01,
+                     "Creq" : 2E-6,
+                    }
+    if "beta" not in threshold:
+        threshold["beta"] = 0.5
+    if "Phi" not in threshold:
+        threshold["Phi"] = 10E-5
+    if "Creq" not in threshold:
+        threshold["Creq"] = 2*10E-6
 
     fault_ss = []
     if threshold is None:
@@ -465,24 +487,71 @@ def fde_solution_separation(navdata, max_faults, threshold,
         original_indexes = np.delete(original_indexes, nan_idxs)
 
         fault_idxs = []
-        if subset_length > 4:
+        if subset_length > 5:
 
+            print(len(navdata) - 5)
+            print(max_faults)
+            print(min(max_faults,len(navdata)-5))
+            fault_limit = len(navdata) - 5 if max_faults is None else min(max_faults,len(navdata)-5)
             test_statistic, fault_idx = _ss_test_statistic(navdata_subset,
-                                                           max_faults,
+                                                           fault_limit,
                                                            verbose)
 
-            # print("ts before:",test_statistic)
+            # number of hypotheses
+            num_h = len(test_statistic)
+
+            # probability of null hypothesis (no faults)
+            Ph0 = 1 - num_h*threshold["Phi"]
+
+            # detection threshold from [10]
+            q_value = threshold["beta"]*threshold["Creq"] \
+                    / (2*num_h*Ph0)
+            # check condition that makes Q^{-1} input in the range of [0,1]
+            assert (q_value <= 1 and q_value >= 0)
+            t_detection = _q_function_inverse(q_value)
+
+
             # removal if test_statistic above detection threshold
-            if test_statistic > threshold:
+            possible_fault_choices = []
+            for tdi, test_detect in enumerate(test_statistic):
 
-                fault_idxs = original_indexes[fault_idx]
+                print("tdi:", tdi, "fault idxs:", fault_idx[tdi])
+                if verbose:
+                    print("detection threshold:",t_detection,"statistic:",test_detect)
+                if test_detect > t_detection:
 
-                # navdata_subset.remove(cols=fault_idxs,inplace=True)
-                # test_statistic, fault_idx = _ss_test_statistic(navdata_subset,
-                #                                                max_faults,
-                #                                                verbose)
-                #
-                # print("ts after:",test_statistic)
+                    navdata_exclude = navdata_subset.remove(cols=fault_idx[tdi],
+                                                            inplace=False)
+
+                    # navdata_subset.remove(cols=[fault_idx], inplace=True)
+                    # fault_idxs.append(original_indexes[fault_idx])
+                    # original_indexes = np.delete(original_indexes, fault_idx)
+
+
+                    fault_limit = len(navdata) - 4 if max_faults is None else min(max_faults,len(navdata)-4)
+                    test_exclude, _ = _ss_test_statistic(navdata_exclude,
+                                                                      fault_limit,
+                                                                      verbose)
+
+                    # exclusion threshold from [10]
+                    num_h_ex = len(test_exclude)
+                    alpha = 1./num_h_ex
+                    q_value = alpha*(1.-threshold["beta"])*threshold["Creq"] \
+                            / (2*num_h*threshold["Phi"])
+                    # check condition that makes Q^{-1} input in the range of [0,1]
+                    print("q exclude:",q_value)
+                    print("q1:",alpha*(1. - threshold["beta"])*threshold["Creq"])
+                    print("q2:",threshold["beta"])
+                    assert (q_value <= 1 and q_value >= 0)
+                    t_exclusion = _q_function_inverse(q_value)
+
+                    if verbose:
+                        print("t_exclusion:",t_exclusion,"max statistic:",np.max(test_exclude))
+                    if np.max(test_exclude) < t_exclusion:
+                        possible_fault_choices.append(original_indexes[fault_idx[tdi]])
+                    # print("ts after:",test_statistic)
+
+        print("possible_fault_choices:",possible_fault_choices)
 
         fault_ss_subset = np.array([0] * subset_length)
         fault_ss_subset[fault_idxs] = 1
@@ -580,22 +649,22 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
         print("\nDATASET METRICS")
         print("timesteps:",timesteps)
         print("\nmeasurement counts:",
-              "\nmin:", int(min(measurement_counts)),
+              "\nmin:", int(np.min(measurement_counts)),
               "\nmean:", np.round(np.mean(measurement_counts),3),
               "\nmedian:", np.round(np.median(measurement_counts),3),
-              "\nmax:", int(max(measurement_counts)),
+              "\nmax:", int(np.max(measurement_counts)),
               )
         print("\ntruth fault counts:",
-              "\nmin:", int(min(truth_fault_counts)),
+              "\nmin:", int(np.min(truth_fault_counts)),
               "\nmean:", np.round(np.mean(truth_fault_counts),3),
               "\nmedian:", np.round(np.median(truth_fault_counts),3),
-              "\nmax:", int(max(truth_fault_counts)),
+              "\nmax:", int(np.max(truth_fault_counts)),
               )
         print("\npercentage faulty per timestep as decimal:",
-              "\nmin:", np.round(min(fault_percentages),3),
+              "\nmin:", np.round(np.min(fault_percentages),3),
               "\nmean:", np.round(np.mean(fault_percentages),3),
               "\nmedian:", np.round(np.median(fault_percentages),3),
-              "\nmax:", np.round(max(fault_percentages),3),
+              "\nmax:", np.round(np.max(fault_percentages),3),
               )
 
     # remove_outliers must be false so that faults aren't removed
@@ -664,18 +733,18 @@ def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
 
     metrics = {}
     metrics["dataset_timesteps"] = timesteps
-    metrics["measurement_counts_min"] = int(min(measurement_counts))
+    metrics["measurement_counts_min"] = int(np.min(measurement_counts))
     metrics["measurement_counts_mean"] = np.mean(measurement_counts)
     metrics["measurement_counts_median"] = np.median(measurement_counts)
-    metrics["measurement_counts_max"] = int(max(measurement_counts))
-    metrics["fault_counts_min"] = int(min(truth_fault_counts))
+    metrics["measurement_counts_max"] = int(np.max(measurement_counts))
+    metrics["fault_counts_min"] = int(np.min(truth_fault_counts))
     metrics["fault_counts_mean"] = np.mean(truth_fault_counts)
     metrics["fault_counts_median"] = np.median(truth_fault_counts)
-    metrics["fault_counts_max"] = int(max(truth_fault_counts))
-    metrics["faults_per_timestemp_min"] = min(fault_percentages)
+    metrics["fault_counts_max"] = int(np.max(truth_fault_counts))
+    metrics["faults_per_timestemp_min"] = np.min(fault_percentages)
     metrics["faults_per_timestemp_mean"] = np.mean(fault_percentages)
     metrics["faults_per_timestemp_median"] = np.median(fault_percentages)
-    metrics["faults_per_timestemp_max"] = max(fault_percentages)
+    metrics["faults_per_timestemp_max"] = np.max(fault_percentages)
     metrics["method"] = method
     metrics["total_measurements"] = total
     metrics["true_positives_count"] = true_positive
@@ -956,9 +1025,11 @@ def _ss_normalizer(navdata, receiver_state):
     return sigma_squareds
 
 
-def _ss_test_statistic(navdata, max_faults=None, verbose=False,
+def _ss_test_statistic(navdata, fault_limit=None, verbose=False,
                        debug_plot = False):
     """Compute solution separation test statistic
+
+    Needs at least six satellite measurements.
 
     Paramters
     ---------
@@ -967,7 +1038,7 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
         positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
         well as the time row ``gps_millis`` and the corrected
         pseudorange ``corr_pr_m``.
-    max_faults : int
+    fault_limit : int
         Maximum number of faults to detect and/or exclude.
     verbose : bool
         Prints extra debugging print statements if true.
@@ -1007,7 +1078,6 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
     # print("receiver_state:",receiver_state)
     # print("sigma_squared:",sigma_squared)
 
-    fault_limit = len(navdata) - 4 if max_faults is None else min(max_faults,len(navdata)-4)
     removal_counts = list(range(1,fault_limit+1))
 
     removal_combos = []
@@ -1064,8 +1134,8 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
     # print("q_i",q_i.shape,"\n",q_i)
     # print("q_i",q_i.shape,"\n",q_i)
 
-    test_statistic = np.max(q_i)
-    fault_idx = list(removal_combos[np.argmax(q_i)])
+    # test_statistic = np.max(q_i)
+    # fault_idx = list(removal_combos[np.argmax(q_i)])
     # fault_idx.sort(reverse=True)
 
     # print("di:",delta_i,delta_i[np.argmax(q_i)])
@@ -1081,5 +1151,27 @@ def _ss_test_statistic(navdata, max_faults=None, verbose=False,
     # # # print("sigma diff:",sigma_diff)
     # print("qi:",q_i[np.argmax(q_i)],q_i[truth_idx])
 
+    print("output:",q_i.shape,len(removal_combos))
 
-    return test_statistic, fault_idx
+
+    return q_i, removal_combos
+
+def _q_function_inverse(val):
+    """Inverse of the Q function.
+
+    Implemented from Inverse Q function on wikipedia [11]_.
+
+    Parameters
+    ----------
+    val : float or np.ndarray
+        Must be in the range of [-1,1].
+
+    References
+    ----------
+    ..[11] https://en.wikipedia.org/wiki/Q-function
+
+    """
+
+
+    assert np.min(val) >= -1. and np.max(val) <= 1.
+    return np.sqrt(2)*erfcinv(2*val)
