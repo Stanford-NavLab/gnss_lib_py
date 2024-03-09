@@ -191,7 +191,7 @@ class AndroidDerived2022(NavData):
         if "qzss" in np.unique(self["gnss_id"]):
             qzss_idxs = self.argwhere("gnss_id","qzss")
             self["sv_id",qzss_idxs] = [QZSS_PRN_SVN[i] \
-                        for i in self.where("gnss_id","qzss")["sv_id"]]
+                        for i in np.atleast_1d(self.where("gnss_id","qzss")["sv_id"])]
 
 
     def get_state_estimate(self):
