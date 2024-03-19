@@ -12,11 +12,13 @@ import numpy as np
 from pytest_lazyfixture import lazy_fixture
 
 import gnss_lib_py.utils.constants as consts
+from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
 from gnss_lib_py.utils.coordinates import ecef_to_el_az, add_el_az
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, LocalCoord
 from gnss_lib_py.utils.coordinates import wrap_0_to_2pi
+from gnss_lib_py.utils.coordinates import el_az_to_enu_unit_vector
 from gnss_lib_py.navdata.operations import loop_time
 
 @pytest.fixture(name="local_ecef")
@@ -61,69 +63,6 @@ def fixture_local_reference(local_lla):
     """
     local_frame = LocalCoord.from_geodetic(local_lla)
     return local_frame
-
-
-@pytest.fixture(name="root_path_2022")
-def fixture_root_path_2022():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2022')
-    return root_path
-
-
-@pytest.fixture(name="derived_2022_path")
-def fixture_derived_2022_path(root_path_2022):
-    """Filepath of Android Derived measurements
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived 2022 measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [4]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
-    return derived_path
-
-@pytest.fixture(name="derived_2022")
-def fixture_load_derived_2022(derived_2022_path):
-    """Load instance of AndroidDerived2021
-
-    Parameters
-    ----------
-    derived_path : pytest.fixture
-    String with location of Android derived measurement file
-
-    Returns
-    -------
-    derived : AndroidDerived2022
-    Instance of AndroidDerived2022 for testing
-    """
-    derived = AndroidDerived2022(derived_2022_path)
-    return derived
 
 @pytest.mark.parametrize("lla, exp_ecef",
                         [(np.array([[37.427112], [-122.1764146], [16]]),
@@ -457,3 +396,74 @@ def test_wrap_0_to_2pi():
     angles_out = np.concatenate((np.linspace(np.pi,7*np.pi/4.,4),
                                  np.linspace(0,3*np.pi/4.,4)))
     np.testing.assert_array_almost_equal(wrap_0_to_2pi(angles_in),angles_out)
+
+
+#######################################
+# Unit Vector Tests
+
+@pytest.fixture(name="simple_sat_scenario")
+def fixture_simple_sat_scenario():
+    """
+    A simple set of satellites for DOP calculation.
+
+    """
+    # Create a simple NavData instance
+    navdata = NavData()
+
+    # Add a few satellites
+    navdata['gps_millis'] = np.array([0, 0, 0, 0, 0], dtype=int)
+    navdata['el_sv_deg'] = np.array([0, 0, 45, 45, 90], dtype=float)
+    navdata['az_sv_deg'] = np.array([0, 90, 180, 270, 360], dtype=float)
+
+    return navdata
+
+
+@pytest.fixture(name="simple_sat_expected_enu_unit_vectors")
+def fixture_simple_sat_expected_enu_unit_vectors():
+    """
+    The expected ENU unit vectors for the simple satellite scenario.
+
+    """
+    # Expected ENU unit vectors
+    divsqrt2 = 1 / np.sqrt(2)
+    expected_enu_unit_vectors = np.array([[0, 1, 0],
+                                          [1, 0, 0],
+                                          [0, -divsqrt2, divsqrt2],
+                                          [-divsqrt2, 0, divsqrt2],
+                                          [0, 0, 1]])
+
+    return expected_enu_unit_vectors
+
+@pytest.mark.parametrize('navdata, expected_los_vectors',
+                    [
+                        (lazy_fixture('simple_sat_scenario'),
+                         lazy_fixture('simple_sat_expected_enu_unit_vectors'))
+                    ])
+def test_el_az_to_enu_unit_vector(navdata, expected_los_vectors):
+    """
+    Test the conversion from elevation and azimuth to ENU unit vectors.
+
+    Parameters
+    ----------
+    navdata : NavData
+        The input NavData instance.
+    expected_los_vectors : np.ndarray
+        The expected ENU unit vectors.
+
+    """
+
+    # Construct the ENU unit vectors
+    enu_unit_vectors = el_az_to_enu_unit_vector(navdata['el_sv_deg'],
+                                                navdata['az_sv_deg'])
+
+    # First check the shape
+    assert enu_unit_vectors.shape == expected_los_vectors.shape
+    assert enu_unit_vectors.shape[0] > enu_unit_vectors.shape[1]
+
+    # Check the ENU unit vectors are as expected
+    np.testing.assert_array_almost_equal(enu_unit_vectors, expected_los_vectors)
+
+    # Check the ENU unit vectors are normalized
+    np.testing.assert_array_almost_equal(
+        np.linalg.norm(enu_unit_vectors, axis=1),
+            np.ones(expected_los_vectors.shape[0]))

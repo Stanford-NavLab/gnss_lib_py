@@ -19,24 +19,7 @@ from gnss_lib_py.navdata.operations import loop_time, concat
 
 # pylint: disable=protected-access
 
-@pytest.fixture(name="root_path")
-def fixture_root_path():
-    """Location of measurements for unit test
-
-    Returns
-    -------
-    root_path : string
-        Folder location containing measurements
-    """
-    root_path = os.path.dirname(
-                os.path.dirname(
-                os.path.dirname(
-                os.path.realpath(__file__))))
-    root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2021')
-    return root_path
-
-
-@pytest.fixture(name="derived_path")
+@pytest.fixture(name="derived_path_2021")
 def fixture_derived_path(root_path):
     """Filepath of Android Derived measurements
 
@@ -47,7 +30,7 @@ def fixture_derived_path(root_path):
 
     Returns
     -------
-    derived_path : string
+    derived_path_2021 : string
         Location for the unit_test Android derived measurements
 
     Notes
@@ -65,40 +48,9 @@ def fixture_derived_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    derived_path = os.path.join(root_path, 'Pixel4_derived.csv')
-    return derived_path
-
-@pytest.fixture(name="derived_path_xl")
-def fixture_derived_path_xl(root_path):
-    """Filepath of Android Derived measurements
-
-    Parameters
-    ----------
-    root_path : string
-        Path of testing dataset root path
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [2]_,
-    particularly the train/2020-05-14-US-MTV-1/Pixel4XL trace. The
-    dataset was retrieved from
-    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-
-    References
-    ----------
-    .. [2] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path, 'Pixel4XL_derived.csv')
-    return derived_path
+    derived_path_2021 = os.path.join(root_path, 'google_decimeter_2021',
+                                'Pixel4_derived.csv')
+    return derived_path_2021
 
 
 @pytest.fixture(name="android_raw_path")
@@ -130,17 +82,18 @@ def fixture_raw_path(root_path):
         Satellite Division of The Institute of Navigation (ION GNSS+
         2020). 2020.
     """
-    raw_path = os.path.join(root_path, 'Pixel4_GnssLog.txt')
+    raw_path = os.path.join(root_path, 'google_decimeter_2021',
+                            'Pixel4_GnssLog.txt')
     return raw_path
 
 
 @pytest.fixture(name="pd_df")
-def fixture_pd_df(derived_path):
+def fixture_pd_df(derived_path_2021):
     """Load Android derived measurements into dataframe
 
     Parameters
     ----------
-    derived_path : pytest.fixture
+    derived_path_2021 : pytest.fixture
         String with filepath to derived measurement file
 
     Returns
@@ -148,7 +101,7 @@ def fixture_pd_df(derived_path):
     derived_df : pd.DataFrame
         Dataframe with Android Derived measurements
     """
-    derived_df = pd.read_csv(derived_path)
+    derived_df = pd.read_csv(derived_path_2021)
     return derived_df
 
 
@@ -165,30 +118,12 @@ def fixture_inverse_row_map():
     inverse_row_map = {v : k for k,v in google_decimeter.AndroidDerived2021._row_map().items()}
     return inverse_row_map
 
-
-@pytest.fixture(name="derived")
-def fixture_load_derived(derived_path):
-    """Load instance of AndroidDerived2021
-
-    Parameters
-    ----------
-    derived_path : pytest.fixture
-        String with location of Android derived measurement file
-
-    Returns
-    -------
-    derived : AndroidDerived2021
-        Instance of AndroidDerived2021 for testing
-    """
-    derived = google_decimeter.AndroidDerived2021(derived_path)
-    return derived
-
-def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
+def test_derived_df_equivalence(derived_path_2021, pd_df, derived_row_map):
     """Test if naive dataframe and AndroidDerived2021 contain same data.
 
     Parameters
     ----------
-    derived_path : string
+    derived_path_2021 : string
         Location for the unit_test Android 2021 derived measurements.
     pd_df : pytest.fixture
         pd.DataFrame for testing measurements
@@ -197,7 +132,7 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
 
     """
     # Also tests if strings are being converted back correctly
-    derived = google_decimeter.AndroidDerived2021(derived_path,
+    derived = google_decimeter.AndroidDerived2021(derived_path_2021,
                                remove_timing_outliers=False)
     measure_df = derived.pandas_df()
     measure_df.replace({'gnss_id',"gps"},1,inplace=True)
@@ -236,12 +171,12 @@ def test_derived_df_equivalence(derived_path, pd_df, derived_row_map):
                          ('signal_type', 0,
                           np.asarray([['g1']], dtype=object))]
                         )
-def test_derived_value_check(derived, row_name, index, value):
+def test_derived_value_check(derived_2021, row_name, index, value):
     """Check AndroidDerived2021 entries against known values.
 
     Parameters
     ----------
-    derived : pytest.fixture
+    derived_2021 : pytest.fixture
         Instance of AndroidDerived2021 for testing
     row_name : string
         Row key for test example
@@ -256,50 +191,50 @@ def test_derived_value_check(derived, row_name, index, value):
     # dataset because the first time frame is removed.
     # Hardcoded values have been taken from the corresponding row in the
     # csv file
-    np.testing.assert_equal(derived[row_name, index], value)
+    np.testing.assert_equal(derived_2021[row_name, index], value)
 
 
-def test_get_and_set_num(derived):
+def test_get_and_set_num(derived_2021):
     """Testing __getitem__ and __setitem__ methods for numerical values
 
     Parameters
     ----------
-    derived : pytest.fixture
+    derived_2021 : pytest.fixture
         Instance of AndroidDerived2021 for testing
     """
     key = 'testing123'
-    value = np.zeros(len(derived))
-    derived[key] = value
-    np.testing.assert_equal(derived[key, :], value)
+    value = np.zeros(len(derived_2021))
+    derived_2021[key] = value
+    np.testing.assert_equal(derived_2021[key, :], value)
 
 
-def test_get_and_set_str(derived):
+def test_get_and_set_str(derived_2021):
     """Testing __getitem__ and __setitem__ methods for string values
 
     Parameters
     ----------
-    derived : pytest.fixture
+    derived_2021 : pytest.fixture
         Instance of AndroidDerived2021 for testing
     """
     key = 'testing123_string'
-    value = ['word']*len(derived)
-    derived_size = len(derived)
+    value = ['word']*len(derived_2021)
+    derived_size = len(derived_2021)
     size1 = int(derived_size/2)
     size2 = (derived_size-int(derived_size/2))
     value1 = ['ashwin']*size1
     value2 = ['derek']*size2
     value = np.concatenate((np.asarray(value1, dtype=object),
                             np.asarray(value2, dtype=object)))
-    derived[key] = value
+    derived_2021[key] = value
 
-    np.testing.assert_equal(derived[key, :], value)
+    np.testing.assert_equal(derived_2021[key, :], value)
 
-def test_android_concat(derived, pd_df):
+def test_android_concat(derived_2021, pd_df):
     """Test concat on Android data.
 
     Parameters
     ----------
-    derived : AndroidDerived2021
+    derived_2021 : AndroidDerived2021
         Instance of AndroidDerived2021 for testing
     pd_df : pytest.fixture
         pd.DataFrame for testing measurements
@@ -309,8 +244,8 @@ def test_android_concat(derived, pd_df):
     pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
 
     # extract and combine gps and glonass data
-    gps_data = derived.where("gnss_id","gps")
-    glonass_data = derived.where("gnss_id","glonass")
+    gps_data = derived_2021.where("gnss_id","gps")
+    glonass_data = derived_2021.where("gnss_id","glonass")
     gps_glonass_navdata = concat(gps_data,glonass_data)
     glonass_gps_navdata = concat(glonass_data,gps_data)
 
@@ -331,16 +266,16 @@ def test_android_concat(derived, pd_df):
         np.testing.assert_array_equal(combined_navdata["intersignal_bias_m"],
                                       combined_df["isrbM"])
 
-def test_navdata_type(derived):
+def test_navdata_type(derived_2021):
     """Test that all subclasses inherit from NavData
 
     Parameters
     ----------
-    derived : pytest.fixture
+    derived_2021 : pytest.fixture
         Instance of AndroidDerived2021 for testing
     """
-    assert isinstance(derived, NavData)
-    assert isinstance(derived, google_decimeter.AndroidDerived2021)
+    assert isinstance(derived_2021, NavData)
+    assert isinstance(derived_2021, google_decimeter.AndroidDerived2021)
 
 def test_timestep_parsing(derived_path_xl):
     """Test that the timesteps contain the same satellites.
@@ -371,67 +306,22 @@ def test_timestep_parsing(derived_path_xl):
         assert pd_ids == navdata_ids
 
 
-def test_shape_update(derived):
+def test_shape_update(derived_2021):
     """Test that shape gets updated after adding a row.
 
     Parameters
     ----------
-    derived : pytest.fixture
+    derived_2021 : pytest.fixture
         Instance of AndroidDerived2021 for testing
     """
-    old_shape = derived.shape
-    derived["new_row"] = np.ones((old_shape[1]))
-    new_shape = derived.shape
+    old_shape = derived_2021.shape
+    derived_2021["new_row"] = np.ones((old_shape[1]))
+    new_shape = derived_2021.shape
 
     # should still have the same number of columns (timesteps)
     np.testing.assert_equal(old_shape[1], new_shape[1])
     # should have added one new row
     np.testing.assert_equal(old_shape[0] + 1, new_shape[0])
-
-@pytest.fixture(name="android_gtruth_path")
-def fixture_gtruth_path(root_path):
-    """Filepath of Android Ground Truth data
-
-    Returns
-    -------
-    gtruth_path : string
-        Location for text log file with Android Ground Truth measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Ground Truth Dataset [4]_,
-    particularly the train/2020-05-14-US-MTV-1/Pixel4 trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/c/google-smartphone-decimeter-challenge/data
-
-    References
-    ----------
-    .. [4] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    gtruth_path = os.path.join(root_path, 'Pixel4_ground_truth.csv')
-    return gtruth_path
-
-@pytest.fixture(name="gtruth")
-def fixture_load_gtruth(android_gtruth_path):
-    """Load instance of AndroidGroundTruth2021
-
-    Parameters
-    ----------
-    gtruth_path : pytest.fixture
-        String with location of Android ground truth file
-
-    Returns
-    -------
-    gtruth : AndroidGroundTruth2021
-        Instance of AndroidGroundTruth2021 for testing
-    """
-    gtruth = google_decimeter.AndroidGroundTruth2021(android_gtruth_path)
-
-    return gtruth
 
 def test_android_gtruth(gtruth):
     """Test AndroidGroundTruth initialization
@@ -468,94 +358,6 @@ def fixture_root_path_2022():
                 os.path.realpath(__file__))))
     root_path = os.path.join(root_path, 'data/unit_test/google_decimeter_2022')
     return root_path
-
-
-@pytest.fixture(name="derived_2022_path")
-def fixture_derived_2022_path(root_path_2022):
-    """Filepath of Android Derived measurements
-
-    Parameters
-    ----------
-    root_path_2022 : string
-        Folder location containing 2022 measurements
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android derived 2022 measurements
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [5]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [5] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    derived_path = os.path.join(root_path_2022, 'device_gnss.csv')
-    return derived_path
-
-
-@pytest.fixture(name="gt_2022_path")
-def fixture_gt_2022_path(root_path_2022):
-    """Filepath of Android ground truth estimates
-
-    Parameters
-    ----------
-    root_path_2022 : string
-        Folder location containing 2022 measurements
-
-    Returns
-    -------
-    derived_path : string
-        Location for the unit_test Android ground truth estimates
-
-    Notes
-    -----
-    Test data is a subset of the Android Raw Measurement Dataset [6]_,
-    from the 2022 Decimeter Challenge. Particularly, the
-    train/2021-04-29-MTV-2/SamsungGalaxyS20Ultra trace. The dataset
-    was retrieved from
-    https://www.kaggle.com/competitions/smartphone-decimeter-2022/data
-
-    References
-    ----------
-    .. [6] Fu, Guoyu Michael, Mohammed Khider, and Frank van Diggelen.
-        "Android Raw GNSS Measurement Datasets for Precise Positioning."
-        Proceedings of the 33rd International Technical Meeting of the
-        Satellite Division of The Institute of Navigation (ION GNSS+
-        2020). 2020.
-    """
-    gt_path = os.path.join(root_path_2022, 'ground_truth.csv')
-    return gt_path
-
-@pytest.fixture(name="derived_2022")
-def fixture_derived_2022(derived_2022_path):
-    """Testing that Android Derived 2022 is created without errors.
-
-    Parameters
-    ----------
-    derived_2022_path : string
-        Location for the unit_test Android derived 2022 measurements
-
-    Returns
-    -------
-    derived_2022 : gnss_lib_py.parsers.google_decimeter.AndroidDerived2022
-        Android Derived 2022 Navdata object for testing.
-
-    """
-    derived_2022 = google_decimeter.AndroidDerived2022(derived_2022_path)
-    assert isinstance(derived_2022, NavData)
-    return derived_2022
-
 
 def test_derived_state_estimate_ext(derived_2022):
     """Tests the state_estimate extracted as a separate NavData.
@@ -631,7 +433,7 @@ def test_remove_all_data(derived_path_xl):
 
     assert derived.shape[1] == 0
 
-@pytest.fixture(name="state_estimate")
+@pytest.fixture(name="state_estimate_2022")
 def test_solve_kaggle_baseline(derived_2022):
     """Testing Kaggle baseline solution.
 
@@ -642,34 +444,34 @@ def test_solve_kaggle_baseline(derived_2022):
 
     Returns
     -------
-    state_estimate : gnss_lib_py.navdata.navdata.NavData
+    state_estimate_2022 : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
     """
 
-    state_estimate = google_decimeter.solve_kaggle_baseline(derived_2022)
+    state_estimate_2022 = google_decimeter.solve_kaggle_baseline(derived_2022)
 
-    state_estimate.in_rows(["gps_millis","lat_rx_deg",
+    state_estimate_2022.in_rows(["gps_millis","lat_rx_deg",
                             "lon_rx_deg","alt_rx_m"])
 
-    assert state_estimate.shape[1] == 6
+    assert state_estimate_2022.shape[1] == 6
 
     expected = np.array([1303770943999,1303770944999,1303770945999,
                          1303770946999,1303770947999,1303770948999])
-    np.testing.assert_array_equal(state_estimate["gps_millis"],expected)
+    np.testing.assert_array_equal(state_estimate_2022["gps_millis"],expected)
 
-    return state_estimate
+    return state_estimate_2022
 
-def test_prepare_kaggle_submission(state_estimate):
+def test_prepare_kaggle_submission(state_estimate_2022):
     """Prepare Kaggle baseline solution.
 
     Parameters
     ----------
-    state_estimate : gnss_lib_py.navdata.navdata.NavData
+    state_estimate_2022 : gnss_lib_py.navdata.navdata.NavData
         Baseline state estimate.
 
     """
 
-    output = google_decimeter.prepare_kaggle_submission(state_estimate,"test")
+    output = google_decimeter.prepare_kaggle_submission(state_estimate_2022,"test")
 
     output.in_rows(["tripId","UnixTimeMillis",
                     "LatitudeDegrees","LongitudeDegrees"])
@@ -690,7 +492,7 @@ def test_solve_kaggle_dataset(root_path):
 
     """
 
-    folder_path = os.path.join(root_path,"..","..")
+    folder_path = os.path.join(root_path,"..")
     for solver in [google_decimeter.solve_kaggle_baseline,
                    solve_wls,
                    solve_gnss_ekf,

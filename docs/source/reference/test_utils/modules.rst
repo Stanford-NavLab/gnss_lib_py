@@ -4,8 +4,8 @@ utils
 .. toctree::
    :maxdepth: 4
 
-   conftest
    test_coordinates
+   test_dop
    test_ephemeris_downloader
    test_file_operations
    test_filters
