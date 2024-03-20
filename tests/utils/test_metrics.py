@@ -40,7 +40,7 @@ def fixture_offset():
 def fixture_constant_offset_estimate(ground_truth, offset):
     constant_offset_estimate = ground_truth.copy()
     for row_idx in range(ground_truth.shape[0]):
-        constant_offset_estimate = ground_truth + offset[row_idx]
+        constant_offset_estimate[row_idx] = ground_truth[row_idx] + offset[row_idx]
     return constant_offset_estimate
 
 

@@ -1,7 +1,7 @@
 """Metrics to quantify quality of state estimates or GNSS measurements.
 """
 
-__authors__ = "Ashwin Kanhere, Daniel Neamati"
+__authors__ = "Ashwin Kanhere, Daniel Neamati, D. Knowles"
 __date__ = "24 January, 2024"
 
 
@@ -65,7 +65,7 @@ def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
                                     se_row_dict, gt_row_dict)
         error_row_dict = find_wildcard_indexes(error_values, row_wildcards)
     elif direction == "ned":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
+        assert est_type in ("pos", "vel", "acc"),\
             "NED errors only for position, velocities, and acc"
         error_values, error_row_dict = _get_ned_err(state_estimate_subset,
                                                     ground_truth_subset,
@@ -74,7 +74,7 @@ def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
                                                     ecef_origin,
                                                     est_type)
     elif direction == "enu":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
+        assert est_type in ("pos", "vel", "acc"),\
             "ENU errors only for position, velocities, and acc"
         error_values, error_row_dict = _get_enu_err(state_estimate_subset,
                                                     ground_truth_subset,
@@ -83,18 +83,22 @@ def accuracy_statistics(state_estimate, ground_truth, est_type="pos",
                                                     ecef_origin,
                                                     est_type)
     elif direction == "3d_norm":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
+        assert est_type in ("pos", "vel", "acc"),\
             "3D estimate errors only for position, velocities, and acc"
         error_values = _get_single_err_sample(state_estimate_subset,
                                     ground_truth_subset,
                                     se_row_dict, gt_row_dict, err_type="3d")
         error_row_dict = {'pos_rx*_3d_m': 'pos_rx_err_3d_m'}
     elif direction == "horizontal":
-        assert est_type == "pos" or est_type == "vel" or est_type == "acc",\
+        assert est_type in ("pos", "vel", "acc"),\
             "Horizontal estimate errors only for position, velocities, and acc"
-        error_values = _get_horiz_err(state_estimate_subset,
-                                      ground_truth_subset, est_type)
-        error_row_dict = {'pos_rx*_horiz_m': 'pos_rx_err_horiz_m'}
+        error_values, error_row_dict = _get_horiz_err(state_estimate_subset,
+                                      ground_truth_subset,
+                                      se_row_dict,
+                                      gt_row_dict,
+                                      ecef_origin,
+                                      est_type)
+        # error_row_dict = {'pos_rx*_horiz_m': 'pos_rx_err_horiz_m'}
     elif direction == "along_cross_track":
         assert est_type == "pos", \
             "Along and cross track errors only implemented for position estimates"
@@ -148,7 +152,6 @@ def _new_row_name(wc, name):
     return new_row_name
 
 
-
 def _get_vec_err(state_estimate, ground_truth, se_row_dict=None,
                     gt_row_dict = None):
     """Get error samples between state estimate and ground truth.
@@ -193,7 +196,7 @@ def _get_single_err_sample(state_estimate, ground_truth, se_row_dict,
     error_values = NavData()
     se_rows = [row_name[0] for row_name in se_row_dict.values()]
     gt_rows = [row_name[0] for row_name in gt_row_dict.values()]
-
+    print("here type:",est_type)
     if est_type =="pos":
         row_pf = err_type+"_m"
     elif est_type == "vel":
@@ -206,7 +209,7 @@ def _get_single_err_sample(state_estimate, ground_truth, se_row_dict,
         error_values['gps_millis'] = state_estimate['gps_millis']
         state_estimate_xyz = state_estimate[se_rows]
         ground_truth_xyz = ground_truth[gt_rows]
-        error_values['pos_rx_err_'+row_pf] = np.linalg.norm(state_estimate_xyz
+        error_values[est_type + '_rx_err_'+row_pf] = np.linalg.norm(state_estimate_xyz
                                                     - ground_truth_xyz,
                                                     axis=0)
     else:
@@ -217,7 +220,7 @@ def _get_single_err_sample(state_estimate, ground_truth, se_row_dict,
             # find time index for ground_truth NavData instance
             gt_t_idx = np.argmin(np.abs(ground_truth["gps_millis"] - milli))
             # Compute error samples
-            temp_err_frame['pos_rx_err_'+row_pf] = np.linalg.norm(
+            temp_err_frame[est_type + '_rx_err_'+row_pf] = np.linalg.norm(
                                                     se_frame[se_rows] \
                                                     - ground_truth[gt_rows,
                                                                 gt_t_idx])
@@ -228,26 +231,19 @@ def _get_single_err_sample(state_estimate, ground_truth, se_row_dict,
     return error_values
 
 
-def _get_horiz_err(state_estimate, ground_truth, est_type = "pos"):
-    if est_type == "pos":
-        row_wildcards = ["x_rx*_m", "y_rx*_m"]
-    elif est_type == "vel":
-        row_wildcards = ["vx_rx*_mps", "vy_rx*_mps"]
-    elif est_type == "acc":
-        row_wildcards = ["ax_rx*_mps2", "ay_rx*_mps2"]
-    else:
-        raise ValueError(f"Invalid est_type: {est_type}")
+def _get_horiz_err(state_estimate, ground_truth, se_row_dict,
+                   gt_row_dict, ecef_origin = None, est_type = "pos"):
 
-    se_row_dict = find_wildcard_indexes(state_estimate, row_wildcards, max_allow=1)
-    gt_row_dict = find_wildcard_indexes(ground_truth, row_wildcards, max_allow=1)
-    error_values = _get_single_err_sample(state_estimate, ground_truth,
-                                          se_row_dict, gt_row_dict,
-                                          err_type="horiz")
-    return error_values
-
+    return _get_ned_err(state_estimate, ground_truth,
+                        se_row_dict,
+                        gt_row_dict,
+                        ecef_origin,
+                        est_type,
+                        direction="horizontal")
 
 def _get_ned_err(state_estimate, ground_truth, se_row_dict,
-                 gt_row_dict, ecef_origin = None, est_type = "pos"):
+                 gt_row_dict, ecef_origin = None, est_type = "pos",
+                 direction=None):
 
 
     se_rows = [row_name[0] for row_name in se_row_dict.values()]
@@ -284,29 +280,46 @@ def _get_ned_err(state_estimate, ground_truth, se_row_dict,
                               'ae_rx*_mps2': ['ae_rx_err_mps2'],
                               'ad_rx*_mps2': ['ad_rx_err_mps2']}
 
-    error_values= NavData()
-    error_values['gps_millis'] = state_estimate['gps_millis']
-    if len(state_estimate) == len(ground_truth):
-        # Assume one-to-one correspondance between state estimate and
-        # ground truth
-        for row_num, error_row in enumerate(error_row_dict.values()):
-            error_values[error_row[0]] = state_estimate_ned[row_num, :] \
-                                        - gt_ned[row_num, :]
-    else:
-        # Correspondance needs to be found using time
-        for milli, _, _ in loop_time(state_estimate, "gps_millis"):
-            temp_err_frame = NavData()
-            temp_err_frame['gps_millis'] = milli
-            # find time index for ground_truth NavData instance
-            gt_t_idx = np.argmin(np.abs(ground_truth["gps_millis"] - milli))
-            # Compute error samples
-            for row_num, error_row in enumerate(error_row_dict.values()):
-                temp_err_frame[error_row[0]] = state_estimate_ned[row_num, :] \
-                                            - gt_ned[row_num, gt_t_idx]
-            if len(error_values) == 0:
-                error_values = temp_err_frame
-            else:
-                error_values = concat(error_values, temp_err_frame)
+    state_estimate_ned_navdata = NavData()
+    state_estimate_ned_navdata["gps_millis"] = state_estimate["gps_millis"]
+    for ii, row_name in enumerate(error_row_dict.keys()):
+        state_estimate_ned_navdata[row_name] = state_estimate_ned[ii]
+    gt_ned_navdata = NavData()
+    gt_ned_navdata["gps_millis"] = ground_truth["gps_millis"]
+    for ii, row_name in enumerate(error_row_dict.keys()):
+        gt_ned_navdata[row_name] = gt_ned[ii]
+
+    if direction == "horizontal":
+        se_row_dict = find_wildcard_indexes(state_estimate_ned_navdata,
+                                            list(error_row_dict.keys())[:2], max_allow=1)
+        gt_row_dict = find_wildcard_indexes(gt_ned_navdata,
+                                            list(error_row_dict.keys())[:2], max_allow=1)
+        error_values = _get_single_err_sample(state_estimate_ned_navdata,
+                                              gt_ned_navdata,
+                                              se_row_dict, gt_row_dict,
+                                              err_type="horiz",
+                                              est_type=est_type)
+        # print(error_values)
+        if est_type == "pos":
+            error_row_dict = {'pos_rx*_horiz_m': 'pos_rx_err_horiz_m'}
+        elif est_type == "vel":
+            error_row_dict = {'vel_rx*_horiz_mps': 'vel_rx_err_horiz_mps'}
+        elif est_type == "acc":
+            error_row_dict = {'acc_rx*_horiz_mps2': 'acc_rx_err_horiz_mps2'}
+        else:
+            raise ValueError(f"Invalid est_type: {est_type}")
+
+        return error_values, error_row_dict
+
+    se_row_dict = find_wildcard_indexes(state_estimate_ned_navdata,
+                                        list(error_row_dict.keys()), max_allow=1)
+    gt_row_dict = find_wildcard_indexes(gt_ned_navdata,
+                                        list(error_row_dict.keys()), max_allow=1)
+
+    error_values = _get_vec_err(state_estimate_ned_navdata,
+                                gt_ned_navdata,
+                                se_row_dict, gt_row_dict)
+
     return error_values, error_row_dict
 
 
