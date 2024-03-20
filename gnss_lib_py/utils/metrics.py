@@ -196,7 +196,6 @@ def _get_single_err_sample(state_estimate, ground_truth, se_row_dict,
     error_values = NavData()
     se_rows = [row_name[0] for row_name in se_row_dict.values()]
     gt_rows = [row_name[0] for row_name in gt_row_dict.values()]
-    print("here type:",est_type)
     if est_type =="pos":
         row_pf = err_type+"_m"
     elif est_type == "vel":
@@ -299,7 +298,6 @@ def _get_ned_err(state_estimate, ground_truth, se_row_dict,
                                               se_row_dict, gt_row_dict,
                                               err_type="horiz",
                                               est_type=est_type)
-        # print(error_values)
         if est_type == "pos":
             error_row_dict = {'pos_rx*_horiz_m': 'pos_rx_err_horiz_m'}
         elif est_type == "vel":
