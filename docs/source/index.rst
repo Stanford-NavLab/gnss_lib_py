@@ -168,6 +168,7 @@ this project in your own work please cite either of the following:
       institution = {Stanford University},
       year = {2023 [Online]},
       url = {https://github.com/Stanford-NavLab/gnss_lib_py},
+      doi = {10.33012/2023.19429}
    }
 
 
