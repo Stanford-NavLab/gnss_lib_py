@@ -459,8 +459,6 @@ def fde_solution_separation(navdata, max_faults, threshold = None,
         threshold["Creq"] = 2*10E-6
 
     fault_ss = []
-    if threshold is None:
-        threshold = 3000
 
     if time_fde:
         compute_times = []
