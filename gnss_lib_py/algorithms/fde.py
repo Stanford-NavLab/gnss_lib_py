@@ -61,6 +61,10 @@ def solve_fde(navdata, method="residual", remove_outliers=False,
         navdata = fde_edm(navdata, max_faults=max_faults,
                                    threshold=threshold,verbose=verbose,
                                    **kwargs)
+    elif method == "edm_2021":
+        navdata = fde_edm_2021(navdata, max_faults=max_faults,
+                                   threshold=threshold,verbose=verbose,
+                                   **kwargs)
     else:
         raise ValueError("invalid method input for solve_fde()")
 
@@ -382,6 +386,221 @@ def fde_greedy_residual(navdata, max_faults, threshold, time_fde=False,
         return navdata, timing_info
     return navdata
 
+def fde_edm_2021(navdata, max_faults=None, threshold=1.0, time_fde=False,
+            verbose=False):
+    """Euclidean distance matrix-based fault detection and exclusion.
+
+    See [8]_ for more detailed explanation of algorithm.
+
+    Parameters
+    ----------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        NavData of GNSS measurements which must include the satellite
+        positions: ``x_sv_m``, ``y_sv_m``, ``z_sv_m``, ``b_sv_m`` as
+        well as the time row ``gps_millis`` and the corrected
+        pseudorange ``corr_pr_m``.
+    max_faults : int
+        Maximum number of faults to detect and/or exclude.
+    threshold : float
+        Detection threshold.
+    time_fde : bool
+        If true, will time the fault detection and exclusion steps and
+        return that info.
+    verbose : bool
+        Prints extra debugging print statements if true.
+
+    Returns
+    -------
+    navdata : gnss_lib_py.navdata.navdata.NavData
+        Result includes a new row of ``fault_edm`` where a
+        value of 1 indicates a detected fault and 0 indicates that
+        no fault was detected, and 2 indicates an unknown fault status
+        usually due to lack of necessary columns or information.
+    timing_info : dict
+        If time_fde is true, also returns a dictionary of the compute
+        times in seconds for each iteration.
+
+    References
+    ----------
+    ..  [8] D. Knowles and G. Gao. "Euclidean Distance Matrix-based
+            Rapid Fault Detection and Exclusion." ION GNSS+ 2021.
+
+    """
+
+    fault_edm = []
+
+    if threshold is None:
+        threshold = 0.6
+
+    # number of check indexes
+    if max_faults is None:
+        nci_nominal = 10
+    else:
+        nci_nominal = max_faults + 10
+
+    if time_fde:
+        compute_times = []
+        navdata_timing = []
+
+    for _, _, navdata_subset in loop_time(navdata,'gps_millis'):
+        if time_fde:
+            time_start = time.time()
+
+        nsl = len(navdata_subset)
+        sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        corr_pr_m = navdata_subset["corr_pr_m"]
+
+        # remove NaN indexes
+        nan_idxs = sorted(list(set(np.arange(nsl)[np.isnan(sv_m).any(axis=0)]).union( \
+                               set(np.arange(nsl)[np.isnan(corr_pr_m)]).union( \
+                                  ))))[::-1]
+        navdata_subset.remove(cols=nan_idxs,inplace=True)
+        sv_m = navdata_subset[["x_sv_m","y_sv_m","z_sv_m"]]
+        corr_pr_m = navdata_subset["corr_pr_m"]
+
+        if verbose:
+            print("nan_idxs:",nan_idxs)
+
+        fault_idxs = []
+        orig_idxs = np.arange(len(navdata_subset)+1) # add one for receiver index
+        # print("orig_idxs:",orig_idxs)
+        pre_nan_idxs = np.delete(np.arange(nsl+1), nan_idxs)
+
+        edm = _edm_from_satellites_ranges(sv_m,corr_pr_m)
+
+        detection_statistic = np.inf
+
+        while detection_statistic > threshold:
+
+            # stop removing indexes either b/c you need at least four
+            # satellites or if maximum number of faults has been reached
+            if len(edm) - len(fault_idxs) <= 5 \
+                or (max_faults is not None and len(fault_idxs) == max_faults):
+                break
+
+            edm_detect = np.delete(np.delete(edm,fault_idxs,0),fault_idxs,1)
+
+            n = edm_detect.shape[1]
+
+            # double center EDM to retrive the corresponding Gram matrix
+            center = np.eye(n) - (1./n) * np.ones((n,n))
+            gram = -0.5 * center @ edm_detect @ center
+
+            dims = 3
+            # calculate the singular value decomposition
+            svd_u, svd_s, svd_vt = np.linalg.svd(gram,full_matrices=True)
+
+            detection_statistic = svd_s[dims]*(sum(svd_s[dims:])/float(len(svd_s[dims:])))/svd_s[0]
+
+            if verbose:
+                print("detection statistic:",detection_statistic)
+
+            if detection_statistic < threshold:
+                if verbose:
+                    print("below threshold")
+                break
+
+            ri = None
+
+            u_mins = set(np.argsort(svd_u[:,dims])[:2])
+            u_maxes = set(np.argsort(svd_u[:,dims])[-2:])
+            v_mins = set(np.argsort(svd_vt[dims,:])[:2])
+            v_maxes = set(np.argsort(svd_vt[dims,:])[-2:])
+
+            def test_option(ri_option, edm_detect):
+                # remove option
+                dims = 3
+                D_opt = np.delete(edm_detect.copy(),ri_option,axis=0)
+                D_opt = np.delete(D_opt,ri_option,axis=1)
+
+                # reperform double centering to obtain Gram matrix
+                n_opt = D_opt.shape[0]
+                J_opt = np.eye(n_opt) - (1./n_opt)*np.ones((n_opt,n_opt))
+                G_opt = -0.5*J_opt.dot(D_opt).dot(J_opt)
+
+                # perform singular value decomposition
+                _, S_opt, _ = np.linalg.svd(G_opt)
+
+                # calculate detection test statistic
+                warn_opt = S_opt[dims]*(sum(S_opt[dims:])/float(len(S_opt[dims:])))/S_opt[0]
+
+                return warn_opt
+
+            # get all potential options
+            ri_options = u_mins | v_mins | u_maxes | v_maxes
+            # remove the receiver as a potential fault
+            ri_options = ri_options - set([0])
+            ri_tested = []
+            ri_warns = []
+
+            ui = -1
+            while np.argsort(np.abs(svd_u[:,dims]))[ui] in ri_options:
+                ri_option = np.argsort(np.abs(svd_u[:,dims]))[ui]
+
+                # calculate test statistic after removing index
+                warn_opt = test_option(ri_option, edm_detect)
+
+                # break if test statistic decreased below threshold
+                if warn_opt < threshold:
+                    ri = ri_option
+                    break
+                else:
+                    ri_tested.append(ri_option)
+                    ri_warns.append(warn_opt)
+                ui -= 1
+
+            # continue searching set if didn't find index
+            if ri == None:
+                ri_options_left = list(ri_options - set(ri_tested))
+
+                for ri_option in ri_options_left:
+                    warn_opt = test_option(ri_option, edm_detect)
+
+                    if warn_opt < threshold:
+                        ri = ri_option
+                        break
+                    else:
+                        ri_tested.append(ri_option)
+                        ri_warns.append(warn_opt)
+
+            # if no faults decreased below threshold, then remove the
+            # index corresponding to the lowest test statistic value
+            if ri == None:
+                idx_best = np.argmin(np.array(ri_warns))
+                ri = ri_tested[idx_best]
+
+            # print("removing:",ri,np.delete(orig_idxs,fault_idxs)[ri])
+            fault_idxs += [np.delete(orig_idxs,fault_idxs)[ri]]
+            # print("fault idxs iteration:",fault_idxs)
+
+        # print("new fault indexes:",fault_idxs)
+        if verbose:
+            print("new fault indexes:",fault_idxs)
+
+        # important step! remove 1 since index 0 is the receiver index
+        fault_idxs = [pre_nan_idxs[i-1] for i in fault_idxs]
+
+        fault_edm_subset = np.array([0] * nsl)
+        fault_edm_subset[fault_idxs] = 1
+        fault_edm_subset[nan_idxs] = 2
+        fault_edm += list(fault_edm_subset)
+
+        if time_fde:
+            time_end = time.time()
+            compute_times.append(time_end-time_start)
+            navdata_timing += list([time_end-time_start] * nsl)
+
+
+    navdata["fault_edm_2021"] = fault_edm
+    if verbose:
+        print(navdata["fault_edm_2021"])
+
+    timing_info = {}
+    if time_fde:
+        navdata["compute_time_s"] = navdata_timing
+        timing_info["compute_times"] = compute_times
+        return navdata, timing_info
+    return navdata
 
 def evaluate_fde(navdata, method, fault_truth_row="fault_gt",
                  time_fde=False, verbose=False,
