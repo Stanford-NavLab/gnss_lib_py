@@ -11,8 +11,8 @@ import itertools
 import pytest
 import numpy as np
 import pandas as pd
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 from gnss_lib_py.navdata.navdata import NavData
 
 def test_init_blank():
@@ -563,168 +563,145 @@ def test_rename_mapper_and_rows(df_simple):
     assert data["floats"].dtype == np.float64
     assert data["strings"].dtype == object
 
-
-
-@pytest.fixture(name="df_rows",
-                params=[
-                        lazy_fixture("df_simple")
-                ])
-def return_df_rows(request):
-    """Extract and return rows from the DataFrame for testing
-
-    Parameters
-    ----------
-    pandas_df : pd.DataFrame
-        Dataframe for testing values
-
-    Returns
-    -------
-    names : np.ndarray
-        String entries in 'names' column of the DataFrame
-    integers : np.ndarray
-        Numeric entries in 'integers' column of the DataFrame
-    floats : np.ndarray
-        Numeric entries in 'floats' column of the DataFrame
-    strings : np.ndarray
-        String entries in 'strings' column of the DataFrame
-    """
-    pandas_df = request.param
-    names = np.asarray(pandas_df['names'].values, dtype=object)
-    integers = np.reshape(np.asarray(pandas_df['integers'].values,
-                                     dtype=np.float64), [1, -1])
-    floats = np.reshape(np.asarray(pandas_df['floats'].values,
-                                   dtype=np.float64), [1, -1])
-    strings = np.asarray(pandas_df['strings'].values, dtype=object)
-    return [names, integers, floats, strings]
-
-
 @pytest.fixture(name="integers")
-def fixture_integers(df_rows):
+def fixture_integers(df_simple):
     """Return data corresponding to the integers label from the test data
 
     Parameters
     ----------
-    df_rows : list
-        List of rows from the testing data
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
 
     Returns
     -------
     integers : np.ndarray
         Array of numeric entries in 'integers' label of data
     """
-    _, integers, _, _ = df_rows
+    integers = np.reshape(np.asarray(df_simple['integers'].values,
+                                     dtype=np.float64), [1, -1])
+
     return integers
 
 @pytest.fixture(name="floats")
-def fixture_floats(df_rows):
+def fixture_floats(df_simple):
     """Return data corresponding to the floats label from the test data
 
     Parameters
     ----------
-    df_rows : list
-        List of rows from the testing data
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
 
     Returns
     -------
     floats : np.ndarray
         Array of numeric entries in 'floats' label of data
     """
-    _, _, floats, _ = df_rows
+    floats = np.reshape(np.asarray(df_simple['floats'].values,
+                                   dtype=np.float64), [1, -1])
     return floats
 
 
 @pytest.fixture(name="strings")
-def fixture_strings(df_rows):
+def fixture_strings(df_simple):
     """Return data corresponding to the strings label from the test data
 
     Parameters
     ----------
-    df_rows : list
-        List of rows from the testing data
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
 
     Returns
     -------
     strings : np.ndarray
         Array of string entries in 'strings' label of data
     """
-    _, _, _, strings = df_rows
+    strings = np.asarray(df_simple['strings'].values, dtype=object)
     return strings
 
 
 @pytest.fixture(name="int_flt")
-def fixture_int_flt(df_rows):
+def fixture_int_flt(df_simple):
     """Return data corresponding to the integers and floats.
 
     Labeled from the test data.
 
     Parameters
     ----------
-    df_rows : list
-        List of rows from the testing data
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
 
     Returns
     -------
     int_flt : np.ndarray
         2D array of numeric entries in 'integers' and 'floats' labels of data
     """
-    _, integers, floats, _ = df_rows
+    integers = np.reshape(np.asarray(df_simple['integers'].values,
+                                     dtype=np.float64), [1, -1])
+    floats = np.reshape(np.asarray(df_simple['floats'].values,
+                                   dtype=np.float64), [1, -1])
+
     int_flt = np.vstack((integers, floats))
     return int_flt
 
 
 @pytest.fixture(name="nm_str")
-def fixture_nm_str(df_rows):
+def fixture_nm_str(df_simple):
     """Return data corresponding to the names and strings label from the test data
 
     Parameters
     ----------
-    df_rows : list
-        List of rows from the testing data
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
 
     Returns
     -------
     nm_str : np.ndarray
         2D array of numeric entries in 'names' and 'strings' labels of data
     """
-    names, _, _, strings = df_rows
+    names = np.asarray(df_simple['names'].values, dtype=object)
+    strings = np.asarray(df_simple['strings'].values, dtype=object)
     nm_str = np.vstack((names, strings))
     return nm_str
 
 
 @pytest.fixture(name="str_nm")
-def fixture_str_nm(df_rows):
+def fixture_str_nm(df_simple):
     """Return data corresponding to the strings and names label from the test data
 
     Parameters
     ----------
-    df_rows : list
-        List of rows from the testing data
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
 
     Returns
     -------
     str_nm : np.ndarray
         2D array of numeric entries in 'strings' and 'names' labels of data
     """
-    names, _, _, strings = df_rows
+    names = np.asarray(df_simple['names'].values, dtype=object)
+    strings = np.asarray(df_simple['strings'].values, dtype=object)
     str_nm = np.vstack((strings, names))
     return str_nm
 
 
 @pytest.fixture(name="flt_int_slc")
-def fixture_flt_int_slc(df_rows):
+def fixture_flt_int_slc(df_simple):
     """Return data corresponding to the names and strings label from the test data
 
     Parameters
     ----------
-    df_rows : list
-        List of rows from the testing data
+    df_simple : pd.DataFrame
+        pd.DataFrame to initialize NavData with.
 
     Returns
     -------
     flt_int_slc : np.ndarray
         2D array of some numeric entries in 'integers' and 'floats' labels of data
     """
-    _, integers, floats, _ = df_rows
+    integers = np.reshape(np.asarray(df_simple['integers'].values,
+                                     dtype=np.float64), [1, -1])
+    floats = np.reshape(np.asarray(df_simple['floats'].values,
+                                   dtype=np.float64), [1, -1])
     flt_int_slc = np.vstack((integers, floats))[:, 3:]
     return flt_int_slc
 

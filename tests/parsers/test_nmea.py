@@ -10,8 +10,8 @@ import pathlib
 
 import numpy as np
 import pytest
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 from gnss_lib_py.parsers.nmea import Nmea
 
 # pylint: disable=protected-access

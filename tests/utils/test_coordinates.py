@@ -5,15 +5,12 @@
 __authors__ = "Ashwin Kanhere, Derek Knowles"
 __date__ = "21 Jun 2022"
 
-import os
-
 import pytest
 import numpy as np
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.navdata.navdata import NavData
-from gnss_lib_py.parsers.google_decimeter import AndroidDerived2022
 from gnss_lib_py.utils.coordinates import ecef_to_el_az, add_el_az
 from gnss_lib_py.utils.coordinates import geodetic_to_ecef
 from gnss_lib_py.utils.coordinates import ecef_to_geodetic, LocalCoord

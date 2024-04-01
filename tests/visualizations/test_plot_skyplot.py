@@ -10,8 +10,8 @@ import os
 import pytest
 import numpy as np
 import matplotlib as mpl
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.navdata.operations import find_wildcard_indexes
 from gnss_lib_py.visualizations import style
