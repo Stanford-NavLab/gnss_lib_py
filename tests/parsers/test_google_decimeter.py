@@ -135,9 +135,11 @@ def test_derived_df_equivalence(derived_path_2021, pd_df, derived_row_map):
     derived = google_decimeter.AndroidDerived2021(derived_path_2021,
                                remove_timing_outliers=False)
     measure_df = derived.pandas_df()
-    measure_df.replace({'gnss_id',"gps"},1,inplace=True)
-    measure_df.replace({'gnss_id',"glonass"},3,inplace=True)
-    measure_df.replace({'gnss_id',"galileo"},6,inplace=True)
+    gnss_id_map = {"gps":1,
+                   "glonass":3,
+                   "galileo":6,
+                   }
+    measure_df['gnss_id'] = measure_df['gnss_id'].replace(gnss_id_map)
     signal_map = {"GPS_L1" : "l1",
                   "GPS_L5" : "l5",
                   "GAL_E1" : "e1",
@@ -150,10 +152,13 @@ def test_derived_df_equivalence(derived_path_2021, pd_df, derived_row_map):
                   "BDS_B2A" : "b2a",
                  }
     for s_key, s_value in signal_map.items():
-        measure_df.replace({'signal_type',s_value},s_key,inplace=True)
+        measure_df['signal_type'] = measure_df['signal_type'].replace(s_value,s_key)
     measure_df.rename(columns=derived_row_map, inplace=True)
     measure_df = measure_df.drop(columns='corr_pr_m')
+    derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
+    mapper = dict(zip(derived_timestamps[1:],derived_timestamps[:-1]))
     pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != pd_df.loc[0,'millisSinceGpsEpoch']]
+    pd_df["millisSinceGpsEpoch"] = pd_df["millisSinceGpsEpoch"].replace(mapper)
     pd_df.reset_index(drop=True, inplace=True)
     pd.testing.assert_frame_equal(pd_df.sort_index(axis=1),
                                   measure_df.sort_index(axis=1),
