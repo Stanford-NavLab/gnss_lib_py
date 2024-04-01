@@ -124,7 +124,7 @@ following commands:
 
 .. code-block:: bash
 
-   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+   poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=html
    poetry run coverage report
 
 The total percentage of code covered (bottom right percentage) is the
