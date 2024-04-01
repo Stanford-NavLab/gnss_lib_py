@@ -4,17 +4,33 @@ Tutorials
 =========
 
 
-This library is meant to be used to easily interact with standard
-GNSS datasets and measurement types to run standard baseline algorithms.
+The goal of this library is to easily interact with standard GNSS
+datasets and file types and run baseline algorithms on measurements
+in these datasets/data types.
 
-The tutorials below show you how to interact with our standard
-:code:`NavData` class and how to run standard baselines all with only a
-few lines of code.
+The :code:`gnss_lib_py` library is divided into submodles, as
+described :ref:`here<organization>` and the tutorials are similarly
+organized.
+
+These tutorials are in interactive Jupyter notebooks and have been rendered
+as part of the documentation.
+You can run the code yourself by running the notebooks in the 'tutorials'
+directory `here <https://github.com/Stanford-NavLab/gnss_lib_py/tree/main/notebooks/tutorials>`__.
+The notebooks can also be run in Google Colab without downloading the
+repository by selecting the 'Open in Colab' option at the top of each
+notebook.
+
+The tutorials below show you how to load datasets, interact with our
+standard :Code:`NavData` class, run baseline algorithms, generate metrics
+for the resultant estimates, and visualize results and data.
+
+All of this can be accomplished with a few lines of code and modularly.
+
 
 NavData Tutorials
 -----------------
 
-Sections of this tutorial show how to interact with our standard :code:`NavData`
+These tutorials show how to initialize and use our standard :code:`NavData`
 class and its corresponding operations.
 
 .. toctree::
@@ -23,12 +39,24 @@ class and its corresponding operations.
    navdata/tutorials_navdata_notebook
    navdata/tutorials_operations_notebook
 
+Creating a New Parser
+---------------------
+
+The parsers tutorials also contain a tutorial on how to create a new
+parser that inherits from :code:`NavData` to handle new measurement types
+and/or files.
+
+.. toctree::
+   :maxdepth: 2
+
+   parsers/tutorials_new_parsers_notebook
+
 
 Parser Tutorials
 ----------------
 
-This tutorial explains details about existing parsers and how to create
-a new parser if necessary.
+These tutorials explain existing parsers and how to create a new parser
+if necessary.
 
 .. toctree::
    :maxdepth: 2
@@ -41,13 +69,12 @@ a new parser if necessary.
    parsers/tutorials_rinex_obs_notebook
    parsers/tutorials_smartloc_notebook
    parsers/tutorials_sp3_notebook
-   parsers/tutorials_new_parsers_notebook
 
 Algorithm Tutorials
 -------------------
 
-This tutorial walks through the existing algorithms that you can use
-for baseline position solutions.
+These tutorials demonstrate existing algorithms for state estimation
+and fault detection and estimation.
 
 .. toctree::
    :maxdepth: 2
@@ -61,8 +88,8 @@ for baseline position solutions.
 Utility Tutorials
 -----------------
 
-This tutorial illustrates a few of the most common utility functions
-available in the :code:`utils` directory.
+These tutorials illustrate some of the utility functions available in
+the :code:`utils` directory.
 
 .. toctree::
    :maxdepth: 2
@@ -80,7 +107,7 @@ available in the :code:`utils` directory.
 Visualization Tutorials
 -----------------------
 
-This tutorial illustrates a few of the most common plotting functions
+These tutorials illustrate most commonly used plotting functions
 available in the :code:`visualizations` directory.
 
 .. toctree::

@@ -12,8 +12,8 @@ from datetime import datetime, timezone, timedelta, time
 import pytest
 import requests
 import numpy as np
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 import gnss_lib_py.utils.time_conversions as tc
 import gnss_lib_py.utils.ephemeris_downloader as ed
 # pylint: disable=protected-access

@@ -9,10 +9,9 @@ __date__ = "7 Feb 2024"
 import copy
 
 import pytest
-from pytest_lazyfixture import lazy_fixture
-
 import numpy as np
 
+from conftest import lazy_fixture
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.navdata.operations import loop_time
 

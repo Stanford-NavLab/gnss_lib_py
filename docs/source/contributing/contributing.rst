@@ -16,12 +16,15 @@ In your issue, please include:
     * Your operating system name and version.
     * Any details about your local setup that might be helpful in
       troubleshooting.
-    * A minimal working example to reproduce the bug.
+    * A minimal working example (MWE) to reproduce the bug. An MWE
+      helps us reproduce the bug and troubleshoot the problem.
+      For more details on how to create an MWE, see
+      `this Stack Overflow guide <https://stackoverflow.com/help/minimal-reproducible-example>`.
 
 Feature requests and feedback
 -----------------------------
 
-The best way to   send feedback is to file an issue on
+The best way to any send feedback is to file an issue on
 `GitHub <https://github.com/Stanford-NavLab/gnss_lib_py/issues>`__.
 
 If you are proposing a feature:
@@ -31,8 +34,9 @@ If you are proposing a feature:
     * Keep the scope as narrow as possible, which will make it easier to
       implement.
     * This is a volunteer driven project and most contributions are a
-      result of other research projects. If you implement your requested
-      feature and submit a pull request, we will incorporate it.
+      result of other research projects. We welcome outside implementations
+      of additional features. If you implement your requested feature
+      and submit a pull request, we will incorporate it.
 
 Additional Contributing Pages
 -----------------------------
