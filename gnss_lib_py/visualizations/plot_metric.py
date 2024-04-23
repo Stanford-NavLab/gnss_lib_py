@@ -278,10 +278,8 @@ def _get_new_fig(fig=None):
     if fig is None:
         fig = plt.figure()
         axes = plt.gca()
-    elif len(fig.get_axes()) == 0:
-        axes = plt.gca()
     else:
-        axes = fig.get_axes()[0]
+        axes = plt.gca()
 
     axes.ticklabel_format(useOffset=False)
     fig.autofmt_xdate() # rotate x labels automatically
