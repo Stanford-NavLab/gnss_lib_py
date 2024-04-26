@@ -11,8 +11,10 @@ import matplotlib.pyplot as plt
 from gnss_lib_py.visualizations.style import *
 from gnss_lib_py.navdata.navdata import NavData
 
-def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
-                title=None, save=False, prefix="", fname=None,
+def plot_metric(navdata, *args, groupby=None, avg_y=False,
+                avg_window=None, fill_std=False,
+                xlim=None, ylim=None,
+                fig=None, title=None, save=False, prefix="", fname=None,
                 markeredgecolor="k", markeredgewidth=0.2, **kwargs):
     """Plot specific metric from a row of the NavData class.
 
@@ -95,11 +97,17 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
                 # average y values for each x
                 x_unique = sorted(np.unique(x_data))
                 y_avg = []
+                y_std = []
                 for x_val in x_unique:
                     x_idxs = np.argwhere(x_data==x_val)
                     y_avg.append(np.mean(y_data[x_idxs]))
+                    y_std.append(np.std(y_data[x_idxs]))
                 x_data = x_unique
-                y_data = y_avg
+                if avg_window is None:
+                    y_data = y_avg
+                else:
+                    window_size = np.ones(avg_window)/float(avg_window)
+                    y_data = np.convolve(y_avg,window_size,'same')
                 # change name
                 group = str(group) + "_avg"
             axes.plot(x_data, y_data,
@@ -107,6 +115,11 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
                       markeredgecolor = markeredgecolor,
                       markeredgewidth = markeredgewidth,
                       **kwargs)
+            if fill_std:
+                axes.fill_between(x_data,
+                                  np.array(y_data) - np.array(y_std),
+                                  np.array(y_data) + np.array(y_std),
+                                  alpha=0.5)
     else:
         y_data = np.atleast_1d(navdata[y_metric])
         if x_metric is None:
@@ -125,6 +138,10 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False, fig=None,
 
     plt.title(title)
     plt.xlabel(xlabel)
+    if xlim is not None:
+        axes.set_xlim(xlim)
+    if ylim is not None:
+        axes.set_ylim(ylim)
     plt.ylabel(get_label({y_metric:y_metric}))
     fig.set_layout_engine(layout="tight")
 
