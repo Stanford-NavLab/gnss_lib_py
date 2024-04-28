@@ -115,7 +115,7 @@ def plot_metric(navdata, *args, groupby=None, avg_y=False,
                       markeredgecolor = markeredgecolor,
                       markeredgewidth = markeredgewidth,
                       **kwargs)
-            if fill_std:
+            if avg_y and fill_std:
                 axes.fill_between(x_data,
                                   np.array(y_data) - np.array(y_std),
                                   np.array(y_data) + np.array(y_std),
