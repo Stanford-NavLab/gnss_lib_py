@@ -173,7 +173,8 @@ def sort_gnss_ids(unsorted_gnss_ids):
 
     return sorted_gnss_ids
 
-def save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cover
+def save_figure(figures, titles=None, prefix="", fnames=None,
+                verbose=False): # pragma: no cover
     """Saves figures to file.
 
     Parameters
@@ -217,6 +218,9 @@ def save_figure(figures, titles=None, prefix="", fnames=None): # pragma: no cove
                                                   + ".png")
         else:
             fname = fnames[fig_idx]
+
+        if verbose:
+            print("saving fig:",fname)
 
         figure.savefig(fname,
                        dpi=300.,
