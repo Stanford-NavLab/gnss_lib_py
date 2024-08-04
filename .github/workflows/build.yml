@@ -28,10 +28,10 @@ jobs:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       id: setup-python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Poetry
@@ -43,7 +43,7 @@ jobs:
     # Load cached environment, if it exists
     - name: Load cached poetry environment
       id: cached-poetry-dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: .venv
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
@@ -68,7 +68,7 @@ jobs:
         source $VENV
         poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/navdata --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov=gnss_lib_py/visualizations --cov-report=xml
     - name: Upload coverage report to code-cov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
@@ -79,13 +79,13 @@ jobs:
     runs-on: ubuntu-latest
     name: Check if index.rst and README.md weren't changed together
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Get changed files since last remote commit
         id: changed-files
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v44
 
       - name: Check if index.rst changed when README.md file changes
         if: contains(steps.changed-files.outputs.modified_files, 'README.md') && !contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst')
