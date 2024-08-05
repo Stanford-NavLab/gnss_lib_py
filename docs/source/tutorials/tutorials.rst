@@ -39,24 +39,12 @@ class and its corresponding operations.
    navdata/tutorials_navdata_notebook
    navdata/tutorials_operations_notebook
 
-Creating a New Parser
----------------------
-
-The parsers tutorials also contain a tutorial on how to create a new
-parser that inherits from :code:`NavData` to handle new measurement types
-and/or files.
-
-.. toctree::
-   :maxdepth: 2
-
-   parsers/tutorials_new_parsers_notebook
-
-
 Parser Tutorials
 ----------------
 
-These tutorials explain existing parsers and how to create a new parser
-if necessary.
+These tutorials explain existing parsers and how to create a new
+parser that inherits from :code:`NavData` to handle new measurement types
+and/or files.
 
 .. toctree::
    :maxdepth: 2
@@ -69,6 +57,7 @@ if necessary.
    parsers/tutorials_rinex_obs_notebook
    parsers/tutorials_smartloc_notebook
    parsers/tutorials_sp3_notebook
+   parsers/tutorials_new_parsers_notebook
 
 Algorithm Tutorials
 -------------------
