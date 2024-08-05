@@ -122,7 +122,7 @@ import shutil
 import gzip
 import ftplib
 from ftplib import FTP_TLS, FTP
-from datetime import datetime, timezone, timedelta, time, UTC
+from datetime import datetime, timezone, timedelta, time
 
 import unlzw3
 import numpy as np
@@ -280,7 +280,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
                 raise RuntimeError("gnss_lib_py cannot automatically " \
                                  + "download rinex nav files for "\
                                  + "times before Jan 1, 2013")
-            if datetime.now(UTC).date() == date:
+            if datetime.now(timezone.utc).date() == date:
                 possible_types = ["rinex_nav_today"]
             else:
                 if constellations is not None and list(constellations) == ["gps"]:
@@ -290,7 +290,7 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
 
                 # download from day's stream if too early in the day
                 # that combined file is not yet uploaded to CDDIS.
-                if datetime.now(UTC) < datetime.combine(date+timedelta(days=1),
+                if datetime.now(timezone.utc) < datetime.combine(date+timedelta(days=1),
                                                         time(12)).astimezone(timezone.utc): # pragma: no cover
                     possible_types += ["rinex_nav_today"]
                 else:
@@ -304,9 +304,9 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
                 raise RuntimeError("gnss_lib_py cannot automatically " \
                                  + "download sp3 files for "\
                                  + "times before May 25, 2012")
-            if datetime.now(UTC).date() - timedelta(days=3) < date:
+            if datetime.now(timezone.utc).date() - timedelta(days=3) < date:
                 possible_types += ["sp3_rapid_CODE"]
-            elif datetime.now(UTC).date() - timedelta(days=14) < date:
+            elif datetime.now(timezone.utc).date() - timedelta(days=14) < date:
                 possible_types += ["sp3_rapid_GFZ"]
             elif date >= datetime(2017, 8, 13).date():
                 possible_types += ["sp3_final_CODE"]
@@ -318,9 +318,9 @@ def _verify_ephemeris(file_type, gps_millis, constellations=None,
                 raise RuntimeError("gnss_lib_py cannot automatically " \
                                  + "download clk files for "\
                                  + "times before Oct 14, 2012")
-            if datetime.now(UTC).date() - timedelta(days=3) < date:
+            if datetime.now(timezone.utc).date() - timedelta(days=3) < date:
                 possible_types += ["clk_rapid_CODE"]
-            elif datetime.now(UTC).date() - timedelta(days=14) < date:
+            elif datetime.now(timezone.utc).date() - timedelta(days=14) < date:
                 possible_types += ["clk_rapid_GFZ"]
             elif date >= datetime(2020, 7, 5).date():
                 possible_types += ["clk_final_CODE"]
@@ -430,7 +430,7 @@ def _extract_ephemeris_dates(file_type, dt_timestamps):
         needed_dates.update({dt.date() + timedelta(days=1) for dt in dt_timestamps
                         if ((dt >= datetime.combine(dt.date(),
                                         time(22,tzinfo=timezone.utc))) &
-                             (dt.date() != datetime.now(UTC).date()))
+                             (dt.date() != datetime.now(timezone.utc).date()))
                         })
 
     else:

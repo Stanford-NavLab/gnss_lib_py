@@ -7,7 +7,7 @@ __date__ = "30 Aug 2022"
 
 import os
 import ftplib
-from datetime import datetime, timezone, timedelta, time, UTC
+from datetime import datetime, timezone, timedelta, time
 
 import pytest
 import requests
@@ -347,10 +347,10 @@ def test_extract_ephemeris_dates():
                          datetime(2023, 7, 27).date()]
 
     # check don't add next day if after 10pm on current day
-    ten_pm_utc_today = datetime.combine(datetime.now(UTC).date(),
+    ten_pm_utc_today = datetime.combine(datetime.now(timezone.utc).date(),
                                         time(22,tzinfo=timezone.utc))
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([ten_pm_utc_today]))
-    assert dates == [datetime.now(UTC).date()]
+    assert dates == [datetime.now(timezone.utc).date()]
 
     # check that across multiple days there aren't duplicates
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([noon_utc,
