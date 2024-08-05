@@ -65,6 +65,7 @@ class Sp3(NavData):
                 data = [line.strip() for line in infile]
 
             # Loop through each line
+            gps_millis_timestep = 0
             for dval in data:
                 if len(dval) == 0:
                     # No data

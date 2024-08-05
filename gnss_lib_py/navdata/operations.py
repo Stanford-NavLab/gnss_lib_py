@@ -148,7 +148,7 @@ def sort(navdata, order=None, ind=None, ascending=True,
         if inplace:
             navdata.array[row_idx,:] = navdata.array[row_idx,ind]
         else:
-            new_navdata.array[row_idx,:] = new_navdata.array[row_idx,ind]
+            new_navdata.array[row_idx,:] = new_navdata.array[row_idx,ind] # pylint: disable=possibly-used-before-assignment
 
     if inplace:
         return None
@@ -248,7 +248,7 @@ def interpolate(navdata, x_row, y_rows, inplace=False, *args):
             navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
                                              yp_vals, *args)
         else:
-            new_navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals,
+            new_navdata[y_row,nan_idxs] = np.interp(x_vals, xp_vals, # pylint: disable=possibly-used-before-assignment
                                                     yp_vals, *args)
     if inplace:
         return None

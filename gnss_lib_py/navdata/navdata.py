@@ -385,7 +385,7 @@ class NavData():
                 self.str_map[new_name] = self.str_map.pop(old_name)
                 self.orig_dtypes[new_name] = self.orig_dtypes.pop(old_name)
             else:
-                new_navdata.map[new_name] = new_navdata.map.pop(old_name)
+                new_navdata.map[new_name] = new_navdata.map.pop(old_name) # pylint: disable=possibly-used-before-assignment
                 new_navdata.str_map[new_name] = new_navdata.str_map.pop(old_name)
                 new_navdata.orig_dtypes[new_name] = new_navdata.orig_dtypes.pop(old_name)
 
@@ -451,7 +451,7 @@ class NavData():
                 if inplace:
                     self[row] = np.array(new_row_values)
                 else:
-                    new_navdata[row] = np.array(new_row_values)
+                    new_navdata[row] = np.array(new_row_values) # pylint: disable=possibly-used-before-assignment
 
         if inplace:
             return None

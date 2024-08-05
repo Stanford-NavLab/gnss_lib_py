@@ -131,7 +131,7 @@ class RinexNav(NavData):
                         self.iono_params[start_gps_millis].keys():
                             self.iono_params[start_gps_millis][constellation] \
                             = value
-            #TODO: Find a more pythonic way to do this^
+
         data.reset_index(inplace=True, drop=True)
         data.sort_values('time', inplace=True, ignore_index=True)
 

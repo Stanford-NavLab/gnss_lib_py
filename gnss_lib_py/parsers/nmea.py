@@ -139,19 +139,19 @@ class Nmea(NavData):
         # As per `gnss_lib_py` standards, convert the heading from degrees
         # to radians
         pd_df['true_course_rad'] = (np.pi/180.)*pd_df['true_course']\
-                                                .replace("",pd.NA)\
+                                                .replace("",np.nan)\
                                                 .bfill()\
                                                 .ffill()\
                                                 .astype(float)
         # Convert the given altitude value to float based on the given units
 
         # Assuming that altitude units are always meters
-        pd_df['altitude'] = pd_df['altitude'].replace("",pd.NA)\
+        pd_df['altitude'] = pd_df['altitude'].replace("",np.nan)\
                                              .bfill()\
                                              .ffill()\
                                              .astype(float)
         pd_df["num_sats"] = pd_df["num_sats"].fillna(value=0).astype('int64')
-        pd_df = pd_df.fillna(value=np.nan).replace("",pd.NA)
+        pd_df = pd_df.fillna(value=np.nan).replace("",np.nan)
         convert_dict={
                'num_sats' : np.int64,
                'gps_qual' : np.int64,
