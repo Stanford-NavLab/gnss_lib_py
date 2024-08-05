@@ -20,7 +20,7 @@ algorithms or datasets can be easily exchanged for each other.
 It is extendable in facilitating user-specific extensions of existing
 implementations.
 
-.. image:: img/glp_architecture.png
+.. image:: img/glp_architecture.svg
   :width: 800
   :alt: Skyplot of GNSS satellite movement over time
 

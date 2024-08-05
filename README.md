@@ -16,7 +16,7 @@ algorithms or datasets can be easily exchanged for each other.
 It is extendable in facilitating user-specific extensions of existing
 implementations.
 
-<img src="https://raw.githubusercontent.com/Stanford-NavLab/gnss_lib_py/main/docs/source/img/glp_architecture.png" alt="Architecture of gnss-lib-py library" width="800"/>
+<img src="https://raw.githubusercontent.com/Stanford-NavLab/gnss_lib_py/main/docs/source/img/glp_architecture.svg" alt="Architecture of gnss-lib-py library" width="800"/>
 
 `gnss_lib_py` contains parsers for common file types used for
 storing GNSS measurements, benchmark algorithms for processing
