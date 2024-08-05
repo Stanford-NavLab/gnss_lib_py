@@ -20,8 +20,8 @@ algorithms or datasets can be easily exchanged for each other.
 It is extendable in facilitating user-specific extensions of existing
 implementations.
 
-.. image:: img/skyplot.png
-  :width: 400
+.. image:: img/glp_architecture.png
+  :width: 800
   :alt: Skyplot of GNSS satellite movement over time
 
 :code:`gnss_lib_py` contains parsers for common file types used for
