@@ -151,7 +151,7 @@ class Nmea(NavData):
                                              .ffill()\
                                              .astype(float)
         pd_df["num_sats"] = pd_df["num_sats"].fillna(value=0).astype('int64')
-        pd_df = pd_df.fillna(value=np.nan).replace("",np.nan)
+        pd_df = pd_df.fillna(value=np.nan).replace("","nan")
         convert_dict={
                'num_sats' : np.int64,
                'gps_qual' : np.int64,
