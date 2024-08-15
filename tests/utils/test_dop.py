@@ -412,9 +412,14 @@ def test_singularity_dop(navdata):
         # is an issue in comparing nan > number).
         # Note: we use np.any() since we can get small values in the DOP matrix
         # even if singular (i.e., in the off-diagonal entries).
-        for _, val in dop_dict.items():
-            print("1:",val)
-            assert np.any(np.isnan(val)) or np.any(np.abs(val) > 1e6)
+        dop_mat = dop_dict['dop_matrix']
+        print("1 (singularity flag not raised): DOP matrix is:")
+        print(dop_mat)
+        assert np.any(np.isnan(dop_mat)) or np.any(np.abs(dop_mat) > 1e6)
+
+        dop_scalars = [val for key, val in dop_dict.items() if key != 'dop_matrix']
+        print("1: DOP Values are:", dop_scalars)
+        assert np.any(np.isnan(dop_scalars)) or np.any(np.abs(dop_scalars) > 1e6)
 
     except np.linalg.LinAlgError:
         # We expect a singularity error. If we get the singularity error, then
@@ -422,8 +427,8 @@ def test_singularity_dop(navdata):
 
         # Now check that we get all NaNs for the DOP values when we have a
         # singularity
-        for _, val in dop_dict.items():
-            print("2:",val)
+        for key, val in dop_dict.items():
+            print("2:", key, " : ", val)
             assert np.all(np.isnan(val))
 
 
