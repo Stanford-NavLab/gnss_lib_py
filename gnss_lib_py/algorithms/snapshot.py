@@ -28,7 +28,7 @@ def solve_wls(measurements, weight_type = None, only_bias = False,
 
     The option for only_bias allows the user to only calculate the clock
     bias if the receiver position is already known. Only the bias term
-    in rx_est_m will be updated if only_bias is set to True.
+    in b_rx_wls_m will be updated if only_bias is set to True.
 
     If only_bias is set to True, then the receiver position must also
     be passed in as the receiver_state.

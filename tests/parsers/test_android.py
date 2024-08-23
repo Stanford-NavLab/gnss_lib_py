@@ -12,8 +12,8 @@ import pathlib
 import pytest
 import numpy as np
 import pandas as pd
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 from gnss_lib_py.parsers import android
 from gnss_lib_py.parsers.google_decimeter import AndroidDerived2023
 from gnss_lib_py.navdata.navdata import NavData

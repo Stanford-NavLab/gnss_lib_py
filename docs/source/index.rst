@@ -13,27 +13,34 @@ gnss_lib_py
 :code:`gnss_lib_py` is a modular Python tool for parsing, analyzing, and
 visualizing Global Navigation Satellite Systems (GNSS) data and state
 estimates.
-It also provides an intuitive and modular framework allowing users to
+It also provides an intuitive and modular framework which allows users to
 quickly prototype, implement, and visualize GNSS algorithms.
 :code:`gnss_lib_py` is modular in the sense that multiple types of
-algorithms can be easily exchanged for each other and extendable in
-facilitating user-specific extensions of existing implementations.
+algorithms or datasets can be easily exchanged for each other.
+It is extendable in facilitating user-specific extensions of existing
+implementations.
 
-.. image:: img/skyplot.png
-  :width: 400
-  :alt: skyplot of GNSS movement over time
+.. image:: img/glp_architecture.svg
+  :width: 800
+  :alt: Skyplot of GNSS satellite movement over time
 
 :code:`gnss_lib_py` contains parsers for common file types used for
 storing GNSS measurements, benchmark algorithms for processing
 measurements into state estimates and visualization tools for measurements
 and state estimates.
 The modularity of :code:`gnss_lib_py` is made possibly by the unifying
-:code:`NavData` class, which contains methods to add, remove and modify
-numeric and string data consistently.
-We provide standard row names for :code:`NavData` elements on the
-:ref:`reference page<reference>`.
-These names ensure cross compatibility between different datasets and
-algorithms.
+:code:`NavData` class, with accompanying standard nomenclature, which can be
+found in the :ref:`reference page<reference>`.
+The standard nomenclature ensures cross compatibility between different
+datasets and algorithms.
+
+:code:`NavData` combines the readability of :code:`pandas.DataFrame`
+with :code:`numpy.ndarray` allowing for easy and fast access of numbers
+or strings.
+We also provide functionality to add, remove and modify numeric and
+string data consistently along with commonly needed supporting
+functionality.
+
 
 Source Code
 -----------
@@ -61,7 +68,7 @@ Code Organization
         ├── parsers/                  # Data parsers
         ├── utils/                    # GNSS and common utilities
         ├── visualizations/           # plotting functions
-        └── __init__.py
+        └── __init__.py               # Initialize gnss_lib_py
    ├── notebooks/                     # Interactive Jupyter notebooks
         ├── tutorials/                # Notebooks with tutorial code
    ├── results/                       # Location for result images/files
@@ -71,7 +78,7 @@ Code Organization
       ├── parsers/                    # Tests for files in parsers
       ├── utils/                      # Tests for files in utils
       ├── visualizations/             # Tests for files in visualizations
-      └── test_gnss_lib_py.py         # High level checks for repository
+      └── conftest.py                 # Common methods for tests
    ├── CONTRIBUTORS.md                # List of contributors
    ├── build_docs.sh                  # Bash script to build docs
    ├── poetry.lock                    # Poetry specific Lock file
@@ -80,7 +87,7 @@ Code Organization
 
 In the directory organization above:
 
-  * The :code:`algorithms` directory contains localization algorithms that
+  * The :code:`algorithms` directory contains algorithms that
     work by passing in a :code:`NavData` class. Currently, the following
     algorithms are implemented in the :code:`algorithms`:
 
@@ -88,6 +95,11 @@ In the directory organization above:
       * Extended Kalman Filter
       * Calculating pseudorange residuals
       * Fault detection and exclusion
+
+  * The `navdata` directory defines the `NavData` class, its methods, and
+    functions that operate on `NavData` instances, like `sort`, `concat`,
+    and others.
+
   * The data parsers in the :code:`parsers` directory allow for loading
     GNSS data into :code:`gnss_lib_py`'s unifying :code:`NavData` class
     or parsing precise ephemerides data.
@@ -105,6 +117,10 @@ In the directory organization above:
     GNSS measurements, time conversions, coordinate transformations,
     visualizations, calculating multi-GNSS satellite PVT information,
     satellite simulation, file operations, etc.
+
+  * The `visualizations` directory contains methods for plotting quantities
+    in `NavData`. It includes methods to plot metrics, positions on maps,
+    and skyplots of satellites visible from the receiver position.
 
 Installation
 ------------

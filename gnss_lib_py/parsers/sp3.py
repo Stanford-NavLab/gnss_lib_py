@@ -9,7 +9,6 @@ import os
 from datetime import datetime, timezone
 
 import numpy as np
-from scipy import interpolate
 
 from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.utils.constants import CONSTELLATION_CHARS
@@ -66,6 +65,7 @@ class Sp3(NavData):
                 data = [line.strip() for line in infile]
 
             # Loop through each line
+            gps_millis_timestep = 0
             for dval in data:
                 if len(dval) == 0:
                     # No data

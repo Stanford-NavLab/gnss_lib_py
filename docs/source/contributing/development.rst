@@ -22,8 +22,12 @@ Standard GitHub Workflow
 
 2. If using poetry, follow the :ref:`developer install instructions<developer install>`
    to install pyenv, poetry, and the python dependencies. If using
-   :code:`pip` or :code:`conda` for package management instead, use
-   :code:`pip install -r requirements.txt` to install dependencies.
+   :code:`pip` or :code:`conda` for package management instead, install
+   dependencies using
+
+   .. code-block:: bash
+
+      pip install -r requirements.txt
 
 3. Create a local branch:
 
@@ -36,16 +40,21 @@ Standard GitHub Workflow
 
    If the feature branch includes new functionality, you must also:
 
-   * update the "Code Organization" section of the :code:`README.md`
-   * update the "Code Organization" section of
-     :code:`docs/source/index.rst` to match the :code:`README.md`
    * add a section in the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*`
    * if the feature is in a new file, import the file in the
      `module's import block <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/__init__.py>`__.
 
+   If directory level changes were made, you must also:
+
+   * update the "Code Organization" section of the :code:`README.md`
+   * update the "Code Organization" section of
+     :code:`docs/source/index.rst` to match the :code:`README.md`
+
+
 5. Add tests for the newly added code and ensure the new code is covered.
-   See the :ref:`Testing<testing>` section for more details.
+   See the :ref:`Testing<testing>` and :ref:`Coverage<coverage>` pages
+   for more details.
 
 6. When you're done making changes run all the tests with:
 
@@ -93,9 +102,10 @@ Standard GitHub Workflow
     in the pull request, select the latest version release branch :code:`vX.Y.Z`
     (with the highest number of all such branches). *Do not target the*
     :code:`main` *branch in your pull request.* In the pull request,
-    add a code review request for a current maintainer of the repository.
-    The reviewers might add comments to ensure compliance with the rest
-    of the code.
+    add a code review request for a current maintainer of the repository
+    and provide a brief description of the implemented features.
+    The reviewers might add comments or suggest changes to ensure
+    compliance with the rest of the code.
 
 .. _navlab_dev:
 
@@ -119,13 +129,17 @@ NAVLab GitHub Workflow
 
    If the feature branch includes new functionality, you must also:
 
-   * update the "Code Organization" section of the :code:`README.md`
-   * update the "Code Organization" section of
-     :code:`docs/source/index.rst` to match the :code:`README.md`
    * add a section in the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*`
    * if the feature is in a new file, import the file in the
      `module's import block <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/__init__.py>`__.
+
+   If directory level changes were made, you must also:
+
+   * update the "Code Organization" section of the :code:`README.md`
+   * update the "Code Organization" section of
+     :code:`docs/source/index.rst` to match the :code:`README.md`
+
 
 5. Add tests for the newly added code and ensure the new code is covered.
    See the :ref:`Testing<testing>` section for more details.
@@ -214,18 +228,21 @@ Pull Request Review Workflow
 3. Verify that documentation is complete and updated if necessary. See
    the :ref:`Documentation<documentation>` section for more details on
    what is expected.
-
    If the feature branch included new functionality, the following
    should have also been updated:
 
-   * the "Code Organization" section of the :code:`README.md`
-   * the "Code Organization" section of
-     :code:`docs/source/index.rst` to match the :code:`README.md`
    * the appropriate tutorial notebook located in
      :code:`notebooks/tutorials/*` with a simple example of the new
      functionality
    * if a new file was created, it should likely be imported in the
      `module's import block <https://github.com/Stanford-NavLab/gnss_lib_py/blob/main/gnss_lib_py/__init__.py>`__.
+
+   If the directory structure was modified, the following should also have
+   been updated:
+
+   * the "Code Organization" section of the :code:`README.md`
+   * the "Code Organization" section of
+     :code:`docs/source/index.rst` to match the :code:`README.md`
 
 4. Verify that all tests run on your system:
 
@@ -243,7 +260,7 @@ Pull Request Review Workflow
 
    .. code-block:: bash
 
-      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=xml
+      poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov-report=html
       poetry run coverage report
 
    See the :ref:`Coverage Report<coverage>` section for more details.

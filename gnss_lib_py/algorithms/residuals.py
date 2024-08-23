@@ -16,7 +16,8 @@ def solve_residuals(measurements, receiver_state, inplace=True):
     Parameters
     ----------
     measurements : gnss_lib_py.navdata.navdata.NavData
-        Instance of the NavData class
+        Instance of the NavData class which must include ``gps_millis``
+        and ``corr_pr_m``.
     receiver_state : gnss_lib_py.navdata.navdata.NavData
         Either estimated or ground truth receiver position in ECEF frame
         in meters and the estimated or ground truth receiver clock bias
