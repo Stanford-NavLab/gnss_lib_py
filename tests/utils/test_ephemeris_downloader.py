@@ -12,8 +12,8 @@ from datetime import datetime, timezone, timedelta, time
 import pytest
 import requests
 import numpy as np
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 import gnss_lib_py.utils.time_conversions as tc
 import gnss_lib_py.utils.ephemeris_downloader as ed
 # pylint: disable=protected-access
@@ -347,10 +347,10 @@ def test_extract_ephemeris_dates():
                          datetime(2023, 7, 27).date()]
 
     # check don't add next day if after 10pm on current day
-    ten_pm_utc_today = datetime.combine(datetime.utcnow().date(),
+    ten_pm_utc_today = datetime.combine(datetime.now(timezone.utc).date(),
                                         time(22,tzinfo=timezone.utc))
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([ten_pm_utc_today]))
-    assert dates == [datetime.utcnow().date()]
+    assert dates == [datetime.now(timezone.utc).date()]
 
     # check that across multiple days there aren't duplicates
     dates = ed._extract_ephemeris_dates("rinex_nav", np.array([noon_utc,

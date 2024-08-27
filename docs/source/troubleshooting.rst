@@ -15,6 +15,15 @@ on Windows). Then you should be able to run the notebooks in VS Code.
 Note: may need to run :code:`poetry add jupyter notebook` in order for
 poetry env to be visible in list of VS Code kernels.
 
+`NavData` method returns `None`
+-------------------------------
+
+If you run functions like `sort` or `interpolate` on NavData and the
+function returns `None`, check the value of the `inplace` attribute.
+If `inplace=True`, the input `NavData` instance has been modified and the
+function will return `None`. Change to `inplace=False` to return a new
+`NavData` instance with the modified data.
+
 No module named *
 -----------------
 

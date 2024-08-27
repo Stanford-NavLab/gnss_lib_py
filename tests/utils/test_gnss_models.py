@@ -10,8 +10,8 @@ import pytest
 import numpy as np
 
 from numpy.random import default_rng
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 from gnss_lib_py.algorithms.snapshot import solve_wls
 from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.gnss_models as gnss_models

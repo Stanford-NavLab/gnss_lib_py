@@ -9,8 +9,8 @@ import os
 
 import pytest
 import numpy as np
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 from gnss_lib_py.parsers.rinex_obs import RinexObs
 from gnss_lib_py.navdata.operations import loop_time
 

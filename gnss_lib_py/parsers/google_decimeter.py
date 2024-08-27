@@ -49,7 +49,7 @@ class AndroidDerived2021(NavData):
         derived_timestamps = pd_df['millisSinceGpsEpoch'].unique()
         mapper = dict(zip(derived_timestamps[1:],derived_timestamps[:-1]))
         pd_df = pd_df[pd_df['millisSinceGpsEpoch'] != derived_timestamps[0]]
-        pd_df.replace({"millisSinceGpsEpoch" : mapper},inplace=True)
+        pd_df["millisSinceGpsEpoch"] = pd_df["millisSinceGpsEpoch"].replace(mapper)
 
         # Correction 5 implemented verbatim from competition tips
         if remove_timing_outliers:

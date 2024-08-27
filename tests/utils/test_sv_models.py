@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 import pytest
 import numpy as np
 import pandas as pd
-from pytest_lazyfixture import lazy_fixture
 
+from conftest import lazy_fixture
 from gnss_lib_py.parsers.clk import Clk
 from gnss_lib_py.parsers.sp3 import Sp3
 from gnss_lib_py.navdata.navdata import NavData
