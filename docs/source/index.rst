@@ -159,31 +159,21 @@ Answers to common questions can be found in the
 Attribution
 -----------
 This project is a product of the `Stanford NAV Lab <https://navlab.stanford.edu/>`__
-and currently maintained by Ashwin Kanhere (akanhere [at] stanford [dot] edu)
-and Derek Knowles (dcknowles [at] stanford [dot] edu). If using
-this project in your own work please cite either of the following:
+and currently maintained by Daniel Neamati (dneamati [at] stanford [dot] edu)
+and Derek Knowles. If using
+this project in your own work please cite the following:
 
 .. code-block:: bash
 
-   @inproceedings{knowles_kanhere_modular2022,
-      title = {A Modular and Extendable GNSS Python Library},
-      author={Knowles, Derek and Kanhere, Ashwin V and Bhamidipati, Sriramya and Gao, Grace},
-      booktitle={Proceedings of the 35th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2022)},
-      institution = {Stanford University},
-      year = {2022 [Online]},
+   @inproceedings{knowles_glp_2024,
+      title = {gnss_lib_py: Analyzing GNSS data with Python},
+      author = {Knowles, Derek and Kanhere, Ashwin Vivek and Neamati, Daniel and Gao, Grace},
+      journal = {SoftwareX},
+      volume = {27},
+      year = {2024},
+      publisher = {Elsevier},
       url = {https://github.com/Stanford-NavLab/gnss_lib_py},
-      doi = {10.33012/2022.18525}
-   }
-
-.. code-block:: bash
-
-   @inproceedings{knowles_kanhere_baselines_2023,
-      title = {Localization and Fault Detection Baselines From an Open-Source Python GNSS Library},
-      author={Knowles, Derek and Kanhere, Ashwin V and Gao, Grace},
-      booktitle={Proceedings of the 36th International Technical Meeting of the Satellite Division of The Institute of Navigation (ION GNSS+ 2023)},
-      institution = {Stanford University},
-      year = {2023 [Online]},
-      url = {https://github.com/Stanford-NavLab/gnss_lib_py},
+      doi = {10.1016/j.softx.2024.101811},
    }
 
 
