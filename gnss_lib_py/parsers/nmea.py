@@ -133,9 +133,7 @@ class Nmea(NavData):
             date = field_dict.pop('datestamp')
             delta_t = datetime.datetime.combine(datestamp(date), timestamp(time))
             field_dict['gps_millis'] = datetime_to_gps_millis(delta_t)
-
             temporary_dictionary_list_df.append(field_dict)
-
         pd_df = pd.DataFrame.from_dict(temporary_dictionary_list_df)
         # As per `gnss_lib_py` standards, convert the heading from degrees
         # to radians
