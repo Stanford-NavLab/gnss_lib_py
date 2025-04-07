@@ -178,7 +178,7 @@ class RinexNav(NavData):
         self['gnss_id'] = np.asarray(gnss_id)
         self['sv_id'] = np.asarray(gnss_nums, dtype=int)
 
-    def _get_ephemeris_dataframe(self, rinex_path, constellations=None):
+    def _get_ephemeris_dataframe(self, rinex_path, constellations=None, fast=True):
         """Load/download ephemeris files and process into DataFrame
 
         Parameters
@@ -200,10 +200,10 @@ class RinexNav(NavData):
         if constellations is not None:
             data = gr.load(rinex_path,
                                  use=constellations,
-                                 verbose=self.verbose).to_dataframe()
+                                 verbose=self.verbose, fast=fast).to_dataframe()
         else:
             data = gr.load(rinex_path,
-                                 verbose=self.verbose).to_dataframe()
+                                 verbose=self.verbose, fast=fast).to_dataframe()
         data.dropna(how='all', inplace=True)
         data.reset_index(inplace=True)
         data_header = gr.rinexheader(rinex_path)
