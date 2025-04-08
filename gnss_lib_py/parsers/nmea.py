@@ -67,7 +67,7 @@ class Nmea(NavData):
         if msg_types is None:
             # Use default message types
             msg_types = ['GGA', 'RMC']
-        pd_df = pd.DataFrame()
+        temporary_dictionary_list_df = []
         field_dict = {}
         prev_timestamp = None
 
@@ -101,8 +101,7 @@ class Nmea(NavData):
                             delta_t = datetime.datetime.combine(datestamp(date), timestamp(time))
                             field_dict['gps_millis'] = datetime_to_gps_millis(delta_t)
 
-                            new_row = pd.DataFrame([field_dict])
-                            pd_df = pd.concat([pd_df, new_row])
+                            temporary_dictionary_list_df.append(field_dict)
                             field_dict = {}
                             prev_timestamp = msg.timestamp
                     if "sentence_type" in msg.__dir__() and msg.sentence_type in msg_types:
@@ -134,8 +133,8 @@ class Nmea(NavData):
             date = field_dict.pop('datestamp')
             delta_t = datetime.datetime.combine(datestamp(date), timestamp(time))
             field_dict['gps_millis'] = datetime_to_gps_millis(delta_t)
-            new_row = pd.DataFrame([field_dict])
-            pd_df = pd.concat([pd_df, new_row])
+            temporary_dictionary_list_df.append(field_dict)
+        pd_df = pd.DataFrame.from_dict(temporary_dictionary_list_df)
         # As per `gnss_lib_py` standards, convert the heading from degrees
         # to radians
         pd_df['true_course_rad'] = (np.pi/180.)*pd_df['true_course']\
