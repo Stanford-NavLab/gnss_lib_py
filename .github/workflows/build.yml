@@ -85,7 +85,7 @@ jobs:
 
       - name: Get changed files since last remote commit
         id: changed-files
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@v46.0.1
 
       - name: Check if index.rst changed when README.md file changes
         if: contains(steps.changed-files.outputs.modified_files, 'README.md') && !contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst')
