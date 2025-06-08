@@ -33,7 +33,7 @@ class RinexObs(NavData):
 
 
     """
-    def __init__(self, input_path):
+    def __init__(self, input_path, fast=True):
         """Loading Rinex observation files into a NavData based class.
 
         Should input path to `.yyo` file.
@@ -45,7 +45,7 @@ class RinexObs(NavData):
 
         """
 
-        obs_file = gr.load(input_path).to_dataframe()
+        obs_file = gr.load(input_path, fast=fast).to_dataframe()
         obs_header = gr.rinexheader(input_path)
         obs_measure_types = obs_header['fields']
         rx_bands = []
