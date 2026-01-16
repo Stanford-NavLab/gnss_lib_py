@@ -216,9 +216,9 @@ class RinexNav(NavData):
         # Rename Keplerian orbital parameters to match a GLP standard
         data.rename(columns={'M0': 'M_0', 'Eccentricity': 'e', 'Toe': 't_oe', 'DeltaN': 'deltaN', 'Cuc': 'C_uc', 'Cus': 'C_us',
                              'Cic': 'C_ic', 'Crc': 'C_rc', 'Cis': 'C_is', 'Crs': 'C_rs', 'Io': 'i_0', 'Omega0': 'Omega_0'}, inplace=True)
-        data.rename(columns={'X': 'sv_x_m', 'dX': 'sv_dx_mps', 'dX2': 'sv_dx2_mps2',
-                             'Y': 'sv_y_m', 'dY': 'sv_dy_mps', 'dY2': 'sv_dy2_mps2',
-                             'Z': 'sv_z_m', 'dZ': 'sv_dz_mps', 'dZ2': 'sv_dz2_mps2'}, inplace=True)
+        data.rename(columns={'X': 'x_sv_m', 'dX': 'dx_sv_mps', 'dX2': 'dx2_sv_mps2',
+                             'Y': 'y_sv_m', 'dY': 'dy_sv_mps', 'dY2': 'dy2_sv_mps2',
+                             'Z': 'z_sv_m', 'dZ': 'dz_sv_mps', 'dZ2': 'dz2_sv_mps2'}, inplace=True)
         return data, data_header
 
     def get_iono_params(self, rinex_header, constellations=None):
