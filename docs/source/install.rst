@@ -6,11 +6,11 @@ Install
 Prerequisites
 -------------
 
-| **Python:** >=3.9, <3.13
+| **Python:** >=3.9, <3.14
 | **Operating System:** Linux, Windows, MacOS
 
 All :code:`gnss_lib_py` classes and methods are tested in Python 3.9,
-and 3.12 in the latest Ubuntu, MacOS and Windows versions.
+3.10, 3.11, 3.12, and 3.13 in the latest Ubuntu, MacOS and Windows versions. Python 3.9 will soon be deprecated, please consider updating to a newer version of Python.
 :code:`gnss_lib_py` was originally developed in Python 3.8.9 in
 Ubuntu 20/22 and Ubuntu 20 for WSL2.
 
