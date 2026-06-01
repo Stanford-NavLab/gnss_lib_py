@@ -52,6 +52,7 @@ pylint = "^2.11.1"
 pytest-cov = "^4.0.0"
 sphinx-copybutton = "^0.5.2"
 poetry-plugin-export = "^1.8.0"
+pytest-env = ">=0.8.0,<1.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
