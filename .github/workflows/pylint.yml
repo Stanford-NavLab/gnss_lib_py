@@ -18,7 +18,7 @@ jobs:
     - uses: actions/checkout@v7
     - name: Set up Python ${{ matrix.python-version }}
       id: setup-python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Poetry
@@ -30,7 +30,7 @@ jobs:
         installer-parallel: false # default option selected currently
     - name: Load cached poetry environment
       id: cached-poetry-dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: .venv
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
