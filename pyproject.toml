@@ -1,11 +1,12 @@
 [tool.poetry]
 name = "gnss-lib-py"
-version = "1.0.4"
+version = "1.0.5"
 description = "Modular Python tool for parsing, analyzing, and visualizing Global Navigation Satellite Systems (GNSS) data and state estimates"
-authors = ["Derek Knowles <dcknowles@stanford.edu>",
-           "Ashwin Kanhere <akanhere@stanford.edu>",
-           "Daniel Neamati <dneamati@stanford.edu>",
-           ]
+authors = [
+    "Derek Knowles <dcknowles@stanford.edu>",
+    "Ashwin Kanhere <akanhere@stanford.edu>",
+    "Daniel Neamati <dneamati@stanford.edu>",
+]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/Stanford-NavLab/gnss_lib_py"
@@ -18,10 +19,10 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9, < 3.14"
+python = ">=3.9, < 3.15"
 numpy = [
-    {version = "^2.0.0", python = ">=3.9,<3.10"},
-    {version = "^2.1.0", python = ">=3.10,<3.14"},
+    { version = "^2.0.0", python = ">=3.9,<3.10" },
+    { version = "^2.1.0", python = ">=3.10,<3.15" },
 ]
 pandas = "^2.0.0"
 georinex = "<=1.16.1"
@@ -29,8 +30,8 @@ unlzw3 = "^0.2.1"
 pynmea2 = "^1.18.0"
 pytest = ">=7.2"
 scipy = [
-    {version = "^1.7.3", python = ">=3.9,<3.10"},
-    {version = "^1.14.1", python = ">=3.10,<3.14"},
+    { version = "^1.7.3", python = ">=3.9,<3.10" },
+    { version = "^1.14.1", python = ">=3.10,<3.15" },
 ]
 jupyter = "^1.0.0"
 notebook = ">=6.0.0"
