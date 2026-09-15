@@ -6,11 +6,12 @@ Install
 Prerequisites
 -------------
 
-| **Python:** >=3.9, <3.14
+| **Python:** >=3.9, <3.15
 | **Operating System:** Linux, Windows, MacOS
 
 All :code:`gnss_lib_py` classes and methods are tested in Python 3.9,
-3.10, 3.11, 3.12, and 3.13 in the latest Ubuntu, MacOS and Windows versions. Python 3.9 will soon be deprecated, please consider updating to a newer version of Python.
+3.10, 3.11, 3.12, 3.13, and 3.14 in the latest Ubuntu, MacOS and Windows versions. 
+Python 3.9 will soon be deprecated, please consider updating to a newer version of Python.
 :code:`gnss_lib_py` was originally developed in Python 3.8.9 in
 Ubuntu 20/22 and Ubuntu 20 for WSL2.
 
@@ -144,8 +145,8 @@ Linux/WSL2 and MacOS
    if different than 3.9.19) to set the Python version that code in the
    repository will run.
 
-5. Install :code:`poetry>=1.2` using the instructions
-   `here <https://python-poetry.org/docs/master/#installation>`__.
+5. Install :code:`poetry>=2` using the instructions
+   `here <https://python-poetry.org/docs/>`__.
 
 6. Install Python dependencies using :code:`poetry install`.
 
