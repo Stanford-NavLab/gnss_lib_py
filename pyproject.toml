@@ -2,11 +2,10 @@
 name = "gnss-lib-py"
 version = "1.0.4"
 description = "Modular Python tool for parsing, analyzing, and visualizing Global Navigation Satellite Systems (GNSS) data and state estimates"
-authors = [
-    "Derek Knowles <dcknowles@stanford.edu>",
-    "Ashwin Kanhere <akanhere@stanford.edu>",
-    "Daniel Neamati <dneamati@stanford.edu>",
-]
+authors = ["Derek Knowles <betabison@gmail.com>",
+           "Ashwin Kanhere <LastNameFirstName@gmail.com",
+           "Daniel Neamati <dneamati@stanford.edu>",
+           ]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/Stanford-NavLab/gnss_lib_py"

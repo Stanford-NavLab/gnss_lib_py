@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Knowles"
+    given-names: "Derek"
+  - family-names: "Kanhere"
+    given-names: "Ashwin Vivek"
+  - family-names: "Neamati"
+    given-names: "Daniel"
+  - family-names: "Gao"
+    given-names: "Grace"
+title: "gnss_lib_py"
+url: "https://github.com/Stanford-NavLab/gnss_lib_py"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Knowles"
+      given-names: "Derek"
+    - family-names: "Kanhere"
+      given-names: "Ashwin Vivek"
+    - family-names: "Neamati"
+      given-names: "Daniel"
+    - family-names: "Gao"
+      given-names: "Grace"
+  title: "gnss_lib_py: Analyzing GNSS data with Python"
+  journal: "SoftwareX"
+  volume: 27
+  year: 2024
+  doi: "10.1016/j.softx.2024.101811"
+  url: "https://github.com/Stanford-NavLab/gnss_lib_py"
