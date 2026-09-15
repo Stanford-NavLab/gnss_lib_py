@@ -40,6 +40,7 @@ matplotlib = "^3.5.1"
 plotly = "^5.8.0"
 kaleido = "0.2.1"
 requests = "^2.29.0"
+xarray = "<=2024.7.0"
 
 [tool.poetry.group.dev.dependencies]
 Sphinx = "^7.0.0"
