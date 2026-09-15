@@ -755,7 +755,7 @@ def _find_delxyz_range(sv_posvel, rx_ecef):
     sv_pos, _ = _extract_pos_vel_arr(sv_posvel)
     sv_pos = sv_pos.reshape(rx_ecef.shape[0], satellites)
     del_pos = sv_pos - np.tile(rx_ecef, (1, satellites))
-    true_range = np.linalg.norm(del_pos, axis=0)
+    true_range = np.linalg.norm(del_pos, axis=0)  # pylint: disable=no-member
     return del_pos, true_range
 
 def single_gnss_from_precise_eph(navdata, sp3_parsed_file,
