@@ -152,7 +152,7 @@ this project in your own work please cite the following:
 
 ```
 
-   @inproceedings{knowles_glp_2024,
+   @article{knowles_glp_2024,
       title = {gnss_lib_py: Analyzing GNSS data with Python},
       author = {Knowles, Derek and Kanhere, Ashwin Vivek and Neamati, Daniel and Gao, Grace},
       journal = {SoftwareX},
