@@ -134,5 +134,8 @@ QZSS_PRN_SVN = {193 : 1,
                 199 : 3,
                 195 : 4,
                 196 : 5,
+                197 : 6,
+                200 : 7,
+                201 : 8,
                }
 """dict : Translation from PRN to SVN for the QZSS constellation [5]_."""
