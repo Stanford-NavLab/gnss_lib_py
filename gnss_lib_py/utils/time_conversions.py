@@ -46,27 +46,29 @@ LEAPSECONDS_TABLE = [datetime(2017, 1, 1, 0, 0, tzinfo=timezone.utc),
                      GPS_EPOCH_0]
 
 
+# GPS milliseconds at which each leap second in LEAPSECONDS_TABLE takes
+# effect. GPS time runs ahead of UTC by the leap seconds in effect
+# before the transition, so the UTC transition time must be shifted
+# by that previous leap second count to land on the GPS timescale.
 LEAPSECONDS_GPS_MILLIS = [
     1000.0 * ((dt - GPS_EPOCH_0).total_seconds() + len(LEAPSECONDS_TABLE) - 2 - i)
     for i, dt in enumerate(LEAPSECONDS_TABLE[:-1])
 ]
 
 
-def get_leap_seconds(gps_time, is_gps_time=False):
+def get_leap_seconds(gps_time):
     """Compute leap seconds to be added in time conversions.
 
-    Computed by comparing the time to LEAPSECONDS_TABLE if given a UTC
-    datetime, or to LEAPSECONDS_GPS_MILLIS if given a time on the GPS
-    timescale.
+    If given a datetime.datetime, it is assumed to be in UTC and is
+    compared to LEAPSECONDS_TABLE. If given a float/int, it is assumed
+    to be milliseconds since the GPS epoch on the continuous GPS
+    timescale and is compared to LEAPSECONDS_GPS_MILLIS.
 
     Parameters
     ----------
     gps_time : float or int or datetime.datetime
-        Time of clock can be float/int [ms] since GPS epoch or
-        datetime.datetime object (assumed UTC unless is_gps_time is True).
-    is_gps_time : bool
-        True if gps_time is on the continuous GPS timescale.
-        False if gps_time is a UTC datetime. Default is False.
+        Time of clock can be float/int GPS milliseconds [ms] or a UTC
+        datetime.datetime object.
 
     Returns
     -------
@@ -74,27 +76,21 @@ def get_leap_seconds(gps_time, is_gps_time=False):
         Leap seconds at given time [s].
 
     """
-    if isinstance(gps_time, datetime) and not is_gps_time:
+    if isinstance(gps_time, datetime):
         curr_time = tzinfo_to_utc(gps_time)
         if curr_time < GPS_EPOCH_0:
             raise RuntimeError("Need input time after GPS epoch " \
                                + str(GPS_EPOCH_0))
-        for row_num, time_frame in enumerate(LEAPSECONDS_TABLE):
-            if curr_time >= time_frame:
-                return len(LEAPSECONDS_TABLE) - 1 - row_num
-        return 0
-
-    if isinstance(gps_time, datetime):
-        gps_millis = 1000.0 * (tzinfo_to_utc(gps_time) - GPS_EPOCH_0).total_seconds()
+        transitions = LEAPSECONDS_TABLE[:-1]
     else:
-        gps_millis = float(gps_time)
+        curr_time = float(gps_time)
+        if curr_time < 0:
+            raise RuntimeError("Need input time after GPS epoch " \
+                               + str(GPS_EPOCH_0))
+        transitions = LEAPSECONDS_GPS_MILLIS
 
-    if gps_millis < 0:
-        raise RuntimeError("Need input time after GPS epoch " \
-                           + str(GPS_EPOCH_0))
-
-    for row_num, gps_trans_ms in enumerate(LEAPSECONDS_GPS_MILLIS):
-        if gps_millis >= gps_trans_ms:
+    for row_num, time_frame in enumerate(transitions):
+        if curr_time >= time_frame:
             return len(LEAPSECONDS_TABLE) - 1 - row_num
     return 0
 
@@ -234,10 +230,10 @@ def tow_to_datetime(gps_weeks, tows):
     for t_idx, gps_week in enumerate(gps_weeks):
         tow = tows[t_idx]
 
-        gps_millis = 1000.0 * (WEEKSEC * gps_week + tow)
-        leap_secs = get_leap_seconds(gps_millis)
-        seconds_since_epoch = (gps_millis - 1000.0 * leap_secs) / 1000.0
+        seconds_since_epoch = WEEKSEC * gps_week + tow
+        leap_secs = get_leap_seconds(1000.0 * seconds_since_epoch)
         t_datetime = GPS_EPOCH_0 + timedelta(seconds=seconds_since_epoch)
+        t_datetime = t_datetime - timedelta(seconds=leap_secs)
 
         t_datetimes.append(t_datetime)
 

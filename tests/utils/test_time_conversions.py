@@ -68,11 +68,14 @@ def test_get_leap_seconds(check_leapseconds):
         valseconds = tc.get_leap_seconds(input_millis)
         assert valseconds == check_leapseconds[1,row]
 
-    # Testing that datetime_to_tow raises error for time before start of
-    # GPS epoch
+    # Testing that get_leap_seconds raises error for time before start of
+    # GPS epoch (both datetime and numeric ms)
     with pytest.raises(RuntimeError):
         input_time = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         _ = tc.get_leap_seconds(input_time)
+
+    with pytest.raises(RuntimeError):
+        _ = tc.get_leap_seconds(-1000.0)
 
 def test_datetime_to_tow():
     """Test that datetime conversion to GPS or UTC secs does not fail.
