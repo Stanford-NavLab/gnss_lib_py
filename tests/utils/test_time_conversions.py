@@ -103,6 +103,45 @@ def test_datetime_to_tow():
         input_time = datetime(1900, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         _ = tc.datetime_to_tow(input_time)
 
+
+@pytest.mark.parametrize("utc_time", [
+    datetime(1982, 6, 30, 23, 59, 59, tzinfo=timezone.utc),
+    datetime(2015, 6, 30, 23, 59, 59, tzinfo=timezone.utc),
+    datetime(2016, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+])
+def test_tow_to_datetime_before_leap_second(utc_time):
+    """Ordinary UTC seconds must survive a GPS week/TOW round trip."""
+    gps_week, tow = tc.datetime_to_tow(utc_time)
+    assert tc.tow_to_datetime(gps_week, tow) == utc_time
+
+
+def test_gps_to_utc_paths_before_2017_leap_second():
+    """All GPS-to-UTC APIs agree at the last ordinary UTC second."""
+    utc_time = datetime(2016, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    gps_millis = 1167264016000
+    unix_millis = 1483228799000
+
+    assert tc.tow_to_datetime(1930, 16.0) == utc_time
+    assert tc.tow_to_unix_millis(1930, 16.0) == unix_millis
+    assert tc.gps_millis_to_datetime(gps_millis) == utc_time
+    assert tc.gps_to_unix_millis(gps_millis) == unix_millis
+
+
+def test_historical_leap_boundaries(check_leapseconds):
+    """Ordinary UTC seconds before every known insertion round-trip."""
+    for transition in check_leapseconds[0, 1:]:
+        for seconds_before in range(1, 31):
+            utc_time = transition - timedelta(seconds=seconds_before)
+            gps_week, tow = tc.datetime_to_tow(utc_time)
+            assert tc.tow_to_datetime(gps_week, tow) == utc_time
+
+
+def test_inserted_leap_second_uses_preceding_representable_utc():
+    """Python datetime cannot represent 23:59:60; retain prior second."""
+    assert tc.tow_to_datetime(1930, 17.0) == datetime(
+        2016, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+
 def test_millis_since_gps_epoch_to_tow():
     """Test milliseconds since gps epoch to time of week.
 

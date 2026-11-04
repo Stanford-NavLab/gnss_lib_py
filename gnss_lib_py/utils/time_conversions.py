@@ -78,6 +78,24 @@ def get_leap_seconds(gps_time):
     return out_leapsecs
 
 
+def _gps_clock_leap_seconds(gps_datetime):
+    """Return GPS-UTC offset for a datetime on the GPS clock.
+
+    Apply each new offset at the GPS-clock instant of the inserted leap
+    second. Python datetime cannot represent that UTC second, so it is
+    mapped to the preceding representable UTC second.
+    """
+    if gps_datetime < GPS_EPOCH_0:
+        raise RuntimeError("Need input time after GPS epoch " \
+                           + str(GPS_EPOCH_0))
+    for row_num, utc_transition in enumerate(LEAPSECONDS_TABLE[:-1]):
+        leap_secs = len(LEAPSECONDS_TABLE) - 1 - row_num
+        gps_transition = utc_transition + timedelta(seconds=leap_secs - 1)
+        if gps_datetime >= gps_transition:
+            return leap_secs
+    return 0
+
+
 def gps_millis_to_tow(millis):
     """Convert milliseconds since GPS epoch to GPS week number and time.
 
@@ -215,7 +233,7 @@ def tow_to_datetime(gps_weeks, tows):
 
         seconds_since_epoch = WEEKSEC * gps_week + tow
         t_datetime = GPS_EPOCH_0 + timedelta(seconds=seconds_since_epoch)
-        leap_secs = get_leap_seconds(t_datetime)
+        leap_secs = _gps_clock_leap_seconds(t_datetime)
         t_datetime = t_datetime - timedelta(seconds=leap_secs)
 
         t_datetimes.append(t_datetime)
