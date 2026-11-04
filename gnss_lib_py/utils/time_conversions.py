@@ -84,6 +84,17 @@ def _gps_clock_leap_seconds(gps_datetime):
     Apply each new offset at the GPS-clock instant of the inserted leap
     second. Python datetime cannot represent that UTC second, so it is
     mapped to the preceding representable UTC second.
+
+    Parameters
+    ----------
+    gps_datetime : datetime.datetime
+        Timestamp on the continuous GPS-clock timescale.
+
+    Returns
+    -------
+    leap_secs : int
+        GPS-UTC offset at this GPS-clock instant [s].
+
     """
     if gps_datetime < GPS_EPOCH_0:
         raise RuntimeError("Need input time after GPS epoch " \
