@@ -68,6 +68,14 @@ def test_get_leap_seconds(check_leapseconds):
         valseconds = tc.get_leap_seconds(input_millis)
         assert valseconds == check_leapseconds[1,row]
 
+        # Test before leap second transition (for rows after GPS epoch)
+        if row > 0:
+            input_datetime_before = check_leapseconds[0, row] - timedelta(seconds=buffer_secs)
+            expected_prior_leapsecs = check_leapseconds[1, row] - 1
+            assert tc.get_leap_seconds(input_datetime_before) == expected_prior_leapsecs
+            input_millis_before = tc.datetime_to_gps_millis(input_datetime_before)
+            assert tc.get_leap_seconds(input_millis_before) == expected_prior_leapsecs
+
     # Testing that get_leap_seconds raises error for time before start of
     # GPS epoch (both datetime and numeric ms)
     with pytest.raises(RuntimeError):
