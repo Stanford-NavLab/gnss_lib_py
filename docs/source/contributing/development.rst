@@ -381,22 +381,32 @@ Step 2: Checking and Updating Package Dependencies
       ``xarray`` (e.g. ``xarray = "<=2024.7.0"``), so verify that parser tests
       pass whenever touching related packages.
 
-3. Update the lockfile:
+3. Update dependencies and the lockfile:
 
-   * To update specific packages (e.g., to address security vulnerabilities reported
-     by Dependabot):
+   * **Full dependency update (recommended)**:
+     To resolve all direct and transitive dependencies to their latest compatible
+     versions and regenerate ``poetry.lock``, run:
+
+     .. code-block:: bash
+
+        poetry update
+
+     Running a full ``poetry update`` is the standard and recommended approach
+     to resolve broad security vulnerability alerts (such as the numerous
+     transitive dependency vulnerabilities reported by Dependabot across
+     packages like ``pillow``, ``certifi``, ``urllib3``, and notebook components),
+     ensuring that the entire dependency graph remains modern and secure.
+
+   * **Targeted package update**:
+     If you only need to update specific packages (e.g., an isolated hotfix
+     or single dependency bump without altering other locked packages), specify
+     the package names:
 
      .. code-block:: bash
 
         poetry update <package-name>
         # Example:
         poetry update pillow certifi urllib3 nbconvert
-
-   * To update all unpinned dependencies to their latest compatible versions:
-
-     .. code-block:: bash
-
-        poetry update
 
 4. Synchronize your local virtual environment with the updated ``poetry.lock``:
 
@@ -420,14 +430,11 @@ Whenever ``poetry.lock`` changes, regenerate both files using ``poetry export``:
 
 .. code-block:: bash
 
-   # Disable export warnings
-   poetry config warnings.export false
-
    # 1. Export core requirements for pip/conda
-   poetry export -f requirements.txt --output ./requirements.txt --without-hashes
+   poetry run poetry export -f requirements.txt --output ./requirements.txt --without-hashes
 
    # 2. Export documentation requirements (including dev dependencies)
-   poetry export -f requirements.txt --output ./docs/source/requirements.txt --with dev --without-hashes
+   poetry run poetry export -f requirements.txt --output ./docs/source/requirements.txt --with dev --without-hashes
 
 Alternatively, running ``./build_docs.sh`` will automatically perform both exports
 before generating the Sphinx HTML documentation.
