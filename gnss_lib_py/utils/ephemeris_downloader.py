@@ -9,8 +9,8 @@ rinex files can be found in the CDDIS documentation [1]_.
 If rinex for the current day is requested or if rinex for the
 previous is requested and it is too early in the UTC day for
 yesterday's combined rinex file to be uploaded, then the
-BRDC00WRD_S rinex 3 file is downloaded from IGS and includes:
-GPS+GLO+GAL+BDS+QZSS+SBAS.
+BRDC00WRD_S rinex 3 file is downloaded from BKG / IGS via HTTPS
+and includes: GPS+GLO+GAL+BDS+QZSS+SBAS.
 
 If only GPS is requested, then the brdc<dddd>.<yy>n rinex 2 file is
 downloaded from CDDIS and includes: GPS.
@@ -99,7 +99,7 @@ References
 .. [2] https://igs.org/mgex/data-products/#bce
 .. [3] https://network.igs.org/
 .. [4] https://igs.org/mgex/data-products/#orbit_clock
-.. [5] https://igs.bkg.bund.de/browseFiles
+.. [5] https://igs.bkg.bund.de/root_ftp/
 .. [6] http://dx.doi.org/10.1016/j.asr.2020.04.038
 .. [7] http://dx.doi.org/10.7892/boris.75882.3
 .. [8] https://www.gfz-potsdam.de/en/section/space-geodetic-techniques/projects/mgex
@@ -124,6 +124,7 @@ import ftplib
 from ftplib import FTP_TLS, FTP
 from datetime import datetime, timezone, timedelta, time
 
+import requests
 import unlzw3
 import numpy as np
 
@@ -378,8 +379,12 @@ def _download_ephemeris(file_type, needed_files, download_directory,
                 print("using previously downloaded file:\n",dest_filepath)
             continue
         dest_path_with_extension = os.path.join(directory,os.path.split(ftp_path)[1])
-        _ftp_download(url, ftp_path, dest_path_with_extension,
-                      verbose)
+        if url.startswith("http://") or url.startswith("https://"):
+            _http_download(url, ftp_path, dest_path_with_extension,
+                           verbose)
+        else:
+            _ftp_download(url, ftp_path, dest_path_with_extension,
+                          verbose)
         downloaded_paths.append(dest_filepath)
 
     return downloaded_paths
@@ -477,7 +482,7 @@ def _valid_ephemeris_in_paths(date, possible_types, file_paths=None):
 
         # Rinex for the current day
         if possible_type == "rinex_nav_today":
-            recommended_file = ("igs-ftp.bkg.bund.de",
+            recommended_file = ("https://igs.bkg.bund.de/root_ftp",
                                 "/IGS/BRDC/" + str(timetuple.tm_year) \
                               + "/" + str(timetuple.tm_yday).zfill(3) \
                               + "/" + "BRDC00WRD_S_" \
@@ -909,6 +914,41 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
+
+def _http_download(url, file_path, dest_filepath, verbose=False):
+    """Copy ephemeris file from HTTP/HTTPS filepath to local directory.
+
+    Also decompresses file.
+
+    Parameters
+    ----------
+    url : string
+        HTTP/HTTPS server url.
+    file_path : string
+        Path to ephemeris file stored on the server.
+    dest_filepath : string
+        File path to downloaded ephemeris file stored locally.
+    verbose : bool
+        Prints extra debugging statements if true.
+
+    """
+    full_url = url.rstrip('/') + '/' + file_path.lstrip('/')
+    if verbose:
+        print('HTTP downloading ' + file_path + ' from ' + url)
+
+    try:
+        response = requests.get(full_url, timeout=30)
+        response.raise_for_status()
+        with open(dest_filepath, 'wb') as handle:
+            handle.write(response.content)
+    except requests.exceptions.RequestException as err:
+        if os.path.exists(dest_filepath):
+            os.remove(dest_filepath)
+        raise requests.exceptions.RequestException(
+            str(err) + ' Failed to retrieve ' + file_path + ' from ' + url
+        ) from err
+
+    _decompress_file(dest_filepath)
 
 def _ftp_download(url, ftp_path, dest_filepath, verbose=False):
     """Copy ephemeris file from FTP filepath to local directory.

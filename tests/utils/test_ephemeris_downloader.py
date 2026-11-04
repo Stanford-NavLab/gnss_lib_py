@@ -397,6 +397,33 @@ def test_ftp_errors(ephem_download_path):
 
     remove_download_eph(ephem_download_path)
 
+def test_http_errors(ephem_download_path):
+    """Test HTTP download errors.
+
+    Parameters
+    ----------
+    ephem_download_path : string
+        Location where ephemeris files are stored/to be downloaded.
+
+    """
+    remove_download_eph(ephem_download_path)
+    os.makedirs(ephem_download_path, exist_ok=True)
+
+    url = 'https://igs.bkg.bund.de/root_ftp'
+    file_path = '/IGS/BRDC/2020/notafolder/notAfile.rnx.gz'
+    dest_filepath = os.path.join(ephem_download_path,
+                                 os.path.split(file_path)[1])
+    # create dummy file to ensure it gets cleaned up on failure
+    with open(dest_filepath, 'w', encoding='utf-8') as handle:
+        handle.write('dummy')
+
+    with pytest.raises(requests.exceptions.RequestException) as excinfo:
+        ed._http_download(url, file_path, dest_filepath, verbose=True)
+    assert file_path in str(excinfo.value)
+    assert not os.path.exists(dest_filepath)
+
+    remove_download_eph(ephem_download_path)
+
 def test_ftp_download(ephem_download_path):
     """Test FTP download for ephemeris files.
 
@@ -430,8 +457,8 @@ def test_ftp_download(ephem_download_path):
         # assert files in paths are not empty
         for path in paths:
             assert os.path.getsize(path) > 1E5
-    except ftplib.error_perm as ftplib_exception:
-        print(ftplib_exception)
+    except (ftplib.error_perm, requests.exceptions.RequestException) as net_exception:
+        print(net_exception)
 
     # CODE rapid
     past_dt = (datetime.now() - timedelta(days=1,hours=12)).astimezone(timezone.utc)
@@ -525,16 +552,14 @@ def test_request_igs(capsys, ephem_download_path):
     remove_download_eph(ephem_download_path)
     os.makedirs(ephem_download_path, exist_ok=True)
 
-    past_dt = datetime.combine(datetime.now().date() - timedelta(days=2),
-                               time(12,tzinfo=timezone.utc))
-    gps_millis_past = tc.datetime_to_gps_millis(past_dt)
+    today_dt = datetime.now(timezone.utc)
+    gps_millis_today = tc.datetime_to_gps_millis(today_dt)
 
     _, needed_files = ed._verify_ephemeris("rinex_nav",
-                                            gps_millis_past)
+                                            gps_millis_today)
 
-    url = "http://igs.bkg.bund.de/root_ftp/"
-    _, ftp_path = needed_files[0]
-    requests_url = url + ftp_path
+    url, ftp_path = needed_files[0]
+    requests_url = url.rstrip('/') + '/' + ftp_path.lstrip('/')
 
     filename = os.path.split(ftp_path)[1]
     dest_filepath = os.path.join(ephem_download_path,filename)
@@ -581,7 +606,7 @@ def test_verify_ephemeris():
                                                         gps_millis,
                                                         verbose=True)
     assert len(existing_paths) == 0
-    assert needed_files[0][0] == 'igs-ftp.bkg.bund.de'
+    assert needed_files[0][0] == 'https://igs.bkg.bund.de/root_ftp'
 
     clk_dates = [
                  tc.datetime_to_gps_millis(datetime(2017, 3, 14, 12,
