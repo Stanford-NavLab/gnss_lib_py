@@ -142,6 +142,12 @@ def test_inserted_leap_second_uses_preceding_representable_utc():
         2016, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
 
 
+def test_tow_to_datetime_rejects_pre_epoch_gps_time():
+    """Reject GPS clock instants earlier than the GPS epoch."""
+    with pytest.raises(RuntimeError, match="after GPS epoch"):
+        tc.tow_to_datetime(0, -1.0)
+
+
 def test_millis_since_gps_epoch_to_tow():
     """Test milliseconds since gps epoch to time of week.
 
