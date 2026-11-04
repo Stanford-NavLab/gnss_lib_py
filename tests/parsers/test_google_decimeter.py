@@ -487,6 +487,19 @@ def test_prepare_kaggle_submission(state_estimate_2022):
                          1619735728999,1619735729999,1619735730999])
     np.testing.assert_array_equal(output["UnixTimeMillis"], expected)
 
+
+def test_prepare_kaggle_submission_before_leap_second():
+    """Export GPS timestamps without shifting the last ordinary UTC second."""
+    state_estimate = NavData()
+    state_estimate["gps_millis"] = np.array([1167264016000])
+    state_estimate["lat_rx_deg"] = np.array([37.0])
+    state_estimate["lon_rx_deg"] = np.array([-122.0])
+
+    output = google_decimeter.prepare_kaggle_submission(state_estimate)
+    np.testing.assert_array_equal(output["UnixTimeMillis"],
+                                  np.array([1483228799000]))
+
+
 def test_solve_kaggle_dataset(root_path):
     """Test kaggle solver.
 
