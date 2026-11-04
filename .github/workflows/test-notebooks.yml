@@ -1,0 +1,41 @@
+name: test-notebooks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - v*.*.*
+    paths:
+      - 'notebooks/**'
+      - 'gnss_lib_py/**'
+      - '.github/workflows/test-notebooks.yml'
+  workflow_dispatch:
+
+jobs:
+  test-tutorials:
+    name: Test Tutorial Notebooks Execution
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v7
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install nbconvert ipykernel
+        pip install -e .
+    - name: Execute tutorial notebooks
+      run: |
+        shopt -s globstar
+        for nb in notebooks/tutorials/**/*.ipynb; do
+          echo "::group::Testing $nb"
+          jupyter nbconvert --to notebook --execute "$nb" --ExecutePreprocessor.timeout=600 --output-dir=/tmp
+          echo "::endgroup::"
+        done
