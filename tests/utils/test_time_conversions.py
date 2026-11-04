@@ -55,8 +55,7 @@ def test_get_leap_seconds(check_leapseconds):
     check_leapseconds : np.ndarray
         Array of times at which leap seconds changed and changed values
     """
-    input_millis = 1000.0 * (datetime(2022, 7, 28, 0, 0, tzinfo=timezone.utc) \
-                 - tc.GPS_EPOCH_0).total_seconds()
+    input_millis = tc.datetime_to_gps_millis(datetime(2022, 7, 28, 0, 0, tzinfo=timezone.utc))
     valseconds = tc.get_leap_seconds(input_millis)
     assert valseconds == 18
     buffer_secs = 3.0
@@ -65,9 +64,7 @@ def test_get_leap_seconds(check_leapseconds):
         input_datetime = check_leapseconds[0,row] + timedelta(seconds = buffer_secs)
         valdatetime = tc.get_leap_seconds(input_datetime)
         assert valdatetime == check_leapseconds[1,row]
-        input_millis = 1000.0 * ( (check_leapseconds[0,row] \
-                                 - tc.GPS_EPOCH_0).total_seconds() \
-                              + buffer_secs)
+        input_millis = tc.datetime_to_gps_millis(input_datetime)
         valseconds = tc.get_leap_seconds(input_millis)
         assert valseconds == check_leapseconds[1,row]
 
@@ -459,3 +456,150 @@ def test_gps_datetime_to_gps_millis():
 
     gps_millis_for_gps_time = tc.gps_datetime_to_gps_millis(np.array(gps_time))
     np.testing.assert_equal(gps_millis_for_gps_time, gps_millis_for_utc_time)
+
+
+def test_issue_192_minimal_reproduction(): # pylint: disable=too-many-locals
+    """Test the exact boundary error reported in GitHub Issue #192.
+
+    Verifies that timestamps immediately before leap second insertions
+    (such as 2016-12-31 23:59:59 UTC) round-trip correctly and do not
+    lose a second across all public conversion functions.
+    """
+    utc_input = datetime(2016, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    expected_week = 1930
+    expected_tow = 16.0
+    expected_gps_ms = 1167264016000.0
+    expected_unix_ms = 1483228799000.0
+
+    # 1. datetime <--> tow
+    week, tow = tc.datetime_to_tow(utc_input)
+    assert week == expected_week
+    assert tow == pytest.approx(expected_tow)
+    utc_from_tow = tc.tow_to_datetime(week, tow)
+    assert utc_from_tow == utc_input
+
+    # 2. datetime <--> gps_millis
+    gps_ms = tc.datetime_to_gps_millis(utc_input)
+    assert gps_ms == pytest.approx(expected_gps_ms)
+    utc_from_gps_ms = tc.gps_millis_to_datetime(gps_ms)
+    assert utc_from_gps_ms == utc_input
+
+    # 3. datetime <--> unix_millis
+    unix_ms = tc.datetime_to_unix_millis(utc_input)
+    assert unix_ms == pytest.approx(expected_unix_ms)
+    utc_from_unix_ms = tc.unix_millis_to_datetime(unix_ms)
+    assert utc_from_unix_ms == utc_input
+
+    # 4. tow <--> unix_millis
+    unix_ms_from_tow = tc.tow_to_unix_millis(expected_week, expected_tow)
+    assert unix_ms_from_tow == pytest.approx(expected_unix_ms)
+    week_from_unix, tow_from_unix = tc.unix_millis_to_tow(expected_unix_ms)
+    assert week_from_unix == expected_week
+    assert tow_from_unix == pytest.approx(expected_tow)
+
+    # 5. gps_millis <--> unix_millis
+    unix_ms_from_gps = tc.gps_to_unix_millis(expected_gps_ms)
+    assert unix_ms_from_gps == pytest.approx(expected_unix_ms)
+    gps_ms_from_unix = tc.unix_to_gps_millis(expected_unix_ms)
+    assert gps_ms_from_unix == pytest.approx(expected_gps_ms)
+
+    # 6. tow <--> gps_millis
+    gps_ms_from_tow = tc.tow_to_gps_millis(expected_week, expected_tow)
+    assert gps_ms_from_tow == pytest.approx(expected_gps_ms)
+    week_from_gps, tow_from_gps = tc.gps_millis_to_tow(expected_gps_ms)
+    assert week_from_gps == expected_week
+    assert tow_from_gps == pytest.approx(expected_tow)
+
+
+def test_leap_second_round_trips_all_modes(): # pylint: disable=too-many-locals
+    """Test bidirectional conversions across all 18 historical leap seconds.
+
+    Verifies round-trip exactness for +/- 5 seconds around every leap-second
+    transition across all 4 time modes (datetime, tow, gps_millis, unix_millis).
+    """
+    leap_seconds = [ls for ls in tc.LEAPSECONDS_TABLE if ls != tc.GPS_EPOCH_0]
+
+    for ls_utc in leap_seconds:
+        # Sample +/- 5 seconds around midnight UTC (all representable UTC seconds)
+        for offset_sec in range(-5, 6):
+            dt_orig = ls_utc + timedelta(seconds=offset_sec)
+
+            # --- Mode 1: datetime <--> tow ---
+            week, tow = tc.datetime_to_tow(dt_orig)
+            dt_roundtrip = tc.tow_to_datetime(week, tow)
+            assert dt_roundtrip == dt_orig
+            wk_roundtrip, tow_roundtrip = tc.datetime_to_tow(dt_roundtrip)
+            assert wk_roundtrip == week
+            assert tow_roundtrip == pytest.approx(tow)
+
+            # --- Mode 2: datetime <--> gps_millis ---
+            gps_ms = tc.datetime_to_gps_millis(dt_orig)
+            dt_from_ms = tc.gps_millis_to_datetime(gps_ms)
+            assert dt_from_ms == dt_orig
+            gps_ms_roundtrip = tc.datetime_to_gps_millis(dt_from_ms)
+            assert gps_ms_roundtrip == pytest.approx(gps_ms)
+
+            # --- Mode 3: datetime <--> unix_millis ---
+            unix_ms = tc.datetime_to_unix_millis(dt_orig)
+            dt_from_unix = tc.unix_millis_to_datetime(unix_ms)
+            assert dt_from_unix == dt_orig
+            unix_ms_roundtrip = tc.datetime_to_unix_millis(dt_from_unix)
+            assert unix_ms_roundtrip == pytest.approx(unix_ms)
+
+            # --- Mode 4: tow <--> unix_millis ---
+            unix_from_tow = tc.tow_to_unix_millis(week, tow)
+            assert unix_from_tow == pytest.approx(unix_ms)
+            wk_from_unix, tow_from_unix = tc.unix_millis_to_tow(unix_from_tow)
+            assert wk_from_unix == week
+            assert tow_from_unix == pytest.approx(tow)
+
+            # --- Mode 5: gps_millis <--> unix_millis ---
+            unix_from_gps = tc.gps_to_unix_millis(gps_ms)
+            assert unix_from_gps == pytest.approx(unix_ms)
+            gps_from_unix = tc.unix_to_gps_millis(unix_from_gps)
+            assert gps_from_unix == pytest.approx(gps_ms)
+
+            # --- Mode 6: tow <--> gps_millis ---
+            gps_from_tow = tc.tow_to_gps_millis(week, tow)
+            assert gps_from_tow == pytest.approx(gps_ms)
+            wk_from_gps, tow_from_gps = tc.gps_millis_to_tow(gps_from_tow)
+            assert wk_from_gps == week
+            assert tow_from_gps == pytest.approx(tow)
+
+        # Also test array-based conversions for this leap second window
+        dts_array = np.array([ls_utc + timedelta(seconds=s) for s in range(-5, 6)])
+        wks_arr, tows_arr = tc.datetime_to_tow(dts_array)
+        dts_from_tow = tc.tow_to_datetime(wks_arr, tows_arr)
+        np.testing.assert_array_equal(dts_from_tow, dts_array)
+
+        gps_ms_arr = tc.datetime_to_gps_millis(dts_array)
+        dts_from_gps = tc.gps_millis_to_datetime(gps_ms_arr)
+        np.testing.assert_array_equal(dts_from_gps, dts_array)
+
+        unix_ms_arr = tc.datetime_to_unix_millis(dts_array)
+        dts_from_unix = tc.unix_millis_to_datetime(unix_ms_arr)
+        np.testing.assert_array_equal(dts_from_unix, dts_array)
+
+        unix_from_gps_arr = tc.gps_to_unix_millis(gps_ms_arr)
+        np.testing.assert_allclose(unix_from_gps_arr, unix_ms_arr)
+
+
+def test_leap_second_insertion_behavior():
+    """Verify Option A (POSIX repeat 59) behavior during the leap second.
+
+    During the unrepresentable inserted leap second (23:59:60 UTC),
+    gps_millis_to_datetime outputs 23:59:59 (repeats second 59),
+    and at midnight advances to 00:00:00.
+    """
+    # 2017-01-01 leap second:
+    # 1167264016000 ms is 2016-12-31 23:59:59 UTC
+    # 1167264017000 ms is the inserted leap second (23:59:60 UTC)
+    # 1167264018000 ms is 2017-01-01 00:00:00 UTC
+    dt_59 = tc.gps_millis_to_datetime(1167264016000.0)
+    assert dt_59 == datetime(2016, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+    dt_leap = tc.gps_millis_to_datetime(1167264017000.0)
+    assert dt_leap == datetime(2016, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+    dt_00 = tc.gps_millis_to_datetime(1167264018000.0)
+    assert dt_00 == datetime(2017, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
