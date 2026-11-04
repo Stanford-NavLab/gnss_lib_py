@@ -123,6 +123,8 @@ import gzip
 import ftplib
 from ftplib import FTP_TLS, FTP
 from datetime import datetime, timezone, timedelta, time
+import time as time_mod
+import socket
 
 import requests
 import unlzw3
@@ -950,7 +952,7 @@ def _http_download(url, file_path, dest_filepath, verbose=False):
 
     _decompress_file(dest_filepath)
 
-def _ftp_download(url, ftp_path, dest_filepath, verbose=False):
+def _ftp_download(url, ftp_path, dest_filepath, verbose=False, retries=3):
     """Copy ephemeris file from FTP filepath to local directory.
 
     Also decompresses file.
@@ -965,28 +967,59 @@ def _ftp_download(url, ftp_path, dest_filepath, verbose=False):
         File path to downloaded ephemeris file are stored locally.
     verbose : bool
         Prints extra debugging statements if true.
+    retries : int
+        Number of retry attempts for transient network errors.
 
     """
 
     secure = bool(url == 'gdc.cddis.eosdis.nasa.gov')
-
-    if verbose:
-        print('FTP downloading ' + ftp_path + ' from ' + url)
-    ftp = _ftp_login(url, secure)
     src_filepath = ftp_path
-    try:
-        with open(dest_filepath, 'wb') as handle:
-            ftp.retrbinary(
-                'RETR ' + src_filepath, handle.write)
-    except ftplib.error_perm as err:
-        os.remove(dest_filepath)
-        raise ftplib.error_perm(str(err) + ' Failed to retrieve ' \
-                              + src_filepath + ' from ' + url)
 
-    ftp.quit()
-    if ftp is not None: # try closing if still active
-        ftp.close()
-    _decompress_file(dest_filepath)
+    for attempt in range(retries):
+        ftp = None
+        try:
+            if verbose:
+                print('FTP downloading ' + ftp_path + ' from ' + url)
+            ftp = _ftp_login(url, secure)
+            with open(dest_filepath, 'wb') as handle:
+                ftp.retrbinary('RETR ' + src_filepath, handle.write)
+            try:
+                ftp.quit()
+            except (OSError, EOFError, ftplib.Error): # pragma: no cover
+                pass
+            if ftp is not None:
+                try:
+                    ftp.close()
+                except (OSError, EOFError, ftplib.Error): # pragma: no cover
+                    pass
+            _decompress_file(dest_filepath)
+            return
+        except ftplib.error_perm as err:
+            if os.path.exists(dest_filepath):
+                os.remove(dest_filepath)
+            if ftp is not None: # pragma: no cover
+                try:
+                    ftp.close()
+                except (OSError, EOFError, ftplib.Error):
+                    pass
+            raise ftplib.error_perm(str(err) + ' Failed to retrieve ' \
+                                  + src_filepath + ' from ' + url)
+        except (socket.timeout, TimeoutError, EOFError,
+                ConnectionResetError, ftplib.error_temp,
+                ftplib.error_reply, ftplib.error_proto) as err:
+            if os.path.exists(dest_filepath):
+                os.remove(dest_filepath)
+            if ftp is not None: # pragma: no cover
+                try:
+                    ftp.close()
+                except (OSError, EOFError, ftplib.Error):
+                    pass
+            if attempt < retries - 1:
+                if verbose:
+                    print(f"Transient FTP error: {err}. Retrying ({attempt + 1}/{retries})...")
+                time_mod.sleep(1.0 * (attempt + 1))
+            else:
+                raise
 
 def _ftp_login(url, secure=False):
     """Connect to given FTP server

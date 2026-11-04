@@ -374,44 +374,90 @@ def test_extract_ephemeris_dates():
     assert dates == [datetime(2023, 7, 1).date(),
                      datetime(2023, 7, 27).date()]
 
-def test_ftp_errors(ephem_download_path):
+def test_ftp_errors(tmp_path):
     """Test FTP download errors.
 
     Parameters
     ----------
-    ephem_download_path : string
-        Location where ephemeris files are stored/to be downloaded.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
 
     """
-    remove_download_eph(ephem_download_path)
-    os.makedirs(ephem_download_path, exist_ok=True)
-
     url = 'gdc.cddis.eosdis.nasa.gov'
     ftp_path = 'gnss/data/daily/2020/notafolder/notAfile.20n.Z'
-    dest_filepath = os.path.join(ephem_download_path,
+    dest_filepath = os.path.join(str(tmp_path),
                                  os.path.split(ftp_path)[1])
     # download the ephemeris file
     with pytest.raises(ftplib.error_perm) as excinfo:
         ed._ftp_download(url, ftp_path, dest_filepath)
     assert ftp_path in str(excinfo.value)
+    assert not os.path.exists(dest_filepath)
 
-    remove_download_eph(ephem_download_path)
+def test_ftp_download_retry(monkeypatch, tmp_path):
+    """Test _ftp_download retries on transient errors.
 
-def test_http_errors(ephem_download_path):
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
+
+    """
+    attempts = 0
+    def mock_login(_url, _secure=False):
+        nonlocal attempts
+        attempts += 1
+        if attempts < 2:
+            raise EOFError("Connection closed unexpectedly")
+        mock_ftp_obj = ftplib.FTP()
+        mock_ftp_obj.retrbinary = lambda cmd, callback: callback(b"test")
+        mock_ftp_obj.quit = lambda: None
+        mock_ftp_obj.close = lambda: None
+        return mock_ftp_obj
+
+    monkeypatch.setattr(ed, "_ftp_login", mock_login)
+    monkeypatch.setattr(ed, "_decompress_file", lambda path: None)
+
+    dest = os.path.join(str(tmp_path), "test_file.gz")
+    ed._ftp_download("example.com", "/path/to/file.gz", dest, verbose=True, retries=3)
+    assert attempts == 2
+    assert os.path.exists(dest)
+
+def test_ftp_download_retry_failure(monkeypatch, tmp_path):
+    """Test _ftp_download raises when all retries fail.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
+
+    """
+    def mock_login(_url, _secure=False):
+        raise TimeoutError("Connection timed out")
+
+    monkeypatch.setattr(ed, "_ftp_login", mock_login)
+    dest = os.path.join(str(tmp_path), "test_file.gz")
+    with open(dest, "w", encoding="utf-8") as file_handle:
+        file_handle.write("partial")
+    with pytest.raises(TimeoutError):
+        ed._ftp_download("example.com", "/path/to/file.gz", dest, verbose=True, retries=2)
+    assert not os.path.exists(dest)
+
+def test_http_errors(tmp_path):
     """Test HTTP download errors.
 
     Parameters
     ----------
-    ephem_download_path : string
-        Location where ephemeris files are stored/to be downloaded.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
 
     """
-    remove_download_eph(ephem_download_path)
-    os.makedirs(ephem_download_path, exist_ok=True)
-
     url = 'https://igs.bkg.bund.de/root_ftp'
     file_path = '/IGS/BRDC/2020/notafolder/notAfile.rnx.gz'
-    dest_filepath = os.path.join(ephem_download_path,
+    dest_filepath = os.path.join(str(tmp_path),
                                  os.path.split(file_path)[1])
     # create dummy file to ensure it gets cleaned up on failure
     with open(dest_filepath, 'w', encoding='utf-8') as handle:
@@ -422,8 +468,6 @@ def test_http_errors(ephem_download_path):
     assert file_path in str(excinfo.value)
     assert not os.path.exists(dest_filepath)
 
-    remove_download_eph(ephem_download_path)
-
 def test_ftp_download(ephem_download_path):
     """Test FTP download for ephemeris files.
 
@@ -433,8 +477,6 @@ def test_ftp_download(ephem_download_path):
         Location where ephemeris files are stored/to be downloaded to.
 
     """
-
-    remove_download_eph(ephem_download_path)
     os.makedirs(ephem_download_path, exist_ok=True)
 
     past_dt = (datetime.now() - timedelta(days=2)).astimezone(timezone.utc)
@@ -490,34 +532,61 @@ def test_ftp_download(ephem_download_path):
                           file_paths=paths,
                           verbose=True)
 
+def test_load_ephemeris_fallbacks(monkeypatch, tmp_path):
+    """Test fallback logic when preferred providers are missing.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
+
+    """
+    def mock_ftp_download(_url, ftp_path, dest_filepath, _verbose=False, _retries=3):
+        if any(prov in ftp_path for prov in ["WUM0MGXFIN", "wum", "BRDM00DLR"]):
+            raise ftplib.error_perm(f"550 {ftp_path}: No such file")
+        decompressed = dest_filepath.rsplit('.', 1)[0]
+        with open(decompressed, "w", encoding="utf-8") as file_handle:
+            file_handle.write("dummy")
+
+    monkeypatch.setattr(ed, "_ftp_download", mock_ftp_download)
+
     # test when WUM0MGXFIN doesn't exist and is replaced
     paths = ed.load_ephemeris("clk",
                               tc.datetime_to_gps_millis(datetime(2020,6,7,12,
                                                         tzinfo=timezone.utc)),
-                              download_directory=ephem_download_path,
+                              download_directory=str(tmp_path),
                               verbose=True)
-    assert os.path.getsize(paths[0]) > 1E7
-    remove_download_eph(ephem_download_path)
+    assert "GFZ0MGXRAP" in paths[0]
+    assert os.path.exists(paths[0])
 
     # test when wum doesn't exist and is replaced
     paths = ed.load_ephemeris("clk",
                               tc.datetime_to_gps_millis(datetime(2018,7,15,12,
                                                         tzinfo=timezone.utc)),
-                              download_directory=ephem_download_path,
+                              download_directory=str(tmp_path),
                               verbose=True)
-    assert os.path.getsize(paths[0]) > 1E7
-    remove_download_eph(ephem_download_path)
+    assert "gbm" in paths[0]
+    assert os.path.exists(paths[0])
 
     # test when BRDM00DLR_R doesn't exist and is replaced
-    # use case between Nov 26, 2013 - Dec 5, 2013 when the entire
-    # DDD/YYp/ directory is missing
     paths = ed.load_ephemeris("rinex_nav",
                               tc.datetime_to_gps_millis(datetime(2013,12,3,12,
                                                         tzinfo=timezone.utc)),
-                              download_directory=ephem_download_path,
+                              download_directory=str(tmp_path),
                               verbose=True)
-    assert os.path.getsize(paths[0]) > 1E5
-    remove_download_eph(ephem_download_path)
+    assert "BRDC00IGS" in paths[0]
+    assert os.path.exists(paths[0])
+
+    # test when BRDM00DLR_S doesn't exist and is replaced
+    paths = ed.load_ephemeris("rinex_nav",
+                              tc.datetime_to_gps_millis(datetime(2019,11,26,12,
+                                                        tzinfo=timezone.utc)),
+                              download_directory=str(tmp_path),
+                              verbose=True)
+    assert "BRDC00IGS" in paths[0]
+    assert os.path.exists(paths[0])
 
 def download_igs(requests_url):
     """Helper function to capture ConnectionError.
@@ -536,7 +605,7 @@ def download_igs(requests_url):
 
     return response
 
-def test_request_igs(capsys, ephem_download_path):
+def test_request_igs(capsys, tmp_path):
     """Test requests download for igs files.
 
     The reason for this test is that Github workflow actions seem to
@@ -544,14 +613,10 @@ def test_request_igs(capsys, ephem_download_path):
 
     Parameters
     ----------
-    ephem_download_path : string
+    tmp_path : pathlib.Path
         Location where ephemeris files are stored/downloaded.
 
     """
-
-    remove_download_eph(ephem_download_path)
-    os.makedirs(ephem_download_path, exist_ok=True)
-
     today_dt = datetime.now(timezone.utc)
     gps_millis_today = tc.datetime_to_gps_millis(today_dt)
 
@@ -562,7 +627,7 @@ def test_request_igs(capsys, ephem_download_path):
     requests_url = url.rstrip('/') + '/' + ftp_path.lstrip('/')
 
     filename = os.path.split(ftp_path)[1]
-    dest_filepath = os.path.join(ephem_download_path,filename)
+    dest_filepath = os.path.join(str(tmp_path), filename)
 
     fail_count = 0
     while fail_count < 3:# download the ephemeris file
@@ -578,8 +643,6 @@ def test_request_igs(capsys, ephem_download_path):
 
     with open(dest_filepath,'wb') as file:
         file.write(response.content)
-
-    remove_download_eph(ephem_download_path)
 
 def test_ephemeris_fails():
     """Test ways the ephemeris downloader should fail.
