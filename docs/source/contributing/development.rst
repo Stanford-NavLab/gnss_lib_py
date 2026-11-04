@@ -307,117 +307,153 @@ New Package Release Workflow
 Updating Dependencies and GitHub Workflows
 ------------------------------------------
 
-Keeping dependencies and GitHub Actions workflows up to date is essential for
-project security, bug fixes, and compatibility with new Python versions. This
-guide describes the procedure for updating Poetry, package dependencies,
-syncing ``requirements.txt``, and updating GitHub Actions workflows.
+Maintaining up-to-date dependencies and GitHub Actions workflows is essential for
+project security, bug fixes, and compatibility with current Python releases.
+``gnss_lib_py`` uses a dual dependency structure:
 
-Examples of Past Dependency PRs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* **Poetry** (``pyproject.toml`` and ``poetry.lock``) serves as the primary source of
+  truth for defining and locking package dependencies and their exact versions.
+* **Requirements files** (``requirements.txt`` and ``docs/source/requirements.txt``)
+  are exported artifacts generated directly from ``poetry.lock``. They are consumed
+  by ``pip install -r requirements.txt``, Conda setups, ReadTheDocs, and CI workflows.
 
-When preparing a dependency update, you can reference recent pull requests
-merged into ``main`` that demonstrate these changes:
+This guide outlines an efficient, automated workflow for checking for updates,
+refreshing dependencies, updating GitHub Actions, and verifying changes.
 
-* **PR #175 & #176** (`derek/depends-202504 <https://github.com/Stanford-NavLab/gnss_lib_py/pull/175>`__ & `derek/req-202504 <https://github.com/Stanford-NavLab/gnss_lib_py/pull/176>`__):
-  Upgraded core dependencies such as ``numpy`` to 2.x and downgraded ``notebook``
-  for environment compatibility, updating ``poetry.lock`` and both requirements files.
-* **PR #186** (`py_3-14 <https://github.com/Stanford-NavLab/gnss_lib_py/pull/186>`__):
-  Added Python 3.14 compatibility, updated dependency bounds in ``pyproject.toml``,
-  pinned ``georinex`` and ``xarray`` compatibility versions, updated the GitHub
-  Actions matrix, and upgraded the ReadTheDocs environment.
-* **PR #188** (`derek/deprecate-py3.9 <https://github.com/Stanford-NavLab/gnss_lib_py/pull/188>`__):
-  Deprecated Python 3.9, updated GitHub Actions runner versions
-  (``actions/setup-python@v7``, ``actions/cache@v6``, ``codecov/codecov-action@v7``),
-  and regenerated ``poetry.lock`` and ``requirements.txt``.
+Workflow Overview
+~~~~~~~~~~~~~~~~~
 
-Step 1: Updating Poetry
-~~~~~~~~~~~~~~~~~~~~~~~
+A routine dependency update consists of the following steps:
 
-**Local Poetry Installation:**
+1. **Check GitHub Actions & CI environments**: Run ``python scripts/check_workflow_updates.py``
+   to automatically identify outdated GitHub Actions, CI Poetry versions, or end-of-life
+   Python releases.
+2. **Update dependencies**: Run ``poetry update`` to resolve and lock all unpinned
+   packages to their latest compatible versions.
+3. **Export requirements**: Run ``poetry run poetry export`` to update both
+   ``requirements.txt`` and ``docs/source/requirements.txt``.
+4. **Test and verify**: Run pytest, pylint, and ``./build_docs.sh`` to ensure zero
+   regressions.
+5. **Submit a pull request**: Target the latest version release branch (``vX.Y.Z``).
 
-To update Poetry on your local machine to the latest release, run:
+Step 1: Checking GitHub Actions & CI Workflows Automatically
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Rather than manually reviewing each action in ``.github/workflows/*.yml`` and
+``.readthedocs.yaml``, ``gnss_lib_py`` includes a standard-library script that
+automatically checks all workflow dependencies:
 
 .. code-block:: bash
 
-   poetry self update
+   python scripts/check_workflow_updates.py
 
-Or install a specific version using the official installer script:
+**What the script checks:**
+
+* **GitHub Actions**: Inspects every ``uses: owner/repo@tag`` reference across all
+  workflow files, queries the GitHub API for the latest release tag, and reports
+  available updates.
+* **Poetry Version in CI**: Checks the version pinned under ``snok/install-poetry@v1``
+  in ``build.yml`` and ``pylint.yml`` against the latest Poetry release on PyPI.
+* **Python Supported Versions**: Compares the Python versions in the CI test matrix
+  and ReadTheDocs configuration against the official Python release cycle from
+  `endoflife.date <https://endoflife.date/python>`__, flagging end-of-life versions or
+  newly released versions that should be tested.
+
+.. tip::
+   To avoid GitHub's unauthenticated API rate limit (60 requests/hour), you can set the
+   ``GITHUB_TOKEN`` environment variable before running the script:
+
+   .. code-block:: bash
+
+      export GITHUB_TOKEN="<your-github-token>"
+      python scripts/check_workflow_updates.py
+
+If updates are reported:
+
+1. **Update GitHub Actions**: In ``.github/workflows/*.yml``, bump the action version tag
+   (e.g., updating ``actions/checkout@v6`` to ``actions/checkout@v7``).
+2. **Update Poetry in CI**: Update the ``version: X.Y.Z`` field under ``snok/install-poetry``
+   in both ``.github/workflows/build.yml`` and ``.github/workflows/pylint.yml``.
+3. **Update Python Matrix** (if Python versions were added or deprecated):
+
+   * Update ``matrix.python-version`` in ``.github/workflows/build.yml``.
+   * Update the single Python test version in ``.github/workflows/pip-install.yml``,
+     ``.github/workflows/pylint.yml``, and ``.github/workflows/pypi-release.yml``.
+   * Update ``build.tools.python`` in ``.readthedocs.yaml``.
+   * Update ``python = ">=3.10, < 3.15"`` in ``pyproject.toml``.
+   * Update references in ``docs/source/install.rst`` and
+     ``.github/ISSUE_TEMPLATE/bug_report.md``.
+
+Step 2: Updating Python Dependencies with Poetry
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Do you need to run poetry show --outdated?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Running :code:`poetry show --outdated` queries PyPI for every installed package to display
+available newer versions (or :code:`poetry show --outdated --top-level` to view only direct
+dependencies). While informative for inspecting individual packages, **it is not necessary
+prior to updating**.
+
+For routine updates and security vulnerability fixes, run :code:`poetry update` directly:
 
 .. code-block:: bash
 
-   curl -sSL https://install.python-poetry.org | python3 - --version <version>
+   poetry update
 
-**Poetry in GitHub Actions Workflows:**
+Why a Full poetry update is Recommended
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-GitHub Actions CI workflows install Poetry using ``snok/install-poetry@v1``.
-To update the Poetry version used across CI, edit the ``version`` field in
-both ``.github/workflows/build.yml`` and ``.github/workflows/pylint.yml``:
+* **Resolves transitive vulnerabilities**: Security advisories (such as Dependabot alerts
+  for ``pillow``, ``certifi``, ``urllib3``, ``nbconvert``, etc.) frequently originate from
+  transitive dependencies pulled in by top-level libraries. Running :code:`poetry update`
+  recomputes the dependency graph, bringing all direct and transitive dependencies up to
+  their highest compatible versions without requiring you to trace and update each package
+  individually.
+* **Keeps lockfile clean and modern**: Ensures that sub-dependencies maintain consistent,
+  tested version sets compatible with your Python version range.
 
-.. code-block:: yaml
+Targeted Package Updates
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-   - name: Install Poetry
-     uses: snok/install-poetry@v1
-     with:
-       version: <new-poetry-version>
-       virtualenvs-create: true
-       virtualenvs-in-project: true
-       installer-parallel: false
+If you only wish to patch a specific package without modifying any other locked packages:
 
-Step 2: Checking and Updating Package Dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: bash
 
-1. Check which dependencies in your environment have newer releases available:
+   poetry update <package-name>
+   # Example:
+   poetry update pillow certifi urllib3 nbconvert
 
-   .. code-block:: bash
+.. note::
+   **Upstream compatibility pins:**
+   Certain packages have strict compatibility requirements that must be preserved in
+   ``pyproject.toml`` unless thoroughly validated. For example, ``georinex`` requires
+   specific versions of ``xarray`` (currently ``xarray = "<=2024.7.0"``) and
+   ``georinex = "<=1.16.1"``. Do not remove these constraints without verifying that
+   all RINEX parser unit tests pass.
 
-      poetry show --outdated
+Auditing for Known Vulnerabilities Locally
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2. Update constraints in ``pyproject.toml`` if necessary. For example, if adding
-   support for a new Python version or broadening a dependency's allowed version range.
+You can quickly scan your environment for known CVEs using ``pip-audit``:
 
-   .. note::
-      Be careful when updating packages that have tight upstream compatibility
-      requirements. For example, ``georinex`` requires specific versions of
-      ``xarray`` (e.g. ``xarray = "<=2024.7.0"``), so verify that parser tests
-      pass whenever touching related packages.
+.. code-block:: bash
 
-3. Update dependencies and the lockfile:
+   pipx run pip-audit -r requirements.txt
 
-   * **Full dependency update (recommended)**:
-     To resolve all direct and transitive dependencies to their latest compatible
-     versions and regenerate ``poetry.lock``, run:
+Synchronizing Your Local Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-     .. code-block:: bash
+After ``poetry.lock`` is updated, synchronize your active virtual environment:
 
-        poetry update
+.. code-block:: bash
 
-     Running a full ``poetry update`` is the standard and recommended approach
-     to resolve broad security vulnerability alerts (such as the numerous
-     transitive dependency vulnerabilities reported by Dependabot across
-     packages like ``pillow``, ``certifi``, ``urllib3``, and notebook components),
-     ensuring that the entire dependency graph remains modern and secure.
-
-   * **Targeted package update**:
-     If you only need to update specific packages (e.g., an isolated hotfix
-     or single dependency bump without altering other locked packages), specify
-     the package names:
-
-     .. code-block:: bash
-
-        poetry update <package-name>
-        # Example:
-        poetry update pillow certifi urllib3 nbconvert
-
-4. Synchronize your local virtual environment with the updated ``poetry.lock``:
-
-   .. code-block:: bash
-
-      poetry install --sync
+   poetry install --sync
 
 Step 3: Exporting and Syncing Requirements Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``gnss_lib_py`` maintains two ``requirements.txt`` files:
+``gnss_lib_py`` maintains two exported requirements files:
 
 * ``./requirements.txt``: Root requirements file containing only the core runtime
   dependencies. Used for ``pip install -r requirements.txt``, Conda setups, and
@@ -426,7 +462,7 @@ Step 3: Exporting and Syncing Requirements Files
   group dependencies (Sphinx, nbsphinx, notebook, etc.). Used by ReadTheDocs
   (defined in ``.readthedocs.yaml``) and for local documentation builds.
 
-Whenever ``poetry.lock`` changes, regenerate both files using ``poetry export``:
+Whenever ``poetry.lock`` changes, re-export both files:
 
 .. code-block:: bash
 
@@ -436,49 +472,11 @@ Whenever ``poetry.lock`` changes, regenerate both files using ``poetry export``:
    # 2. Export documentation requirements (including dev dependencies)
    poetry run poetry export -f requirements.txt --output ./docs/source/requirements.txt --with dev --without-hashes
 
-Alternatively, running ``./build_docs.sh`` will automatically perform both exports
-before generating the Sphinx HTML documentation.
+.. tip::
+   Running ``./build_docs.sh`` also performs both exports automatically before generating
+   the Sphinx documentation.
 
-Step 4: Updating Dependencies in GitHub Workflows
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The GitHub Actions workflows reside in ``.github/workflows/``:
-
-* ``build.yml``: Primary CI pipeline running unit tests with pytest and coverage
-  across the OS matrix (Ubuntu, macOS, Windows) and Python versions, testing
-  documentation builds, and uploading coverage reports to Codecov.
-* ``pip-install.yml``: Tests installation from ``requirements.txt`` via pip and
-  executes pytest.
-* ``pylint.yml``: Runs pylint code quality checks.
-* ``pypi-release.yml``: Builds wheels and source distributions and publishes to PyPI
-  upon GitHub release creation.
-
-**Updating GitHub Action Versions:**
-
-Periodically review and update third-party actions in all workflow files:
-
-* ``actions/checkout``
-* ``actions/setup-python``
-* ``actions/cache``
-* ``snok/install-poetry``
-* ``codecov/codecov-action``
-* ``tj-actions/changed-files``
-* ``pypa/gh-action-pypi-publish``
-
-**Updating Python Version Matrix:**
-
-When adding support for a new Python version or deprecating an older version:
-
-1. Update ``matrix.python-version`` in ``.github/workflows/build.yml``.
-2. Update the single Python test version in ``.github/workflows/pip-install.yml``,
-   ``.github/workflows/pylint.yml``, and ``.github/workflows/pypi-release.yml``.
-3. Update the Python version in ``.readthedocs.yaml`` under ``build.tools.python``.
-4. Update the Python version requirement in ``pyproject.toml`` under
-   ``[tool.poetry.dependencies]`` (e.g. ``python = ">=3.10, < 3.15"``).
-5. Update compatibility references in ``docs/source/install.rst`` and
-   ``.github/ISSUE_TEMPLATE/bug_report.md``.
-
-Step 5: Testing and Verification
+Step 4: Testing and Verification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before committing any dependency or workflow changes, verify that all checks pass locally:
@@ -507,10 +505,10 @@ Before committing any dependency or workflow changes, verify that all checks pas
 
       python -m pip install -r requirements.txt
 
-Step 6: Committing and Submitting Pull Request
+Step 5: Committing and Submitting Pull Request
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Create a dedicated branch for your dependency updates following the lab's naming convention:
+1. Create a dedicated branch following the lab's naming convention:
 
    .. code-block:: bash
 
@@ -531,4 +529,5 @@ Step 6: Committing and Submitting Pull Request
 
 4. Open a pull request targeting the latest version release branch (``vX.Y.Z``).
    Ensure all GitHub Actions status checks pass.
+
 
