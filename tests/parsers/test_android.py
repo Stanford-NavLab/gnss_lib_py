@@ -398,7 +398,7 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         os.remove(os.path.join(output_directory, file))
     os.rmdir(output_directory)
 
-def test_raw_load(android_raw_2023_path, android_derived_2023_path):
+def test_raw_load(android_raw_2023_path, android_derived_2023_path, root_path):
     """Test basic loading of android raw file.
 
     Parameters
@@ -407,6 +407,8 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
         Location for text log file with Android Raw measurements.
     android_derived_2023_path : string
         Location for text log file with Android derived measurements.
+    root_path : string
+        Location for unit test directory.
 
     """
     # load derived data
@@ -416,6 +418,7 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
     raw = android.AndroidRawGnss(input_path=android_raw_2023_path,
                                  filter_measurements=False,
                                  remove_rx_b_from_pr=True,
+                                 download_directory=root_path,
                                  )
 
     # make sure the same data is contained in both
@@ -600,3 +603,37 @@ def test_raw_filters(root_path):
                                  remove_rx_b_from_pr=False,
                                  verbose=True)
     assert len(raw) + 11 == orig_len
+
+def test_qzss_prn_to_svn(android_raw_2023_path, tmp_path):
+    """Test QZSS PRNs are translated to SVNs, including newer satellites.
+
+    Parameters
+    ----------
+    android_raw_2023_path : string
+        Location for text log file with Android Raw measurements.
+    tmp_path : pathlib.Path
+        Temporary directory provided by pytest.
+
+    """
+    # replace PRN 195 (QZS04) in the log with PRN 197 (QZS05)
+    with open(android_raw_2023_path, encoding="utf-8") as raw_file:
+        lines = raw_file.readlines()
+    header = next(line for line in lines if line.startswith("# Raw,"))
+    columns = header[2:].strip().split(",")
+    svid_idx = columns.index("Svid")
+    constellation_idx = columns.index("ConstellationType")
+    for i, line in enumerate(lines):
+        row = line.split(",")
+        if row[0] == "Raw" and row[constellation_idx] == "4":
+            row[svid_idx] = "197"
+            lines[i] = ",".join(row)
+    raw_path = tmp_path / "gnss_log.txt"
+    raw_path.write_text("".join(lines), encoding="utf-8")
+
+    raw = android.AndroidRawGnss(input_path=str(raw_path),
+                                 filter_measurements=False,
+                                 remove_rx_b_from_pr=False,
+                                 )
+    qzss = raw.where("gnss_id", "qzss")
+    assert len(qzss) > 0
+    np.testing.assert_array_equal(qzss["sv_id"], 6)
