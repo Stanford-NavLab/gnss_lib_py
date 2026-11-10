@@ -1,0 +1,63 @@
+name: dependabot-sync
+
+on:
+  pull_request_target:
+    branches:
+      - main
+      - v*.*.*
+    paths:
+      - 'poetry.lock'
+      - 'pyproject.toml'
+  workflow_dispatch:
+
+jobs:
+  sync-requirements:
+    name: Sync requirements.txt with poetry.lock
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          # Optional PAT (DEPENDABOT_SYNC_PAT) allows pushed commits to re-trigger CI workflows.
+          # Falls back to GITHUB_TOKEN if no PAT secret is configured.
+          token: ${{ secrets.DEPENDABOT_SYNC_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.2.1
+          virtualenvs-create: false
+          installer-parallel: false
+
+      - name: Install poetry-plugin-export
+        run: poetry self add poetry-plugin-export
+
+      - name: Export requirements.txt files
+        run: |
+          poetry config warnings.export false
+          poetry export -f requirements.txt --output ./requirements.txt --without-hashes
+          poetry export -f requirements.txt --output ./docs/source/requirements.txt --with dev --without-hashes
+
+      - name: Commit and push changes if modified
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet requirements.txt docs/source/requirements.txt; then
+            git add requirements.txt docs/source/requirements.txt
+            git commit -m "chore(deps): auto-sync requirements.txt with updated poetry.lock"
+            git push
+          fi
