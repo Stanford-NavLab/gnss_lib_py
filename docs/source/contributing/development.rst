@@ -336,7 +336,9 @@ Updating Dependencies and GitHub Workflows
       * Update the single Python test version in ``.github/workflows/pip-install.yml``,
         ``.github/workflows/pylint.yml``, and ``.github/workflows/pypi-release.yml``.
       * Update ``build.tools.python`` in ``.readthedocs.yaml``.
-      * Update ``python = ">=3.10, < 3.15"`` in ``pyproject.toml``.
+      * Update ``python = ">=3.10, < 3.15"`` in ``pyproject.toml``. Consider
+        updating the dependency major versions in ``pyproject.toml`` at the
+        same time if necessary.
       * Update references in ``docs/source/install.rst`` and
         ``.github/ISSUE_TEMPLATE/bug_report.md``.
 
