@@ -519,6 +519,65 @@ def test_ftp_download(ephem_download_path):
     assert os.path.getsize(paths[0]) > 1E5
     remove_download_eph(ephem_download_path)
 
+def test_load_ephemeris_gfz_fallback(monkeypatch, tmp_path):
+    """Test fallback from GFZ0MGXRAP to COD0OPSRAP when GFZ is missing.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
+
+    """
+    def mock_ftp_download(_url, ftp_path, dest_filepath, _verbose=False):
+        if "GFZ0MGXRAP" in ftp_path:
+            raise ftplib.error_perm(f"550 {ftp_path}: No such file")
+        decompressed = dest_filepath.rsplit('.', 1)[0]
+        with open(decompressed, "w", encoding="utf-8") as file_handle:
+            file_handle.write("dummy")
+
+    monkeypatch.setattr(ed, "_ftp_download", mock_ftp_download)
+
+    for file_type in ["sp3", "clk"]:
+        paths = ed.load_ephemeris(file_type,
+                                  tc.datetime_to_gps_millis(datetime(2026, 11, 4, 12,
+                                                            tzinfo=timezone.utc)),
+                                  download_directory=str(tmp_path),
+                                  verbose=True)
+        assert len(paths) > 0
+        assert "COD0OPSRAP" in paths[0]
+        assert os.path.exists(paths[0])
+
+def test_load_ephemeris_wum_and_gfz_fallback(monkeypatch, tmp_path):
+    """Test 3rd fallback attempt from WUM to GFZ to COD0OPSRAP.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
+
+    """
+    def mock_ftp_download(_url, ftp_path, dest_filepath, _verbose=False):
+        if "WUM0MGXFIN" in ftp_path or "GFZ0MGXRAP" in ftp_path:
+            raise ftplib.error_perm(f"550 {ftp_path}: No such file")
+        decompressed = dest_filepath.rsplit('.', 1)[0]
+        with open(decompressed, "w", encoding="utf-8") as file_handle:
+            file_handle.write("dummy")
+
+    monkeypatch.setattr(ed, "_ftp_download", mock_ftp_download)
+
+    paths = ed.load_ephemeris("clk",
+                              tc.datetime_to_gps_millis(datetime(2020, 6, 7, 12,
+                                                        tzinfo=timezone.utc)),
+                              download_directory=str(tmp_path),
+                              verbose=True)
+    assert len(paths) > 0
+    assert "COD0OPSRAP" in paths[0]
+    assert os.path.exists(paths[0])
+
 def download_igs(requests_url):
     """Helper function to capture ConnectionError.
 
