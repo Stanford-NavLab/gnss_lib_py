@@ -52,6 +52,9 @@ results/*
 *.*o
 *.*g
 *.rnx
+# Allow JSON files (overriding *.*n wildcard)
+!*.json
+!.*.json
 # Include unit test files for broadcast ephemerides
 !data/unit_test/**/*.*n
 !data/unit_test/**/*.*o
