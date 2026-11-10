@@ -43,8 +43,7 @@ Additional Contributing Pages
 
 We have a set of detailed :ref:`development guides<development>` depending
 on whether you are a public user, Stanford NAV Lab member, or a project
-maintainer (including reviewing pull requests, cutting releases, and
-updating dependencies and workflows).
+maintainer.
 
 For increased user confidence, we have implemented unit tests for our
 code. We have pages on how to :ref:`write and run tests<testing>` and
