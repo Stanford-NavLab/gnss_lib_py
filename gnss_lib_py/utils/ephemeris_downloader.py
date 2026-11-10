@@ -3,11 +3,11 @@
 Rinex Navigation
 ----------------
 
-Rinex navigation files are pulled from one of five sources. More about
+Rinex navigation files are pulled from one of several sources. More about
 rinex files can be found in the CDDIS documentation [1]_.
 
 If rinex for the current day is requested or if rinex for the
-previous is requested and it is too early in the UTC day for
+previous day is requested and it is too early in the UTC day for
 yesterday's combined rinex file to be uploaded, then the
 BRDC00WRD_S rinex 3 file is downloaded from BKG / IGS via HTTPS
 and includes: GPS+GLO+GAL+BDS+QZSS+SBAS.
@@ -26,6 +26,13 @@ downloaded from CDDIS. These multi-gnss files include:
 GPS+GLO+GAL+BDS+QZSS+IRNSS+SBAS. For more information on multi-gnss
 combined rinex navigation files, see MGEX documentation [2]_.
 
+If the BRDM00DLR multi-gnss file cannot be downloaded, then the
+BRDC00IGS_R rinex 3 file is downloaded from CDDIS. If that also fails
+(for example, between Nov 26, 2013 and Dec 5, 2013 when the entire
+DDD/YYp/ directory is missing on CDDIS), then the download falls back
+to downloading separate GPS (brdc<dddd>.<yy>n) and Glonass
+(brdc<dddd>.<yy>g) navigation files.
+
 SP3 and CLK within Two Weeks
 ----------------------------
 SP3 and CLK files are obtained from CDDIS and produced by either the
@@ -34,7 +41,7 @@ Potsdam (GFZ) or Wuhan University. Products are available through the
 MGEX data program [4]_. Details on the MGEX precise orbit and clock
 products can be found on the IGS website [4]_.
 
-If the SP3 or CLK date requested is within the three days, then the
+If the SP3 or CLK date requested is within three days, then the
 rapid solution from CODE is downloaded (COD0OPSRAP). The CODE rapid
 solution includes: GPS+GLO+GAL.
 
@@ -43,6 +50,10 @@ rapid solution from GFZ is downloaded (GFZ0MGXRAP). The GFZ rapid
 solution became available starting GPS week 2038 or Jan 27, 2019. The
 GFZ rapid solution includes: GPS+GLO+GAL+BDS+QZS. More about the GFZ
 solution can be found on their MGEX website [8]_.
+
+If the GFZ rapid solution cannot be downloaded (for example, if GFZ
+has a gap in their daily uploads), then the rapid solution from CODE
+is downloaded (COD0OPSRAP).
 
 SP3 Older than Two Weeks
 ------------------------
@@ -70,7 +81,12 @@ be found in their papers [6]_ [7]_.
 If the CLK date requested is between GPS week 2034 and 2112 or between
 Jan 1, 2019 and July 4th, 2020, then the Wuhan University final
 solution is downloaded (WUM0MGXFIN). More about the WUM0MGXFIN solution
-can be found in their documention [11]_.
+can be found in their documentation [11]_.
+
+If the Wuhan University final solution (WUM0MGXFIN) cannot be downloaded,
+then the rapid solution from GFZ is downloaded (GFZ0MGXRAP). If the GFZ
+rapid solution also cannot be downloaded, then the rapid solution from
+CODE is downloaded (COD0OPSRAP).
 
 If the CLK date requested is week GPS week 2034 and between Dec 30, 2018
 and Dec 31, 2018, then the GFZ short name solution is downloaded (gbm).
@@ -82,10 +98,45 @@ Aug 13, 2017 and Dec 29th, 2018 then the Wuhan University short name
 solution is downloaded (wum). More about the "wum" solution can be found
 in their paper [12]_.
 
+If the Wuhan University short name solution (wum) cannot be downloaded,
+then the GFZ short name solution is downloaded (gbm).
+
 If the CLK date requested is between GPS week 1710 and 1961 or between
 Oct 14, 2012 and Aug 12, 2017, then the CODE 'com' short name solution
 is downloaded. More about the CODE 'com' solution can be found in their
 papers [9]_ [10]_.
+
+Download Fallback Logic
+-----------------------
+If a download attempt fails because a file is missing or has not yet
+been uploaded to the remote server, load_ephemeris automatically
+attempts fallback solutions in the following order:
+
+1. For multi-gnss Rinex navigation files: BRDM00DLR falls back to
+   BRDC00IGS_R. If BRDC00IGS_R also fails, it falls back to downloading
+   separate GPS (brdc<dddd>.<yy>n) and Glonass (brdc<dddd>.<yy>g) files.
+2. For SP3 and CLK within two weeks: GFZ0MGXRAP falls back to COD0OPSRAP.
+3. For CLK older than two weeks: WUM0MGXFIN falls back to GFZ0MGXRAP,
+   which in turn falls back to COD0OPSRAP. The short name wum solution
+   falls back to gbm.
+
+Date Selection
+--------------
+Ephemeris files are downloaded for each UTC date spanned by the
+requested timestamps. Rinex navigation files are only guaranteed to
+contain broadcast messages for times between 02:00 and 22:00 UTC.
+If a timestamp falls between 00:00 and 02:00 UTC, the previous day
+is also included in the ephemeris download. If a timestamp falls
+after 22:00 UTC, the next day is also included (unless the timestamp
+is for the current day). The same day-boundary logic is applied to
+SP3 and CLK files to ensure proper interpolation and fitting of satellite
+position and clock estimates across day boundaries.
+
+File Reuse and Caching
+----------------------
+If a file covering the requested date and constellation already exists
+in the download directory or in the user-provided file paths, then that
+file is reused and is not re-downloaded.
 
 IGS Resources
 -------------
@@ -195,6 +246,11 @@ def load_ephemeris(file_type, gps_millis,
                 print("Retrying download with gbm.")
             needed_files = [(x[0],x[1].replace("wum","gbm"))
                             for x in needed_files]
+        elif "GFZ0MGXRAP" in str(err) and file_type in ("sp3", "clk"):
+            if verbose:
+                print("Retrying download with COD0OPSRAP.")
+            needed_files = [(x[0],x[1].replace("GFZ0MGXRAP","COD0OPSRAP"))
+                            for x in needed_files]
         elif "BRDM00DLR" in str(err) and file_type == "rinex_nav":
             if verbose:
                 print("Retrying download with BRDC00IGS.")
@@ -224,6 +280,11 @@ def load_ephemeris(file_type, gps_millis,
                                                  ["glonass"],
                                                  verbose=verbose)
             needed_files = needed_gps + needed_glonass
+        elif "GFZ0MGXRAP" in str(err) and file_type in ("sp3", "clk"):
+            if verbose:
+                print("Retrying download with COD0OPSRAP.")
+            needed_files = [(x[0],x[1].replace("GFZ0MGXRAP","COD0OPSRAP"))
+                            for x in needed_files]
         # third download attempt
         downloaded_paths = _download_ephemeris(file_type,
                                                needed_files,
