@@ -398,7 +398,7 @@ def test_csv_equivalence(android_raw_path, root_path, file_type):
         os.remove(os.path.join(output_directory, file))
     os.rmdir(output_directory)
 
-def test_raw_load(android_raw_2023_path, android_derived_2023_path):
+def test_raw_load(android_raw_2023_path, android_derived_2023_path, root_path):
     """Test basic loading of android raw file.
 
     Parameters
@@ -407,6 +407,8 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
         Location for text log file with Android Raw measurements.
     android_derived_2023_path : string
         Location for text log file with Android derived measurements.
+    root_path : string
+        Location for unit test directory.
 
     """
     # load derived data
@@ -416,6 +418,7 @@ def test_raw_load(android_raw_2023_path, android_derived_2023_path):
     raw = android.AndroidRawGnss(input_path=android_raw_2023_path,
                                  filter_measurements=False,
                                  remove_rx_b_from_pr=True,
+                                 download_directory=root_path,
                                  )
 
     # make sure the same data is contained in both
