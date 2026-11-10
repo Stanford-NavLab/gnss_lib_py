@@ -64,6 +64,18 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: brew install pandoc
 
+    # Cache ephemeris data to prevent downloading files repeatedly
+    - name: Cache ephemeris data
+      uses: actions/cache@v6
+      with:
+        path: |
+          data/ephemeris
+          data/unit_test/ephemeris_downloader_tests
+        key: ephem-${{ runner.os }}-${{ hashFiles('tests/utils/test_ephemeris_downloader.py') }}
+        restore-keys: |
+          ephem-${{ runner.os }}-
+          ephem-
+
     - name: Test with pytest
       run: |
         source $VENV
