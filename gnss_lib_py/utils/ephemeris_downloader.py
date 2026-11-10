@@ -193,6 +193,11 @@ def load_ephemeris(file_type, gps_millis,
                 print("Retrying download with gbm.")
             needed_files = [(x[0],x[1].replace("wum","gbm"))
                             for x in needed_files]
+        elif "GFZ0MGXRAP" in str(err) and file_type in ("sp3", "clk"):
+            if verbose:
+                print("Retrying download with COD0OPSRAP.")
+            needed_files = [(x[0],x[1].replace("GFZ0MGXRAP","COD0OPSRAP"))
+                            for x in needed_files]
         elif "BRDM00DLR" in str(err) and file_type == "rinex_nav":
             if verbose:
                 print("Retrying download with BRDC00IGS.")
@@ -222,6 +227,11 @@ def load_ephemeris(file_type, gps_millis,
                                                  ["glonass"],
                                                  verbose=verbose)
             needed_files = needed_gps + needed_glonass
+        elif "GFZ0MGXRAP" in str(err) and file_type in ("sp3", "clk"):
+            if verbose:
+                print("Retrying download with COD0OPSRAP.")
+            needed_files = [(x[0],x[1].replace("GFZ0MGXRAP","COD0OPSRAP"))
+                            for x in needed_files]
         # third download attempt
         downloaded_paths = _download_ephemeris(file_type,
                                                needed_files,
