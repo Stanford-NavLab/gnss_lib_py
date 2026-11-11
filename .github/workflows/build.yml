@@ -55,14 +55,10 @@ jobs:
         poetry install --no-interaction
     # Install pandoc for building docs
     - name: Install pandoc for Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      run: sudo apt install pandoc
-    - name: Install pandoc for Windows
-      if: matrix.os == 'windows-latest'
-      run: choco install pandoc --no-progress
-    - name: Install pandoc for MacOS
-      if: matrix.os == 'macos-latest'
-      run: brew install pandoc
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+      run: |
+        sudo apt-get update -o Acquire::Retries=3
+        sudo apt-get install -y -o Acquire::Retries=3 pandoc
 
     # Cache ephemeris data to prevent downloading files repeatedly
     - name: Cache ephemeris data
@@ -86,6 +82,7 @@ jobs:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
     - name: Test if docs are building
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
       run: |
         ./build_docs.sh
   readme:
