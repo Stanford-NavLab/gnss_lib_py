@@ -189,9 +189,15 @@ class AndroidDerived2022(NavData):
 
         # update svn for QZSS constellation
         if "qzss" in np.unique(self["gnss_id"]):
-            qzss_idxs = self.argwhere("gnss_id","qzss")
-            self["sv_id",qzss_idxs] = [QZSS_PRN_SVN[i] \
-                        for i in self.where("gnss_id","qzss")["sv_id"]]
+            qzss_idxs = self.argwhere("gnss_id", "qzss")
+            try:
+                self["sv_id", qzss_idxs] = [QZSS_PRN_SVN[i] \
+                            for i in self.where("gnss_id", "qzss")["sv_id"]]
+            except KeyError as err:
+                raise KeyError(
+                    f"Encountered unrecognized QZSS PRN {err.args[0]}. "
+                    "Please add this PRN to QZSS_PRN_SVN in constants.py."
+                ) from err
 
 
     def get_state_estimate(self):

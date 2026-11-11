@@ -64,12 +64,24 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: brew install pandoc
 
+    # Cache ephemeris data to prevent downloading files repeatedly
+    - name: Cache ephemeris data
+      uses: actions/cache@v6
+      with:
+        path: |
+          data/ephemeris
+          data/unit_test/ephemeris_downloader_tests
+        key: ephem-${{ runner.os }}-${{ hashFiles('tests/utils/test_ephemeris_downloader.py') }}
+        restore-keys: |
+          ephem-${{ runner.os }}-
+          ephem-
+
     - name: Test with pytest
       run: |
         source $VENV
         poetry run pytest --cov=gnss_lib_py/algorithms --cov=gnss_lib_py/navdata --cov=gnss_lib_py/parsers --cov=gnss_lib_py/utils --cov=gnss_lib_py/visualizations --cov-report=xml
     - name: Upload coverage report to code-cov
-      uses: codecov/codecov-action@v7
+      uses: codecov/codecov-action@v7.1.1
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
@@ -86,7 +98,7 @@ jobs:
 
       - name: Get changed files since last remote commit
         id: changed-files
-        uses: tj-actions/changed-files@v46.0.1
+        uses: tj-actions/changed-files@v47.0.6
 
       - name: Check if index.rst changed when README.md file changes
         if: contains(steps.changed-files.outputs.modified_files, 'README.md') && !contains(steps.changed-files.outputs.modified_files, 'docs/source/index.rst')
