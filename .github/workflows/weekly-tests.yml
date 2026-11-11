@@ -5,8 +5,8 @@ name: weekly-tests
 
 on:
   schedule:
-    # Run once a week on Sundays at 00:00 UTC
-    - cron: '0 0 * * 0'
+    # Runs at 21:00 UTC every Friday (2 PM PDT / 1 PM PST)
+    - cron: '0 21 * * 5'
   workflow_dispatch:
 
 jobs:
