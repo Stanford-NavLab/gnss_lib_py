@@ -29,6 +29,7 @@ import gnss_lib_py.utils.constants as consts
 from gnss_lib_py.utils.sv_models import add_sv_states
 from gnss_lib_py.utils.time_conversions import get_leap_seconds
 from gnss_lib_py.utils.time_conversions import unix_to_gps_millis
+from gnss_lib_py.utils.ephemeris_downloader import DEFAULT_EPHEM_PATH
 
 class AndroidRawGnss(NavData):
     """Handles Raw GNSS measurements from Android.
@@ -50,6 +51,10 @@ class AndroidRawGnss(NavData):
     remove_rx_b_from_pr : bool
         If true, removes the estimated initial receiver clock bias
         from the pseudorange values.
+    download_directory : string or path-like
+        Directory where ephemeris files are downloaded if necessary.
+    file_paths : list, string or path-like
+        Paths to existing ephemeris files if they exist.
     verbose : bool
         If true, prints extra debugging statements.
 
@@ -72,12 +77,16 @@ class AndroidRawGnss(NavData):
                                         "adr_uncertainty" : 15.
                                         },
                  remove_rx_b_from_pr = False,
+                 download_directory = DEFAULT_EPHEM_PATH,
+                 file_paths = None,
                  verbose=False):
 
         self.verbose = verbose
         self.filter_measurements = filter_measurements
         self.measurement_filters = measurement_filters
         self.remove_rx_b_from_pr = remove_rx_b_from_pr
+        self.download_directory = download_directory
+        self.file_paths = file_paths
         pd_df = self.preprocess(input_path)
         super().__init__(pandas_df=pd_df)
 
@@ -144,9 +153,15 @@ class AndroidRawGnss(NavData):
 
         # update svn for QZSS constellation
         if "qzss" in np.unique(self["gnss_id"]):
-            qzss_idxs = self.argwhere("gnss_id","qzss")
-            self["sv_id",qzss_idxs] = [consts.QZSS_PRN_SVN[i] \
-                        for i in self.where("gnss_id","qzss")["sv_id"]]
+            qzss_idxs = self.argwhere("gnss_id", "qzss")
+            try:
+                self["sv_id", qzss_idxs] = [consts.QZSS_PRN_SVN[i] \
+                            for i in self.where("gnss_id", "qzss")["sv_id"]]
+            except KeyError as err:
+                raise KeyError(
+                    f"Encountered unrecognized QZSS PRN {err.args[0]}. "
+                    "Please add this PRN to QZSS_PRN_SVN in constants.py."
+                ) from err
 
         # add singal type information where available
         self["signal_type"] = np.array([consts.CODE_TYPE_ANDROID.get(x,{}).get(y,"") \
@@ -222,6 +237,8 @@ class AndroidRawGnss(NavData):
             for _, _, subset in loop_time(self,"gps_millis", delta_t_decimals=-2):
                 subset = add_sv_states(subset.where("gnss_id",("gps","galileo")),
                                        source="precise",
+                                       download_directory=self.download_directory,
+                                       file_paths=self.file_paths,
                                        verbose=self.verbose)
                 subset["corr_pr_m"] = subset["raw_pr_m"] + subset["b_sv_m"]
                 first_timestamp = solve_wls(subset)

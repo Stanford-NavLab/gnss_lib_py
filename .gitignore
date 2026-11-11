@@ -4,6 +4,7 @@
 data/*
 # Including small datasets used for unit testing NavData objects
 !data/unit_test/
+data/unit_test/ephemeris_downloader_tests/
 
 # development folder
 dev/*
