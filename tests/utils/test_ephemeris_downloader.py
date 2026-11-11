@@ -607,16 +607,13 @@ def test_ftp_download(ephem_download_path):
     assert not valid
     needed_files = [igs_file, gps_file]
 
-    try:
-        paths = ed._download_ephemeris("rinex_nav",needed_files,
-                                       ephem_download_path,
-                                       verbose=True)
+    paths = ed._download_ephemeris("rinex_nav",needed_files,
+                                   ephem_download_path,
+                                   verbose=True)
 
-        # assert files in paths are not empty
-        for path in paths:
-            assert os.path.getsize(path) > 1E5
-    except (ftplib.error_perm, requests.exceptions.RequestException) as net_exception:
-        print(net_exception)
+    # assert files in paths are not empty
+    for path in paths:
+        assert os.path.getsize(path) > 1E5
 
     # CODE rapid
     past_dt = (datetime.now() - timedelta(days=1,hours=12)).astimezone(timezone.utc)
@@ -843,7 +840,9 @@ def test_request_igs(capsys, tmp_path):
             break
 
     if response is None:
-        pytest.skip("IGS ConnectionError: Server unreachable from current network.")
+        raise requests.exceptions.ConnectionError("IGS ConnectionError.")
+
+    response.raise_for_status()
 
     with open(dest_filepath,'wb') as file:
         file.write(response.content)
