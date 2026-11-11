@@ -175,6 +175,7 @@ import ftplib
 from ftplib import FTP_TLS, FTP
 from datetime import datetime, timezone, timedelta, time
 import time as time_mod
+import random
 import socket
 
 import requests
@@ -1013,7 +1014,7 @@ def _http_download(url, file_path, dest_filepath, verbose=False):
 
     _decompress_file(dest_filepath)
 
-def _ftp_download(url, ftp_path, dest_filepath, verbose=False, retries=3):
+def _ftp_download(url, ftp_path, dest_filepath, verbose=False, retries=5):
     """Copy ephemeris file from FTP filepath to local directory.
 
     Also decompresses file.
@@ -1065,7 +1066,7 @@ def _ftp_download(url, ftp_path, dest_filepath, verbose=False, retries=3):
                     pass
             raise ftplib.error_perm(str(err) + ' Failed to retrieve ' \
                                   + src_filepath + ' from ' + url)
-        except (socket.timeout, TimeoutError, EOFError,
+        except (OSError, socket.timeout, TimeoutError, EOFError,
                 ConnectionResetError, ftplib.error_temp,
                 ftplib.error_reply, ftplib.error_proto) as err:
             if os.path.exists(dest_filepath):
@@ -1078,11 +1079,11 @@ def _ftp_download(url, ftp_path, dest_filepath, verbose=False, retries=3):
             if attempt < retries - 1:
                 if verbose:
                     print(f"Transient FTP error: {err}. Retrying ({attempt + 1}/{retries})...")
-                time_mod.sleep(1.0 * (attempt + 1))
+                time_mod.sleep((2 ** attempt) + random.uniform(0, 1))
             else:
                 raise
 
-def _ftp_login(url, secure=False):
+def _ftp_login(url, secure=False, timeout=15):
     """Connect to given FTP server
 
     Parameters
@@ -1091,6 +1092,8 @@ def _ftp_login(url, secure=False):
         URL of FTP server where ephemeris files are stored
     secure : Bool
         Flag for secure FTP connection
+    timeout : int
+        Timeout in seconds for FTP connection and operations
 
     Returns
     -------
@@ -1098,11 +1101,11 @@ def _ftp_login(url, secure=False):
         FTP connection object
     """
     if secure:
-        ftp = FTP_TLS(url)
+        ftp = FTP_TLS(url, timeout=timeout)
         ftp.login()
         ftp.prot_p()
     else:
-        ftp = FTP(url)
+        ftp = FTP(url, timeout=timeout)
         ftp.login()
     return ftp
 
