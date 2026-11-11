@@ -9,6 +9,8 @@ import numpy as np
 import pytest
 from numpy.random import default_rng
 
+from gnss_lib_py.utils.filters import BaseFilter
+from gnss_lib_py.utils.filters import BaseExtendedKalmanFilter
 from gnss_lib_py.utils.filters import BaseKalmanFilter
 from gnss_lib_py.utils.filters import BaseUnscentedKalmanFilter
 
@@ -373,3 +375,55 @@ def test_filter_cov_tests(times, x_exact, init_dict, params_dict, q, r, filter_t
     # Covariance should increase after EKF prediction
     np.testing.assert_array_less(P_post[:-1, 0, 0], P_pre[1:, 0, 0])
     np.testing.assert_array_less(P_post[:-1, 1, 1], P_pre[1:, 1, 1])
+
+def test_filter_coverage_edge_cases(init_dict, params_dict):
+    """Test abstract methods and optional parameters in filters.
+
+    Parameters
+    ----------
+    init_dict : Dict
+        Dictionary of filter initialization parameters.
+    params_dict : Dict
+        Dictionary of MSD parameters.
+
+    """
+    # Test BaseFilter abstract methods
+    BaseFilter.predict(None)
+    BaseFilter.update(None)
+
+    # Test BaseExtendedKalmanFilter abstract methods
+    with pytest.raises(NotImplementedError):
+        BaseExtendedKalmanFilter.linearize_dynamics(None)
+    with pytest.raises(NotImplementedError):
+        BaseExtendedKalmanFilter.linearize_measurements(None)
+    with pytest.raises(NotImplementedError):
+        BaseExtendedKalmanFilter.measure_model(None)
+    with pytest.raises(NotImplementedError):
+        BaseExtendedKalmanFilter.dyn_model(None, None)
+
+    # Test BaseKalmanFilter get_B abstract method
+    with pytest.raises(NotImplementedError):
+        BaseKalmanFilter.get_B(None)
+
+    # Test BaseUnscentedKalmanFilter abstract methods
+    with pytest.raises(NotImplementedError):
+        BaseUnscentedKalmanFilter.measure_model(None, None)
+    with pytest.raises(NotImplementedError):
+        BaseUnscentedKalmanFilter.dyn_model(None, None, None)
+
+    # Test BaseKalmanFilter measure_model and dyn_model with None predict_dict and update_dict
+    custom_init = init_dict.copy()
+    custom_init['Q'] = np.eye(init_dict['state_0'].size)
+    custom_init['R'] = np.eye(1)
+    ekf = MsdEkf(custom_init, params_dict)
+    z_exp = ekf.measure_model(None)
+    assert z_exp.shape == (1, 1)
+    x_next = ekf.dyn_model(np.array([[0.0]]), None)
+    assert x_next.shape == (2, 1)
+
+    # Test BaseUnscentedKalmanFilter with custom lam and N_sig
+    custom_init['lam'] = 3
+    custom_init['N_sig'] = 5
+    ukf = MSD_UKF(custom_init, params_dict)
+    assert ukf.lam == 3
+    assert ukf.N_sig == 5
