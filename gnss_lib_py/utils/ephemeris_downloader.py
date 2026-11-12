@@ -979,7 +979,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
 
-def _http_download(url, file_path, dest_filepath, verbose=False):
+def _http_download(url, file_path, dest_filepath, verbose=False, retries=5):
     """Copy ephemeris file from HTTP/HTTPS filepath to local directory.
 
     Also decompresses file.
@@ -994,25 +994,38 @@ def _http_download(url, file_path, dest_filepath, verbose=False):
         File path to downloaded ephemeris file stored locally.
     verbose : bool
         Prints extra debugging statements if true.
+    retries : int
+        Number of retry attempts for transient network errors.
 
     """
     full_url = url.rstrip('/') + '/' + file_path.lstrip('/')
-    if verbose:
-        print('HTTP downloading ' + file_path + ' from ' + url)
 
-    try:
-        response = requests.get(full_url, timeout=30)
-        response.raise_for_status()
-        with open(dest_filepath, 'wb') as handle:
-            handle.write(response.content)
-    except requests.exceptions.RequestException as err:
-        if os.path.exists(dest_filepath):
-            os.remove(dest_filepath)
-        raise requests.exceptions.RequestException(
-            str(err) + ' Failed to retrieve ' + file_path + ' from ' + url
-        ) from err
-
-    _decompress_file(dest_filepath)
+    for attempt in range(retries):
+        try:
+            if verbose:
+                print('HTTP downloading ' + file_path + ' from ' + url)
+            response = requests.get(full_url, timeout=30)
+            response.raise_for_status()
+            with open(dest_filepath, 'wb') as handle:
+                handle.write(response.content)
+            _decompress_file(dest_filepath)
+            return
+        except requests.exceptions.RequestException as err:
+            if os.path.exists(dest_filepath):
+                os.remove(dest_filepath)
+            is_permanent_http = (
+                isinstance(err, requests.exceptions.HTTPError)
+                and err.response is not None
+                and err.response.status_code not in (429, 500, 502, 503, 504)
+            )
+            if not is_permanent_http and attempt < retries - 1:
+                if verbose:
+                    print(f"Transient HTTP error: {err}. Retrying ({attempt + 1}/{retries})...")
+                time_mod.sleep((2 ** attempt) + random.uniform(0, 1))
+            else:
+                raise requests.exceptions.RequestException(
+                    str(err) + ' Failed to retrieve ' + file_path + ' from ' + url
+                ) from err
 
 def _ftp_download(url, ftp_path, dest_filepath, verbose=False, retries=5):
     """Copy ephemeris file from FTP filepath to local directory.
