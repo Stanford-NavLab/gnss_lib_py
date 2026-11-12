@@ -15,9 +15,9 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # Cancel in-progress runs for Pull Requests, but let pushes to main/tags finish
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  # Cancels duplicates for PRs and feature branches, but lets main run sequentially
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
   build:
