@@ -7,16 +7,16 @@ on:
   push:
     branches:
       - main
-      - v*.*.*
+    tags:
+      - 'v*.*.*'  # Triggers on release tags, not branches
   pull_request:
     branches:
       - main
-      - v*.*.*
+      - 'v*.*.*'  # Triggers when a PR is opened targeting these branches
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
-  # Cancels duplicates for PRs and feature branches, but lets main run sequentially
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
