@@ -1,0 +1,66 @@
+# Weekly test run against main across all supported operating systems and Python versions.
+# Helps detect broken external dependencies, API changes, or remote data source issues.
+
+name: weekly-tests
+
+on:
+  schedule:
+    # Runs at 21:00 UTC every Friday (2 PM PDT / 1 PM PST)
+    - cron: '0 21 * * 5'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}, OS ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v7
+    - name: Set up Python ${{ matrix.python-version }}
+      id: setup-python
+      uses: actions/setup-python@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 2.2.1
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: false # default option selected currently
+    # Load cached environment, if it exists
+    - name: Load cached poetry environment
+      id: cached-poetry-dependencies
+      uses: actions/cache@v6
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    - name: Install dependencies and root package
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: |
+        poetry install --no-interaction --no-root
+        poetry install --no-interaction
+
+    - name: Test with pytest
+      run: |
+        source $VENV
+        poetry run pytest
+
+  keepalive:
+    name: Prevent Inactivity Deactivation
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Keepalive Workflow
+        uses: gautamkrishnar/keepalive-workflow@v2
