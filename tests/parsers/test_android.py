@@ -604,8 +604,45 @@ def test_raw_filters(root_path):
                                  verbose=True)
     assert len(raw) + 11 == orig_len
 
-def test_qzss_prn_to_svn(android_raw_2023_path, tmp_path):
+@pytest.mark.parametrize("prn,svn", [(197, 6), (200, 7), (201, 8)])
+def test_qzss_prn_to_svn(android_raw_2023_path, tmp_path, prn, svn):
     """Test QZSS PRNs are translated to SVNs, including newer satellites.
+
+    Parameters
+    ----------
+    android_raw_2023_path : string
+        Location for text log file with Android Raw measurements.
+    tmp_path : pathlib.Path
+        Temporary directory provided by pytest.
+    prn : int
+        QZSS PRN to test.
+    svn : int
+        Expected translated SVN.
+
+    """
+    with open(android_raw_2023_path, encoding="utf-8") as raw_file:
+        lines = raw_file.readlines()
+    header = next(line for line in lines if line.startswith("# Raw,"))[2:].strip().split(",")
+    svid_idx = header.index("Svid")
+    constellation_idx = header.index("ConstellationType")
+    for i, line in enumerate(lines):
+        row = line.split(",")
+        if row[0] == "Raw" and row[constellation_idx] == "4":
+            row[svid_idx] = str(prn)
+            lines[i] = ",".join(row)
+    raw_path = tmp_path / f"gnss_log_{prn}.txt"
+    raw_path.write_text("".join(lines), encoding="utf-8")
+
+    raw = android.AndroidRawGnss(input_path=str(raw_path),
+                                 filter_measurements=False,
+                                 remove_rx_b_from_pr=False,
+                                 )
+    qzss = raw.where("gnss_id", "qzss")
+    assert len(qzss) > 0
+    np.testing.assert_array_equal(qzss["sv_id"], svn)
+
+def test_qzss_unmapped_prn_error(android_raw_2023_path, tmp_path):
+    """Test unrecognized QZSS PRNs raise a clear KeyError.
 
     Parameters
     ----------
@@ -615,25 +652,21 @@ def test_qzss_prn_to_svn(android_raw_2023_path, tmp_path):
         Temporary directory provided by pytest.
 
     """
-    # replace PRN 195 (QZS04) in the log with PRN 197 (QZS05)
     with open(android_raw_2023_path, encoding="utf-8") as raw_file:
         lines = raw_file.readlines()
-    header = next(line for line in lines if line.startswith("# Raw,"))
-    columns = header[2:].strip().split(",")
-    svid_idx = columns.index("Svid")
-    constellation_idx = columns.index("ConstellationType")
+    header = next(line for line in lines if line.startswith("# Raw,"))[2:].strip().split(",")
+    svid_idx = header.index("Svid")
+    constellation_idx = header.index("ConstellationType")
     for i, line in enumerate(lines):
         row = line.split(",")
         if row[0] == "Raw" and row[constellation_idx] == "4":
-            row[svid_idx] = "197"
+            row[svid_idx] = "198"
             lines[i] = ",".join(row)
-    raw_path = tmp_path / "gnss_log.txt"
+    raw_path = tmp_path / "gnss_log_unmapped.txt"
     raw_path.write_text("".join(lines), encoding="utf-8")
 
-    raw = android.AndroidRawGnss(input_path=str(raw_path),
-                                 filter_measurements=False,
-                                 remove_rx_b_from_pr=False,
-                                 )
-    qzss = raw.where("gnss_id", "qzss")
-    assert len(qzss) > 0
-    np.testing.assert_array_equal(qzss["sv_id"], 6)
+    with pytest.raises(KeyError, match="Encountered unrecognized QZSS PRN 198"):
+        android.AndroidRawGnss(input_path=str(raw_path),
+                               filter_measurements=False,
+                               remove_rx_b_from_pr=False,
+                               )

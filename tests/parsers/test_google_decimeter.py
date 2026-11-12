@@ -629,3 +629,22 @@ def test_ground_truth_2023(ground_truth_2023):
                                                      "VerticalAccuracyMeters"]],
                                                      np.ones((4,5))*np.nan,
                                                      )
+
+def test_derived_2022_qzss_unmapped_prn_error(derived_2022_path, tmp_path):
+    """Test unrecognized QZSS PRNs in AndroidDerived2022 raise a clear KeyError.
+
+    Parameters
+    ----------
+    derived_2022_path : string
+        Path to derived 2022 test dataset.
+    tmp_path : pathlib.Path
+        Temporary directory provided by pytest.
+
+    """
+    df = pd.read_csv(derived_2022_path)
+    df.loc[df["ConstellationType"] == 4, "Svid"] = 198
+    test_csv = tmp_path / "device_gnss_unmapped.csv"
+    df.to_csv(test_csv, index=False)
+
+    with pytest.raises(KeyError, match="Encountered unrecognized QZSS PRN 198"):
+        google_decimeter.AndroidDerived2022(str(test_csv))
