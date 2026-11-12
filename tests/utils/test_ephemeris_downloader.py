@@ -555,8 +555,9 @@ def test_ftp_login_branches(monkeypatch):
     tls_calls = []
     class MockFTPTLS:
         """Mock FTP_TLS object."""
-        def __init__(self, host):
+        def __init__(self, host, timeout=None):
             self.host = host
+            self.timeout = timeout
         def login(self):
             """Mock login."""
             tls_calls.append("login")
@@ -567,8 +568,9 @@ def test_ftp_login_branches(monkeypatch):
     insecure_calls = []
     class MockFTP:
         """Mock FTP object."""
-        def __init__(self, host):
+        def __init__(self, host, timeout=None):
             self.host = host
+            self.timeout = timeout
         def login(self):
             """Mock login."""
             insecure_calls.append("login")
@@ -579,10 +581,12 @@ def test_ftp_login_branches(monkeypatch):
     ftp_tls = ed._ftp_login("gdc.cddis.eosdis.nasa.gov", secure=True)
     assert tls_calls == ["login", "prot_p"]
     assert ftp_tls.host == "gdc.cddis.eosdis.nasa.gov"
+    assert ftp_tls.timeout == 15
 
-    ftp_plain = ed._ftp_login("ftp.example.com", secure=False)
+    ftp_plain = ed._ftp_login("ftp.example.com", secure=False, timeout=10)
     assert insecure_calls == ["login"]
     assert ftp_plain.host == "ftp.example.com"
+    assert ftp_plain.timeout == 10
 
 def test_ftp_download(ephem_download_path):
     """Test FTP download for ephemeris files.
@@ -607,16 +611,13 @@ def test_ftp_download(ephem_download_path):
     assert not valid
     needed_files = [igs_file, gps_file]
 
-    try:
-        paths = ed._download_ephemeris("rinex_nav",needed_files,
-                                       ephem_download_path,
-                                       verbose=True)
+    paths = ed._download_ephemeris("rinex_nav",needed_files,
+                                   ephem_download_path,
+                                   verbose=True)
 
-        # assert files in paths are not empty
-        for path in paths:
-            assert os.path.getsize(path) > 1E5
-    except (ftplib.error_perm, requests.exceptions.RequestException) as net_exception:
-        print(net_exception)
+    # assert files in paths are not empty
+    for path in paths:
+        assert os.path.getsize(path) > 1E5
 
     # CODE rapid
     past_dt = (datetime.now() - timedelta(days=1,hours=12)).astimezone(timezone.utc)
@@ -843,7 +844,9 @@ def test_request_igs(capsys, tmp_path):
             break
 
     if response is None:
-        pytest.skip("IGS ConnectionError: Server unreachable from current network.")
+        raise requests.exceptions.ConnectionError("IGS ConnectionError.")
+
+    response.raise_for_status()
 
     with open(dest_filepath,'wb') as file:
         file.write(response.content)

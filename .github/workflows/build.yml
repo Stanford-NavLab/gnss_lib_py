@@ -56,13 +56,25 @@ jobs:
     # Install pandoc for building docs
     - name: Install pandoc for Ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt install pandoc
+      run: |
+        sudo apt-get update -o Acquire::Retries=3
+        sudo apt-get install -y -o Acquire::Retries=3 pandoc
     - name: Install pandoc for Windows
       if: matrix.os == 'windows-latest'
-      run: choco install pandoc --no-progress
+      run: |
+        for attempt in 1 2 3; do
+          choco install pandoc --no-progress && break
+          if [ "$attempt" -eq 3 ]; then exit 1; fi
+          sleep 5
+        done
     - name: Install pandoc for MacOS
       if: matrix.os == 'macos-latest'
-      run: brew install pandoc
+      run: |
+        for attempt in 1 2 3; do
+          brew install pandoc && break
+          if [ "$attempt" -eq 3 ]; then exit 1; fi
+          sleep 5
+        done
 
     # Cache ephemeris data to prevent downloading files repeatedly
     - name: Cache ephemeris data
