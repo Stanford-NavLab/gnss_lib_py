@@ -376,22 +376,13 @@ def test_filter_cov_tests(times, x_exact, init_dict, params_dict, q, r, filter_t
     np.testing.assert_array_less(P_post[:-1, 0, 0], P_pre[1:, 0, 0])
     np.testing.assert_array_less(P_post[:-1, 1, 1], P_pre[1:, 1, 1])
 
-def test_filter_coverage_edge_cases(init_dict, params_dict):
-    """Test abstract methods and optional parameters in filters.
-
-    Parameters
-    ----------
-    init_dict : Dict
-        Dictionary of filter initialization parameters.
-    params_dict : Dict
-        Dictionary of MSD parameters.
-
-    """
-    # Test BaseFilter abstract methods
+def test_base_filter_abstract_methods():
+    """Test BaseFilter abstract methods."""
     BaseFilter.predict(None)
     BaseFilter.update(None)
 
-    # Test BaseExtendedKalmanFilter abstract methods
+def test_base_extended_kalman_filter_abstract_methods():
+    """Test BaseExtendedKalmanFilter abstract methods raise NotImplementedError."""
     with pytest.raises(NotImplementedError):
         BaseExtendedKalmanFilter.linearize_dynamics(None)
     with pytest.raises(NotImplementedError):
@@ -401,17 +392,29 @@ def test_filter_coverage_edge_cases(init_dict, params_dict):
     with pytest.raises(NotImplementedError):
         BaseExtendedKalmanFilter.dyn_model(None, None)
 
-    # Test BaseKalmanFilter get_B abstract method
+def test_base_kalman_filter_abstract_methods():
+    """Test BaseKalmanFilter get_B abstract method raises NotImplementedError."""
     with pytest.raises(NotImplementedError):
         BaseKalmanFilter.get_B(None)
 
-    # Test BaseUnscentedKalmanFilter abstract methods
+def test_base_unscented_kalman_filter_abstract_methods():
+    """Test BaseUnscentedKalmanFilter abstract methods raise NotImplementedError."""
     with pytest.raises(NotImplementedError):
         BaseUnscentedKalmanFilter.measure_model(None, None)
     with pytest.raises(NotImplementedError):
         BaseUnscentedKalmanFilter.dyn_model(None, None, None)
 
-    # Test BaseKalmanFilter measure_model and dyn_model with None predict_dict and update_dict
+def test_kalman_filter_none_dicts(init_dict, params_dict):
+    """Test BaseKalmanFilter measure_model and dyn_model with None dicts.
+
+    Parameters
+    ----------
+    init_dict : Dict
+        Dictionary of filter initialization parameters.
+    params_dict : Dict
+        Dictionary of MSD parameters.
+
+    """
     custom_init = init_dict.copy()
     custom_init['Q'] = np.eye(init_dict['state_0'].size)
     custom_init['R'] = np.eye(1)
@@ -421,7 +424,20 @@ def test_filter_coverage_edge_cases(init_dict, params_dict):
     x_next = ekf.dyn_model(np.array([[0.0]]), None)
     assert x_next.shape == (2, 1)
 
-    # Test BaseUnscentedKalmanFilter with custom lam and N_sig
+def test_unscented_kalman_filter_custom_params(init_dict, params_dict):
+    """Test BaseUnscentedKalmanFilter with custom lam and N_sig.
+
+    Parameters
+    ----------
+    init_dict : Dict
+        Dictionary of filter initialization parameters.
+    params_dict : Dict
+        Dictionary of MSD parameters.
+
+    """
+    custom_init = init_dict.copy()
+    custom_init['Q'] = np.eye(init_dict['state_0'].size)
+    custom_init['R'] = np.eye(1)
     custom_init['lam'] = 3
     custom_init['N_sig'] = 5
     ukf = MSD_UKF(custom_init, params_dict)
