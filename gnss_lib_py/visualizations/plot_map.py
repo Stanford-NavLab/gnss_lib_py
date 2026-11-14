@@ -21,7 +21,8 @@ from gnss_lib_py.navdata.navdata import NavData
 from gnss_lib_py.navdata.operations import find_wildcard_indexes
 
 def plot_map(*args, sections=0, save=False, prefix="",
-             fname=None, width=730, height=520, **kwargs):
+             fname=None, width=730, height=520,
+             map_style="carto-voyager", **kwargs):
     """Map lat/lon trajectories on map.
 
     By increasing the ``sections`` parameter, it is possible to output
@@ -51,11 +52,11 @@ def plot_map(*args, sections=0, save=False, prefix="",
         Figure width in pixels.
     height : int
         Figure height in pixels.
-    mapbox_style : str
-        Can optionally be included as one of the ``**kwargs``
-        Free options include ``open-street-map``, ``white-bg``,
-        ``carto-positron``, ``carto-darkmatter``, ``stamen-terrain``,
-        ``stamen-toner``, and ``stamen-watercolor``.
+    map_style : str
+        Basemap style to use. Defaults to ``carto-voyager``.
+        Free options include ``carto-voyager``, ``carto-voyager-nolabels``,
+        ``carto-positron``, ``carto-darkmatter``, and ``white-bg``.
+        Can also be passed as ``mapbox_style`` for backward compatibility.
 
     Returns
     -------
@@ -100,17 +101,20 @@ def plot_map(*args, sections=0, save=False, prefix="",
                                 lons=figure_df["longitude"].to_numpy(),
                                 width_to_height=float(0.9*width)/height)
 
-    fig = px.scatter_mapbox(figure_df,
-                            lat="latitude",
-                            lon="longitude",
-                            color="Trajectory",
-                            color_discrete_map=color_discrete_map,
-                            zoom=zoom,
-                            center=center,
-                            width = width,
-                            height = height,
-                            )
-    fig.update_layout(mapbox_style="open-street-map")
+    if "mapbox_style" in kwargs:
+        map_style = kwargs.pop("mapbox_style")
+
+    fig = px.scatter_map(figure_df,
+                         lat="latitude",
+                         lon="longitude",
+                         color="Trajectory",
+                         color_discrete_map=color_discrete_map,
+                         zoom=zoom,
+                         center=center,
+                         width=width,
+                         height=height,
+                         map_style=map_style,
+                         )
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
     fig.update_layout(**kwargs)
 
@@ -132,17 +136,17 @@ def plot_map(*args, sections=0, save=False, prefix="",
         zoom, center = _zoom_center(lats=zoomed_df["latitude"].to_numpy(),
                                     lons=zoomed_df["longitude"].to_numpy(),
                                     width_to_height=float(0.9*width)/height)
-        fig = px.scatter_mapbox(figure_df,
-                                lat="latitude",
-                                lon="longitude",
-                                color="Trajectory",
-                                color_discrete_map=color_discrete_map,
-                                zoom=zoom,
-                                center=center,
-                                width = width,
-                                height = height,
-                                )
-        fig.update_layout(mapbox_style="open-street-map")
+        fig = px.scatter_map(figure_df,
+                             lat="latitude",
+                             lon="longitude",
+                             color="Trajectory",
+                             color_discrete_map=color_discrete_map,
+                             zoom=zoom,
+                             center=center,
+                             width=width,
+                             height=height,
+                             map_style=map_style,
+                             )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         fig.update_layout(**kwargs)
 
@@ -307,7 +311,16 @@ def _write_plotly(figure, fname, width, height): # pragma: no cover
                                )
             break
         except ValueError as error:
-            figure.layout.mapbox.zoom -= 1
-            if figure.layout.mapbox.zoom < 1:
+            if hasattr(figure.layout, "map") and figure.layout.map.zoom is not None:
+                figure.layout.map.zoom -= 1
+                if figure.layout.map.zoom < 1:
+                    print(error)
+                    break
+            elif hasattr(figure.layout, "mapbox") and figure.layout.mapbox.zoom is not None:
+                figure.layout.mapbox.zoom -= 1
+                if figure.layout.mapbox.zoom < 1:
+                    print(error)
+                    break
+            else:
                 print(error)
                 break

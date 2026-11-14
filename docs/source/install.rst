@@ -6,11 +6,11 @@ Install
 Prerequisites
 -------------
 
-| **Python:** >=3.10, <3.15
+| **Python:** >=3.11, <3.16
 | **Operating System:** Linux, Windows, MacOS
 
-All :code:`gnss_lib_py` classes and methods are tested in Python 3.10,
-3.11, 3.12, 3.13, and 3.14 in the latest Ubuntu, MacOS and Windows versions.
+All :code:`gnss_lib_py` classes and methods are tested in Python 3.11,
+3.12, 3.13, 3.14, and 3.15 in the latest Ubuntu, MacOS and Windows versions.
 :code:`gnss_lib_py` was originally developed in Python 3.8.9 in
 Ubuntu 20/22 and Ubuntu 20 for WSL2.
 
@@ -134,7 +134,7 @@ Linux/WSL2 and MacOS
          eval "$(pyenv init --path)"
          eval "$(pyenv virtualenv-init -)"
 
-2. Install Python 3.10.0 or above with :code:`pyenv`. For example,
+2. Install Python 3.11.0 or above with :code:`pyenv`. For example,
    :code:`pyenv install 3.12`.
 
 3. Clone the :code:`gnss_lib_py` repository.
