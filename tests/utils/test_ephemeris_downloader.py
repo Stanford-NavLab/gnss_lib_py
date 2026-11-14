@@ -497,6 +497,65 @@ def test_http_download_success(monkeypatch, tmp_path):
     with open(decompressed_path, "rb") as file_handle:
         assert file_handle.read() == b"mocked rinex nav content"
 
+def test_http_download_retry(monkeypatch, tmp_path):
+    """Test _http_download retries on transient errors.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
+
+    """
+    attempts = 0
+    compressed_content = gzip.compress(b"mocked rinex nav content")
+    class MockResponse:
+        """Mock HTTP response."""
+        content = compressed_content
+        status_code = 200
+        def raise_for_status(self):
+            """Mock raise_for_status."""
+
+    def mock_get(*_args, **_kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts < 2:
+            raise requests.exceptions.ConnectionError("Connection reset")
+        return MockResponse()
+
+    monkeypatch.setattr(requests, "get", mock_get)
+    monkeypatch.setattr(ed.time_mod, "sleep", lambda _s: None)
+    dest_path = os.path.join(str(tmp_path), "test_file.rnx.gz")
+    ed._http_download("https://igs.bkg.bund.de/root_ftp", "/path/to/test_file.rnx.gz",
+                      dest_path, verbose=True, retries=3)
+    assert attempts == 2
+    assert os.path.exists(os.path.join(str(tmp_path), "test_file.rnx"))
+
+def test_http_download_retry_failure(monkeypatch, tmp_path):
+    """Test _http_download raises when all retries fail.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    tmp_path : pathlib.Path
+        Temporary directory for test files.
+
+    """
+    def mock_get(*_args, **_kwargs):
+        raise requests.exceptions.ConnectionError("Connection reset")
+
+    monkeypatch.setattr(requests, "get", mock_get)
+    monkeypatch.setattr(ed.time_mod, "sleep", lambda _s: None)
+    dest_path = os.path.join(str(tmp_path), "test_file.rnx.gz")
+    with open(dest_path, "w", encoding="utf-8") as file_handle:
+        file_handle.write("partial")
+    with pytest.raises(requests.exceptions.RequestException):
+        ed._http_download("https://igs.bkg.bund.de/root_ftp", "/path/to/test_file.rnx.gz",
+                          dest_path, verbose=True, retries=2)
+    assert not os.path.exists(dest_path)
+
 def test_download_ephemeris_http(monkeypatch, tmp_path):
     """Test _download_ephemeris routes HTTP URLs to _http_download.
 
@@ -555,8 +614,9 @@ def test_ftp_login_branches(monkeypatch):
     tls_calls = []
     class MockFTPTLS:
         """Mock FTP_TLS object."""
-        def __init__(self, host):
+        def __init__(self, host, timeout=None):
             self.host = host
+            self.timeout = timeout
         def login(self):
             """Mock login."""
             tls_calls.append("login")
@@ -567,8 +627,9 @@ def test_ftp_login_branches(monkeypatch):
     insecure_calls = []
     class MockFTP:
         """Mock FTP object."""
-        def __init__(self, host):
+        def __init__(self, host, timeout=None):
             self.host = host
+            self.timeout = timeout
         def login(self):
             """Mock login."""
             insecure_calls.append("login")
@@ -579,10 +640,12 @@ def test_ftp_login_branches(monkeypatch):
     ftp_tls = ed._ftp_login("gdc.cddis.eosdis.nasa.gov", secure=True)
     assert tls_calls == ["login", "prot_p"]
     assert ftp_tls.host == "gdc.cddis.eosdis.nasa.gov"
+    assert ftp_tls.timeout == 15
 
-    ftp_plain = ed._ftp_login("ftp.example.com", secure=False)
+    ftp_plain = ed._ftp_login("ftp.example.com", secure=False, timeout=10)
     assert insecure_calls == ["login"]
     assert ftp_plain.host == "ftp.example.com"
+    assert ftp_plain.timeout == 10
 
 def test_ftp_download(ephem_download_path):
     """Test FTP download for ephemeris files.
@@ -607,16 +670,13 @@ def test_ftp_download(ephem_download_path):
     assert not valid
     needed_files = [igs_file, gps_file]
 
-    try:
-        paths = ed._download_ephemeris("rinex_nav",needed_files,
-                                       ephem_download_path,
-                                       verbose=True)
+    paths = ed._download_ephemeris("rinex_nav",needed_files,
+                                   ephem_download_path,
+                                   verbose=True)
 
-        # assert files in paths are not empty
-        for path in paths:
-            assert os.path.getsize(path) > 1E5
-    except (ftplib.error_perm, requests.exceptions.RequestException) as net_exception:
-        print(net_exception)
+    # assert files in paths are not empty
+    for path in paths:
+        assert os.path.getsize(path) > 1E5
 
     # CODE rapid
     past_dt = (datetime.now() - timedelta(days=1,hours=12)).astimezone(timezone.utc)
@@ -792,19 +852,21 @@ def test_load_ephemeris_wum_and_gfz_fallback(monkeypatch, tmp_path):
     assert "COD0OPSRAP" in paths[0]
     assert os.path.exists(paths[0])
 
-def download_igs(requests_url):
+def download_igs(requests_url, timeout=30):
     """Helper function to capture ConnectionError.
 
     Parameters
     ----------
     requests_url : string
         URL for requests input.
+    timeout : int
+        Timeout in seconds for HTTP request.
 
     """
     response = None
     try:
-        response = requests.get(requests_url, timeout=5)
-    except requests.exceptions.ConnectionError:
+        response = requests.get(requests_url, timeout=timeout)
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         print("ConnectionError.")
 
     return response
@@ -834,16 +896,20 @@ def test_request_igs(capsys, tmp_path):
     dest_filepath = os.path.join(str(tmp_path), filename)
 
     fail_count = 0
-    while fail_count < 3:# download the ephemeris file
+    while fail_count < 5:# download the ephemeris file
         response = download_igs(requests_url)
         captured = capsys.readouterr()
         if "ConnectionError." in captured.out:
+            if fail_count < 4:
+                ed.time_mod.sleep((2 ** fail_count) + ed.random.uniform(0, 1))
             fail_count += 1
         else:
             break
 
     if response is None:
-        pytest.skip("IGS ConnectionError: Server unreachable from current network.")
+        raise requests.exceptions.ConnectionError("IGS ConnectionError.")
+
+    response.raise_for_status()
 
     with open(dest_filepath,'wb') as file:
         file.write(response.content)
