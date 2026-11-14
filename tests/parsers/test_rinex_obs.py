@@ -6,6 +6,7 @@ __authors__ = "Ashwin Kanhere"
 __date__ = "26 July 2023"
 
 import os
+from datetime import datetime, timedelta
 
 import pytest
 import numpy as np
@@ -248,3 +249,92 @@ def test_z_tracking(root_path):
 
     parsed_observation_codes = np.unique(rinex_navdata["observation_code"])
     assert sorted(expected_observation_codes) == sorted(parsed_observation_codes)
+
+
+@pytest.fixture(name="write_time_rinex")
+def fixture_write_time_rinex(tmp_path):
+    """Write a two-epoch RINEX file with a specified observation time system."""
+    def write_file(file_system, time_system, epoch):
+        satellite_system = 'G' if file_system == 'M' else file_system
+        band = {'G': '1C', 'R': '1C', 'E': '1C', 'J': '1C',
+                'C': '2I', 'I': '5A'}[satellite_system]
+        seconds = epoch.second + epoch.microsecond / 1e6
+        header_time = (f"{epoch.year:6d}{epoch.month:6d}{epoch.day:6d}"
+                       f"{epoch.hour:6d}{epoch.minute:6d}{seconds:13.7f}"
+                       f"     {time_system:3s}")
+        header = [
+            (f"     3.04           OBSERVATION DATA    {file_system}",
+             "RINEX VERSION / TYPE"),
+            ("gnss_lib_py test", "PGM / RUN BY / DATE"),
+            (f"{satellite_system}    4 C{band} L{band} D{band} S{band}",
+             "SYS / # / OBS TYPES"),
+            (header_time, "TIME OF FIRST OBS"),
+            ("", "END OF HEADER"),
+        ]
+        contents = "".join(f"{value:60s}{label}\n" for value, label in header)
+        for offset in (0, 1):
+            timestamp = epoch + timedelta(seconds=offset)
+            seconds = timestamp.second + timestamp.microsecond / 1e6
+            contents += f"> {timestamp:%Y %m %d %H %M} {seconds:10.7f}  0  1\n"
+            contents += f"{satellite_system}01"
+            contents += "".join(f"{value:14.3f}  " for value in
+                                [22000000 + offset, 110000000, -1000, 45])
+            contents += "\n"
+        path = tmp_path / "time_system.rnx"
+        path.write_text(contents, encoding="ascii")
+        return path
+    return write_file
+
+
+@pytest.mark.parametrize("file_system, time_system, second", [
+    ('M', 'GPS', 18), ('M', 'GAL', 18), ('M', 'QZS', 18), ('M', 'IRN', 18),
+    ('M', 'BDT', 4), ('M', 'GLO', 0), ('M', 'UTC', 0),
+    ('G', '', 18), ('E', '', 18), ('J', '', 18), ('I', '', 18),
+    ('C', '', 4), ('R', '', 0),
+    ('G', 'GLO', 0), ('G', 'BDT', 4),
+])
+def test_rinex_obs_time_systems(write_time_rinex, file_system, time_system, second):
+    """Equivalent epochs in supported time systems must have equal GPS millis."""
+    # RINEX 3.05 section 4.1: UTC 00:00:00.25 is GPS 00:00:18.25 and
+    # BDT 00:00:04.25 on 2020-01-01. Use independent calendar arithmetic.
+    path = write_time_rinex(file_system, time_system,
+                           datetime(2020, 1, 1, 0, 0, second, 250000))
+    observations = RinexObs(path)
+    expected = (datetime(2020, 1, 1, 0, 0, 18, 250000)
+                - datetime(1980, 1, 6)).total_seconds() * 1000
+    np.testing.assert_allclose(observations['gps_millis'],
+                               [expected, expected + 1000], rtol=0, atol=1e-3)
+    np.testing.assert_array_equal(observations['raw_pr_m'], [22000000, 22000001])
+
+
+@pytest.mark.parametrize("time_system", ['GPS', 'GLO'])
+def test_rinex_obs_time_system_leap_boundary(write_time_rinex, time_system):
+    """Apply the UTC offset across a leap-second boundary only to GLO epochs."""
+    epoch = datetime(2016, 12, 31, 23, 59, 59, 250000)
+    path = write_time_rinex('M', time_system, epoch)
+    observations = RinexObs(path)
+    if time_system == 'GPS':
+        expected = [(epoch - datetime(1980, 1, 6)).total_seconds() * 1000]
+        expected.append(expected[0] + 1000)
+    else:
+        # GPS-UTC changes from 17 to 18 seconds at 2017-01-01 UTC.
+        expected = [(datetime(2017, 1, 1, 0, 0, second, 250000)
+                     - datetime(1980, 1, 6)).total_seconds() * 1000
+                    for second in (16, 18)]
+    np.testing.assert_allclose(observations['gps_millis'], expected, rtol=0, atol=1e-3)
+
+
+@pytest.mark.parametrize("time_system", ['', 'BAD'])
+def test_rinex_obs_unknown_time_system(write_time_rinex, time_system):
+    """Reject missing or unknown mixed-file time systems instead of assuming UTC."""
+    path = write_time_rinex('M', time_system, datetime(2020, 1, 1))
+    with pytest.raises(ValueError, match="time system"):
+        RinexObs(path)
+
+
+def test_rinex_obs_gps_epoch(rinex_single_values):
+    """The existing GPS-time sample must not gain a UTC leap-second offset."""
+    expected = (datetime(2022, 7, 1, 18, 50, 30, 444669)
+                - datetime(1980, 1, 6)).total_seconds() * 1000
+    np.testing.assert_allclose(np.min(rinex_single_values['gps_millis']),
+                               expected, rtol=0, atol=1e-3)

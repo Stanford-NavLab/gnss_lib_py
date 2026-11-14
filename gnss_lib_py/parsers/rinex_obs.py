@@ -10,7 +10,8 @@ import georinex as gr
 
 from gnss_lib_py.navdata.navdata import NavData
 import gnss_lib_py.utils.constants as consts
-from gnss_lib_py.utils.time_conversions import datetime_to_gps_millis
+from gnss_lib_py.utils.time_conversions import (datetime_to_gps_millis,
+                                               gps_datetime_to_gps_millis)
 from gnss_lib_py.navdata.operations import sort, concat
 
 class RinexObs(NavData):
@@ -45,8 +46,12 @@ class RinexObs(NavData):
 
         """
 
-        obs_file = gr.load(input_path).to_dataframe()
+        obs_file = gr.load(input_path)
+        default_time_system = obs_file.attrs.get('time_system', '')
+        obs_file = obs_file.to_dataframe()
         obs_header = gr.rinexheader(input_path)
+        time_system = (obs_header.get('TIME OF FIRST OBS', '')[48:51].strip()
+                       or default_time_system)
         obs_measure_types = obs_header['fields']
         rx_bands = []
         for rx_measures in obs_measure_types.values():
@@ -56,10 +61,16 @@ class RinexObs(NavData):
                     rx_bands.append(band)
         obs_file.dropna(how='all', inplace=True)
         obs_file.reset_index(inplace=True)
-        # Convert time to gps_millis
+        # RINEX 3.05 section 4.1: GLO uses UTC; BDT is 14 seconds behind GPS.
         datetime_series = [d.to_pydatetime().replace(tzinfo=timezone.utc)
                            for d in obs_file["time"]]
-        obs_file['gps_millis'] = datetime_to_gps_millis(datetime_series)
+        if time_system not in ('GPS', 'GAL', 'QZS', 'IRN', 'BDT', 'GLO', 'UTC'):
+            raise ValueError(f"Unsupported RINEX observation time system: {time_system!r}")
+        time_converter = (datetime_to_gps_millis if time_system in ('GLO', 'UTC')
+                          else gps_datetime_to_gps_millis)
+        obs_file['gps_millis'] = time_converter(datetime_series)
+        if time_system == 'BDT':
+            obs_file['gps_millis'] += 14000
         obs_file = obs_file.drop(columns=['time'])
         obs_file = obs_file.rename(columns={"sv":"sv_id"})
         # Convert gnss_sv_id to gnss_id and sv_id (plus gnss_sv_id)
