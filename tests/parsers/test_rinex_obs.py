@@ -248,3 +248,57 @@ def test_z_tracking(root_path):
 
     parsed_observation_codes = np.unique(rinex_navdata["observation_code"])
     assert sorted(expected_observation_codes) == sorted(parsed_observation_codes)
+
+
+@pytest.mark.parametrize("version, band, expected_signal", [
+    ("3.02", "1I", "b1"),
+    ("3.02", "1Q", "b1"),
+    ("3.02", "1X", "b1"),
+    ("3.02", "2I", "b1"),
+    ("3.02", "2Q", "b1"),
+    ("3.02", "2X", "b1"),
+    ("3.03", "2X", "b1"),
+    ("3.04", "1X", "b1c"),
+    ("3.05", "1X", "b1c"),
+])
+def test_beidou_b1_rinex_versions(tmp_path, version, band, expected_signal):
+    """Parse legacy B1 codes without changing modern B1C or GPS L1C.
+
+    RINEX 3.05 Table 19 treats BeiDou 1I/Q/X and 2I/Q/X as equivalent
+    in RINEX 3.02 files. In modern files, BeiDou 1X instead denotes B1C.
+    """
+    header = [
+        (f"     {version}           OBSERVATION DATA    M", "RINEX VERSION / TYPE"),
+        ("gnss_lib_py test", "PGM / RUN BY / DATE"),
+        (f"C    4 C{band} L{band} D{band} S{band}", "SYS / # / OBS TYPES"),
+        ("G    4 C1X L1X D1X S1X", "SYS / # / OBS TYPES"),
+        ("  2020     1     1     0     0    0.0000000     GPS", "TIME OF FIRST OBS"),
+        ("", "END OF HEADER"),
+    ]
+    contents = "".join(f"{value:60s}{label}\n" for value, label in header)
+    values = {
+        "C01": [[22000000.0, 110000000.0, -1000.0, 45.0],
+                [22000010.0, 110000002.0, -1001.0, 46.0]],
+        "G01": [[23000000.0, 120000000.0, -2000.0, 42.0],
+                [23000020.0, 120000004.0, -2002.0, 43.0]],
+    }
+    for second in (0, 1):
+        contents += f"> 2020 01 01 00 00 {second:10.7f}  0  2\n"
+        for satellite, measurements in values.items():
+            contents += satellite
+            contents += "".join(f"{value:14.3f}  " for value in measurements[second])
+            contents += "\n"
+    rinex_path = tmp_path / "beidou_b1.rnx"
+    rinex_path.write_text(contents, encoding="ascii")
+
+    observations = RinexObs(rinex_path)
+    assert len(observations) == 4
+    beidou = observations.where("gnss_id", "beidou")
+    gps = observations.where("gnss_id", "gps")
+    np.testing.assert_array_equal(beidou["signal_type"], [expected_signal] * 2)
+    np.testing.assert_array_equal(beidou["observation_code"], [band] * 2)
+    np.testing.assert_array_equal(gps["signal_type"], ["l1"] * 2)
+    np.testing.assert_array_equal(gps["observation_code"], ["1X"] * 2)
+    rows = ["raw_pr_m", "carrier_phase", "raw_doppler_hz", "cn0_dbhz"]
+    np.testing.assert_array_equal(beidou[rows], np.asarray(values["C01"]).T)
+    np.testing.assert_array_equal(gps[rows], np.asarray(values["G01"]).T)
