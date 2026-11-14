@@ -27,10 +27,19 @@ def test_plot_map(gtruth, state_estimate):
 
     fig = plot_map.plot_map(gtruth, state_estimate, save=False)
     assert isinstance(fig, go.Figure)
+    assert fig.layout.map.style == "carto-voyager"
+
+    # Test custom map_style and legacy mapbox_style
+    fig_custom = plot_map.plot_map(gtruth, state_estimate, map_style="carto-positron", save=False)
+    assert fig_custom.layout.map.style == "carto-positron"
+
+    fig_legacy = plot_map.plot_map(gtruth, state_estimate, mapbox_style="carto-darkmatter", save=False)
+    assert fig_legacy.layout.map.style == "carto-darkmatter"
 
     figs = plot_map.plot_map(gtruth, state_estimate,sections=3, save=False)
     for fig in figs:
         assert isinstance(fig, go.Figure)
+        assert fig.layout.map.style == "carto-voyager"
 
     with pytest.raises(TypeError) as excinfo:
         plot_map.plot_map([], state_estimate, save=False)
