@@ -5,8 +5,9 @@ Development Guides
 
 Here are a set of detailed guides depending on if you are a :ref:`public user<standard_dev>`,
 :ref:`Stanford NAV Lab member<navlab_dev>`, or a project maintainer
-:ref:`reviewing pull requests<pr_review>` or
-:ref:`creating new release branches<release_workflow>`.
+:ref:`reviewing pull requests<pr_review>`,
+:ref:`creating new release branches<release_workflow>`, or
+:ref:`updating dependencies and GitHub workflows<dependency_workflow>`.
 
 .. _standard_dev:
 
@@ -300,3 +301,84 @@ New Package Release Workflow
 5. Allow time for the release to build and then check
    `pypi <https://pypi.org/project/gnss-lib-py/>`__
    to ensure that the release was built successfully.
+
+.. _dependency_workflow:
+
+Updating Dependencies and GitHub Workflows
+------------------------------------------
+
+``gnss_lib_py`` uses a dual dependency structure:
+
+* **Poetry** (``pyproject.toml`` and ``poetry.lock``) serves as the primary source of
+  truth for defining and locking package dependencies and their exact versions.
+* **Requirements files** (``requirements.txt`` and ``docs/source/requirements.txt``)
+  are exported artifacts generated directly from ``poetry.lock``. They are consumed
+  by ``pip install -r requirements.txt``, Conda setups, ReadTheDocs, and CI workflows.
+
+1. Check GitHub Actions & CI workflows.
+   Rather than manually reviewing each action in ``.github/workflows/*.yml`` and
+   ``.readthedocs.yaml``, ``gnss_lib_py`` includes a standard-library script that
+   automatically checks all workflow dependencies:
+
+   .. code-block:: bash
+
+      python scripts/check_workflow_updates.py
+
+   If updates are reported:
+
+   a. **Update GitHub Actions**: In ``.github/workflows/*.yml``, bump the action version tag
+      (e.g., updating ``actions/checkout@v6`` to ``actions/checkout@v7``).
+   b. **Update Poetry in CI**: Update the ``version: X.Y.Z`` field under ``snok/install-poetry``
+      in both ``.github/workflows/build.yml`` and ``.github/workflows/pylint.yml``.
+   c. **Update Python Matrix** (if Python versions were added or deprecated):
+
+      * Update ``matrix.python-version`` in ``.github/workflows/build.yml``.
+      * Update the single Python test version in ``.github/workflows/pip-install.yml``,
+        ``.github/workflows/pylint.yml``, and ``.github/workflows/pypi-release.yml``.
+      * Update ``build.tools.python`` in ``.readthedocs.yaml``.
+      * Update ``python = ">=3.10, < 3.15"`` in ``pyproject.toml``. Consider
+        updating the dependency major versions in ``pyproject.toml`` at the
+        same time if necessary.
+      * Update references in ``docs/source/install.rst`` and
+        ``.github/ISSUE_TEMPLATE/bug_report.md``.
+
+2. Update Python dependencies with Poetry. For routine updates and security
+   vulnerability fixes, run :code:`poetry update` directly:
+
+   .. code-block:: bash
+
+      poetry update
+
+
+   After ``poetry.lock`` is updated, synchronize your active virtual environment:
+
+   .. code-block:: bash
+
+      poetry install --sync
+
+3. Export and sync requirements files.
+   ``gnss_lib_py`` maintains two exported requirements files:
+
+   * ``./requirements.txt``: Root requirements file containing only the core runtime
+     dependencies. Used for ``pip install -r requirements.txt``, Conda setups, and
+     tested by ``.github/workflows/pip-install.yml``.
+   * ``./docs/source/requirements.txt``: Contains core dependencies plus the ``dev``
+     group dependencies (Sphinx, nbsphinx, notebook, etc.). Used by ReadTheDocs
+     (defined in ``.readthedocs.yaml``) and for local documentation builds.
+
+   Whenever ``poetry.lock`` changes, re-export both files:
+
+   .. code-block:: bash
+
+      # 1. Export core requirements for pip/conda
+      poetry run poetry export -f requirements.txt --output ./requirements.txt --without-hashes
+
+      # 2. Export documentation requirements (including dev dependencies)
+      poetry run poetry export -f requirements.txt --output ./docs/source/requirements.txt --with dev --without-hashes
+
+   .. tip::
+      Running ``./build_docs.sh`` also performs both exports automatically before generating
+      the Sphinx documentation.
+
+4. Perform the usual pytest and pylint checks and open a pull request
+   targeting the latest version release branch (``vX.Y.Z``).
