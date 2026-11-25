@@ -495,41 +495,41 @@ def test_issue_192_minimal_reproduction(): # pylint: disable=too-many-locals
     # 1. datetime <--> tow
     week, tow = tc.datetime_to_tow(utc_input)
     assert week == expected_week
-    assert tow == pytest.approx(expected_tow)
+    assert tow == pytest.approx(expected_tow, rel=0, abs=1e-6)
     utc_from_tow = tc.tow_to_datetime(week, tow)
     assert utc_from_tow == utc_input
 
     # 2. datetime <--> gps_millis
     gps_ms = tc.datetime_to_gps_millis(utc_input)
-    assert gps_ms == pytest.approx(expected_gps_ms)
+    assert gps_ms == pytest.approx(expected_gps_ms, rel=0, abs=1e-3)
     utc_from_gps_ms = tc.gps_millis_to_datetime(gps_ms)
     assert utc_from_gps_ms == utc_input
 
     # 3. datetime <--> unix_millis
     unix_ms = tc.datetime_to_unix_millis(utc_input)
-    assert unix_ms == pytest.approx(expected_unix_ms)
+    assert unix_ms == pytest.approx(expected_unix_ms, rel=0, abs=1e-3)
     utc_from_unix_ms = tc.unix_millis_to_datetime(unix_ms)
     assert utc_from_unix_ms == utc_input
 
     # 4. tow <--> unix_millis
     unix_ms_from_tow = tc.tow_to_unix_millis(expected_week, expected_tow)
-    assert unix_ms_from_tow == pytest.approx(expected_unix_ms)
+    assert unix_ms_from_tow == pytest.approx(expected_unix_ms, rel=0, abs=1e-3)
     week_from_unix, tow_from_unix = tc.unix_millis_to_tow(expected_unix_ms)
     assert week_from_unix == expected_week
-    assert tow_from_unix == pytest.approx(expected_tow)
+    assert tow_from_unix == pytest.approx(expected_tow, rel=0, abs=1e-6)
 
     # 5. gps_millis <--> unix_millis
     unix_ms_from_gps = tc.gps_to_unix_millis(expected_gps_ms)
-    assert unix_ms_from_gps == pytest.approx(expected_unix_ms)
+    assert unix_ms_from_gps == pytest.approx(expected_unix_ms, rel=0, abs=1e-3)
     gps_ms_from_unix = tc.unix_to_gps_millis(expected_unix_ms)
-    assert gps_ms_from_unix == pytest.approx(expected_gps_ms)
+    assert gps_ms_from_unix == pytest.approx(expected_gps_ms, rel=0, abs=1e-3)
 
     # 6. tow <--> gps_millis
     gps_ms_from_tow = tc.tow_to_gps_millis(expected_week, expected_tow)
-    assert gps_ms_from_tow == pytest.approx(expected_gps_ms)
+    assert gps_ms_from_tow == pytest.approx(expected_gps_ms, rel=0, abs=1e-3)
     week_from_gps, tow_from_gps = tc.gps_millis_to_tow(expected_gps_ms)
     assert week_from_gps == expected_week
-    assert tow_from_gps == pytest.approx(expected_tow)
+    assert tow_from_gps == pytest.approx(expected_tow, rel=0, abs=1e-6)
 
 
 def test_leap_second_round_trips_all_modes(): # pylint: disable=too-many-locals
@@ -551,41 +551,41 @@ def test_leap_second_round_trips_all_modes(): # pylint: disable=too-many-locals
             assert dt_roundtrip == dt_orig
             wk_roundtrip, tow_roundtrip = tc.datetime_to_tow(dt_roundtrip)
             assert wk_roundtrip == week
-            assert tow_roundtrip == pytest.approx(tow)
+            assert tow_roundtrip == pytest.approx(tow, rel=0, abs=1e-6)
 
             # --- Mode 2: datetime <--> gps_millis ---
             gps_ms = tc.datetime_to_gps_millis(dt_orig)
             dt_from_ms = tc.gps_millis_to_datetime(gps_ms)
             assert dt_from_ms == dt_orig
             gps_ms_roundtrip = tc.datetime_to_gps_millis(dt_from_ms)
-            assert gps_ms_roundtrip == pytest.approx(gps_ms)
+            assert gps_ms_roundtrip == pytest.approx(gps_ms, rel=0, abs=1e-3)
 
             # --- Mode 3: datetime <--> unix_millis ---
             unix_ms = tc.datetime_to_unix_millis(dt_orig)
             dt_from_unix = tc.unix_millis_to_datetime(unix_ms)
             assert dt_from_unix == dt_orig
             unix_ms_roundtrip = tc.datetime_to_unix_millis(dt_from_unix)
-            assert unix_ms_roundtrip == pytest.approx(unix_ms)
+            assert unix_ms_roundtrip == pytest.approx(unix_ms, rel=0, abs=1e-3)
 
             # --- Mode 4: tow <--> unix_millis ---
             unix_from_tow = tc.tow_to_unix_millis(week, tow)
-            assert unix_from_tow == pytest.approx(unix_ms)
+            assert unix_from_tow == pytest.approx(unix_ms, rel=0, abs=1e-3)
             wk_from_unix, tow_from_unix = tc.unix_millis_to_tow(unix_from_tow)
             assert wk_from_unix == week
-            assert tow_from_unix == pytest.approx(tow)
+            assert tow_from_unix == pytest.approx(tow, rel=0, abs=1e-6)
 
             # --- Mode 5: gps_millis <--> unix_millis ---
             unix_from_gps = tc.gps_to_unix_millis(gps_ms)
-            assert unix_from_gps == pytest.approx(unix_ms)
+            assert unix_from_gps == pytest.approx(unix_ms, rel=0, abs=1e-3)
             gps_from_unix = tc.unix_to_gps_millis(unix_from_gps)
-            assert gps_from_unix == pytest.approx(gps_ms)
+            assert gps_from_unix == pytest.approx(gps_ms, rel=0, abs=1e-3)
 
             # --- Mode 6: tow <--> gps_millis ---
             gps_from_tow = tc.tow_to_gps_millis(week, tow)
-            assert gps_from_tow == pytest.approx(gps_ms)
+            assert gps_from_tow == pytest.approx(gps_ms, rel=0, abs=1e-3)
             wk_from_gps, tow_from_gps = tc.gps_millis_to_tow(gps_from_tow)
             assert wk_from_gps == week
-            assert tow_from_gps == pytest.approx(tow)
+            assert tow_from_gps == pytest.approx(tow, rel=0, abs=1e-6)
 
         # Also test array-based conversions for this leap second window
         dts_array = np.array([ls_utc + timedelta(seconds=s) for s in range(-5, 6)])
@@ -602,7 +602,7 @@ def test_leap_second_round_trips_all_modes(): # pylint: disable=too-many-locals
         np.testing.assert_array_equal(dts_from_unix, dts_array)
 
         unix_from_gps_arr = tc.gps_to_unix_millis(gps_ms_arr)
-        np.testing.assert_allclose(unix_from_gps_arr, unix_ms_arr)
+        np.testing.assert_allclose(unix_from_gps_arr, unix_ms_arr, rtol=0, atol=1e-3)
 
 
 def test_leap_second_insertion_behavior():
