@@ -4,11 +4,15 @@ on:
   pull_request_target:
     branches:
       - main
-      - v*.*.*
+      - 'v*.*.*'
     paths:
       - 'poetry.lock'
       - 'pyproject.toml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
   sync-requirements:

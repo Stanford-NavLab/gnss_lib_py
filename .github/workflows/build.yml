@@ -7,12 +7,17 @@ on:
   push:
     branches:
       - main
-      - v*.*.*
+    tags:
+      - 'v*.*.*'  # Triggers on release tags, not branches
   pull_request:
     branches:
       - main
-      - v*.*.*
+      - 'v*.*.*'  # Triggers when a PR is opened targeting these branches
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
   build:
@@ -23,6 +28,7 @@ jobs:
         python-version: ["3.10","3.11","3.12","3.13","3.14"]
         os: [ubuntu-latest, macos-latest, windows-latest]
       fail-fast : false
+      max-parallel: 3
     defaults:
       run:
         shell: bash
@@ -56,13 +62,25 @@ jobs:
     # Install pandoc for building docs
     - name: Install pandoc for Ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt install pandoc
+      run: |
+        sudo apt-get update -o Acquire::Retries=3
+        sudo apt-get install -y -o Acquire::Retries=3 pandoc
     - name: Install pandoc for Windows
       if: matrix.os == 'windows-latest'
-      run: choco install pandoc --no-progress
+      run: |
+        for attempt in 1 2 3; do
+          choco install pandoc --no-progress && break
+          if [ "$attempt" -eq 3 ]; then exit 1; fi
+          sleep 5
+        done
     - name: Install pandoc for MacOS
       if: matrix.os == 'macos-latest'
-      run: brew install pandoc
+      run: |
+        for attempt in 1 2 3; do
+          brew install pandoc && break
+          if [ "$attempt" -eq 3 ]; then exit 1; fi
+          sleep 5
+        done
 
     # Cache ephemeris data to prevent downloading files repeatedly
     - name: Cache ephemeris data
