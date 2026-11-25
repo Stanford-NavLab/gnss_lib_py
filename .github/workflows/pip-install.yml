@@ -4,9 +4,12 @@ on:
   pull_request:
     branches:
       - main
-      - v*.*.*
+      - 'v*.*.*'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
   build:
@@ -29,6 +32,17 @@ jobs:
         pip install -r requirements.txt
         pip install pytest pytest-env
         pip install -e .
+    # Cache ephemeris data to prevent downloading files repeatedly
+    - name: Cache ephemeris data
+      uses: actions/cache@v6
+      with:
+        path: |
+          data/ephemeris
+          data/unit_test/ephemeris_downloader_tests
+        key: ephem-${{ runner.os }}-${{ hashFiles('tests/utils/test_ephemeris_downloader.py') }}
+        restore-keys: |
+          ephem-${{ runner.os }}-
+          ephem-
     - name: Test on pytest
       run:
         pytest
