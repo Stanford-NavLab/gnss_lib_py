@@ -110,7 +110,6 @@ html_theme_options = {
     "includehidden" : True,
     # "titles_only" : True,
     "logo_only" : False,
-    "display_version" : True,
 }
 
 # document __init__ methods
