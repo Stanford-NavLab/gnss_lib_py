@@ -744,22 +744,36 @@ def test_load_ephemeris_gfz_fallback(monkeypatch, tmp_path):
         Temporary directory for test files.
 
     """
-    def mock_ftp_download(_url, ftp_path, dest_filepath, _verbose=False):
+    class FixedDatetime(datetime):
+        """Datetime subclass with frozen now() for deterministic date windowing."""
+
+        @classmethod
+        def now(cls, tz=None):
+            """Return fixed reference time 5 days after the requested date."""
+            return datetime(2026, 11, 9, 12, tzinfo=tz or timezone.utc)
+
+    attempted = []
+
+    def mock_ftp_download(_url, ftp_path, dest_filepath, *_args, **_kwargs):
+        attempted.append(ftp_path)
         if "GFZ0MGXRAP" in ftp_path:
             raise ftplib.error_perm(f"550 {ftp_path}: No such file")
         decompressed = dest_filepath.rsplit('.', 1)[0]
         with open(decompressed, "w", encoding="utf-8") as file_handle:
             file_handle.write("dummy")
 
+    monkeypatch.setattr(ed, "datetime", FixedDatetime)
     monkeypatch.setattr(ed, "_ftp_download", mock_ftp_download)
 
     for file_type in ["sp3", "clk"]:
+        attempted.clear()
         paths = ed.load_ephemeris(file_type,
                                   tc.datetime_to_gps_millis(datetime(2026, 11, 4, 12,
                                                             tzinfo=timezone.utc)),
                                   download_directory=str(tmp_path),
                                   verbose=True)
-        assert len(paths) > 0
+        assert any("GFZ0MGXRAP" in path for path in attempted)
+        assert len(paths) == 1
         assert "COD0OPSRAP" in paths[0]
         assert os.path.exists(paths[0])
 

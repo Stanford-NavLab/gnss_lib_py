@@ -85,6 +85,16 @@ def test_get_leap_seconds(check_leapseconds):
     with pytest.raises(RuntimeError):
         _ = tc.get_leap_seconds(-1000.0)
 
+    # Testing that non-finite numeric inputs fail fast
+    for non_finite in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ValueError, match="finite"):
+            _ = tc.get_leap_seconds(non_finite)
+        with pytest.raises(ValueError, match="finite"):
+            _ = tc.tow_to_datetime(0, non_finite)
+
+    with pytest.raises(RuntimeError):
+        _ = tc.tow_to_datetime(0, -1.0)
+
 def test_datetime_to_tow():
     """Test that datetime conversion to GPS or UTC secs does not fail.
 

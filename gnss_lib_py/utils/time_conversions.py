@@ -84,6 +84,8 @@ def get_leap_seconds(gps_time):
         transitions = LEAPSECONDS_TABLE[:-1]
     else:
         curr_time = float(gps_time)
+        if not np.isfinite(curr_time):
+            raise ValueError("Input gps_time must be finite")
         if curr_time < 0:
             raise RuntimeError("Need input time after GPS epoch " \
                                + str(GPS_EPOCH_0))
