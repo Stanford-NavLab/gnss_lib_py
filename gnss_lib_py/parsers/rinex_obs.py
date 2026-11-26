@@ -74,6 +74,11 @@ class RinexObs(NavData):
         # into glp row and columns format
         info_rows = ['gps_millis', 'gnss_sv_id', 'sv_id', 'gnss_id']
         super().__init__()
+        signal_type_dict = self._signal_type_dict()
+        # RINEX 3.05 Table 19: these BeiDou B1 aliases apply only to 3.02.
+        # In newer versions, 1X identifies B1C instead.
+        if obs_header['version'] == 3.02:
+            signal_type_dict['beidou'].update({'1I': 'b1', '1Q': 'b1', '1X': 'b1'})
         for band in rx_bands:
             rename_map = {}
             keep_rows = info_rows.copy()
@@ -99,7 +104,6 @@ class RinexObs(NavData):
 
             # Assign the gnss_lib_py standard names for signal_type
             rx_constellations = np.unique(band_navdata['gnss_id'])
-            signal_type_dict = self._signal_type_dict()
             signal_types = np.empty(len(band_navdata), dtype=object)
             observation_codes = np.empty(len(band_navdata), dtype=object)
             for constellation in rx_constellations:
