@@ -537,11 +537,10 @@ def gps_to_unix_millis(gps_millis):
     # leap seconds here
     if isinstance(gps_millis, np.ndarray) \
         and len(np.atleast_1d(gps_millis)) > 1:
-        unix_millis = np.zeros_like(gps_millis)
+        unix_millis = np.zeros_like(gps_millis, dtype=np.float64)
         for t_idx, gps in enumerate(gps_millis):
             t_utc = gps_millis_to_datetime(gps)
             unix_millis[t_idx] = datetime_to_unix_millis(t_utc)
-        unix_millis = unix_millis.astype(np.float64)
     else:
         t_utc = gps_millis_to_datetime(gps_millis)
         unix_millis = np.float64(datetime_to_unix_millis(t_utc))
