@@ -1,0 +1,34 @@
+name: colab-test
+
+on:
+  pull_request:
+    branches:
+      - main
+      - v*.*.*
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays at 00:00 UTC to monitor for upstream Colab runtime changes
+    - cron: '0 0 * * 0'
+
+jobs:
+  colab-runtime:
+    name: Google Colab Runtime Environment Test
+    runs-on: ubuntu-latest
+    container:
+      image: us-docker.pkg.dev/colab-images/public/runtime:latest
+
+    steps:
+    - uses: actions/checkout@v7
+    - name: Display Colab environment details
+      run: |
+        python3 --version
+        pip --version
+    - name: Install gnss-lib-py in Colab environment
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-env
+        pip install -e .
+    - name: Run unit tests with pytest
+      run: |
+        pytest
