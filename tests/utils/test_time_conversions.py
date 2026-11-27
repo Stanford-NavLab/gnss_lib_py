@@ -275,6 +275,31 @@ def test_gps_unix_millis_vect():
     np.testing.assert_almost_equal(unix_millis_vect, rev_unix_millis_vect)
 
 
+@pytest.mark.parametrize(
+    ("dtype", "gps_values"),
+    [
+        (np.int64, [408243000000, 408243001000, 408243002000]),
+        # Values above the int32 range used to overflow while being written
+        # into an output buffer that had the dtype of the input.
+        (np.int32, [900000000, 900001000, 900002000]),
+    ],
+)
+def test_gps_to_unix_millis_integer_array(dtype, gps_values):
+    """Vectorized gps_to_unix_millis must return floats for integer inputs.
+
+    The vectorized branch of :func:`gps_to_unix_millis` allocates its output
+    with ``np.zeros_like`` of the input, so an integer input array used to
+    be returned as an integer array, unlike the scalar branch and unlike
+    :func:`unix_to_gps_millis`, both of which always return ``float64``.
+    The documented return type is ``float``.
+    """
+    gps_millis = np.array(gps_values, dtype=dtype)
+    unix_millis = tc.gps_to_unix_millis(gps_millis)
+    expected = np.array([tc.gps_to_unix_millis(gps) for gps in gps_millis])
+    assert unix_millis.dtype == np.dtype(np.float64)
+    np.testing.assert_array_equal(unix_millis, expected)
+
+
 def test_tz_conversion():
     """Checking internal timezone conversions to UTC
 
